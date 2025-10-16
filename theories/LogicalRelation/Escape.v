@@ -17,6 +17,7 @@ Section Escapes.
     - intros [???? [] []] _ _; prod_splitter;[ | | eapply convty_exp]; gtyping.
     - intros []; prod_splitter; [| |eapply convty_exp]; gtyping.
     - intros []; prod_splitter; [| |eapply convty_exp]; gtyping.
+    - intros []; prod_splitter; [| |eapply convty_exp]; gtyping.
     - intros [???? [] []] _ _; prod_splitter; [| |eapply convty_exp]; gtyping.
     - intros [] _ ; prod_splitter; [| |eapply convty_exp]; gtyping.
   Qed.
@@ -59,6 +60,12 @@ Section Escapes.
     - intros NA ? []; prod_splitter.
       1,2: (eapply ty_conv; [gtyping|now symmetry]).
       destruct NA; eapply convtm_wfexp.
+      1-3: gen_typing.
+      2: now eapply urefl.
+      tea.
+    - intros BA ? []; prod_splitter.
+      1,2: (eapply ty_conv; [gtyping|now symmetry]).
+      destruct BA; eapply convtm_wfexp.
       1-3: gen_typing.
       2: now eapply urefl.
       tea.

@@ -74,6 +74,10 @@ Proof.
     unfold graph.
     simp _conv conv_ty_red ; cbn.
     econstructor.
+  - intros.
+    unfold graph.
+    simp _conv conv_ty_red ; cbn.
+    econstructor.
   - intros * HA [IHA] HB [IHB] **; cbn in *.
     unfold graph.
     simp _conv conv_ty_red ; cbn.
@@ -127,6 +131,18 @@ Proof.
     1: exact IHz.
     econstructor.
     1: exact IHs.
+    now econstructor.
+  - intros * ? [IHn ?] ? [IHP] ? [IHt] ? [IHf] **.
+    unfold graph.
+    simp _conv conv_ne ; cbn.
+    econstructor.
+    1: exact (IHn tt).
+    econstructor.
+    1: exact (IHP tt).
+    econstructor.
+    1: exact IHt.
+    econstructor.
+    1: exact IHf.
     now econstructor.
   - intros * ? [IHe ?] ? [IHP] **.
     unfold graph.
@@ -199,6 +215,18 @@ Proof.
     simp _conv conv_tm_red; cbn.
     patch_rec_ret; econstructor.
     1: exact IHt.
+    now constructor.
+  - intros.
+    unfold graph.
+    simp _conv conv_tm_red.
+    now constructor.
+  - intros.
+    unfold graph.
+    simp _conv conv_tm_red.
+    now constructor.
+  - intros.
+    unfold graph.
+    simp _conv conv_tm_red.
     now constructor.
   - intros.
     unfold graph.
@@ -286,6 +314,7 @@ all: try solve [case c ; constructor].
 - constructor.
 - eapply (ne_view1_dest _ (eApp _)).
 - eapply (ne_view1_dest _ (eNatElim _ _ _)).
+- eapply (ne_view1_dest _ (eBoolElim _ _ _)).
 - eapply (ne_view1_dest _ (eEmptyElim _)).
 - eapply (ne_view1_dest _ eFst).
 - eapply (ne_view1_dest _ eSnd).
@@ -316,7 +345,7 @@ Proof.
   all: unfold graph in *.
   all: simp typing typing_inf typing_wf_ty typing_inf_red typing_check.
   (* Well formed types *)
-  1-5:repeat match goal with | |- orec_graph (typing conv) _ _ => patch_rec_ret ; econstructor ; try eauto ; cbn end.
+  1-6:repeat match goal with | |- orec_graph (typing conv) _ _ => patch_rec_ret ; econstructor ; try eauto ; cbn end.
   - cbn in *.
     econstructor.
     1: exact (g1 tt).
@@ -359,6 +388,18 @@ Proof.
     now constructor.
   - econstructor.
     1: exact (g2 tt whnf_tNat).
+    econstructor.
+    1: exact (g1 tt).
+    econstructor.
+    1: exact g0.
+    econstructor.
+    1: exact g.
+    now constructor.
+  - now constructor.
+  - now constructor.
+  - now constructor.
+  - econstructor.
+    1: exact (g2 tt whnf_tBool).
     econstructor.
     1: exact (g1 tt).
     econstructor.

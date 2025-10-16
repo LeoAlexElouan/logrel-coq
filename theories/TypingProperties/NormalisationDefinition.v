@@ -30,6 +30,12 @@ with dnf_tm : context -> term -> term -> Type :=
 | termDeepSucc {Γ t} :
     dnorm_tm Γ tNat t ->
     dnf_tm Γ tNat (tSucc t)
+| termDeepBool {Γ} :
+    dnf_tm Γ U tBool
+| termDeepTrue {Γ} :
+    dnf_tm Γ tBool tTrue
+| termDeepFalse {Γ} :
+    dnf_tm Γ tBool tFalse
 | termDeepEmpty {Γ} :
     dnf_tm Γ U tEmpty
 | termDeepFun {Γ f A B} :
@@ -72,6 +78,12 @@ with dneu : context -> term -> term -> Type :=
   dnorm_tm Γ P[tZero..] hz ->
   dnorm_tm Γ (elimSuccHypTy P) hs ->
   dneu Γ P[n..] (tNatElim P hz hs n)
+| neuDeepBoolElim {Γ n P ht hf} :
+  dneu_red Γ tBool n ->
+  dnorm_ty (Γ,,tBool) P ->
+  dnorm_tm Γ P[tTrue..] ht ->
+  dnorm_tm Γ P[tFalse..] hf ->
+  dneu Γ P[n..] (tBoolElim P ht hf n)
 | neuDeepEmptyElim {Γ P n} :
   dneu_red Γ tEmpty n ->
   dnorm_ty (Γ,,tEmpty) P ->
@@ -111,6 +123,8 @@ with dnf_ty : context -> term -> Type :=
   dnf_ty Γ (tProd A B)
 | typeDeepNat {Γ} :
   dnf_ty Γ tNat
+| typeDeepBool {Γ} :
+  dnf_ty Γ tBool
 | typeDeepEmpty {Γ} :
   dnf_ty Γ tEmpty
 | typeDeepSig {Γ A B} :
@@ -225,6 +239,12 @@ Proof.
     + now erewrite <- wk_up_ren_on.
     + now erewrite <- (wk_up_ren_on _ _ _ tNat), <- (subst_ren_wk_up (n := tZero) ρ).
     + now erewrite <- wk_up_ren_on, wk_elimSuccHypTy.
+  - intros.
+    erewrite subst_ren_wk_up.
+    econstructor ; eauto.
+    + now erewrite <- wk_up_ren_on.
+    + now erewrite <- (wk_up_ren_on _ _ _ tBool), <- (subst_ren_wk_up (n := tTrue) ρ).
+    + now erewrite <- (wk_up_ren_on _ _ _ tBool), <- (subst_ren_wk_up (n := tFalse) ρ).
   - intros.
     erewrite subst_ren_wk_up.
     econstructor ; eauto.

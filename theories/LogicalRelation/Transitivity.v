@@ -343,6 +343,27 @@ Section Transitivity.
       do 2 constructor; tea; now etransitivity.
   Qed.
 
+  Lemma transBoolPropEq {Γ} :
+    forall t u, BoolPropEq Γ t u -> forall v, BoolPropEq Γ u v -> BoolPropEq Γ t v.
+  Proof.
+    intros ?? [ | | ?? [?? conv]].
+    1,2: easy.
+    intros ? h; inversion h as [| | ?? []]; subst.
+    1,2: symmetry in conv; eapply convneu_whne in conv; inversion conv.
+    do 2 constructor; tea; now etransitivity.
+  Qed.
+
+  Lemma transBoolRedTmEq {Γ} :
+    forall t u, BoolRedTmEq Γ t u -> forall v, BoolRedTmEq Γ u v -> BoolRedTmEq Γ t v.
+  Proof.
+    intros ?? hL ? hR.
+    pose proof (equ := whredtm_det (whredtmR hL) (whredtmL hR)); cbn in equ.
+    destruct hL, hR; subst.
+    econstructor; tea.
+    - now etransitivity.
+    - now eapply transBoolPropEq.
+  Qed.
+
 
   Definition transLRU@{h i j k l h' i' j' k' l' v} {l1}
     (ih : forall l', l' << l1 ->
@@ -380,6 +401,9 @@ Section Transitivity.
     - intros NAB _ ??? [NBC]; subst; unshelve econstructor.
       + apply LRNat_; destruct NAB, NBC; now econstructor.
       + intros ???; cbn; intros ?; now eapply transNatRedTmEq.
+    - intros BAB _ ??? [BBC]; subst; unshelve econstructor.
+      + apply LRBool_; destruct BAB, BBC; now econstructor.
+      + intros ???; cbn; intros ?; now eapply transBoolRedTmEq.
     - intros EAB _ ??? [EBC]; subst; unshelve econstructor.
       + apply LREmpty_; destruct EAB, EBC; now econstructor.
       + intros ???; cbn; intros Rtu Ruv.

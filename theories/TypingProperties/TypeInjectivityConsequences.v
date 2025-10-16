@@ -93,6 +93,46 @@ Section TypeConstructors.
     now symmetry.
   Qed.
 
+  Corollary conv_bool_l Γ T :
+    isType T ->
+    [Γ |- tBool ≅ T] ->
+    T = tBool.
+  Proof.
+    unshelve eintros nfT [? Hconv%ty_conv_inj]%dup.
+    1-2: now gen_typing.
+    now destruct nfT, Hconv.
+  Qed.
+
+  Corollary red_compl_bool_l Γ T :
+    [Γ |- tBool ≅ T] ->
+    [Γ |- T ⤳* tBool].
+  Proof.
+    intros [? [T' []]%red_ty_complete_l]%dup.
+    2: now gen_typing.
+    enough (T' = tBool) as -> by easy.
+    eapply conv_bool_l ; eauto.
+    etransitivity ; [eassumption|now eapply RedConvTyC].
+  Qed.
+
+  Corollary conv_bool_r Γ T :
+    isType T ->
+    [Γ |- T ≅ tBool] ->
+    T = tBool.
+  Proof.
+    intros.
+    eapply conv_bool_l ; eauto.
+    now symmetry.
+  Qed.
+
+  Corollary red_compl_bool_r Γ T :
+    [Γ |- T ≅ tBool] ->
+    [Γ |- T ⤳* tBool].
+  Proof.
+    intros.
+    eapply red_compl_bool_l.
+    now symmetry.
+  Qed.
+
   Corollary conv_empty_l Γ T :
     isType T ->
     [Γ |- tEmpty ≅ T] ->
@@ -384,6 +424,15 @@ Section SubjectReduction.
     - apply termGen' in Hty as [?[[-> ???(?&[->]&?)%termGen']?]].
       now do 2 econstructor.
     - apply termGen' in Hty as [?[[->]?]].
+      econstructor; tea.
+      econstructor.
+      1-3: now econstructor.
+      now eapply IHHred.
+    - apply termGen' in Hty as [?[[->]?]].
+      now do 2 econstructor.
+    - apply termGen' in Hty as [?[[->]?]].
+      now do 2 econstructor.
+    - apply termGen' in Hty as [?[[->]?]].
       econstructor ; tea.
       econstructor.
       1: now econstructor.
@@ -591,6 +640,26 @@ Section WhClassification.
     all:
       match goal with
         H : [_ |-[de] _ ≅ tNat] |- _ => unshelve eapply ty_conv_inj in H as Hconv
+      end.
+    all: try now econstructor.
+    all: now cbn in Hconv.
+  Qed.
+
+  Lemma bool_isBool Γ t:
+    [Γ |-[de] t : tBool] ->
+    whnf t ->
+    isBool t.
+  Proof.
+    intros Hty Hwh.
+    destruct Hwh.
+    all: try now econstructor.
+    all: eapply termGen' in Hty ; cbn in *.
+    all: exfalso.
+    all: prod_hyp_splitter ; try easy.
+    all: subst.
+    all:
+      match goal with
+        H : [_ |-[de] _ ≅ tBool] |- _ => unshelve eapply ty_conv_inj in H as Hconv
       end.
     all: try now econstructor.
     all: now cbn in Hconv.

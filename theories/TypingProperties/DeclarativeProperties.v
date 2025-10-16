@@ -35,6 +35,7 @@ Section TypingWk.
       now constructor.
     - intros; now constructor.
     - intros; now constructor.
+    - intros; now constructor.
     - intros ?????? ih ** ; rewrite <- wk_sig.
       constructor; eauto.
       eapply ih; constructor; eauto.
@@ -82,6 +83,19 @@ Section TypingWk.
         now bsimpl.
       * rewrite wk_elimSuccHypTy.
         now eapply ihhs.
+      * now eapply ihn.
+    - intros; now constructor.
+    - intros; now constructor.
+    - intros; now constructor.
+    - intros * ? ihP ? ihht ? ihhf ? ihn **; cbn.
+      erewrite subst_ren_wk_up; eapply wfTermBoolElim.
+      * eapply ihP; econstructor; tea; now econstructor.
+      * eapply typing_meta_conv.
+        1: now eapply ihht.
+        now bsimpl.
+      * eapply typing_meta_conv.
+        1: now eapply ihhf.
+        now bsimpl.
       * now eapply ihn.
     - intros; now constructor.
     - intros * ? ihP ? ihe **; cbn.
@@ -216,6 +230,39 @@ Section TypingWk.
       * rewrite wk_elimSuccHypTy.
         now eapply ihhs.
       * now eapply ihn.
+    - intros * ? ihP ? ihht ? ihhf ? ihn **; cbn.
+      erewrite subst_ren_wk_up.
+      eapply TermBoolElimCong.
+      * eapply ihP; constructor; tea; now constructor.
+      * eapply convtm_meta_conv.
+        1: now eapply ihht.
+        2: reflexivity.
+        now bsimpl.
+      * eapply convtm_meta_conv.
+        1: now eapply ihhf.
+        2: reflexivity.
+        now bsimpl.
+      * now eapply ihn.
+    - intros * ? ihP ? ihht ? ihhf **.
+      erewrite subst_ren_wk_up.
+      eapply TermBoolElimTrue; fold ren_term.
+      * eapply ihP; constructor; tea; now constructor.
+      * eapply typing_meta_conv.
+        1: now eapply ihht.
+        now bsimpl.
+      * eapply typing_meta_conv.
+        1: now eapply ihhf.
+        now bsimpl.
+    - intros * ? ihP ? ihht ? ihhf **.
+      erewrite subst_ren_wk_up.
+      eapply TermBoolElimFalse; fold ren_term.
+      * eapply ihP; constructor; tea; now constructor.
+      * eapply typing_meta_conv.
+        1: now eapply ihht.
+        now bsimpl.
+      * eapply typing_meta_conv.
+        1: now eapply ihhf.
+        now bsimpl.
     - intros * ? ihP ? ihe **; cbn.
       erewrite subst_ren_wk_up.
       eapply TermEmptyElimCong.
@@ -555,6 +602,9 @@ Module WeakDeclarativeTypingProperties.
   - now do 2 econstructor.
   - now do 2 econstructor.
   - now econstructor.
+  - now do 2 econstructor.
+  - now do 2 econstructor.
+  - now do 2 econstructor.
   - intros.
     eapply TermTrans; [|now constructor].
     eapply TermTrans; [eapply TermSym; now constructor|].
@@ -577,6 +627,7 @@ Module WeakDeclarativeTypingProperties.
   - now intros ???? [].
   - intros ???; split; now econstructor.
   - intros ??????? [] ?; split; now econstructor.
+  - intros ???????????? []; split; now econstructor.
   - intros ???????????? []; split; now econstructor.
   - intros ?????? []; split; now econstructor.
   - intros ????? []; split; now econstructor.
@@ -603,14 +654,28 @@ Module WeakDeclarativeTypingProperties.
     + repeat (econstructor; tea).
     + eapply redalg_one_step; constructor.
     + now constructor.
+  - intros; split.
+    + repeat (econstructor; tea).
+      now eapply boundary_tm_ctx.
+    + eapply redalg_one_step; constructor.
+    + now constructor.
+  - intros; split.
+    + repeat (econstructor; tea).
+      now eapply boundary_tm_ctx.
+    + eapply redalg_one_step; constructor.
+    + now constructor.
   - intros; now eapply redtmdecl_app.
   - intros * ??? []; split.
     + repeat (constructor; tea).
     + now eapply redalg_natElim.
     + constructor; first [eassumption|now apply TermRefl|now apply TypeRefl].
+  - intros * ??? []; split.
+    + repeat (constructor; tea).
+    + now eapply redalg_boolElim.
+    + constructor; first [eassumption|now apply TermRefl|now apply TypeRefl].
   - intros * ? []; split.
     + repeat (constructor; tea).
-    + now eapply redalg_natEmpty.
+    + now eapply redalg_emptyElim.
     + constructor; first [eassumption|now apply TermRefl|now apply TypeRefl].
   - intros; split; refold.
     + econstructor; now constructor.

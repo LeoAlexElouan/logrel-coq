@@ -218,6 +218,18 @@ Proof.
   eapply ty_conv; eassumption.
 Qed.
 
+Lemma reflect_Bool {l Γ A B} (NA : [Γ ||-Bool A ≅ B]) : reflect (LRBool_ l NA).
+Proof.
+  red; intros; pose proof (whredL_conv (LRBool_ l NA)).
+  assert [Γ |- n : tBool] by now eapply ty_conv.
+  econstructor.
+  1,2: eapply redtmwf_refl; tea; now eapply ty_conv.
+  2: do 2 constructor; tea.
+  1: eapply convtm_convneu ; [now constructor|..].
+  1,3: eapply convneu_conv; [|eassumption]; tea.
+  eapply ty_conv; eassumption.
+Qed.
+
 Lemma reflect_Empty {l Γ A B} (NA : [Γ ||-Empty A ≅ B]) : reflect (LREmpty_ l NA).
 Proof.
   red; intros; pose proof (whredL_conv (LREmpty_ l NA)).
@@ -248,6 +260,7 @@ Proof.
   - now apply reflect_ne.
   - now apply reflect_Pi.
   - now apply reflect_Nat.
+  - now apply reflect_Bool.
   - now apply reflect_Empty.
   - now apply reflect_Sig.
   - now apply reflect_Id.

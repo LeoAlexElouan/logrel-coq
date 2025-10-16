@@ -365,6 +365,7 @@ Section Boundary.
       now eapply typing_wk.
   Qed.
 
+
   Lemma boundary : WfDeclInductionConcl
     (fun _ => True) (fun _ _ => True)
     (fun Γ A t => [Γ |- A])
@@ -379,6 +380,11 @@ Section Boundary.
       now econstructor.
     - intros.
       now eapply typing_subst1, prod_ty_inv.
+    - intros; gen_typing.
+    - intros; gen_typing.
+    - intros.
+      now eapply typing_subst1.
+    - intros; gen_typing.
     - intros; gen_typing.
     - intros; gen_typing.
     - intros.
@@ -471,7 +477,7 @@ Section Boundary.
           now boundary.
         * symmetry; now eapply typing_subst1.
     - intros **; split; tea.
-      eapply ty_natElim; tea; constructor; boundary.   
+      eapply ty_natElim; tea; constructor; boundary.
     - intros **.
       assert [Γ |- tSucc n : tNat] by now constructor.
       assert [Γ |- P[(tSucc n)..]] by now eapply typing_subst1.
@@ -482,6 +488,19 @@ Section Boundary.
       1: now eapply typing_subst1.
       replace (arr _ _) with (arr P P[tSucc (tRel 0)]⇑)[n..] by now bsimpl.
       eapply ty_app; tea.
+    - intros * ? [] ? [] ? [] ? []; split.
+      + now eapply typing_subst1.
+      + gen_typing.
+      + eapply ty_conv.
+        assert [Γ |-[de] tBool ≅ tBool] by now constructor.
+        1: eapply ty_boolElim; tea; eapply ty_conv; tea. 
+        * eapply typing_subst1; tea; do 2 constructor; boundary.
+        * eapply typing_subst1; tea; do 2 constructor; boundary.
+        * symmetry; now eapply typing_subst1.
+    - intros **; split; tea.
+      eapply ty_boolElim; tea; constructor; boundary.
+    - intros **; split; tea.
+      eapply ty_boolElim; tea; constructor; boundary.
     - intros * ? [] ? []; split.
       + now eapply typing_subst1.
       + gen_typing.

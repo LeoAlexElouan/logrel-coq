@@ -40,6 +40,7 @@ theories/LogicalRelation/Definition/Poly.v
 theories/LogicalRelation/Definition/Pi.v
 theories/LogicalRelation/Definition/Sig.v
 theories/LogicalRelation/Definition/Nat.v
+theories/LogicalRelation/Definition/Bool.v
 theories/LogicalRelation/Definition/Empty.v
 theories/LogicalRelation/Definition/Id.v
 theories/LogicalRelation/Definition/Def.v
@@ -67,6 +68,7 @@ theories/LogicalRelation/Introductions/Pi.v
 theories/LogicalRelation/Introductions/Application.v
 theories/LogicalRelation/Introductions/SimpleArr.v
 theories/LogicalRelation/Introductions/Nat.v
+theories/LogicalRelation/Introductions/Bool.v
 theories/LogicalRelation/Introductions/Empty.v
 theories/LogicalRelation/Introductions/Sigma.v
 theories/LogicalRelation/Introductions/Id.v
@@ -83,6 +85,7 @@ theories/Validity/Introductions/Application.v
 theories/Validity/Introductions/Lambda.v
 theories/Validity/Introductions/SimpleArr.v
 theories/Validity/Introductions/Nat.v
+theories/Validity/Introductions/Bool.v
 theories/Validity/Introductions/Empty.v
 theories/Validity/Introductions/Sigma.v
 theories/Validity/Introductions/Id.v

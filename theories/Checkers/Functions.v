@@ -114,6 +114,7 @@ Section Views.
     | tm_view1_fun A t : tm_view1 (tLambda A t)
     | tm_view1_rel n : tm_view1 (tRel n)
     | tm_view1_nat {t} : nat_entry t -> tm_view1 t
+    | tm_view1_bool {t} : bool_entry t -> tm_view1 t
     | tm_view1_sig A B a b : tm_view1 (tPair A B a b)
     | tm_view1_id A x : tm_view1 (tRefl A x)
     | tm_view1_dest t (s : dest_entry) : tm_view1 (zip1 t s).
@@ -129,6 +130,10 @@ Section Views.
     | tZero => tm_view1_nat (eZero)
     | tSucc t => tm_view1_nat (eSucc t)
     | tNatElim P hs hz t => tm_view1_dest t (eNatElim P hs hz)
+    | tBool => tm_view1_type (eBool)
+    | tTrue => tm_view1_bool (eTrue)
+    | tFalse => tm_view1_bool (eFalse)
+    | tBoolElim P ht hf t => tm_view1_dest t (eBoolElim P ht hf)
     | tEmpty => tm_view1_type (eEmpty)
     | tEmptyElim P t => tm_view1_dest t (eEmptyElim P)
     | tSig A B => tm_view1_type (eSig A B)
@@ -148,6 +153,7 @@ Section Views.
     | nf_view1_type {t} : ty_entry t -> nf_view1 t
     | nf_view1_fun A t : nf_view1 (tLambda A t)
     | nf_view1_nat {t} : nat_entry t -> nf_view1 t
+    | nf_view1_bool {t} : bool_entry t -> nf_view1 t
     | nf_view1_sig A B a b : nf_view1 (tPair A B a b)
     | nf_view1_id A x : nf_view1 (tRefl A x)
     | nf_view1_ne {t} : ne_view1 t -> nf_view1 t.
@@ -163,6 +169,10 @@ Section Views.
     | tZero => nf_view1_nat (eZero)
     | tSucc t => nf_view1_nat (eSucc t)
     | tNatElim P hs hz t => nf_view1_ne (ne_view1_dest t (eNatElim P hs hz))
+    | tBool => nf_view1_type (eBool)
+    | tTrue => nf_view1_bool (eTrue)
+    | tFalse => nf_view1_bool (eFalse)
+    | tBoolElim P ht hf t => nf_view1_ne (ne_view1_dest t (eBoolElim P ht hf))
     | tEmpty => nf_view1_type (eEmpty)
     | tEmptyElim P t => nf_view1_ne (ne_view1_dest t (eEmptyElim P))
     | tSig A B => nf_view1_type (eSig A B)
@@ -185,6 +195,7 @@ Section Views.
     | nf_view1_ne s => ty_view1_small s
     | nf_view1_fun _ _ 
     | nf_view1_nat _ 
+    | nf_view1_bool _ 
     | nf_view1_sig _ _ _ _ 
     | nf_view1_id _ _ => ty_view1_anomaly
     end.
@@ -197,6 +208,7 @@ Section Views.
     | ty_prods (A A' B B' : term) :
         nf_ty_view2 (tProd A B) (tProd A' B')
     | ty_nats : nf_ty_view2 tNat tNat
+    | ty_bools : nf_ty_view2 tBool tBool
     | ty_emptys : nf_ty_view2 tEmpty tEmpty
     | ty_sigs (A A' B B' : term) : nf_ty_view2 (tSig A B) (tSig A' B')
     | ty_ids A A' x x' y y' : nf_ty_view2 (tId A x y) (tId A' x' y')
@@ -213,6 +225,8 @@ Section Views.
           ty_prods A A' B B' ;
       | ty_view1_ty eNat, ty_view1_ty eNat :=
           ty_nats;
+      | ty_view1_ty eBool, ty_view1_ty eBool :=
+          ty_bools;
       | ty_view1_ty eEmpty, ty_view1_ty eEmpty :=
           ty_emptys;
       | ty_view1_ty (eSig A B), ty_view1_ty (eSig A' B') :=
@@ -244,6 +258,8 @@ Section Views.
   | functions A B t t' : nf_view3 (tProd A B) t t'
   | zeros : nf_view3 tNat tZero tZero
   | succs t t' : nf_view3 tNat (tSucc t) (tSucc t')
+  | trues : nf_view3 tBool tTrue tTrue
+  | falses : nf_view3 tBool tFalse tFalse
   | pairs A B t t' : nf_view3 (tSig A B) t t'
   | refls A x y A' x' A'' x'' : nf_view3 (tId A x y) (tRefl A' x') (tRefl A'' x'')
   | neutrals (A n n' : term) : nf_view3 A n n'
@@ -269,6 +285,22 @@ Section Views.
         | nf_view1_ne _, nf_view1_nat _ :=
             mismatch _ _ _ ;
         | nf_view1_nat _, nf_view1_ne _ :=
+            mismatch _ _ _ ;
+        | _, _ := anomaly _ _ _ ;
+      } ;
+    (** Booleans *)
+    | ty_view1_ty eBool with (build_nf_view1 t), (build_nf_view1 t') :=
+      {
+        | nf_view1_bool eTrue, nf_view1_bool eTrue :=
+          trues ;
+        | nf_view1_bool eFalse, nf_view1_bool eFalse :=
+          falses ;
+        | nf_view1_ne _, nf_view1_ne _ := neutrals _ _ _ ;
+        | nf_view1_bool _, nf_view1_bool _ :=
+            mismatch _ _ _ ;
+        | nf_view1_ne _, nf_view1_bool _ :=
+            mismatch _ _ _ ;
+        | nf_view1_bool _, nf_view1_ne _ :=
             mismatch _ _ _ ;
         | _, _ := anomaly _ _ _ ;
       } ;
@@ -309,6 +341,7 @@ Section Views.
     | ne_rels (n n' : nat) : ne_view2 (tRel n) (tRel n')
     | ne_apps f u f' u' : ne_view2 (tApp f u) (tApp f' u')
     | ne_nats n P hz hs n' P' hz' hs' : ne_view2 (tNatElim P hz hs n) (tNatElim P' hz' hs' n')
+    | ne_bools n P ht hf n' P' ht' hf' : ne_view2 (tBoolElim P ht hf n) (tBoolElim P' ht' hf' n')
     | ne_emptys n P n' P' : ne_view2 (tEmptyElim P n) (tEmptyElim P' n')
     | ne_fsts p p' : ne_view2 (tFst p) (tFst p')
     | ne_snds p p' : ne_view2 (tSnd p) (tSnd p')
@@ -323,6 +356,8 @@ Section Views.
           | ne_view1_dest f (eApp u), ne_view1_dest f' (eApp u') := ne_apps f u f' u' ;
           | ne_view1_dest n (eNatElim P hz hs), ne_view1_dest n' (eNatElim P' hz' hs') :=
               ne_nats n P hz hs n' P' hz' hs' ;
+          | ne_view1_dest n (eBoolElim P ht hf), ne_view1_dest n' (eBoolElim P' ht' hf') :=
+              ne_bools n P ht hf n' P' ht' hf' ;
           | ne_view1_dest n (eEmptyElim P), ne_view1_dest n' (eEmptyElim P') :=
               ne_emptys n P n' P' ;
           | ne_view1_dest p eFst, ne_view1_dest p' eFst :=
@@ -343,6 +378,7 @@ Section Views.
     | prods2 (A A' B B' : term) :
         nf_view2 (tProd A B) (tProd A' B')
     | nats2 : nf_view2 tNat tNat
+    | bools2 : nf_view2 tBool tBool
     | emptys2 : nf_view2 tEmpty tEmpty
     | sigs2 (A A' B B' : term) : nf_view2 (tSig A B) (tSig A' B')
     | ids2 A A' x x' y y' : nf_view2 (tId A x y) (tId A' x' y')
@@ -351,6 +387,8 @@ Section Views.
     | ne_lam2 n A' t' : nf_view2 n (tLambda A' t')
     | zeros2 : nf_view2 tZero tZero
     | succs2 t t' : nf_view2 (tSucc t) (tSucc t')
+    | trues2 : nf_view2 tTrue tTrue
+    | falses2 : nf_view2 tFalse tFalse
     | pairs2 A A' B B' t t' u u' :
         nf_view2 (tPair A B t u) (tPair A' B' t' u')
     | pair_ne2 A B t u n' :
@@ -376,6 +414,11 @@ Section Views.
       | _ := anomaly2 _ _ } ;
     | nf_view1_type eNat with (build_nf_view1 t') := {
       | nf_view1_type eNat := nats2 ;
+      | nf_view1_type _ := mismatch2 _ _ ;
+      | nf_view1_ne _ := mismatch2 _ _ ;
+      | _ := anomaly2 _ _ } ;
+    | nf_view1_type eBool with (build_nf_view1 t') := {
+      | nf_view1_type eBool := bools2 ;
       | nf_view1_type _ := mismatch2 _ _ ;
       | nf_view1_ne _ := mismatch2 _ _ ;
       | _ := anomaly2 _ _ } ;
@@ -408,6 +451,16 @@ Section Views.
       | nf_view1_nat eZero := mismatch2 _ _ ;
       | nf_view1_ne _ := mismatch2 _ _ ; 
       | _ := anomaly2 _ _ } ;
+    | nf_view1_bool eTrue with (build_nf_view1 t') := {
+      | nf_view1_bool eTrue := trues2 ;
+      | nf_view1_bool eFalse := mismatch2 _ _ ;
+      | nf_view1_ne _ := mismatch2 _ _ ; 
+      | _ := anomaly2 _ _ } ;
+    | nf_view1_bool eFalse with (build_nf_view1 t') := {
+      | nf_view1_bool eFalse := falses2 ;
+      | nf_view1_bool eTrue := mismatch2 _ _ ;
+      | nf_view1_ne _ := mismatch2 _ _ ; 
+      | _ := anomaly2 _ _ } ;
     | nf_view1_sig A B t u with (build_nf_view1 t') := {
       | nf_view1_sig A' B' t' u' := pairs2 A A' B B' t t' u u' ;
       | nf_view1_ne _ := pair_ne2 A B t u _ ; 
@@ -420,6 +473,7 @@ Section Views.
       | nf_view1_type _ := mismatch2 _ _ ;
       | nf_view1_fun A' t' := ne_lam2 _ A' t' ;
       | nf_view1_nat _ := mismatch2 _ _ ;
+      | nf_view1_bool _ := mismatch2 _ _ ;
       | nf_view1_sig A' B' t' u' := ne_pair2 _ A' B' t' u' ;
       | nf_view1_id _ _ := mismatch2 _ _ ;
       | nf_view1_ne _ := neutrals2 _ _ ;
@@ -458,6 +512,10 @@ Equations wh_red_stack : ∇(_ : term × stack), [False]⇒ term :=
   wh_red_stack (?(tZero)        ,cons (eNatElim _ hz _) π)    (tm_view1_nat eZero) := rec (hz,π) ;
   wh_red_stack (?(tSucc t)      ,cons (eNatElim P hz hs) π)   (tm_view1_nat (eSucc t)) := rec (hs ,cons (eApp t) (cons (eApp (tNatElim P hz hs t)) π)) ;
   wh_red_stack (t               ,cons _ _)                    (tm_view1_nat _) := undefined ;
+  wh_red_stack (t               ,nil)                         (tm_view1_bool _) := ret t ;
+  wh_red_stack (?(tTrue)        ,cons (eBoolElim _ ht _) π)   (tm_view1_bool eTrue) := rec (ht,π) ;
+  wh_red_stack (?(tFalse)        ,cons (eBoolElim _ _ hf) π)   (tm_view1_bool eFalse) := rec (hf,π) ;
+  wh_red_stack (t               ,cons _ _)                    (tm_view1_bool _) := undefined ;
   wh_red_stack (?(tPair A B a b),nil)                         (tm_view1_sig A B a b) := ret (tPair A B a b) ;
   wh_red_stack (?(tPair A B a b),cons eFst π)                 (tm_view1_sig A B a b) := rec (a , π) ;
   wh_red_stack (?(tPair A B a b),cons eSnd π)                 (tm_view1_sig A B a b) := rec (b , π) ;
@@ -544,6 +602,7 @@ Equations conv_ty_red : conv_stmt ty_red_state :=
         rec (ty_state;Γ;tt;A;A') ;;
         rec (ty_state;(Γ,,A);tt;B;B') ;
     | ty_nats := ok ;
+    | ty_bools := ok ;
     | ty_emptys := ok ;
     | ty_sigs A A' B B' :=
         rec (ty_state;Γ;tt;A;A') ;;
@@ -573,6 +632,7 @@ Equations conv_tm_red : conv_stmt tm_red_state :=
       rec (tm_state;Γ;tSort s;A;A') ;;
       rec (tm_state;Γ,,A;tSort s;B;B') ;
     | types _ ty_nats := ok ;
+    | types _ ty_bools := ok ;
     | types _ ty_emptys := ok ;
     | types s (ty_sigs A A' B B') :=
         rec (tm_state;Γ;tSort s;A;A') ;;
@@ -590,6 +650,8 @@ Equations conv_tm_red : conv_stmt tm_red_state :=
     | zeros := ok ;
     | succs t' u' :=
         rec (tm_state;Γ;tNat;t';u') ;
+    | trues := ok ;
+    | falses := ok ;
     | pairs A B t u :=
         rec (tm_state;Γ;A;tFst t; tFst u) ;;
         rec (tm_state;Γ; B[(tFst t)..]; tSnd t; tSnd u) ;
@@ -625,6 +687,16 @@ Equations conv_ne : conv_stmt ne_state :=
           rec (ty_state;(Γ,,tNat);tt;P;P') ;;
           rec (tm_state;Γ;P[tZero..];hz;hz') ;;
           rec (tm_state;Γ;elimSuccHypTy P;hs;hs') ;;
+          ret P[n..]
+      | _ => undefined
+      end ;
+    | ne_bools n P ht hf n' P' ht' hf' =>
+      rn ← rec (ne_red_state;Γ;tt;n;n') ;;
+      match rn with
+      | tBool =>
+          rec (ty_state;(Γ,,tBool);tt;P;P') ;;
+          rec (tm_state;Γ;P[tTrue..];ht;ht') ;;
+          rec (tm_state;Γ;P[tFalse..];hf;hf') ;;
           ret P[n..]
       | _ => undefined
       end ;
@@ -717,6 +789,7 @@ Equations uconv_tm_red : (term × term) -> M unit :=
         rec (tm_state,A,A') ;;
         rec (tm_state,B,B') ;
     | nats2 := ok ;
+    | bools2 := ok ;
     | emptys2 := ok ;
     | sigs2 A A' B B' :=
         rec (tm_state,A,A') ;;
@@ -734,6 +807,8 @@ Equations uconv_tm_red : (term × term) -> M unit :=
     | zeros2 := ok ;
     | succs2 t t' :=
         rec (tm_state,t,t') ;
+    | trues2 := ok ;
+    | falses2 := ok ;
     | pairs2 _ _ _ _ t t' u u' :=
         rec (tm_state,t,t') ;;
         rec (tm_state,u,u') ;
@@ -768,6 +843,12 @@ Equations uconv_ne : (term × term) -> M unit :=
     rec (tm_state,P,P') ;;
     rec (tm_state,hz,hz') ;;
     rec (tm_state,hs,hs')
+
+  | ne_bools n P ht hf n' P' ht' hf' :=
+    rec (ne_state,n,n') ;;
+    rec (tm_state,P,P') ;;
+    rec (tm_state,ht,ht') ;;
+    rec (tm_state,hf,hf')
 
   | ne_emptys n P n' P' :=
     rec (ne_state,n,n') ;;
@@ -858,6 +939,7 @@ Equations typing_wf_ty : typing_stmt wf_ty_state :=
         rec (wf_ty_state;Γ;tt;A) ;;[M]
         rec (wf_ty_state;Γ,,A;tt;B) ;
     | ty_view1_ty (eNat) := ok ;
+    | ty_view1_ty (eBool) := ok ;
     | ty_view1_ty (eEmpty) := ok ;
     | ty_view1_ty (eSig A B) :=
         rA ← rec (wf_ty_state;Γ;tt;A) ;;
@@ -921,6 +1003,19 @@ Equations typing_wf_ty : typing_stmt wf_ty_state :=
           rec (wf_ty_state;(Γ,,tNat);tt;P) ;;
           rec (check_state;Γ;P[tZero..];hz) ;;
           rec (check_state;Γ;elimSuccHypTy P;hs) ;;
+          ret P[n..]
+      | _ => raise type_error
+      end ;
+    | tBool := ret U ;
+    | tTrue := ret tBool ;
+    | tFalse := ret tBool ;
+    | tBoolElim P ht hf n :=
+      rn ← rec (inf_red_state;Γ;tt;n) ;;
+      match rn with
+      | tBool =>
+          rec (wf_ty_state;(Γ,,tBool);tt;P) ;;
+          rec (check_state;Γ;P[tTrue..];ht) ;;
+          rec (check_state;Γ;P[tFalse..];hf) ;;
           ret P[n..]
       | _ => raise type_error
       end ;

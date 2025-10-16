@@ -13,6 +13,9 @@ Inductive whnf : term -> Type :=
   | whnf_tNat : whnf tNat
   | whnf_tZero : whnf tZero
   | whnf_tSucc {n} : whnf (tSucc n)
+  | whnf_tBool : whnf tBool
+  | whnf_tTrue : whnf tTrue
+  | whnf_tFalse : whnf tFalse
   | whnf_tEmpty : whnf tEmpty
   | whnf_tSig {A B} : whnf (tSig A B)
   | whnf_tPair {A B a b} : whnf (tPair A B a b)
@@ -23,6 +26,7 @@ with whne : term -> Type :=
   | whne_tRel {v} : whne (tRel v)
   | whne_tApp {n t} : whne n -> whne (tApp n t)
   | whne_tNatElim {P hz hs n} : whne n -> whne (tNatElim P hz hs n)
+  | whne_tBoolElim {P ht hf n} : whne n -> whne (tBoolElim P ht hf n)
   | whne_tEmptyElim {P e} : whne e -> whne (tEmptyElim P e)
   | whne_tFst {p} : whne p -> whne (tFst p)
   | whne_tSnd {p} : whne p -> whne (tSnd p)
@@ -61,6 +65,7 @@ Inductive isType : term -> Type :=
   | UnivType {s} : isType (tSort s)
   | ProdType { A B} : isType (tProd A B)
   | NatType : isType tNat
+  | BoolType : isType tBool
   | EmptyType : isType tEmpty
   | SigType {A B} : isType (tSig A B)
   | IdType {A x y} : isType (tId A x y)
@@ -69,6 +74,7 @@ Inductive isType : term -> Type :=
 Inductive isPosType : term -> Type :=
   | UnivPos {s} : isPosType (tSort s)
   | NatPos : isPosType tNat
+  | BoolPos : isPosType tBool
   | EmptyPos : isPosType tEmpty
   | IdPos {A x y} : isPosType (tId A x y)
   | NePos {A}  : whne A -> isPosType A.
@@ -82,6 +88,11 @@ Inductive isNat : term -> Type :=
   | SuccNat {t} : isNat (tSucc t)
   | NeNat {n} : whne n -> isNat n.
 
+Inductive isBool : term -> Type :=
+  | TrueBool : isBool tTrue
+  | FalseBool : isBool tFalse
+  | NeBool {n} : whne n -> isBool n.
+  
 Inductive isPair : term -> Type :=
   | PairPair {A B a b} : isPair (tPair A B a b)
   | NePair {p} : whne p -> isPair p.
@@ -117,14 +128,21 @@ Definition isNat_whnf t (i : isNat t) : whnf t :=
   | NeNat n => whnf_whne n
   end.
 
+Definition isBool_whnf t (i : isBool t) : whnf t :=
+  match i with
+  | TrueBool => whnf_tTrue
+  | FalseBool => whnf_tFalse
+  | NeBool n => whnf_whne n
+  end.
+  
 Definition isId_whnf t (i : isId t) : whnf t :=
   match i with
   | ReflId => whnf_tRefl
   | NeId n => whnf_whne n
   end.
 
-#[global] Hint Resolve isPosType_isType isType_whnf isFun_whnf isNat_whnf isPair_whnf isId_whnf : gen_typing.
-#[global] Hint Constructors isPosType isType isFun isNat isId : gen_typing.
+#[global] Hint Resolve isPosType_isType isType_whnf isFun_whnf isNat_whnf isBool_whnf isPair_whnf isId_whnf : gen_typing.
+#[global] Hint Constructors isPosType isType isFun isNat isBool isId : gen_typing.
 
 Equations Derive Signature for isNat.
 
@@ -143,6 +161,30 @@ Proof.
 Qed.
 
 Lemma isNat_ne t (n : isNat t) : whne t -> ∑ w, n = NeNat w.
+Proof.
+  intros w.
+  depelim n.
+  1-2: now inversion w.
+  now eexists.
+Qed.
+
+Equations Derive Signature for isBool.
+
+Lemma isBool_true (n : isBool tTrue) : n = TrueBool.
+Proof.
+  depelim n.
+  1: easy.
+  inversion w.
+Qed.
+
+Lemma isBool_false (n : isBool tFalse) : n = FalseBool.
+Proof.
+  depelim n.
+  1: easy.
+  inversion w.
+Qed.
+
+Lemma isBool_ne t (n : isBool t) : whne t -> ∑ w, n = NeBool w.
 Proof.
   intros w.
   depelim n.
@@ -188,6 +230,12 @@ Proof.
   f_equal; eapply whne_uniq.
 Qed.
 
+Lemma isBool_uniq {t} (p q : isBool t) : p = q.
+Proof.
+  destruct p; depind q; try easy; try now inversion w.
+  f_equal; eapply whne_uniq.
+Qed.
+
 Lemma isId_uniq {t} (p q : isId t) : p = q.
 Proof.
   destruct p; depind q; try easy; try now inversion w.
@@ -204,6 +252,9 @@ Inductive isCanonical : term -> Type :=
   | can_tNat : isCanonical tNat
   | can_tZero : isCanonical tZero
   | can_tSucc {n} : isCanonical (tSucc n)
+  | can_tBool : isCanonical tBool
+  | can_tTrue : isCanonical tTrue
+  | can_tFalse : isCanonical tFalse
   | can_tEmpty : isCanonical tEmpty
   | can_tSig {A B} : isCanonical (tSig A B)
   | can_tPair {A B a b}: isCanonical (tPair A B a b)
@@ -245,6 +296,7 @@ Qed.
 Variant dest_entry : Type :=
 | eEmptyElim (P : term)
 | eNatElim (P : term) (hs hz : term)
+| eBoolElim (P : term) (ht hf : term)
 | eApp (u : term)
 | eFst
 | eSnd
@@ -254,6 +306,7 @@ Definition zip1 (t : term) (e : dest_entry) : term :=
 match e with
   | eEmptyElim P => (tEmptyElim P t)
   | eNatElim P hs hz => (tNatElim P hs hz t)
+  | eBoolElim P hs hz => (tBoolElim P hs hz t)
   | eApp u => (tApp t u)
   | eFst => tFst t
   | eSnd => tSnd t
@@ -272,6 +325,7 @@ Variant ty_entry : term -> Type :=
 | eSort s : ty_entry (tSort s)
 | eProd A B : ty_entry (tProd A B)
 | eNat : ty_entry tNat
+| eBool : ty_entry tBool
 | eEmpty : ty_entry tEmpty
 | eSig A B : ty_entry (tSig A B)
 | eId A x y : ty_entry (tId A x y).
@@ -279,6 +333,10 @@ Variant ty_entry : term -> Type :=
 Variant nat_entry : term -> Type :=
 | eZero : nat_entry tZero
 | eSucc t : nat_entry (tSucc t).
+
+Variant bool_entry : term -> Type :=
+| eTrue : bool_entry tTrue
+| eFalse : bool_entry tFalse.
 
 (** ** Normal and neutral forms are stable by renaming *)
 

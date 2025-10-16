@@ -115,6 +115,21 @@ Section Symmetry.
     - intros; constructor; now eapply symNeNf.
   Qed.
 
+  Lemma symBoolPropEq {Γ} :
+    forall t u, BoolPropEq Γ t u -> BoolPropEq Γ u t.
+  Proof.
+    intros ?? []; econstructor.
+    now eapply symNeNf.
+  Qed.
+
+  Lemma symBoolRedTmEq {Γ} :
+    forall t u, BoolRedTmEq Γ t u -> BoolRedTmEq Γ u t.
+  Proof.
+    intros ?? []; econstructor; tea.
+    2: now eapply symBoolPropEq.
+    now symmetry.
+  Qed.
+
 
   Section SymΣ.
     Context {Γ l A A'} (ΣA : [Γ ||-Σ<l> A ≅ A'])
@@ -249,6 +264,9 @@ Section Symmetry.
     - intros NA _; unshelve econstructor.
       + eapply LRNat_; destruct NA; now econstructor.
       + intros; cbn; split; eapply symNatRedTmEq.
+    - intros BA _; unshelve econstructor.
+      + eapply LRBool_; destruct BA; now econstructor.
+      + intros; cbn; split; eapply symBoolRedTmEq.
     - intros EA _; unshelve econstructor.
       + eapply LREmpty_; destruct EA; now econstructor.
       + intro; cbn; split; intros []; econstructor; tea; now eapply symNeNf.

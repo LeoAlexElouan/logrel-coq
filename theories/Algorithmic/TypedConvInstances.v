@@ -149,6 +149,15 @@ Qed.
     - intros_bn.
       1-2: gen_typing.
       now do 2 econstructor.
+    - intros_bn.
+      1-3: gen_typing.
+      now do 2 econstructor.
+    - intros_bn.
+      1-3: gen_typing.
+      now do 2 econstructor.
+    - intros_bn.
+      1-3: gen_typing.
+      now do 2 econstructor.
    - intros * [] [] [] ? [] ? [] []; constructor; tea.
       + boundary.
       + eauto using inf_conv_decl.
@@ -285,6 +294,34 @@ Qed.
       now econstructor.
     + eexists.
       econstructor ; tea.
+      * econstructor ; tea.
+        eapply typing_subst1 ; tea.
+        2: now eapply algo_conv_sound in bun_conv_ty.
+        now do 2 econstructor.
+      * econstructor ; tea.
+        eapply typing_subst1 ; tea.
+        2: now eapply algo_conv_sound in bun_conv_ty.
+        now do 2 econstructor.
+      * eapply algo_conv_sound, conv_neu_sound in bun_conv_ne_conv as Hconv ; tea.
+        eapply boundary in Hconv as [].
+        now econstructor.
+    + econstructor ; tea.
+      econstructor ; tea.
+      2: now econstructor.
+      now eapply redty_red, red_compl_bool_r.
+    + econstructor.
+      eapply typing_subst1 ; tea.
+      eapply algo_conv_sound, conv_neu_sound in bun_conv_ne_conv as Hconv ; tea.
+      eapply boundary in Hconv as [].
+      now econstructor.
+  - intros_bn.
+    + eexists.
+      econstructor ; tea.
+      eapply algo_conv_sound, conv_neu_sound in bun_conv_ne_conv as Hconv ; tea.
+      eapply boundary in Hconv as [].
+      now econstructor.
+    + eexists.
+      econstructor ; tea.
       eapply algo_conv_sound, conv_neu_sound in bun_conv_ne_conv as Hconv ; tea.
       eapply boundary in Hconv as [].
       now econstructor.
@@ -395,24 +432,7 @@ Module IntermediateTypingProperties.
     TypingProperties (ta := bni) := {}.
   Proof.
     all: unfold_bni.
-    - gen_typing.
-    - gen_typing.
-    - gen_typing.
-    - gen_typing.
-    - gen_typing.
-    - gen_typing.
-    - gen_typing.
-    - gen_typing.
-    - gen_typing.
-    - gen_typing.
-    - gen_typing.
-    - gen_typing.
-    - gen_typing.
-    - gen_typing.
-    - gen_typing.
-    - gen_typing.
-    - gen_typing.
-    - gen_typing.
+    1-22: gen_typing.
     - intros * ? [].
       econstructor ; tea.
       symmetry.
@@ -517,6 +537,15 @@ Module IntermediateTypingProperties.
       now econstructor.
     - intros.
       now eapply (convtm_succ (ta := bn)).
+    - intros.
+      eapply (convtm_bool (ta := bn)).
+      now econstructor.
+    - intros.
+      eapply (convtm_true (ta := bn)).
+      now econstructor.
+    - intros.
+      eapply (convtm_false (ta := bn)).
+      now econstructor.
     - intros * ? ? ? ? ? ? [] [].
       split ; tea.
       + gen_typing.
@@ -552,6 +581,7 @@ Module IntermediateTypingProperties.
       + now eexists ; gen_typing.
       + now econstructor.
       + eassumption.
+    - gen_typing.
     - gen_typing.
     - gen_typing.
     - gen_typing.
@@ -621,6 +651,18 @@ Module IntermediateTypingProperties.
         econstructor.
         now boundary.
       + econstructor ; [| reflexivity]; econstructor.
+    - constructor; unfold_bni.
+      + boundary.
+      + econstructor ; tea.
+        econstructor.
+        now boundary.
+      + econstructor ; [| reflexivity]; econstructor.
+    - constructor; unfold_bni.
+      + boundary.
+      + econstructor ; tea.
+        econstructor.
+        now boundary.
+      + econstructor ; [| reflexivity]; econstructor.
     - intros * [] ?.
       split.
       + boundary.
@@ -631,6 +673,12 @@ Module IntermediateTypingProperties.
         econstructor.
         1: now econstructor.
         eassumption.
+    - intros ? ? ? ? ? ? ? ? ? [? ? Hr]; econstructor.
+      + now eapply boundary_tm_ctx.
+      + now constructor.
+      + clear - Hr; induction Hr; try constructor.
+        econstructor; [|eassumption].
+        now constructor.
     - intros ? ? ? ? ? ? ? ? ? [? ? Hr]; econstructor.
       + now eapply boundary_tm_ctx.
       + now constructor.

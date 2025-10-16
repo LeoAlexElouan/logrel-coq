@@ -33,8 +33,8 @@ Section TypingWk.
       econstructor.
       + now eauto.
       + now eapply IHB with(ρ := wk_up _ ρ).
-    - intros.
-      now econstructor.
+    - now econstructor.
+    - now constructor.
     - now constructor.
     - intros * ? ? ? IHB **.
       rewrite <-wk_sig.
@@ -81,8 +81,23 @@ Section TypingWk.
         unfold elimSuccHypTy.
         now bsimpl.
       + now bsimpl.
-    - intros.
-      now econstructor.
+    - now econstructor.
+    - now econstructor.
+    - now econstructor.
+    - intros * ? IHn ? IHP ? IHt ? IHf *.
+      cbn in *.
+      eapply typing_meta_conv.
+      1: econstructor.
+      + eauto.
+      + eapply IHP with (ρ := wk_up _ ρ).
+      + eapply typing_meta_conv.
+        1: eapply IHt.
+        now bsimpl.
+      + eapply typing_meta_conv.
+        1: eapply IHf.
+        now bsimpl.
+      + now bsimpl.
+    - now econstructor.
     - intros * ? IHe ? IHP *.
       cbn in *.
       eapply typing_meta_conv.
@@ -171,6 +186,14 @@ Proof.
   - intros * Hconv.
     now inversion Hconv.
   - intros * ?? ? Hconv.
+    now inversion Hconv.
+  - intros * ? IH ?????? ? Hconv.
+    now inversion Hconv.
+  - intros * Hconv.
+    now inversion Hconv.
+  - intros * Hconv.
+    now inversion Hconv.
+  - intros * Hconv.
     now inversion Hconv.
   - intros * ? IH ?????? ? Hconv.
     now inversion Hconv.
@@ -288,6 +311,22 @@ Section InferShape.
     now destruct H ; cbn in *.
   Qed.
 
+  Lemma infer_bool Γ A T : [Γ |-[de] A : tBool] -> [Γ |-[ta] A ▹h T] -> T = tBool.
+  Proof.
+    intros Hde [Hal Hal']%dup.
+    eapply algo_infer_unique in Hal ; tea.
+    2: boundary.
+    assert (isType T).
+    {
+      eapply type_isType.
+      1: boundary.
+      now inversion Hal'.
+    }
+    unshelve eapply ty_conv_inj in Hal ; tea.
+    1: constructor.
+    now destruct H ; cbn in *.
+  Qed.
+
   Lemma infer_empty Γ A T : [Γ |-[de] A : tEmpty] -> [Γ |-[ta] A ▹h T] -> T = tEmpty.
   Proof.
     intros Hde [Hal Hal']%dup.
@@ -342,9 +381,9 @@ Section InferShape.
   Proof.
     intros Hde Hal.
     inversion Hde ; subst ; refold.
-    1-6: inversion Hal as [???? Hal'] ; subst ; refold.
-    1-6: inversion Hal' ; subst ; refold.
-    1-5: symmetry ; eapply red_whnf ; tea ; constructor.
+    1-7: inversion Hal as [???? Hal'] ; subst ; refold.
+    1-7: inversion Hal' ; subst ; refold.
+    1-6: symmetry ; eapply red_whnf ; tea ; constructor.
     now eapply infer_U.
   Qed.
 
@@ -433,6 +472,28 @@ Module AlgorithmicTypingProperties.
       + econstructor ; tea.
         2: now constructor.
         now eapply (redty_red (ta := de)), red_compl_nat_r.
+      + econstructor ; tea.
+        now eapply ty_conv_compl.
+      + econstructor ; tea.
+        now eapply ty_conv_compl.
+      + econstructor.
+        eapply typing_subst1.
+        1: eauto using inf_conv_decl.
+        now eapply algo_typing_sound.
+    - intros_bn.
+      1: econstructor.
+      gen_typing.
+    - intros_bn.
+      1: now econstructor.
+      now do 2 econstructor.
+    - intros_bn.
+      1: now econstructor.
+      now do 2 econstructor.
+    - intros_bn.
+      1: econstructor ; tea.
+      + econstructor ; tea.
+        2: now constructor.
+        now eapply (redty_red (ta := de)), red_compl_bool_r.
       + econstructor ; tea.
         now eapply ty_conv_compl.
       + econstructor ; tea.
@@ -552,6 +613,22 @@ Module AlgorithmicTypingProperties.
           now eapply (redty_red (ta := de)), red_compl_nat_r.
         * now do 2 econstructor.
       + apply redalg_one_step; now constructor.
+    - intros * HP Ht Hf.
+      assert [|-[de] Γ] by (destruct Hf ; boundary).
+      split ; tea.
+      + eapply ty_boolElim ; tea.
+        econstructor ; tea.
+        1: econstructor.
+        now do 2 econstructor.
+      + apply redalg_one_step ; now constructor.
+    - intros * HP Ht Hf.
+      assert [|-[de] Γ] by (destruct Ht ; boundary).
+      split ; tea.
+      + eapply ty_boolElim ; tea.
+        econstructor ; tea.
+        1: econstructor.
+        now do 2 econstructor.
+      + apply redalg_one_step ; now constructor.
     - intros_bn.
       + eapply red_compl_prod_r in bun_inf_conv_conv0 as (?&?&[]).
         econstructor ; tea.
@@ -586,6 +663,27 @@ Module AlgorithmicTypingProperties.
         econstructor ; tea.
         now eapply ty_conv_compl.
       + now apply redalg_natElim.
+    - intros * [] [] [] [? []].
+      assert [Γ |-[al] n ▹h tBool].
+      {
+        econstructor ; tea.
+        2: now constructor.
+        now eapply (redty_red (ta := de)), red_compl_bool_r.
+      }
+      split ; tea.
+      1: econstructor ; tea.
+      1: econstructor ; tea.
+      + econstructor ; tea.
+        now eapply ty_conv_compl.
+      + econstructor ; tea.
+        now eapply ty_conv_compl.
+      + econstructor.
+        eapply typing_subst1.
+        all: eapply algo_typing_sound ; tea.
+        2: now econstructor.
+        econstructor ; tea.
+        now eapply ty_conv_compl.
+      + now apply redalg_boolElim.
     - intros * [] [?[]].
       assert [Γ |-[al] n ▹h tEmpty].
       {
@@ -602,7 +700,7 @@ Module AlgorithmicTypingProperties.
         2: now econstructor.
         econstructor ; tea.
         now eapply ty_conv_compl.
-      + now apply redalg_natEmpty.
+      + now apply redalg_emptyElim.
     - intros_bn.
       2: econstructor; [|reflexivity]; now constructor.
       econstructor.

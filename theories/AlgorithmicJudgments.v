@@ -27,6 +27,8 @@ Section Definitions.
       [Γ |- U ≅h U]
     | typeNatConvAlg {Γ} :
       [Γ |- tNat ≅h tNat]
+    | typeBoolConvAlg {Γ} :
+      [Γ |- tBool ≅h tBool]
     | typeEmptyConvAlg {Γ} :
       [Γ |- tEmpty ≅h tEmpty]
     | typeSigCongAlg {Γ A B A' B'} :
@@ -62,6 +64,12 @@ Section Definitions.
       [Γ |- hz ≅ hz' : P[tZero..]] ->
       [Γ |- hs ≅ hs' : elimSuccHypTy P] ->
       [Γ |- tNatElim P hz hs n ~ tNatElim P' hz' hs' n' ▹ P[n..]]
+    | neuBoolElimCong {Γ n n' P P' ht ht' hf hf'} :
+      [Γ |- n ~h n' ▹ tBool] ->
+      [Γ,, tBool |- P ≅ P'] ->
+      [Γ |- ht ≅ ht' : P[tTrue..]] ->
+      [Γ |- hf ≅ hf' : P[tFalse..]] ->
+      [Γ |- tBoolElim P ht hf n ~ tBoolElim P' ht' hf' n' ▹ P[n..]]
     | neuEmptyElimCong {Γ P P' e e'} :
       [Γ |- e ~h e' ▹ tEmpty] ->
       [Γ ,, tEmpty |- P ≅ P'] ->
@@ -105,6 +113,12 @@ Section Definitions.
     | termSuccCongAlg {Γ t t'} :
       [Γ |- t ≅ t' : tNat] ->
       [Γ |- tSucc t ≅h tSucc t' : tNat]
+    | termBoolReflAlg {Γ} :
+      [Γ |- tBool ≅h tBool : U]
+    | termTrueReflAlg {Γ} :
+      [Γ |- tTrue ≅h tTrue : tBool]
+    | termFalseReflAlg {Γ} :
+      [Γ |- tFalse ≅h tFalse : tBool]
     | termEmptyReflAlg {Γ} :
       [Γ |- tEmpty ≅h tEmpty : U]
     | termFunConvAlg {Γ : context} {f g A B} :
@@ -158,6 +172,8 @@ Section Definitions.
       [Γ |- tProd A B]
     | wfTypeNat {Γ} :
       [Γ |- tNat]
+    | wfTypeBool {Γ} :
+      [Γ |- tBool]
     | wfTypeEmpty {Γ} :
         [Γ |- tEmpty]
     | wfTypeSig {Γ A B} :
@@ -203,6 +219,18 @@ Section Definitions.
       [Γ |- hz ◃ P[tZero..]] ->
       [Γ |- hs ◃ elimSuccHypTy P] ->
       [Γ |- tNatElim P hz hs n ▹ P[n..]]
+    | infBool {Γ} :
+      [Γ |- tBool ▹ U]
+    | infTrue {Γ} :
+      [Γ |- tTrue ▹ tBool]
+    | infFalse {Γ} :
+      [Γ |- tFalse ▹ tBool]
+    | infBoolElim {Γ P ht hf n} :
+      [Γ |- n ▹h tBool] ->
+      [Γ,, tBool |- P] ->
+      [Γ |- ht ◃ P[tTrue..]] ->
+      [Γ |- hf ◃ P[tFalse..]] ->
+      [Γ |- tBoolElim P ht hf n ▹ P[n..]]
     | infEmpty {Γ} :
       [Γ |- tEmpty ▹ U]
     | infEmptyElim {Γ P e} :
@@ -296,6 +324,12 @@ with UConvRedAlg : term -> term -> Type :=
   | SuccCongUAlg {t t'} :
     [t ≅ t'] ->
     [tSucc t ≅h tSucc t']
+  | BoolReflUAlg :
+    [tBool ≅h tBool]
+  | TrueReflUAlg :
+    [tTrue ≅h tTrue]
+  | FalseReflUAlg :
+    [tFalse ≅h tFalse]
   | EmptyReflUAlg :
     [tEmpty ≅h tEmpty]
   | LamCongUAlg {A t A' t'} :
@@ -352,6 +386,12 @@ with UConvNeuAlg : term  -> term -> Type :=
     [hz ≅ hz'] ->
     [hs ≅ hs'] ->
     [tNatElim P hz hs n ~ tNatElim P' hz' hs' n']
+  | BoolElimCongUAlg {n n' P P' ht ht' hf hf'} :
+    [n ~ n'] ->
+    [P ≅ P'] ->
+    [ht ≅ ht'] ->
+    [hf ≅ hf'] ->
+    [tBoolElim P ht hf n ~ tBoolElim P' ht' hf' n']
   | EmptyElimCongUAlg {P P' e e'} :
     [e ~ e'] ->
     [P ≅ P'] ->

@@ -32,6 +32,8 @@ Proof.
     econstructor; tea; constructor; tea; now eapply red_redtywf_trans.
   - intros [] **; apply LRNat_.
     constructor; tea; now eapply red_redtywf_trans.
+  - intros [] **; apply LRBool_.
+    constructor; tea; now eapply red_redtywf_trans.
   - intros [] **; apply LREmpty_.
     constructor; tea; now eapply red_redtywf_trans.
   - intros [???? []] **; cbn in *; apply LRSig'.
@@ -102,6 +104,8 @@ Proof.
     now eapply red_redtmwf_trans.
   - intros * [] **; econstructor; tea.
     now eapply red_redtmwf_trans.
+  - intros * [] **; econstructor; tea.
+    now eapply red_redtmwf_trans.
   - intros * ?? * [] **; unshelve econstructor; tea.
     1: now eapply redSigRedTm.
     all: cbn; eauto.
@@ -158,6 +162,7 @@ Proof.
     1,2: econstructor; [eapply redtywf_refl|..]; tea; gtyping.
     all: tea.
   - intros []; cbn in *; apply LRNat_; econstructor; gtyping.
+  - intros []; cbn in *; apply LRBool_; econstructor; gtyping.
   - intros []; cbn in *; apply LREmpty_; econstructor; gtyping.
   - intros [???? [] []] _ _; cbn in *; apply LRSig'; econstructor.
     1,2: econstructor; [eapply redtywf_refl|..]; tea; gtyping.

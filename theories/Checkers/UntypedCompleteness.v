@@ -128,6 +128,24 @@ Proof.
     all: simp _uconv uconv_tm_red build_nf_view2 ; cbn.
     all: now constructor.
 
+  - split.
+    all: intros.
+    all: unfold graph.
+    all: simp _uconv uconv_tm_red build_nf_view2 ; cbn.
+    all: now constructor.
+
+  - split.
+    all: intros.
+    all: unfold graph.
+    all: simp _uconv uconv_tm_red build_nf_view2 ; cbn.
+    all: now constructor.
+
+  - split.
+    all: intros.
+    all: unfold graph.
+    all: simp _uconv uconv_tm_red build_nf_view2 ; cbn.
+    all: now constructor.
+
   - intros * ? [_ IH_tm].
     split_tm.
 
@@ -326,7 +344,25 @@ Proof.
     eapply neuNatElimCong_prem3 in Hpos2 as [Hpre3 []]%dup ; eauto.
     patch_rec_ret ; econstructor ; [now eapply IHs|..] ; cbn.
     now constructor.
-    
+
+  - intros * ? IH ? [IHP] ? [_ IHt] ? [_ IHf] ? [Hconcl]%dup.
+    unfold graph.
+    simp _uconv uconv_ne ; cbn.
+    eapply neuBoolElimCong_prem0 in Hconcl as [Hpre0 []]%dup ; eauto.
+    econstructor ; [now eapply IH|..] ; cbn.
+    eapply implem_uconv_graph, uconv_sound_decl in IH as [? Hpost0] ; tea.
+    eapply BoolElimCongUAlg_bridge in Hpost0 as [? [Hpost0]%dup]; eauto.
+    eapply neuBoolElimCong_prem1 in Hpost0 as [Hpre1 []]%dup ; eauto.
+    econstructor ; [now eapply IHP|..] ; cbn.
+    eapply implem_uconv_graph, uconv_sound_decl in IHP as [[Hpos1]%dup _].
+    2: eassumption.
+    eapply neuBoolElimCong_prem2 in Hpos1 as [Hpre2 []]%dup ; eauto.
+    econstructor ; [now eapply IHt|..] ; cbn.
+    eapply implem_uconv_graph, uconv_sound_decl in IHt as [_ Hpos2] ; tea.
+    eapply neuBoolElimCong_prem3 in Hpos2 as [Hpre3 []]%dup ; eauto.
+    patch_rec_ret ; econstructor ; [now eapply IHf|..] ; cbn.
+    now constructor.
+
   - intros * ? IH ? [IHP] ? [Hconcl]%dup.
     unfold graph.
     simp _uconv uconv_ne ; cbn.

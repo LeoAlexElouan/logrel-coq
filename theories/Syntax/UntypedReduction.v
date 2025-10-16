@@ -20,6 +20,13 @@ Inductive OneRedAlg : term -> term -> Type :=
     [ tNatElim P hz hs tZero ⤳ hz ]
 | natElimSucc {P hz hs n} :
     [ tNatElim P hz hs (tSucc n) ⤳ tApp (tApp hs n) (tNatElim P hz hs n) ]
+| boolElimSubst {P ht hf n n'} :
+    [ n ⤳ n' ] ->
+    [ tBoolElim P ht hf n ⤳ tBoolElim P ht hf n' ]
+| boolElimTrue {P ht hf} :
+    [ tBoolElim P ht hf tTrue ⤳ ht ]
+| boolElimFalse {P ht hf} :
+    [ tBoolElim P ht hf tFalse ⤳ hf ]
 | emptyElimSubst {P e e'} :
     [e ⤳ e'] ->
     [tEmptyElim P e ⤳ tEmptyElim P e']        
@@ -92,7 +99,7 @@ Lemma whnf_nored n u :
 Proof.
   intros nf red.
   induction red in nf |- *.
-  2,3,6,7,9,12: inversion nf; subst; inv_whne; subst; apply IHred; now constructor.
+  2,3,6,9,10,12,15: inversion nf; subst; inv_whne; subst; apply IHred; now constructor.
   all: inversion nf; subst; inv_whne; subst; try now inv_whne.
 Qed.
 
@@ -120,6 +127,13 @@ Proof.
   - inversion red'; subst.
     2,3: exfalso; eapply whnf_nored; tea; constructor.
     f_equal; eauto.
+  - inversion red'; try reflexivity; subst.
+    exfalso; eapply whnf_nored; tea; constructor.
+  - inversion red'; try reflexivity; subst.
+    exfalso; eapply whnf_nored; tea; constructor.
+  - inversion red'; subst.
+    2,3: exfalso; eapply whnf_nored; tea; constructor.
+    f_equal; eauto. 
   - inversion red'; try reflexivity; subst.
     exfalso; eapply whnf_nored; tea; constructor.
   - inversion red'; try reflexivity; subst.
@@ -192,7 +206,7 @@ Lemma oredalg_wk (ρ : nat -> nat) (t u : term) :
 Proof.
   intros Hred.
   induction Hred in ρ |- *.
-  2-12: cbn; asimpl; now econstructor.
+  2-15: cbn; asimpl; now econstructor.
   - cbn ; asimpl.
     evar (t' : term).
     replace (subst_term _ t) with t'.
@@ -258,7 +272,15 @@ induction 1.
   now econstructor.
 Qed.
 
-Lemma redalg_natEmpty {P t t'} : [t ⤳* t'] -> [tEmptyElim P t ⤳* tEmptyElim P t'].
+Lemma redalg_boolElim {P ht hf t t'} : [t ⤳* t'] -> [tBoolElim P ht hf t ⤳* tBoolElim P ht hf t'].
+Proof.
+induction 1.
++ reflexivity.
++ econstructor; [|eassumption].
+  now econstructor.
+Qed.
+
+Lemma redalg_emptyElim {P t t'} : [t ⤳* t'] -> [tEmptyElim P t ⤳* tEmptyElim P t'].
 Proof.
 induction 1.
 + reflexivity.

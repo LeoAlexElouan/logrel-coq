@@ -498,7 +498,7 @@ Section ConvSoundNeg.
     - intros Hty.
       assert (whne t -> whne u -> False) by
        (now intros ; eapply mismatch2_hd_view_ne ; cycle -1).
-      eapply mismatch2_hd_view_tm in e as [e|[e|e]] ; eauto.
+      eapply mismatch2_hd_view_tm in e as [e|[[e|e]|e]] ; eauto.
       + destruct e as (nft&nfu&e).
         enough (type_hd_view _ nft nfu) as Hhd by now rewrite e in Hhd.
         apply ty_conv_inj.
@@ -513,6 +513,16 @@ Section ConvSoundNeg.
       + destruct e as (nft&nfu&e).
         enough (nat_hd_view _ nft nfu) as Hhd by now rewrite e in Hhd.
         apply nat_conv_inj.
+        econstructor ; tea.
+        destruct nft.
+        all: try solve [eapply boundary_tm_conv_l in Hty as (?&Hgen&?)%termGen' ;
+          cbn in Hgen ; try easy ; prod_hyp_splitter ; subst ; try solve [now symmetry]].
+        destruct nfu ; [..|easy].
+        all: solve [eapply boundary_tm_conv_r in Hty as (?&Hgen&?)%termGen' ;
+          cbn in Hgen ; try easy ; prod_hyp_splitter ; subst ; try solve [now symmetry]].
+      + destruct e as (nft&nfu&e).
+        enough (bool_hd_view _ nft nfu) as Hhd by now rewrite e in Hhd.
+        apply bool_conv_inj.
         econstructor ; tea.
         destruct nft.
         all: try solve [eapply boundary_tm_conv_l in Hty as (?&Hgen&?)%termGen' ;
@@ -584,6 +594,33 @@ Section ConvSoundNeg.
       2: now intros [? (?&?&?&?&[[=]])%neuConvGen] ; subst.
       eapply uconv_sound_decl in Hz as [_ ?].
       edestruct neuNatElimCong_prem3 ; eauto.
+      unshelve eexists.
+      1: repeat eexists ; eauto using term_class_ty.
+      intros  [|] Hs%implem_uconv_graph ? ; cbn ; [easy|..].
+      now intros [? (?&?&?&?&[[=]])%neuConvGen] ; subst.
+
+    - edestruct neuBoolElimCong_prem0 ; eauto.
+      destruct pre as [wn wn' []].
+      inversion wn ; inversion wn' ; subst.
+      unshelve eexists.
+      1: eexists ; now split.
+      intros [|] Hty%implem_uconv_graph Hnty ; cbn in *.
+      2: now intros [? (?&?&?&?&[[=]])%neuConvGen] ; subst.
+      eapply uconv_sound_decl in Hty as [? Hty] ; eauto.
+      eapply BoolElimCongUAlg_bridge in Hty as [? Hty] ; eauto.
+      edestruct neuBoolElimCong_prem1 ; eauto.
+      unshelve eexists.
+      1: repeat eexists ; eauto using type_class_ty.
+      intros  [|] HP%implem_uconv_graph Hnty' ; cbn.
+      2: now intros [? (?&?&?&?&[[=]])%neuConvGen] ; subst.
+      eapply uconv_sound_decl in HP as [? _].
+      edestruct neuBoolElimCong_prem2 ; eauto.
+      unshelve eexists.
+      1: repeat eexists ; eauto using term_class_ty.
+      intros  [|] Hz%implem_uconv_graph ? ; cbn.
+      2: now intros [? (?&?&?&?&[[=]])%neuConvGen] ; subst.
+      eapply uconv_sound_decl in Hz as [_ ?].
+      edestruct neuBoolElimCong_prem3 ; eauto.
       unshelve eexists.
       1: repeat eexists ; eauto using term_class_ty.
       intros  [|] Hs%implem_uconv_graph ? ; cbn ; [easy|..].

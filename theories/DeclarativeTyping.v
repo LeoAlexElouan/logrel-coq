@@ -39,6 +39,9 @@ Section Definitions.
       | wfTypeNat {Γ} : 
           [|- Γ] ->
           [Γ |- tNat]
+      | wfTypeBool {Γ} : 
+          [|- Γ] ->
+          [Γ |- tBool]
       | wfTypeEmpty {Γ} : 
           [|- Γ] ->
           [Γ |- tEmpty]
@@ -87,6 +90,21 @@ Section Definitions.
         [Γ |- hs : elimSuccHypTy P] ->
         [Γ |- n : tNat] ->
         [Γ |- tNatElim P hz hs n : P[n..]]
+      | wfTermBool {Γ} :
+          [|-Γ] ->
+          [Γ |- tBool : U]
+      | wfTermTrue {Γ} :
+          [|-Γ] ->
+          [Γ |- tTrue : tBool]
+      | wfTermFalse {Γ} :
+          [|-Γ] ->
+          [Γ |- tFalse : tBool]
+      | wfTermBoolElim {Γ P ht hf n} :
+        [Γ ,, tBool |- P ] ->
+        [Γ |- ht : P[tTrue..]] ->
+        [Γ |- hf : P[tFalse..]] ->
+        [Γ |- n : tBool] ->
+        [Γ |- tBoolElim P ht hf n : P[n..]]
       | wfTermEmpty {Γ} :
           [|-Γ] ->
           [Γ |- tEmpty : U]
@@ -195,7 +213,7 @@ Section Definitions.
           [Γ |- hz ≅ hz' : P[tZero..]] ->
           [Γ |- hs ≅ hs' : elimSuccHypTy P] ->
           [Γ |- n ≅ n' : tNat] ->
-          [Γ |- tNatElim P hz hs n ≅ tNatElim P' hz' hs' n' : P[n..]]        
+          [Γ |- tNatElim P hz hs n ≅ tNatElim P' hz' hs' n' : P[n..]]
       | TermNatElimZero {Γ P hz hs} :
           [Γ ,, tNat |- P ] ->
           [Γ |- hz : P[tZero..]] ->
@@ -207,6 +225,22 @@ Section Definitions.
           [Γ |- hs : elimSuccHypTy P] ->
           [Γ |- n : tNat] ->
           [Γ |- tNatElim P hz hs (tSucc n) ≅ tApp (tApp hs n) (tNatElim P hz hs n) : P[(tSucc n)..]]
+      | TermBoolElimCong {Γ P P' ht ht' hf hf' n n'} :
+          [Γ ,, tBool |- P ≅ P'] ->
+          [Γ |- ht ≅ ht' : P[tTrue..]] ->
+          [Γ |- hf ≅ hf' : P[tFalse..]] ->
+          [Γ |- n ≅ n' : tBool] ->
+          [Γ |- tBoolElim P ht hf n ≅ tBoolElim P' ht' hf' n' : P[n..]]
+      | TermBoolElimTrue {Γ P ht hf} :
+          [Γ ,, tBool |- P ] ->
+          [Γ |- ht : P[tTrue..]] ->
+          [Γ |- hf : P[tFalse..]] ->
+          [Γ |- tBoolElim P ht hf tTrue ≅ ht : P[tTrue..]]
+      | TermBoolElimFalse {Γ P ht hf} :
+          [Γ ,, tBool |- P ] ->
+          [Γ |- ht : P[tTrue..]] ->
+          [Γ |- hf : P[tFalse..]] ->
+          [Γ |- tBoolElim P ht hf tFalse ≅ hf : P[tFalse..]]
       | TermEmptyElimCong {Γ P P' e e'} :
           [Γ ,, tEmpty |- P ≅ P'] ->
           [Γ |- e ≅ e' : tEmpty] ->
@@ -348,6 +382,13 @@ Section Definitions.
       [Γ |- hz ≅ hz' : P[tZero..]] ->
       [Γ |- hs ≅ hs' : elimSuccHypTy P] ->
       [Γ |- tNatElim P hz hs n ~ tNatElim P' hz' hs' n' : P[n..]]
+
+  | neuConvBool {P P' ht ht' hf hf' n n'} :
+      [Γ |- n ~ n' : tBool] ->
+      [Γ ,, tBool |- P ≅ P'] ->
+      [Γ |- ht ≅ ht' : P[tTrue..]] ->
+      [Γ |- hf ≅ hf' : P[tFalse..]] ->
+      [Γ |- tBoolElim P ht hf n ~ tBoolElim P' ht' hf' n' : P[n..]]
 
   | neuConvEmpty {P P' e e'} :
       [Γ ,, tEmpty |- P ≅ P'] ->
@@ -516,6 +557,11 @@ Definition termGenData (Γ : context) (t T : term) : Type :=
     | tSucc n => T = tNat × [Γ |- n : tNat]
     |  tNatElim P hz hs n =>
       [× T = P[n..], [Γ,, tNat |- P], [Γ |- hz : P[tZero..]], [Γ |- hs : elimSuccHypTy P] & [Γ |- n : tNat]]
+    | tBool => T = U
+    | tTrue => T = tBool
+    | tFalse => T = tBool
+    |  tBoolElim P ht hf b =>
+      [× T = P[b..], [Γ,, tBool |- P], [Γ |- ht : P[tTrue..]], [Γ |- hf : P[tFalse..]] & [Γ |- b : tBool]]
     | tEmpty => T = U
     | tEmptyElim P e =>
       [× T = P[e..], [Γ,, tEmpty |- P] & [Γ |- e : tEmpty]]
@@ -580,6 +626,6 @@ Lemma neutral_ty_inv Γ A :
 Proof.
   intros Hty Hne.
   inversion Hty ; subst ; refold.
-  1-6: inversion Hne.
+  1-7: inversion Hne.
   easy.
 Qed.

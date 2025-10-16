@@ -93,7 +93,7 @@ Section NatElimRedEq.
       [Γ ||-<l> tNatElim P hz hs n ≅ tNatElim Q hz' hs' n' : _ | RPQext _ _ Rnn' ]) ×
     (forall n n' (Rnn' : NatPropEq Γ n n') (RP : [Γ ||-<l> P[n..] ≅ Q[n'..]]),
       [Γ ||-<l> tNatElim P hz hs n ≅ tNatElim Q hz' hs' n' : _ | RP ]).
-  Proof.
+  Proof. 
     apply NatRedEqInduction.
     - intros t u  nfL nfR redL redR ? prop ih.
       set (Rtu := Build_NatRedTmEq _ _ _ _ _ _ : [Γ ||-<l> t ≅ u : _ | RN]).

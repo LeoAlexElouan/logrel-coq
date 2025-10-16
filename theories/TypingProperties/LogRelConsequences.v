@@ -204,6 +204,7 @@ Section TermConstructors.
 
     + intros; gtyping.
     + intros; gtyping.
+    + intros; gtyping.
     + intros [dom dom' cod cod'] IHdom IHcod eql
       [? [? [[-> ??] _]]%termGen']%dup
       [? [? [[-> ??] _]]%termGen']%dup
@@ -304,6 +305,28 @@ Section TermConstructors.
     destruct prop as [| | ?? []]; intros h; tea; now inversion h.
   Qed.
 
+  Lemma _bool_prop_inj (Γ : context) (wfΓ : [|-Γ]) (t t' : term) (Rt : BoolPropEq Γ t t')
+    (nftt' := BoolPropEq_isBool Rt) : bool_hd_view Γ (fst nftt') (snd nftt').
+  Proof.
+    induction Rt as [| | ?? []]; cbn; try easy; gtyping.
+  Qed.
+
+  Lemma _bool_conv_inj : forall (Γ : context) (t t' : term) (nft : isBool t) (nft' : isBool t'),
+    [Γ |-[de] t ≅ t' : tBool] ->
+    bool_hd_view Γ nft nft' × (whne t -> [Γ |-[de] t ~ t' : tBool]).
+  Proof.
+    intros * Hconv.
+    eapply Fundamental in Hconv as [HΓ Hbool Hconv].
+    eapply redValidTm in Hconv.
+    assert (wfΓ : [|- Γ]) by (escape; gtyping).
+    assert (Rt : [Bool.boolRed (l:=one) wfΓ| _ ||- t ≅ t' : _]) by now eapply irrLR.
+    pose proof (whredtm_whnf (whredtmL Rt) (isBool_whnf _ nft)).
+    pose proof (whredtm_whnf (whredtmR Rt) (isBool_whnf _ nft')).
+    destruct Rt; cbn in *; subst; split.
+    1: now unshelve now eapply bool_hd_view_irr, _bool_prop_inj.
+    destruct prop as [| | ?? []]; intros h; tea; now inversion h.
+  Qed.
+
   Lemma _id_prop_inj {Γ l A x y} {t t' : term} (IA : [Γ ||-<l> tId A x y ≅ tId A x y])
    (Rt : IdPropEq (normRedId IA) t t') (nftt' := IdPropEq_isId Rt) :
    id_hd_view Γ A x y (fst nftt') (snd nftt').
@@ -335,6 +358,7 @@ End TermConstructors.
 Proof.
   - intros. now eapply _univ_conv_inj.
   - intros. now eapply _nat_conv_inj.
+  - intros. now eapply _bool_conv_inj.
   - intros. now eapply _id_conv_inj.
 Qed.
 
@@ -383,6 +407,7 @@ Proof.
   - destruct s.
     eapply _univ_conv_inj ; gen_typing.
   - eapply _nat_conv_inj ; gen_typing.
+  - eapply _bool_conv_inj ; gen_typing.
   - eapply _empty_conv_inj ; gen_typing.
   - eapply _id_conv_inj ; gen_typing.
   - eapply _neu_conv_inj ; gen_typing.
@@ -513,6 +538,7 @@ Section Normalisation.
   + intros; split; constructor.
   + intros * [] ?; split; now constructor.
   + intros * ? ? ? []; split; now constructor.
+  + intros * ? ? ? []; split; now constructor.
   + intros * ? []; split; now constructor.
   + intros * []; split; now constructor.
   + intros * []; split; now constructor.
@@ -527,7 +553,8 @@ Section Normalisation.
   + now constructor.
   + intros; now apply redalg_app.
   + intros; now apply redalg_natElim.
-  + intros; now apply redalg_natEmpty.
+  + intros; now apply redalg_boolElim.
+  + intros; now apply redalg_emptyElim.
   + intros; now apply redalg_fst.
   + intros; now apply redalg_snd.
   + intros; now eapply redalg_idElim.

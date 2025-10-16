@@ -68,6 +68,7 @@ Proof.
   - econstructor. eapply stack_ne.
     now econstructor.
   - now eapply whnf_tm_view1_nat.
+  - now eapply whnf_tm_view1_bool.
 Qed.
 
 Corollary _red_sound :
@@ -170,6 +171,17 @@ Section RedImplemComplete.
       eapply Hsubst.
       econstructor.
       1: eapply TermNatElimCong ; tea ; refold.
+      + now econstructor.
+      + now econstructor.
+      + now eapply TermRefl.
+      + eassumption.
+    - cbn in H.
+      eapply IHπ in H as (T&(?&[]&?)%termGen'&Hsubst) ; subst.
+      eexists ; split ; tea.
+      intros u Htyu.
+      eapply Hsubst.
+      econstructor.
+      1: eapply TermBoolElimCong ; tea ; refold.
       + now econstructor.
       + now econstructor.
       + now eapply TermRefl.
@@ -295,6 +307,22 @@ Section RedImplemComplete.
       eapply well_typed_zip in Hty as (?&[??Hu]).
       eapply Hu, RedConvTeC, subject_reduction ; tea.
       now do 2 econstructor.
+  - cbn in *; split;[|easy].
+    eapply IH.
+    + do 2 red; cbn.
+      left; constructor; eapply zip_ored; constructor.
+    + cbn.
+      eapply well_typed_zip in Hty as [? [? Hu]] .
+      eapply Hu, RedConvTeC, subject_reduction; tea.
+      eapply redalg_one_step; constructor.
+  - cbn in *; split;[|easy].
+    eapply IH.
+    + do 2 red; cbn.
+      left; constructor; eapply zip_ored; constructor.
+    + cbn.
+      eapply well_typed_zip in Hty as [? [? Hu]] .
+      eapply Hu, RedConvTeC, subject_reduction; tea.
+      eapply redalg_one_step; constructor.
   - cbn in *; split;[|easy].
     eapply IH.
     + do 2 red; cbn.

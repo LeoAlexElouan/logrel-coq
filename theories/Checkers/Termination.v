@@ -118,6 +118,27 @@ Proof.
     destruct wu' ; cbn ; try exact I.
     now unshelve erewrite (whne_ty_view1 _) ; cbn.
 
+  - intros * wu' [Hconcl []]%dup.
+    apply compute_domain.
+    simp _conv conv_tm_red build_nf_view3 build_nf_ty_view2.
+    eapply bool_isBool in wu' ; tea.
+    destruct wu' ; cbn ; try exact I.
+    now unshelve erewrite (whne_nf_view1 _) ; cbn.
+
+  - intros * wu' [Hconcl []]%dup.
+    apply compute_domain.
+    simp _conv conv_tm_red build_nf_view3 build_nf_ty_view2.
+    eapply bool_isBool in wu' ; tea.
+    destruct wu' ; cbn ; try exact I.
+    now unshelve erewrite (whne_nf_view1 _) ; cbn.
+
+  - intros * wu' [Hconcl []]%dup.
+    apply compute_domain.
+    simp _conv conv_tm_red build_nf_view3 build_nf_ty_view2.
+    eapply Uterm_isType in wu' ; tea.
+    destruct wu' ; cbn ; try exact I.
+    now unshelve erewrite (whne_ty_view1 _) ; cbn.
+
   - intros * ?? ?? wu' [Hconcl]%dup.
     apply compute_domain.
     simp _conv conv_tm_red build_nf_view3 ; cbn.
@@ -175,7 +196,7 @@ Proof.
     apply compute_domain.
     simp _conv conv_tm_red build_nf_view3.
     eapply dnf_whnf in Hm.
-    destruct Hpos as [[]| | | |].
+    destruct Hpos as [[]| | | | |].
     + eapply Uterm_isType in wu' ; tea.
       cbn ; simp build_nf_ty_view2.
       unshelve erewrite whne_ty_view1 ; tea.
@@ -186,6 +207,15 @@ Proof.
       eapply IH ; tea.
       split ; now eexists.
     + eapply nat_isNat in wu' ; tea.
+      cbn ; simp build_nf_view3.
+      unshelve erewrite whne_nf_view1 ; tea.
+      destruct wu' ; try solve [cbn ; easy].
+      unshelve erewrite whne_nf_view1 ; tea.
+      cbn.
+      split ; [..|now intros [] ; cbn].
+      eapply IH ; tea.
+      split ; now eexists.
+    + eapply bool_isBool in wu' ; tea.
       cbn ; simp build_nf_view3.
       unshelve erewrite whne_nf_view1 ; tea.
       destruct wu' ; try solve [cbn ; easy].
@@ -270,6 +300,32 @@ Proof.
 
     intros [Hpost3]%implem_tconv_graph%algo_conv_sound%dup ; eauto.
     eapply neuNatElimCong_prem3 in Hpost3 ; eauto.
+    now split ; [eauto | intros [] ; cbn].
+
+  - intros * Hn ? ?? ?? ?? * wu' [Hconcl]%dup.
+    apply compute_domain.
+    simp _conv conv_ne build_ne_view2 ; cbn.
+    unshelve erewrite (whne_nf_view1) ; tea ; cbn.
+    destruct (whne_ne_view1 wu') as [|? []] ; cbn in * ; try easy.
+    inversion wu' ; subst.
+
+    eapply neuBoolElimCong_prem0 in Hconcl as [Hpre0 []]%dup ; eauto.
+    split ; [eauto | intros [] ; cbn ; [|easy]].
+
+    intros [Hpost1]%implem_tconv_graph ; eauto.
+    1: now eapply dnf_whnf in Hn as [].
+    eapply dnf_det in Hn.
+    2: now eapply algo_conv_dnorm in Hpost1.
+    subst ; eapply algo_conv_sound in Hpost1 as [? Hpost1]%dup ; eauto.
+    eapply neuBoolElimCong_prem1 in Hpost1 as [[]]%dup ; eauto.
+    split ; [eauto | intros [] ; cbn ; [|easy]].
+
+    intros [Hpost2]%implem_tconv_graph%algo_conv_sound%dup ; eauto.
+    eapply neuBoolElimCong_prem2 in Hpost2 as [[]]%dup ; eauto.
+    split ; [eauto | intros [] ; cbn ; [|easy]].
+
+    intros [Hpost3]%implem_tconv_graph%algo_conv_sound%dup ; eauto.
+    eapply neuBoolElimCong_prem3 in Hpost3 ; eauto.
     now split ; [eauto | intros [] ; cbn].
 
   - intros * Hn ? ?? * wu' [Hconcl]%dup.
@@ -409,6 +465,13 @@ Proof.
     destruct wB'.
     all: simp build_nf_ty_view2 ; cbn ; try easy.
     now unshelve erewrite (whne_ty_view1 _) ; cbn.
+  
+  - intros * wB' ?.
+    apply compute_domain.
+    simp _conv conv_ty_red.
+    destruct wB'.
+    all: simp build_nf_ty_view2 ; cbn ; try easy.
+    now unshelve erewrite (whne_ty_view1 _) ; cbn.
 
   - intros * ? ? ? ? * wB' [Hconcl]%dup.
     apply compute_domain.
@@ -444,7 +507,7 @@ Proof.
     apply compute_domain.
     simp _conv conv_ty_red build_nf_ty_view2.
     destruct wB' ; cbn.
-    1-6: now unshelve erewrite whne_ty_view1 ; cbn.
+    1-7: now unshelve erewrite whne_ty_view1 ; cbn.
     do 2 (unshelve erewrite whne_ty_view1 ; tea) ; cbn.
 
     eapply typeNeuConvAlg_prem2 in Hconcl as [Hpre0 []]%dup ; eauto.
@@ -622,6 +685,32 @@ Proof.
     + apply IH ; cbn ; try easy.
       1: left ; cbn ; now do 2 econstructor.
       now eapply elimSuccHypTy_ty.
+  - split.
+    1:{
+      apply IH ; cbn ; try easy.
+      left ; cbn ; now do 2 econstructor.
+    }
+    intros [[]|] ; cbn ; try easy.
+    intros Hn%implem_typing_sound%algo_typing_sound_generic ; tea.
+    set (Γ' := _ ,, tBool).
+    assert ([|-[de] Γ']) by (now econstructor ; [|econstructor]). 
+    split.
+    1:{
+      apply IH ; cbn ; try easy.
+      left ; cbn ; now do 2 econstructor.
+    }
+    intros [|] ; cbn ; [|easy].
+    intros ?%implem_typing_sound%algo_typing_sound_generic ; tea.
+    split.
+    2: intros [|] ; cbn ; intros _ ; split; [|intros []] ; try (cbn ; easy).
+    + apply IH ; cbn ; try easy.
+      1: left ; cbn ; now do 2 econstructor.
+      eapply typing_subst1 ; tea.
+      now econstructor.
+    + apply IH ; cbn ; try easy.
+      1: left ; cbn ; now do 2 econstructor.
+      eapply typing_subst1 ; tea.
+      now econstructor.
   - split.
     1:{
       apply IH ; cbn ; try easy.

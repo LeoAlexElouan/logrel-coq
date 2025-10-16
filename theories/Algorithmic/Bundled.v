@@ -533,6 +533,71 @@ Section Invariants.
     now econstructor.
   Qed.
 
+  Lemma neuBoolElimCong_prem0  (Γ : context) (n n' P P' ht ht' hf hf' : term) :
+    well_typed (ta := de) Γ (tBoolElim P ht hf n) ×
+      well_typed (ta := de) Γ (tBoolElim P' ht' hf' n') ->
+    well_typed (ta := de) Γ n × well_typed (ta := de) Γ n'.
+  Proof.
+    intros * [[? (?&[->]&?)%termGen'] [? (?&[->]&?)%termGen']].
+    split ; now eexists.
+  Qed.
+
+  Lemma neuBoolElimCong_prem1 (Γ : context) (n n' P P' ht ht' hf hf' : term) :
+    [Γ |-[ de ] n ~ n' : tBool] ->
+    well_typed (ta := de) Γ (tBoolElim P ht hf n) ×
+      well_typed (ta := de) Γ (tBoolElim P' ht' hf' n') ->
+    [Γ,, tBool |-[ de ] P] × [Γ,, tBool |-[ de ] P'].
+  Proof.
+    intros * ? [[? (?&[->]&?)%termGen'] [? (?&[->]&?)%termGen']].
+    now split.
+  Qed.
+
+  Lemma neuBoolElimCong_prem2 (Γ : context) (n n' P P' ht ht' hf hf' : term) :
+    [Γ |-[ de ] n ~ n' : tBool] ->
+    [Γ,, tBool |-[ de ] P ≅ P'] ->
+    well_typed (ta := de) Γ (tBoolElim P ht hf n) ×
+      well_typed (ta := de) Γ (tBoolElim P' ht' hf' n') ->
+    [Γ |-[ de ] ht : P[tTrue..]] × [Γ |-[ de ] ht' : P[tTrue..]].
+  Proof.
+    intros * ? HP [[? (?&[->]&?)%termGen'] [? (?&[->]&?)%termGen']].
+    split.
+    1: eassumption.
+    econstructor ; tea.
+    symmetry.
+    eapply typing_subst1 ; tea.
+    gen_typing.
+  Qed.
+
+  Lemma neuBoolElimCong_prem3 (Γ : context) (n n' P P' ht ht' hf hf' : term) :
+    [Γ |-[ de ] n ~ n' : tBool] ->
+    [Γ,, tBool |-[ de ] P ≅ P'] ->
+    [Γ |-[ de ] ht ≅ ht' : P[tTrue..]] ->
+    well_typed (ta := de) Γ (tBoolElim P ht hf n) ×
+      well_typed (ta := de) Γ (tBoolElim P' ht' hf' n') ->
+    [Γ |-[ de ] hf : P[tFalse..] ] × [Γ |-[ de ] hf' : P[tFalse..]].
+  Proof.
+    intros * ? HP _ [[? (?&[->]&?)%termGen'] [? (?&[->]&?)%termGen']].
+    split.
+    1: eassumption.
+    econstructor ; tea.
+    symmetry.
+    eapply typing_subst1 ; tea.
+    gen_typing.
+  Qed.
+
+  Lemma neuBoolElimCong_concl (Γ : context) (n n' P P' ht ht' hf hf' : term) :
+    [Γ |-[ de ] n ~ n' : tBool] ->
+    [Γ,, tBool |-[ de ] P ≅ P'] ->
+    [Γ |-[ de ] ht ≅ ht' : P[tTrue..]] ->
+    [Γ |-[ de ] hf ≅ hf' : P[tFalse..]] ->
+    well_typed (ta := de) Γ (tBoolElim P ht hf n) ×
+      well_typed (ta := de) Γ (tBoolElim P' ht' hf' n') ->
+    [Γ |-[ de ] tBoolElim P ht hf n ~ tBoolElim P' ht' hf' n' : P[n..]].
+  Proof.
+    intros * ? HP ? ? [[? (?&[->]&?)%termGen'] [? (?&[->]&?)%termGen']].
+    now econstructor.
+  Qed.
+
   Lemma neuEmptyElimCong_prem0 (Γ : context) (P P' e e' : term) :
     well_typed (ta := de) Γ (tEmptyElim P e) × well_typed (ta := de) Γ (tEmptyElim P' e') ->
     well_typed (ta := de) Γ e × well_typed (ta := de) Γ e'.
@@ -1069,6 +1134,9 @@ Section BundledConv.
     - intros * [].
       split ; [now eauto|..].
       now constructor.
+    - intros * [].
+      split ; [now eauto|..].
+      now constructor.
     - intros * ? IHA ? IHB [? Hconcl]%dup.
       eapply typeSigCongAlg_prem0, IHA in Hconcl as [? [? Hpre0]%dup] ; eauto.
       eapply typeSigCongAlg_prem1, IHB in Hpre0 as [? [? Hpre1]%dup] ; eauto.
@@ -1093,6 +1161,12 @@ Section BundledConv.
       eapply neuNatElimCong_prem2, IHz in Hpre1 as [? [? Hpre2]%dup] ; eauto.
       eapply neuNatElimCong_prem3, IHs in Hpre2 as [? [? Hpre3]%dup] ; eauto.
       eapply neuNatElimCong_concl in Hpre3 ; eauto 20.
+    - intros * ? IHn ? IHP ? IHt ? IHf [? Hconcl]%dup.
+      eapply neuBoolElimCong_prem0, IHn in Hconcl as [? [? Hpre0]%dup] ; eauto.
+      eapply neuBoolElimCong_prem1, IHP in Hpre0 as [? [? Hpre1]%dup] ; eauto.
+      eapply neuBoolElimCong_prem2, IHt in Hpre1 as [? [? Hpre2]%dup] ; eauto.
+      eapply neuBoolElimCong_prem3, IHf in Hpre2 as [? [? Hpre3]%dup] ; eauto.
+      eapply neuBoolElimCong_concl in Hpre3 ; eauto 20.
     - intros * ? IHe ? IHP [? Hconcl]%dup.
       eapply neuEmptyElimCong_prem0, IHe in Hconcl as [? [? Hpre0]%dup] ; eauto.
       eapply neuEmptyElimCong_prem1, IHP in Hpre0 as [? [? Hpre1]%dup] ; eauto.
@@ -1129,7 +1203,16 @@ Section BundledConv.
       eapply termSuccCongAlg_concl in Hpre0 ; eauto.
     - intros.
       split ; [eauto|..].
-      now econstructor. 
+      now econstructor.
+    - intros.
+      split ; [eauto|..].
+      now econstructor.
+    - intros.
+      split ; [eauto|..].
+      now econstructor.
+    - intros.
+      split ; [eauto|..].
+      now econstructor.
     - intros * ??? IH [? Hconcl]%dup.
       eapply termFunConvAlg_prem2, IH in Hconcl as [? [? Hpre0]%dup] ; eauto.
       eapply termFunConvAlg_concl in Hpre0 ; eauto.
@@ -1341,7 +1424,7 @@ Section BundledTyping.
   Proof.
     intros Hconv **.
     apply AlgoTypingInduction.
-    1-7: intros ; crush.
+    1-8: intros ; crush.
 
     - intros * Hin ? ; crush.
 
@@ -1356,14 +1439,14 @@ Section BundledTyping.
       assumption.
 
     - intros * ? IHA ? IHt ? ; crush.
-      
+
       intros ? (?&(?&[-> ])&?)%termGen'.
       etransitivity ; tea.
       constructor ; eauto.
       now eapply TypeRefl.
 
     - intros * ? IHI ? IHC ?.
-    
+
       destruct IHI as [? [IHt]] ; tea.
       destruct IHC ; tea.
       1: now eapply boundary, prod_ty_inv in IHt as [].
@@ -1387,7 +1470,7 @@ Section BundledTyping.
       split ; [eauto|..].
       split ; [now econstructor|].
       now intros ? (?&[->]&?)%termGen'.
-    
+
     - intros * ? IHn ? IHP ? IHz ? IHs ?.
       assert [|-[de] Γ,, tNat]
         by (econstructor ; tea ; now econstructor).
@@ -1404,6 +1487,41 @@ Section BundledTyping.
       + now eapply IHP.
       + now eapply IHz.
       + now eapply IHs.
+      + now eapply IHn.
+      + now intros ? (?&[->]&?)%termGen'.
+    - intros.
+      split ; [eauto|..].
+      split ; [now econstructor|].
+      now intros ? (?&->&?)%termGen'.
+    - intros.
+      split ; [eauto|..].
+      split ; [now econstructor|].
+      now intros ? (?&->&?)%termGen'.
+    - intros.
+      split ; [eauto|..].
+      split ; [now econstructor|].
+      now intros ? (?&->&?)%termGen'.
+
+    - intros * ? IHn ? IHP ? IHt ? IHf ?.
+      assert [|-[de] Γ,, tBool]
+        by (econstructor ; tea ; now econstructor).
+      assert [Γ |-[ de ] P[tTrue..]].
+      {
+        eapply typing_subst1.
+        1: now econstructor.
+        now eapply IHP.
+      }
+      assert [Γ |-[ de ] P[tFalse..]].
+      {
+        eapply typing_subst1.
+        1: now econstructor.
+        now eapply IHP.
+      }
+      split ; [eauto 10 |..].
+      split ; [econstructor|].
+      + now eapply IHP.
+      + now eapply IHt.
+      + now eapply IHf.
       + now eapply IHn.
       + now intros ? (?&[->]&?)%termGen'.
     - intros.

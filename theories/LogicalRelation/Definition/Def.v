@@ -1,7 +1,7 @@
 (** * LogRel.LogicalRelation.Definition.Def : Definition of the logical relation *)
 From Stdlib Require Import CRelationClasses.
 From LogRel Require Import Utils Syntax.All GenericTyping.
-From LogRel.LogicalRelation.Definition Require Import Prelude Ne Universe Poly Pi Sig Nat Empty Id.
+From LogRel.LogicalRelation.Definition Require Import Prelude Ne Universe Poly Pi Sig Nat Bool Empty Id.
 
 
 Set Primitive Projections.
@@ -29,6 +29,8 @@ Inductive LR@{i j k} `{ta : tag}
     LR rec Γ A B (PiRedTmEq ΠA)
   | LRNat {Γ A B} (NA : [Γ ||-Nat A ≅ B]) :
     LR rec Γ A B (NatRedTmEq Γ)
+  | LRBool {Γ A B} (NA : [Γ ||-Bool A ≅ B]) :
+    LR rec Γ A B (BoolRedTmEq Γ)
   | LREmpty {Γ A B} (NA : [Γ ||-Empty A ≅ B]) :
     LR rec Γ A B (EmptyRedTmEq Γ)
   | LRSig {Γ : context} {A B : term} (ΣA : SigRedTyPack@{j} Γ A B) (ΣAad : SigRedTyAdequate@{j k} (LR rec) ΣA) :
@@ -101,6 +103,10 @@ Section MoreDefs.
   Definition LRNat_@{i j k l} l {Γ A B} (NA : [Γ ||-Nat A ≅ B])
     : [LogRel@{i j k l} l | Γ ||- A ≅ B] :=
     LRbuild (LRNat (LogRelRec l) NA).
+
+  Definition LRBool_@{i j k l} l {Γ A B} (NA : [Γ ||-Bool A ≅ B])
+    : [LogRel@{i j k l} l | Γ ||- A ≅ B] :=
+    LRbuild (LRBool (LogRelRec l) NA).
 
   Definition LREmpty_@{i j k l} l {Γ A B} (NA : [Γ ||-Empty A ≅ B])
     : [LogRel@{i j k l} l | Γ ||- A ≅ B] :=

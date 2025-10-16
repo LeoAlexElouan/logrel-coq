@@ -42,6 +42,8 @@ Section ConvWk.
       now econstructor.
     - intros.
       now econstructor.
+    - intros.
+      now econstructor.
     - intros * ??? IHB ? *; do 2 rewrite <- wk_sig.
       econstructor.
       1: eauto.
@@ -78,6 +80,21 @@ Section ConvWk.
         * reflexivity.
       + now bsimpl.
       + now bsimpl.
+    - intros * ? IHn ? IHP ? IHt ? IHf *.
+      cbn.
+      eapply convne_meta_conv ; [econstructor|..] ; refold.
+      + eauto.
+      + now eapply (IHP _ (wk_up tBool ρ)).
+      + eapply convtm_meta_conv.
+        * eapply IHt.
+        * now bsimpl.
+        * reflexivity.
+      + eapply convtm_meta_conv.
+        * eapply IHf.
+        * now bsimpl.
+        * reflexivity.
+      + now bsimpl.
+      + now bsimpl.
     - intros * ? IHe ? IHP *.
       cbn.
       eapply convne_meta_conv ; [econstructor|..] ; refold.
@@ -109,6 +126,9 @@ Section ConvWk.
       econstructor.
       1: now eauto.
       now eapply IHB with(ρ := wk_up _ ρ).
+    - now econstructor.
+    - now econstructor.
+    - now econstructor.
     - now econstructor.
     - now econstructor.
     - now econstructor.
@@ -217,6 +237,9 @@ Proof.
     inversion Hconv ; subst ; clear Hconv ; refold.
     apply IH in H6.
     now inversion H6.
+  - intros * ? IH ?????? ?? Hconv.
+    inversion Hconv ; subst ; clear Hconv ; refold.
+    now reflexivity.
   - intros * ? IH ?????? ?? Hconv.
     inversion Hconv ; subst ; clear Hconv ; refold.
     now reflexivity.
@@ -350,6 +373,7 @@ Section AlgoConvConv.
     - now econstructor.
     - now econstructor.
     - now econstructor.
+    - now econstructor.
     - intros * ? ihA ? ihB ? h **.
       econstructor.
       1: now eapply ihA.
@@ -394,6 +418,28 @@ Section AlgoConvConv.
         eapply TypeRefl ; refold.
         eapply stability ; tea.
         destruct IHs.
+        boundary.
+      + econstructor.
+        destruct IHP.
+        eapply stability ; tea.
+        eapply typing_subst1.
+        all: now boundary.
+    - intros * ? IHn ? IHP ? IHt ? IHf **.
+      edestruct IHn as [[? [?? ->%conv_bool_r]]?] ; tea.
+      eexists ; split.
+      1: econstructor.
+      + eauto.
+      + eapply IHP.
+        econstructor ; tea ; do 2 econstructor ; boundary.
+      + eapply IHt ; tea.
+        econstructor.
+        eapply stability ; tea.
+        destruct IHt.
+        boundary.
+      + eapply IHf ; tea.
+        econstructor.
+        eapply stability ; tea.
+        destruct IHf.
         boundary.
       + econstructor.
         destruct IHP.
@@ -509,6 +555,12 @@ Section AlgoConvConv.
       do 2 econstructor ; boundary.
     - intros * ??? * ?? ->%conv_univ_l ; tea.
       now econstructor.
+    - intros * ??? * ?? ->%conv_bool_l ; tea.
+      now econstructor.
+    - intros * ??? * ?? ->%conv_bool_l ; tea.
+      now econstructor.
+    - intros * ??? * ?? ->%conv_univ_l ; tea.
+      now econstructor.
     - intros * ? ? ? IHf ? ? ? * ? ? (?&?&[->])%conv_prod_l ; tea.
       econstructor ; tea.
       eapply IHf ; tea.
@@ -620,6 +672,8 @@ Section TermTypeConv.
       congruence.
     - intros.
       congruence.
+    - intros; congruence.
+    - intros; congruence.
     - intros; congruence.
     - intros; congruence.
     - intros * H.

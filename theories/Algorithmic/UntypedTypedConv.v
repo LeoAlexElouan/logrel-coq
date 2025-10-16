@@ -294,6 +294,45 @@ Section UntypedToTyped.
       }
       constructor.
 
+    - split.
+      
+      + intros * [Hz%type_isType _].
+        2: constructor.
+        inversion Hz ; inv_whne.
+
+      + intros ? T ? [Hty].
+        assert (T = tBool) as ->.
+        {
+          eapply termGen' in Hty as (?&->&?%red_compl_bool_l%redty_sound%red_whnf) ; tea.
+          gen_typing.
+        }
+        constructor.
+
+    - split.
+      
+      + intros * [Hz%type_isType _].
+        2: constructor.
+        inversion Hz ; inv_whne.
+
+      + intros ? T ? [Hty].
+        assert (T = tBool) as ->.
+        {
+          eapply termGen' in Hty as (?&->&?%red_compl_bool_l%redty_sound%red_whnf) ; tea.
+          gen_typing.
+        }
+        constructor.
+
+    - split.
+      1: now econstructor.
+      intros ? T ? [Hty].
+      assert (T = U) as ->.
+      {
+        eapply termGen' in Hty as (?&->&?%red_compl_univ_l%redty_sound%red_whnf) ; tea.
+        gen_typing.
+      }
+      constructor.
+
+
     - intros * ? [].
       split.
     
@@ -516,6 +555,24 @@ Section UntypedToTyped.
       1:now eapply red_compl_nat_r.
       now constructor.
 
+    - intros * ? IH ? [IHP] ? [_ IHt] ? [_ IHf] ? [Hconcl]%dup.
+
+      eapply neuBoolElimCong_prem0 in Hconcl as [Hpre0 []]%dup ; eauto.
+      eapply IH in Hpre0 as [? [Hpost0]%dup].
+      eapply algo_conv_sound, BoolElimCongUAlg_bridge in Hpost0 as [? [Hpost0]%dup]; eauto.
+      eapply neuBoolElimCong_prem1 in Hpost0 as [Hpre1 []]%dup ; eauto.
+      eapply IHP in Hpre1 as [Hpos1]%dup ; eauto.
+      eapply algo_conv_sound in Hpos1 as [Hpos1]%dup ; eauto.
+      eapply neuBoolElimCong_prem2 in Hpos1 as [Hpre2 []]%dup ; eauto.
+      eapply IHt in Hpre2 as [Hpos2]%dup ; eauto.
+      eapply algo_conv_sound in Hpos2 as [Hpos2]%dup ; eauto.
+      eapply neuBoolElimCong_prem3 in Hpos2 as [Hpre3 []]%dup ; eauto.
+      eapply IHf in Hpre3 as Hpos3 ; eauto.
+      eexists ; econstructor ; tea.
+      econstructor ; eauto.
+      1:now eapply red_compl_bool_r.
+      now constructor.
+
     - intros * ? IH ? [IHP] ? [Hconcl]%dup.
 
       eapply neuEmptyElimCong_prem0 in Hconcl as [Hpre0 []]%dup ; eauto.
@@ -640,6 +697,22 @@ End UntypedToTyped.
         eapply Hs, neuNatElimCong_prem3 ; eauto.
         eapply uconv_sound_decl in Hz as [_ Hz].
         eapply Hz, neuNatElimCong_prem2 ; eauto.
+
+    - intros * ? IH HP _ Ht _ Hf _ ? [Hconcl]%dup.
+
+      eapply neuBoolElimCong_prem0 in Hconcl as [Hpre0 []]%dup ; eauto.
+      eapply IH in Hpre0 as [? [Hpost0]%dup].
+      eapply BoolElimCongUAlg_bridge in Hpost0 as [? [Hpost0]%dup]; eauto.
+      eapply neuBoolElimCong_prem1 in Hpost0 as [Hpre1 []]%dup ; eauto.
+      eapply uconv_sound_decl in HP as [? _]; eauto.
+      eexists.
+      econstructor ; eauto.
+      + eapply uconv_sound_decl in Ht as [_ Ht].
+        eapply Ht, neuBoolElimCong_prem2 ; eauto.
+      + eapply uconv_sound_decl in Hf as [_ Hf].
+        eapply Hf, neuBoolElimCong_prem3 ; eauto.
+        eapply uconv_sound_decl in Ht as [_ Ht].
+        eapply Ht, neuBoolElimCong_prem2 ; eauto.
 
     - intros * ? IH HP _ ? [Hconcl]%dup.
 

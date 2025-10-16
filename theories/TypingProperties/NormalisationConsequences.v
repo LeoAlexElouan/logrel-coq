@@ -86,6 +86,36 @@ Section ConvPosNormalising.
       destruct u ; cbn in * ; try solve [congruence].
       inversion Heqt' ; subst ; clear Heqt'.
       inversion Hequ' ; subst ; clear Hequ'.
+      edestruct IHHconv as (T&Hne&red%red_compl_bool_r) ; tea ; refold.
+      1-2: reflexivity.
+      eapply redty_sound, credalg_str in red as (T'&e&?).
+      destruct T' ; cbn in * ; try solve [congruence].
+      clear e.
+      eexists ; split.
+      1: econstructor.
+      + econstructor ; tea.
+        eapply subject_reduction_type ; tea.
+        boundary.
+      + unshelve eapply ty_conv_str.
+        2: eapply wk_up.
+        2: now rewrite !wk_up_ren_on.
+        now repeat constructor.
+      + eapply tm_conv_str ; tea.
+        now unshelve erewrite subst_ren_wk_up, wk_up_ren_on.
+      + eapply tm_conv_str ; tea.
+        now unshelve erewrite subst_ren_wk_up, wk_up_ren_on.
+      + unshelve erewrite subst_ren_wk_up, wk_up_ren_on ; [easy|..].
+        constructor.
+        eapply typing_subst1.
+        2: boundary.
+        change tBool with (tBool⟨ρ⟩).
+        eapply typing_wk.
+        1: econstructor ; [|eapply subject_reduction_type ; tea].
+        all: boundary.
+    - destruct t ; cbn in * ; try solve [congruence].
+      destruct u ; cbn in * ; try solve [congruence].
+      inversion Heqt' ; subst ; clear Heqt'.
+      inversion Hequ' ; subst ; clear Hequ'.
       edestruct IHHconv as (T&Hne&red%red_compl_empty_r) ; tea ; refold.
       1-2: reflexivity.
       eapply redty_sound, credalg_str in red as (T'&e&?).
@@ -264,6 +294,7 @@ Section Consistency.
     - intros [? [[? [? []]]]]%termGen'; eauto.
     - intros [? [[? []]]]%termGen'; eauto.
     - intros [? [[? []]]]%termGen'; eauto.
+    - intros [? [[? []]]]%termGen'; eauto.
     - intros [? [[? [? []]]]]%termGen'; eauto.
     - intros [? [[? [? []]]]]%termGen'; eauto.
     - intros [? [[?]]]%termGen'; eauto.
@@ -336,5 +367,6 @@ Section Canonicity.
       eapply no_neutral_empty_ctx ; tea.
       now eapply dnf_whnf in Hne.
   Qed.
+
 
 End Canonicity.

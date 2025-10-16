@@ -291,6 +291,21 @@ Section GenericTyping.
       [Γ |- hs : elimSuccHypTy P] ->
       [Γ |- n : tNat] ->
       [Γ |- tNatElim P hz hs n : P[n..]] ;
+    ty_bool {Γ} :
+        [|-Γ] ->
+        [Γ |- tBool : U] ;
+    ty_true {Γ} :
+        [|-Γ] ->
+        [Γ |- tTrue : tBool] ;
+    ty_false {Γ} :
+        [|-Γ] ->
+        [Γ |- tFalse : tBool] ;
+    ty_boolElim {Γ P ht hf n} :
+      [Γ ,, tBool |- P ] ->
+      [Γ |- ht : P[tTrue..]] ->
+      [Γ |- hf : P[tFalse..]] ->
+      [Γ |- n : tBool] ->
+      [Γ |- tBoolElim P ht hf n : P[n..]] ;
     ty_empty {Γ} :
         [|-Γ] ->
         [Γ |- tEmpty : U] ;
@@ -399,6 +414,12 @@ Section GenericTyping.
     convtm_succ {Γ} {n n'} :
         [Γ |- n ≅ n' : tNat] ->
         [Γ |- tSucc n ≅ tSucc n' : tNat] ;
+    convtm_bool {Γ} :
+      [|-Γ] -> [Γ |- tBool ≅ tBool : U] ;
+    convtm_true {Γ} :
+      [|-Γ] -> [Γ |- tTrue ≅ tTrue : tBool] ;
+    convtm_false {Γ} :
+      [|-Γ] -> [Γ |- tFalse ≅ tFalse : tBool] ;
     convtm_eta_sig {Γ p p' A B} :
       [Γ |- A] ->
       [Γ ,, A |- B] ->
@@ -442,6 +463,12 @@ Section GenericTyping.
         [Γ |- hs ≅ hs' : elimSuccHypTy P] ->
         [Γ |- n ~ n' : tNat] ->
         [Γ |- tNatElim P hz hs n ~ tNatElim P' hz' hs' n' : P[n..]] ;
+    convneu_boolElim {Γ P P' ht ht' hf hf' n n'} :
+        [Γ ,, tBool |- P ≅ P'] ->
+        [Γ |- ht ≅ ht' : P[tTrue..]] ->
+        [Γ |- hf ≅ hf' : P[tFalse..]] ->
+        [Γ |- n ~ n' : tBool] ->
+        [Γ |- tBoolElim P ht hf n ~ tBoolElim P' ht' hf' n' : P[n..]] ;
     convneu_emptyElim {Γ P P' e e'} :
         [Γ ,, tEmpty |- P ≅ P'] ->
         [Γ |- e ~ e' : tEmpty] ->
@@ -502,6 +529,16 @@ Section GenericTyping.
         [Γ |- hs : elimSuccHypTy P] ->
         [Γ |- n : tNat] ->
         [Γ |- tNatElim P hz hs (tSucc n) ⤳* tApp (tApp hs n) (tNatElim P hz hs n) : P[(tSucc n)..]] ;
+    redtm_boolElimTrue {Γ P ht hf} :
+        [Γ ,, tBool |- P ] ->
+        [Γ |- ht : P[tTrue..]] ->
+        [Γ |- hf : P[tFalse..]] ->
+        [Γ |- tBoolElim P ht hf tTrue ⤳* ht : P[tTrue..]] ;
+    redtm_boolElimFalse {Γ P ht hf} :
+        [Γ ,, tBool |- P ] ->
+        [Γ |- ht : P[tTrue..]] ->
+        [Γ |- hf : P[tFalse..]] ->
+        [Γ |- tBoolElim P ht hf tFalse ⤳* hf : P[tFalse..]] ;
     redtm_app {Γ A B f f' t} :
       [ Γ |- f ⤳* f' : tProd A B ] ->
       [ Γ |- t : A ] ->
@@ -512,6 +549,12 @@ Section GenericTyping.
       [ Γ |- hs : elimSuccHypTy P ] ->
       [ Γ |- n ⤳* n' : tNat ] ->
       [ Γ |- tNatElim P hz hs n ⤳* tNatElim P hz hs n' : P[n..] ];
+    redtm_boolelim {Γ P ht hf n n'} :
+      [ Γ,, tBool |- P ] ->
+      [ Γ |- ht : P[tTrue..] ] ->
+      [ Γ |- hf : P[tFalse..] ] ->
+      [ Γ |- n ⤳* n' : tBool ] ->
+      [ Γ |- tBoolElim P ht hf n ⤳* tBoolElim P ht hf n' : P[n..] ];
     redtm_emptyelim {Γ P n n'} :
       [ Γ,, tEmpty |- P ] ->
       [ Γ |- n ⤳* n' : tEmpty ] ->
@@ -593,10 +636,10 @@ Class GenericTypingProperties `(ta : tag)
 (* Priority 2 *)
 #[export] Hint Resolve wfc_nil wfc_cons | 2 : gen_typing.
 #[export] Hint Resolve wft_wk wft_U wft_prod wft_sig wft_Id | 2 : gen_typing.
-#[export] Hint Resolve ty_wk ty_var ty_prod ty_lam ty_app ty_nat ty_empty ty_zero ty_succ ty_natElim ty_emptyElim ty_sig ty_pair ty_fst ty_snd ty_Id ty_refl ty_IdElim| 2 : gen_typing.
+#[export] Hint Resolve ty_wk ty_var ty_prod ty_lam ty_app ty_nat ty_bool ty_empty ty_zero ty_succ ty_natElim ty_true ty_false ty_boolElim ty_emptyElim ty_sig ty_pair ty_fst ty_snd ty_Id ty_refl ty_IdElim| 2 : gen_typing.
 #[export] Hint Resolve convty_wk convty_uni convty_prod convty_sig convty_Id | 2 : gen_typing.
-#[export] Hint Resolve convtm_wk convtm_prod convtm_sig convtm_eta convtm_nat convtm_empty convtm_zero convtm_succ convtm_eta_sig convtm_Id convtm_refl | 2 : gen_typing.
-#[export] Hint Resolve convneu_wk convneu_var convneu_app convneu_natElim convneu_emptyElim convneu_fst convneu_snd convneu_IdElim | 2 : gen_typing.
+#[export] Hint Resolve convtm_wk convtm_prod convtm_sig convtm_eta convtm_nat convtm_bool convtm_empty convtm_zero convtm_succ convtm_true convtm_false convtm_eta_sig convtm_Id convtm_refl | 2 : gen_typing.
+#[export] Hint Resolve convneu_wk convneu_var convneu_app convneu_natElim convneu_boolElim convneu_emptyElim convneu_fst convneu_snd convneu_IdElim | 2 : gen_typing.
 #[export] Hint Resolve redty_ty_src redtm_ty_src | 2 : gen_typing.
 (* Priority 4 *)
 #[export] Hint Resolve wft_term convty_term convtm_convneu | 4 : gen_typing.
@@ -765,7 +808,7 @@ Section GenericConsequences.
 
   #[local] Hint Resolve tyr_wf_l tmr_wf_l : gen_typing.
   #[local] Hint Resolve redty_wk redty_term redty_refl redtm_wk redtm_app redtm_refl | 2 : gen_typing.
-  #[local] Hint Resolve redtm_beta redtm_natElimZero redtm_natElimSucc | 2 : gen_typing.
+  #[local] Hint Resolve redtm_beta redtm_natElimZero redtm_natElimSucc redtm_boolElimTrue redtm_boolElimFalse | 2 : gen_typing.
   #[local] Hint Resolve  redtm_conv | 6 : gen_typing.
 
   Lemma redty_red {Γ A B} :
@@ -895,6 +938,24 @@ Section GenericConsequences.
     [Γ |- hz : P[tZero..]] ->
     [Γ |- hs : elimSuccHypTy P] ->
     [Γ |- tNatElim P hz hs tZero :⤳*: hz : P[tZero..]].
+  Proof.
+    intros ???; constructor; tea; gen_typing.
+  Qed.
+
+  Lemma redtmwf_boolElimTrue {Γ P ht hf} :
+    [Γ ,, tBool |- P ] ->
+    [Γ |- ht : P[tTrue..]] ->
+    [Γ |- hf : P[tFalse..]] ->
+    [Γ |- tBoolElim P ht hf tTrue :⤳*: ht : P[tTrue..]].
+  Proof.
+    intros ???; constructor; tea; gen_typing.
+  Qed.
+
+  Lemma redtmwf_boolElimFalse {Γ P ht hf} :
+    [Γ ,, tBool |- P ] ->
+    [Γ |- ht : P[tTrue..]] ->
+    [Γ |- hf : P[tFalse..]] ->
+    [Γ |- tBoolElim P ht hf tFalse :⤳*: hf : P[tFalse..]].
   Proof.
     intros ???; constructor; tea; gen_typing.
   Qed.
@@ -1374,5 +1435,5 @@ Section GenericConsequences.
 End GenericConsequences.
 
 #[export] Hint Resolve tyr_wf_l tmr_wf_l well_typed_well_formed : gen_typing.
-#[export] Hint Resolve redtywf_wk redtywf_term redtywf_red redtywf_refl redtmwf_wk redtmwf_app redtmwf_refl redtm_beta redtmwf_red redtmwf_natElimZero | 2 : gen_typing.
+#[export] Hint Resolve redtywf_wk redtywf_term redtywf_red redtywf_refl redtmwf_wk redtmwf_app redtmwf_refl redtm_beta redtmwf_red redtmwf_natElimZero redtmwf_boolElimTrue redtmwf_boolElimFalse| 2 : gen_typing.
 #[export] Hint Resolve  redtmwf_conv | 6 : gen_typing.

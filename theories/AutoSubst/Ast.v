@@ -17,6 +17,10 @@ Inductive term : Type :=
   | tZero : term
   | tSucc : term -> term
   | tNatElim : term -> term -> term -> term -> term
+  | tBool : term
+  | tTrue : term
+  | tFalse : term
+  | tBoolElim : term -> term -> term -> term -> term
   | tEmpty : term
   | tEmptyElim : term -> term -> term
   | tSig : term -> term -> term
@@ -82,6 +86,35 @@ exact (eq_trans
                (ap (fun x => tNatElim t0 x s2 s3) H1))
             (ap (fun x => tNatElim t0 t1 x s3) H2))
          (ap (fun x => tNatElim t0 t1 t2 x) H3)).
+Qed.
+
+Lemma congr_tBool : tBool = tBool.
+Proof.
+exact (eq_refl).
+Qed.
+
+Lemma congr_tTrue : tTrue = tTrue.
+Proof.
+exact (eq_refl).
+Qed.
+
+Lemma congr_tFalse : tFalse = tFalse.
+Proof.
+exact (eq_refl).
+Qed.
+
+Lemma congr_tBoolElim {s0 : term} {s1 : term} {s2 : term} {s3 : term}
+  {t0 : term} {t1 : term} {t2 : term} {t3 : term} (H0 : s0 = t0)
+  (H1 : s1 = t1) (H2 : s2 = t2) (H3 : s3 = t3) :
+  tBoolElim s0 s1 s2 s3 = tBoolElim t0 t1 t2 t3.
+Proof.
+exact (eq_trans
+         (eq_trans
+            (eq_trans
+               (eq_trans eq_refl (ap (fun x => tBoolElim x s1 s2 s3) H0))
+               (ap (fun x => tBoolElim t0 x s2 s3) H1))
+            (ap (fun x => tBoolElim t0 t1 x s3) H2))
+         (ap (fun x => tBoolElim t0 t1 t2 x) H3)).
 Qed.
 
 Lemma congr_tEmpty : tEmpty = tEmpty.
@@ -182,6 +215,12 @@ Fixpoint ren_term (xi_term : nat -> nat) (s : term) {struct s} : term :=
   | tNatElim s0 s1 s2 s3 =>
       tNatElim (ren_term (upRen_term_term xi_term) s0) (ren_term xi_term s1)
         (ren_term xi_term s2) (ren_term xi_term s3)
+  | tBool => tBool
+  | tTrue => tTrue
+  | tFalse => tFalse
+  | tBoolElim s0 s1 s2 s3 =>
+      tBoolElim (ren_term (upRen_term_term xi_term) s0) (ren_term xi_term s1)
+        (ren_term xi_term s2) (ren_term xi_term s3)
   | tEmpty => tEmpty
   | tEmptyElim s0 s1 =>
       tEmptyElim (ren_term (upRen_term_term xi_term) s0)
@@ -224,6 +263,13 @@ term :=
   | tSucc s0 => tSucc (subst_term sigma_term s0)
   | tNatElim s0 s1 s2 s3 =>
       tNatElim (subst_term (up_term_term sigma_term) s0)
+        (subst_term sigma_term s1) (subst_term sigma_term s2)
+        (subst_term sigma_term s3)
+  | tBool => tBool
+  | tTrue => tTrue
+  | tFalse => tFalse
+  | tBoolElim s0 s1 s2 s3 =>
+      tBoolElim (subst_term (up_term_term sigma_term) s0)
         (subst_term sigma_term s1) (subst_term sigma_term s2)
         (subst_term sigma_term s3)
   | tEmpty => tEmpty
@@ -281,6 +327,15 @@ subst_term sigma_term s = s :=
   | tSucc s0 => congr_tSucc (idSubst_term sigma_term Eq_term s0)
   | tNatElim s0 s1 s2 s3 =>
       congr_tNatElim
+        (idSubst_term (up_term_term sigma_term) (upId_term_term _ Eq_term) s0)
+        (idSubst_term sigma_term Eq_term s1)
+        (idSubst_term sigma_term Eq_term s2)
+        (idSubst_term sigma_term Eq_term s3)
+  | tBool => congr_tBool
+  | tTrue => congr_tTrue
+  | tFalse => congr_tFalse
+  | tBoolElim s0 s1 s2 s3 =>
+      congr_tBoolElim
         (idSubst_term (up_term_term sigma_term) (upId_term_term _ Eq_term) s0)
         (idSubst_term sigma_term Eq_term s1)
         (idSubst_term sigma_term Eq_term s2)
@@ -349,6 +404,16 @@ ren_term xi_term s = ren_term zeta_term s :=
   | tSucc s0 => congr_tSucc (extRen_term xi_term zeta_term Eq_term s0)
   | tNatElim s0 s1 s2 s3 =>
       congr_tNatElim
+        (extRen_term (upRen_term_term xi_term) (upRen_term_term zeta_term)
+           (upExtRen_term_term _ _ Eq_term) s0)
+        (extRen_term xi_term zeta_term Eq_term s1)
+        (extRen_term xi_term zeta_term Eq_term s2)
+        (extRen_term xi_term zeta_term Eq_term s3)
+  | tBool => congr_tBool
+  | tTrue => congr_tTrue
+  | tFalse => congr_tFalse
+  | tBoolElim s0 s1 s2 s3 =>
+      congr_tBoolElim
         (extRen_term (upRen_term_term xi_term) (upRen_term_term zeta_term)
            (upExtRen_term_term _ _ Eq_term) s0)
         (extRen_term xi_term zeta_term Eq_term s1)
@@ -428,6 +493,16 @@ subst_term sigma_term s = subst_term tau_term s :=
         (ext_term sigma_term tau_term Eq_term s1)
         (ext_term sigma_term tau_term Eq_term s2)
         (ext_term sigma_term tau_term Eq_term s3)
+  | tBool => congr_tBool
+  | tTrue => congr_tTrue
+  | tFalse => congr_tFalse
+  | tBoolElim s0 s1 s2 s3 =>
+      congr_tBoolElim
+        (ext_term (up_term_term sigma_term) (up_term_term tau_term)
+           (upExt_term_term _ _ Eq_term) s0)
+        (ext_term sigma_term tau_term Eq_term s1)
+        (ext_term sigma_term tau_term Eq_term s2)
+        (ext_term sigma_term tau_term Eq_term s3)
   | tEmpty => congr_tEmpty
   | tEmptyElim s0 s1 =>
       congr_tEmptyElim
@@ -499,6 +574,17 @@ Fixpoint compRenRen_term (xi_term : nat -> nat) (zeta_term : nat -> nat)
       congr_tSucc (compRenRen_term xi_term zeta_term rho_term Eq_term s0)
   | tNatElim s0 s1 s2 s3 =>
       congr_tNatElim
+        (compRenRen_term (upRen_term_term xi_term)
+           (upRen_term_term zeta_term) (upRen_term_term rho_term)
+           (up_ren_ren _ _ _ Eq_term) s0)
+        (compRenRen_term xi_term zeta_term rho_term Eq_term s1)
+        (compRenRen_term xi_term zeta_term rho_term Eq_term s2)
+        (compRenRen_term xi_term zeta_term rho_term Eq_term s3)
+  | tBool => congr_tBool
+  | tTrue => congr_tTrue
+  | tFalse => congr_tFalse
+  | tBoolElim s0 s1 s2 s3 =>
+      congr_tBoolElim
         (compRenRen_term (upRen_term_term xi_term)
            (upRen_term_term zeta_term) (upRen_term_term rho_term)
            (up_ren_ren _ _ _ Eq_term) s0)
@@ -587,6 +673,17 @@ subst_term tau_term (ren_term xi_term s) = subst_term theta_term s :=
       congr_tSucc (compRenSubst_term xi_term tau_term theta_term Eq_term s0)
   | tNatElim s0 s1 s2 s3 =>
       congr_tNatElim
+        (compRenSubst_term (upRen_term_term xi_term) (up_term_term tau_term)
+           (up_term_term theta_term) (up_ren_subst_term_term _ _ _ Eq_term)
+           s0)
+        (compRenSubst_term xi_term tau_term theta_term Eq_term s1)
+        (compRenSubst_term xi_term tau_term theta_term Eq_term s2)
+        (compRenSubst_term xi_term tau_term theta_term Eq_term s3)
+  | tBool => congr_tBool
+  | tTrue => congr_tTrue
+  | tFalse => congr_tFalse
+  | tBoolElim s0 s1 s2 s3 =>
+      congr_tBoolElim
         (compRenSubst_term (upRen_term_term xi_term) (up_term_term tau_term)
            (up_term_term theta_term) (up_ren_subst_term_term _ _ _ Eq_term)
            s0)
@@ -691,6 +788,17 @@ ren_term zeta_term (subst_term sigma_term s) = subst_term theta_term s :=
         (compSubstRen_term sigma_term zeta_term theta_term Eq_term s0)
   | tNatElim s0 s1 s2 s3 =>
       congr_tNatElim
+        (compSubstRen_term (up_term_term sigma_term)
+           (upRen_term_term zeta_term) (up_term_term theta_term)
+           (up_subst_ren_term_term _ _ _ Eq_term) s0)
+        (compSubstRen_term sigma_term zeta_term theta_term Eq_term s1)
+        (compSubstRen_term sigma_term zeta_term theta_term Eq_term s2)
+        (compSubstRen_term sigma_term zeta_term theta_term Eq_term s3)
+  | tBool => congr_tBool
+  | tTrue => congr_tTrue
+  | tFalse => congr_tFalse
+  | tBoolElim s0 s1 s2 s3 =>
+      congr_tBoolElim
         (compSubstRen_term (up_term_term sigma_term)
            (upRen_term_term zeta_term) (up_term_term theta_term)
            (up_subst_ren_term_term _ _ _ Eq_term) s0)
@@ -804,6 +912,17 @@ subst_term tau_term (subst_term sigma_term s) = subst_term theta_term s :=
         (compSubstSubst_term sigma_term tau_term theta_term Eq_term s0)
   | tNatElim s0 s1 s2 s3 =>
       congr_tNatElim
+        (compSubstSubst_term (up_term_term sigma_term)
+           (up_term_term tau_term) (up_term_term theta_term)
+           (up_subst_subst_term_term _ _ _ Eq_term) s0)
+        (compSubstSubst_term sigma_term tau_term theta_term Eq_term s1)
+        (compSubstSubst_term sigma_term tau_term theta_term Eq_term s2)
+        (compSubstSubst_term sigma_term tau_term theta_term Eq_term s3)
+  | tBool => congr_tBool
+  | tTrue => congr_tTrue
+  | tFalse => congr_tFalse
+  | tBoolElim s0 s1 s2 s3 =>
+      congr_tBoolElim
         (compSubstSubst_term (up_term_term sigma_term)
            (up_term_term tau_term) (up_term_term theta_term)
            (up_subst_subst_term_term _ _ _ Eq_term) s0)
@@ -961,6 +1080,16 @@ Fixpoint rinst_inst_term (xi_term : nat -> nat) (sigma_term : nat -> term)
   | tSucc s0 => congr_tSucc (rinst_inst_term xi_term sigma_term Eq_term s0)
   | tNatElim s0 s1 s2 s3 =>
       congr_tNatElim
+        (rinst_inst_term (upRen_term_term xi_term) (up_term_term sigma_term)
+           (rinstInst_up_term_term _ _ Eq_term) s0)
+        (rinst_inst_term xi_term sigma_term Eq_term s1)
+        (rinst_inst_term xi_term sigma_term Eq_term s2)
+        (rinst_inst_term xi_term sigma_term Eq_term s3)
+  | tBool => congr_tBool
+  | tTrue => congr_tTrue
+  | tFalse => congr_tFalse
+  | tBoolElim s0 s1 s2 s3 =>
+      congr_tBoolElim
         (rinst_inst_term (upRen_term_term xi_term) (up_term_term sigma_term)
            (rinstInst_up_term_term _ _ Eq_term) s0)
         (rinst_inst_term xi_term sigma_term Eq_term s1)

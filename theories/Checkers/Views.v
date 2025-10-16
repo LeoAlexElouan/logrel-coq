@@ -22,6 +22,7 @@ Definition dest_entry_rename (ρ : nat -> nat) (d : dest_entry) : dest_entry :=
   match d with
   | eEmptyElim P => eEmptyElim P⟨upRen_term_term ρ⟩
   | eNatElim P hs hz => eNatElim P⟨upRen_term_term ρ⟩ hs⟨ρ⟩ hz⟨ρ⟩
+  | eBoolElim P ht hf => eBoolElim P⟨upRen_term_term ρ⟩ ht⟨ρ⟩ hf⟨ρ⟩
   | eApp u => eApp u⟨ρ⟩
   | eFst => eFst
   | eSnd => eSnd
@@ -46,6 +47,15 @@ Qed.
 
 Lemma whnf_tm_view1_nat t e :
   build_tm_view1 t = tm_view1_nat e ->
+  whnf t × ¬ whne t.
+Proof.
+  intros H.
+  destruct e ; cbn.
+  all: split ; [ now econstructor | intros H' ; inversion H'].
+Qed.
+
+Lemma whnf_tm_view1_bool t e :
+  build_tm_view1 t = tm_view1_bool e ->
   whnf t × ¬ whne t.
 Proof.
   intros H.
@@ -122,6 +132,7 @@ Definition whne_ne_view1 {N} (w : whne N) : ne_view1 N :=
   | whne_tRel => ne_view1_rel _
   | whne_tApp _ => ne_view1_dest _ (eApp _)
   | whne_tNatElim _ => ne_view1_dest _ (eNatElim _ _ _)
+  | whne_tBoolElim _ => ne_view1_dest _ (eBoolElim _ _ _)
   | whne_tEmptyElim _ => ne_view1_dest _ (eEmptyElim _)
   | whne_tFst _ => ne_view1_dest _ eFst
   | whne_tSnd _ => ne_view1_dest _ eSnd
@@ -154,7 +165,7 @@ Lemma whne_nf_view3 P m n (wP : isPosType P) (wm : whne m) (wn : whne n) :
 Proof.
   simp build_nf_view3.
   destruct wP ; cbn.
-  2-4: unshelve erewrite whne_nf_view1 ; tea; cbn; now rewrite (whne_nf_view1 wn).
+  2-5: unshelve erewrite whne_nf_view1 ; tea; cbn; now rewrite (whne_nf_view1 wn).
   - rewrite whne_ty_view2 ; cbn ; tea.
     reflexivity.
   - unshelve erewrite whne_ty_view1 ; tea.
@@ -171,7 +182,7 @@ Lemma ty_mismatch_hd_view Γ T V (tT : isType T) (tV : isType V) :
 Proof.
   destruct tT, tV ; cbn ; try reflexivity.
   all: simp build_nf_ty_view2 ; cbn.
-  1-6: congruence.
+  1-7: congruence.
   do 2 (unshelve erewrite whne_ty_view1 ; tea) ; cbn.
   congruence.
 Qed.
@@ -182,7 +193,7 @@ Lemma univ_mismatch_hd_view Γ s T V (tT : isType T) (tV : isType V) :
 Proof.
   destruct tT, tV ; cbn ; try reflexivity.
   all: simp build_nf_view3 build_nf_ty_view2 ; cbn.
-  1-5: intros [=].
+  1-6: intros [=].
   do 2 (unshelve erewrite whne_ty_view1 ; tea) ; cbn.
   discriminate.
 Qed.
@@ -191,6 +202,7 @@ Lemma mismatch_hd_view Γ A t u (tA : isType A) :
   whnf t -> whnf u ->
   build_nf_view3 A t u = mismatch A t u ->
   (∑ (nft : isNat t) (nfu : isNat u), A = tNat × nat_hd_view Γ nft nfu = False) +
+  (∑ (nft : isBool t) (nfu : isBool u), A = tBool × bool_hd_view Γ nft nfu = False) +
   (∑ (nft : isId t) (nfu : isId u) A' x y, A = tId A' x y × id_hd_view Γ A' x y nft nfu = False).
 Proof.
   intros wt wu.
@@ -200,8 +212,18 @@ Proof.
   - destruct (build_nf_view1 t), (build_nf_view1 u) ; cbn.
     all: try solve [intros [=]].
     all: destruct n ; cbn ; try solve [intros [=]].
-    all: destruct n0 ; cbn ; try solve [intros [=]].
-    all: unshelve (intros _ ; left ; do 2 eexists).
+    all: destruct n0; cbn ; try solve [intros [=]].
+    all: unshelve (intros _ ; left ; left; do 2 eexists).
+    all: try solve [constructor].
+    1-8: econstructor ; eapply not_can_whne ; tea ; solve [now apply zip_can | intros c ; inversion c].
+    all: now cbn.
+
+  - destruct (build_nf_view1 t), (build_nf_view1 u) ; cbn.
+    all: try solve [intros [=]].
+    all: destruct b ; cbn ; try solve [intros [=]].
+    1,2: destruct b0 ; cbn ; try solve [intros [=]].
+    3-6: destruct n ; cbn ; try solve [intros [=]].
+    all: unshelve (intros _ ; left ; right ; do 2 eexists).
     all: try solve [constructor].
     1-8: econstructor ; eapply not_can_whne ; tea ; solve [now apply zip_can | intros c ; inversion c].
     all: now cbn.
@@ -232,6 +254,7 @@ Proof.
   - now constructor.
   - eapply (ne_view1_dest _ (eApp _)).
   - eapply (ne_view1_dest _ (eNatElim _ _ _)).
+  - eapply (ne_view1_dest _ (eBoolElim _ _ _)).
   - eapply (ne_view1_dest _ (eEmptyElim _)).
   - eapply (ne_view1_dest _ eFst).
   - eapply (ne_view1_dest _ eSnd).
@@ -252,8 +275,8 @@ Lemma nf_view2_neutral_can t t' :
 Proof.
   intros Heq.
   simp build_nf_view2 in Heq.
-  destruct (build_nf_view1 t) as [? [] | | ? [] | | | ] eqn:Heqt ; cbn in Heq.
-  all: destruct (build_nf_view1 t') as [? [] | | ? [] | | | ] eqn:Heqt' ; cbn in Heq.
+  destruct (build_nf_view1 t) as [? [] | | ? [] | ?[] | | | ] eqn:Heqt ; cbn in Heq.
+  all: destruct (build_nf_view1 t') as [? [] | | ? [] | ? [] | | | ] eqn:Heqt' ; cbn in Heq.
   all: try solve [congruence].
   split.
   all: now eapply tm_view1_neutral_can.
@@ -266,7 +289,7 @@ Lemma mismatch2_hd_view_ty Γ T V (tT : isType T) (tV : isType V) :
 Proof.
   destruct tT, tV ; cbn ; try reflexivity.
   all: simp build_nf_view2 ; cbn.
-  1-6: congruence.
+  1-7: congruence.
   do 2 (unshelve erewrite whne_nf_view1 ; tea ; cbn).
   congruence.
 Qed.
@@ -277,6 +300,7 @@ Lemma mismatch2_hd_view_tm Γ A t u :
   build_nf_view2 t u = mismatch2 t u ->
   (∑ (nft : isType t) (nfu : isType u), type_hd_view Γ nft nfu = False) +
   ((∑ (nft : isNat t) (nfu : isNat u), nat_hd_view Γ nft nfu = False) +
+  (∑ (nft : isBool t) (nfu : isBool u), bool_hd_view Γ nft nfu = False) +
   (∑ (nft : isId t) (nfu : isId u) , forall Γ A' x y, id_hd_view Γ A' x y nft nfu = False)).
 Proof.
   intros Ht Hu wt wu.
@@ -288,10 +312,12 @@ Proof.
     end |
     left ; unshelve (do 2 eexists) ; try constructor ; cbn ;
     now apply not_can_whne ; [..|eapply tm_view1_neutral_can] |
-    right ; left ; unshelve (do 2 eexists) ; try constructor ; cbn ;
+    right ; left ; left; unshelve (do 2 eexists) ; try constructor ; cbn ;
+    now apply not_can_whne ; [..|eapply tm_view1_neutral_can] |
+    right ; left ; right; unshelve (do 2 eexists) ; try constructor ; cbn ;
     now apply not_can_whne ; [..|eapply tm_view1_neutral_can]].
 
-    1,4: unshelve (right ; right ; unshelve (do 2 eexists) ; econstructor ;
+    1,5: unshelve (right ; right ; unshelve (do 2 eexists) ; econstructor ;
       [now apply not_can_whne ; [..|eapply tm_view1_neutral_can]|..] ;
       do 2 eexists ; reflexivity) ; easy.
 
@@ -302,8 +328,14 @@ Proof.
     - destruct n ;
       try solve [
       congruence |
-      right ; left ; unshelve (do 2 eexists) ; try constructor ; cbn ;
-      now apply not_can_whne ; [..|eapply tm_view1_neutral_can]].
+      right ; left ; left; unshelve (do 2 eexists) ; try constructor ; cbn ;
+      now apply not_can_whne ; [..| eapply tm_view1_neutral_can]].
+
+    - destruct b ;
+      try solve [
+      congruence |
+      right ; left ; right; unshelve (do 2 eexists) ; try constructor ; cbn ;
+      now apply not_can_whne ; [..| eapply tm_view1_neutral_can]].
 
 Qed.
 
@@ -315,6 +347,7 @@ Proof.
   funelim (build_nf_view2 _ _) ; try solve [congruence|inversion Hu|inversion Ht].
   - destruct t1 ; inversion Hu.
   - destruct n ; inversion Hu.
+  - destruct b ; inversion Hu.
 Qed.
 
 Definition nf_view2_rename (ρ : nat -> nat) {t t' : term} (v : nf_view2 t t') : nf_view2 t⟨ρ⟩ t'⟨ρ⟩ :=
@@ -322,6 +355,7 @@ Definition nf_view2_rename (ρ : nat -> nat) {t t' : term} (v : nf_view2 t t') :
   | sorts2 s s' => sorts2 s s'
   | prods2 A A' B B' => prods2 A⟨ρ⟩ A'⟨ρ⟩ B⟨upRen_term_term ρ⟩ B'⟨upRen_term_term ρ⟩
   | nats2 => nats2
+  | bools2 => bools2
   | emptys2 => emptys2
   | sigs2 A A' B B' => sigs2 A⟨ρ⟩ A'⟨ρ⟩ B⟨upRen_term_term ρ⟩ B'⟨upRen_term_term ρ⟩
   | ids2 A A' x x' y y' => ids2 A⟨ρ⟩ A'⟨ρ⟩ x⟨ρ⟩ x'⟨ρ⟩ y⟨ρ⟩ y'⟨ρ⟩
@@ -330,6 +364,8 @@ Definition nf_view2_rename (ρ : nat -> nat) {t t' : term} (v : nf_view2 t t') :
   | ne_lam2 n A' t' => ne_lam2 n⟨ρ⟩ A'⟨ρ⟩ t'⟨upRen_term_term ρ⟩
   | zeros2 => zeros2
   | succs2 t t' => succs2 t⟨ρ⟩ t'⟨ρ⟩
+  | trues2 => trues2
+  | falses2 => falses2
   | pairs2 A A' B B' t t' u u' =>
       pairs2 A⟨ρ⟩ A'⟨ρ⟩ B⟨upRen_term_term ρ⟩ B'⟨upRen_term_term ρ⟩ t⟨ρ⟩ t'⟨ρ⟩ u⟨ρ⟩ u'⟨ρ⟩
   | pair_ne2 A B t u n' => pair_ne2 A⟨ρ⟩ B⟨upRen_term_term ρ⟩ t⟨ρ⟩ u⟨ρ⟩ n'⟨ρ⟩
@@ -352,6 +388,9 @@ Definition ne_view2_rename (ρ : nat -> nat) {t t' : term} (v : ne_view2 t t') :
   | ne_nats n P hz hs n' P' hz' hs' => ne_nats
       n⟨ρ⟩ P⟨upRen_term_term ρ⟩ hz⟨ρ⟩ hs⟨ρ⟩
       n'⟨ρ⟩ P'⟨upRen_term_term ρ⟩ hz'⟨ρ⟩ hs'⟨ρ⟩
+  | ne_bools n P ht hf n' P' ht' hf' => ne_bools
+      n⟨ρ⟩ P⟨upRen_term_term ρ⟩ ht⟨ρ⟩ hf⟨ρ⟩
+      n'⟨ρ⟩ P'⟨upRen_term_term ρ⟩ ht'⟨ρ⟩ hf'⟨ρ⟩
   | ne_emptys n P n' P' => ne_emptys n⟨ρ⟩ P⟨upRen_term_term ρ⟩ n'⟨ρ⟩ P'⟨upRen_term_term ρ⟩
   | ne_fsts p p' => ne_fsts p⟨ρ⟩ p'⟨ρ⟩
   | ne_snds p p' => ne_snds p⟨ρ⟩ p'⟨ρ⟩

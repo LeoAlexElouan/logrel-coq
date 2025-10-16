@@ -12,6 +12,11 @@ tZero : term
 tSucc : term -> term
 tNatElim : (bind term in term) -> term -> term -> term -> term
 
+tBool : term
+tTrue : term
+tFalse : term
+tBoolElim : (bind term in term) -> term -> term -> term -> term
+
 tEmpty : term
 tEmptyElim : (bind term in term) -> term -> term
 

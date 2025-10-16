@@ -57,6 +57,8 @@ Section ConvStr.
       now econstructor.
     - intros ; push_renaming.
       now econstructor.
+    - intros ; push_renaming.
+      now econstructor.
     - intros * ? IHA ? IHB ? * ??.
       push_renaming.
       econstructor.
@@ -106,6 +108,22 @@ Section ConvStr.
       + eapply IHs.
         2-3: reflexivity.
         unfold elimSuccHypTy ; cbn.
+        now bsimpl.
+      + now bsimpl.
+    - intros * ? IHn ? IHP ? IHt ? IHf **.
+      push_renaming.
+      edestruct IHn as [? []].
+      1-2: reflexivity.
+      push_renaming.
+      eexists ; split ; cycle -1.
+      1: econstructor ; tea.
+      + eapply IHP with (ρ := wk_up tBool ρ).
+        all: reflexivity.
+      + eapply IHt.
+        2-3: reflexivity.
+        now bsimpl.
+      + eapply IHf.
+        2-3: reflexivity.
         now bsimpl.
       + now bsimpl.
     - intros * ? IHn ? IHP **.
@@ -179,6 +197,12 @@ Section ConvStr.
       econstructor.
       eapply IH.
       all: reflexivity.
+    - intros ; push_renaming.
+      econstructor.
+    - intros ; push_renaming.
+      econstructor.
+    - intros ; push_renaming.
+      econstructor.
     - intros ; push_renaming.
       econstructor.
     - intros * ?? ? IH **.
@@ -266,6 +290,10 @@ End ConvStr.
     - solve [intros ; push_renaming ; now econstructor].
     - intros * ? IH ** ; push_renaming ; econstructor ; now
         unshelve eapply IH with (ρ := wk_up _ ρ).
+    - solve [intros ; push_renaming ; now econstructor].
+    - solve [intros ; push_renaming ; now econstructor].
+    - intros * ? IH ** ; push_renaming ; econstructor ; now
+        unshelve eapply IH with (ρ := wk_up _ ρ).
     - intros * ?? IH ** ; subst ; push_renaming ; econstructor.
       + now eapply whne_ren.
       + unshelve eapply IH with (ρ := wk_up _ ρ).
@@ -316,6 +344,14 @@ End ConvStr.
         all: now bsimpl.
       + now eapply IHz.
       + now eapply IHs.
+    - intros * ? IHn ? IHP ? IHt ? IHf ** ; push_renaming.
+      econstructor.
+      + now eapply IHn.
+      + unshelve eapply IHP with (ρ := wk_up _ ρ).
+        1: assumption.
+        all: now bsimpl.
+      + now eapply IHt.
+      + now eapply IHf.
     - intros * ? IHn ? IHP ** ; push_renaming.
       econstructor.
       + now eapply IHn.

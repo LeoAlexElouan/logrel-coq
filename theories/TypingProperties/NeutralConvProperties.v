@@ -44,6 +44,19 @@ Section NeuConvProperties.
         1: eapply typing_wk ; eauto.
         all: unfold elimSuccHypTy ; now bsimpl.
 
+    - erewrite (subst_ren_wk_up (A := tBool)).
+      econstructor ; eauto.
+      + erewrite <- !(wk_up_ren_on _ _ _ tBool).
+        eapply typing_wk ; eauto.
+        econstructor ; cbn ; eauto.
+        now econstructor.
+      + eapply convtm_meta_conv.
+        1: eapply typing_wk ; eauto.
+        all: now bsimpl.
+      + eapply convtm_meta_conv.
+        1: eapply typing_wk ; eauto.
+        all: now bsimpl.
+
     - erewrite subst_ren_wk_up.
       econstructor ; eauto.
       erewrite <- !(wk_up_ren_on _ _ _ tEmpty).
@@ -131,6 +144,10 @@ Section NeuConvProperties.
         [× t' = tNatElim P' hz' hs' n',
           [Γ,, tNat |- P ≅ P'], [Γ |- hz ≅ hz' : P[tZero..]], [Γ |- hs ≅ hs' : elimSuccHypTy P],
           [Γ |- n ~ n' : tNat] & [Γ |- P[n..] ≅ T]]
+      | tBoolElim P ht hf n => ∑ P' ht' hf' n',
+        [× t' = tBoolElim P' ht' hf' n',
+          [Γ,, tBool |- P ≅ P'], [Γ |- ht ≅ ht' : P[tTrue..]], [Γ |- hf ≅ hf' : P[tFalse..]],
+          [Γ |- n ~ n' : tBool] & [Γ |- P[n..] ≅ T]]
       | tEmptyElim P e => ∑ P' e',
         [× t' = tEmptyElim P' e', [Γ,, tEmpty |- P ≅ P'], [Γ |- e ~ e' : tEmpty] & [Γ |- P[e..] ≅ T]]
       | tFst p => ∑ A B p', [× t' = tFst p', [Γ |- p ~ p' : tSig A B] & [Γ |- A ≅ T]]
@@ -155,6 +172,9 @@ Section NeuConvProperties.
       1: boundary.
       eapply prod_ty_inv.
       eauto using conv_neu_sound with boundary.
+    - econstructor.
+      eapply typing_subst1.
+      all: eauto using conv_neu_sound with boundary.
     - econstructor.
       eapply typing_subst1.
       all: eauto using conv_neu_sound with boundary.
@@ -257,6 +277,21 @@ Section NeuConvProperties.
     - econstructor.
       1: econstructor ; eauto.
       + now eapply TypeSym.
+      + econstructor.
+        1: now eapply TermSym.
+        eapply typing_subst1 ; tea.
+        do 2 constructor.
+        boundary.
+      + econstructor.
+        1: now eapply TermSym.
+        eapply typing_subst1 ; tea.
+        do 2 constructor.
+        boundary.
+      + eapply TypeSym, typing_subst1 ; eauto using conv_neu_sound.
+
+    - econstructor.
+      1: econstructor ; eauto.
+      + now eapply TypeSym.
       + eapply TypeSym, typing_subst1 ; eauto using conv_neu_sound.
 
     - now econstructor.
@@ -340,6 +375,11 @@ Section NeuConvProperties.
       eapply typing_subst1 ; tea.
       now eapply conv_neu_sound.
 
+    - eapply termGen' in Hty as [? [[->]]].
+      eapply TypeTrans ; tea.
+      eapply typing_subst1 ; tea.
+      now eapply conv_neu_sound.
+
     - eapply termGen' in Hty as [? [(?&?&[-> []%IHHconv%sig_ty_inj])]].
       now eapply TypeTrans.
 
@@ -387,7 +427,7 @@ Section NeuConvProperties.
   Proof.
     intros H H'.
     induction H in n3, H' |- *.
-    1-7: eapply neuConvGen in H' ; cbn in * ; refold ; prod_hyp_splitter ; subst.
+    1-8: eapply neuConvGen in H' ; cbn in * ; refold ; prod_hyp_splitter ; subst.
     - now econstructor.
     - eapply conv_neu_typing in H.
       2: clear H ; eauto using conv_neu_sound with boundary.
@@ -408,6 +448,16 @@ Section NeuConvProperties.
         econstructor ; tea.
         eapply TypeSym, elimSuccHypTy_conv ; tea.
         all: boundary.
+    - econstructor ; eauto.
+      + now eapply TypeTrans.
+      + eapply TermTrans ; tea.
+        econstructor ; tea.
+        eapply TypeSym, typing_subst1 ; tea.
+        do 2 econstructor ; boundary.
+      + eapply TermTrans ; tea.
+        econstructor ; tea.
+        eapply TypeSym, typing_subst1 ; tea.
+        do 2 econstructor ; boundary.
     - econstructor ; eauto.
       now eapply TypeTrans.
     - econstructor ; eauto.
@@ -485,7 +535,7 @@ Module DeclarativeTypingProperties.
     `{!TypingSubst de} `{!TypeConstructorsInj de}
     : ConvTermProperties (ta := de) := {}.
   Proof.
-    4,7,11: shelve.
+    4,7,14: shelve.
     all: gen_typing.
     Unshelve.
     - intros.

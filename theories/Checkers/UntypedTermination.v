@@ -97,6 +97,39 @@ Section AlgoStr.
       }
       now bsimpl.
 
+    - destruct b ; cbn.
+      all: intros ? [] ? [=] ->%eq_sym%List.map_eq_nil ; subst.
+      all: eexists ; split ; [unfold graph ; simp wh_red_stack ; now econstructor|..].
+      all: now bsimpl.
+
+    - split ; [easy|..].
+      intros * ? IH ? [] ? [=] ([]&?&[? [=]])%eq_sym%map_eq_cons ; subst.
+      edestruct IH as [? []].
+      2: reflexivity.
+      2:{
+        subst.
+        eexists ; split ; [..|reflexivity].
+        unfold graph ; simp wh_red_stack.
+        patch_rec_ret ; econstructor.
+        2: now constructor.
+        eassumption.
+      }
+      now bsimpl.
+
+    - split ; [easy|..].
+      intros * ? IH ? [] ? [=] ([]&?&[? [=]])%eq_sym%map_eq_cons ; subst.
+      edestruct IH as [? []].
+      2: reflexivity.
+      2:{
+        subst.
+        eexists ; split ; [..|reflexivity].
+        unfold graph ; simp wh_red_stack.
+        patch_rec_ret ; econstructor.
+        2: now constructor.
+        eassumption.
+      }
+      now bsimpl.
+
     - intros ? [] ? [=] ->%eq_sym%List.map_eq_nil ; subst.
       eexists ; split ; [unfold graph ; simp wh_red_stack ; now econstructor|..].
       now bsimpl.
@@ -233,7 +266,7 @@ Section AlgoStr.
       now eapply IH.
 
     - funelim (uconv_tm_red _) ; cbn.
-      1-7,10-16: solve [crush].
+      1-8,11-19: solve [crush].
 
       + crush.
         all: eapply H0 ; [now eapply section_up | reflexivity|..].
@@ -253,7 +286,7 @@ Section AlgoStr.
       + easy.
 
     - funelim (uconv_ne _) ; cbn.
-      1-6,8: solve [crush].
+      1-7,9: solve [crush].
 
       + intros.
         inversion eqargs ; subst ; clear eqargs.
@@ -279,7 +312,7 @@ Section AlgoStr.
     | |- ¬ isCanonical ?t => remember t⟨ρ⟩ as t' in * ; eintros ?%isCanonical_ren
     end.
   all: solve [simp build_nf_view2 in Heq ;
-    destruct (build_nf_view1 t') as [? [] | | ? [] | | | ] eqn:Heq' ; subst ; cbn in * ;
+    destruct (build_nf_view1 t') as [? [] | | ? [] | ? [] | | | ] eqn:Heq' ; subst ; cbn in * ;
       congruence + (now eapply tm_view1_neutral_can)].
 
   Qed.
@@ -486,6 +519,27 @@ Proof.
     destruct wu' ; cbn ; try exact I.
     now unshelve erewrite whne_nf_view1 ; cbn.
 
+  - intros * wu' [Hconcl []]%dup.
+    apply compute_domain.
+    simp _uconv uconv_tm_red build_nf_view2.
+    eapply bool_isBool in wu' ; tea.
+    destruct wu' ; cbn ; try exact I.
+    now unshelve erewrite whne_nf_view1 ; cbn.
+
+  - intros * wu' [Hconcl []]%dup.
+    apply compute_domain.
+    simp _uconv uconv_tm_red build_nf_view2.
+    eapply bool_isBool in wu' ; tea.
+    destruct wu' ; cbn ; try exact I.
+    now unshelve erewrite whne_nf_view1 ; cbn.
+
+  - intros * wu' [Hconcl []]%dup.
+    apply compute_domain.
+    simp _uconv uconv_tm_red build_nf_view2.
+    eapply Uterm_isType in wu' ; tea.
+    destruct wu' ; cbn ; try exact I.
+    now unshelve erewrite whne_nf_view1 ; cbn.
+
   - intros * w ? IH ? w' [Hconcl []]%dup.
     apply compute_domain.
     simp _uconv uconv_tm_red build_nf_view2 ; cbn.
@@ -655,7 +709,7 @@ Proof.
 
   - intros ? n ? ? * wu' [Hconcl]%dup.
     apply compute_domain.
-    destruct wu' as [n'| | | | | |].
+    destruct wu' as [n'| | | | | | |].
     all: simp _uconv uconv_ne ; cbn ; try easy.
     now destruct (Nat.eqb_spec n n') ; cbn.
 
@@ -699,6 +753,31 @@ Proof.
 
     intros [_ [Hpost3]%dup]%implem_uconv_graph%uconv_sound_decl ; eauto.
     eapply neuNatElimCong_prem3 in Hpost3 ; eauto.
+
+  - intros * Hn ? ?? ?? ?? * wu' [Hconcl]%dup.
+    apply compute_domain.
+    destruct wu'.
+    all: simp _uconv uconv_ne ; cbn; try exact I.
+
+    eapply neuBoolElimCong_prem0 in Hconcl as [Hpre0 []]%dup ; eauto.
+    split ; [eauto | intros [] ; cbn ; [|easy]].
+
+    inversion Hn as [???? Hn'] ; refold ; subst.
+    eintros [? Hpost1]%implem_uconv_graph%uconv_tconv ; eauto.
+    eapply dnf_det in Hn'.
+    2: now eapply algo_conv_dnorm in Hpost1.
+    subst.
+    eapply neuConvRed in Hpost1 ; refold ; tea.
+    eapply algo_conv_sound in Hpost1 as [? Hpost1]%dup ; eauto.
+    eapply neuBoolElimCong_prem1 in Hpost1 as [[]]%dup ; eauto.
+    split ; [eauto | intros [] ; cbn ; [|easy]].
+
+    intros [[Hpost2]%dup _]%implem_uconv_graph%uconv_sound_decl ; eauto.
+    eapply neuBoolElimCong_prem2 in Hpost2 as [[]]%dup ; eauto.
+    split ; [eauto | intros [] ; cbn ; [|easy]].
+
+    intros [_ [Hpost3]%dup]%implem_uconv_graph%uconv_sound_decl ; eauto.
+    eapply neuBoolElimCong_prem3 in Hpost3 ; eauto.
 
   - intros * Hn ? ?? * wu' [Hconcl]%dup.
     apply compute_domain.
@@ -807,6 +886,13 @@ Proof.
     all: simp build_nf_view2 ; cbn ; try easy.
     now unshelve erewrite whne_nf_view1 ; cbn.
 
+  - intros * wB' ?.
+    apply compute_domain.
+    simp _uconv uconv_tm_red.
+    destruct wB'.
+    all: simp build_nf_view2 ; cbn ; try easy.
+    now unshelve erewrite whne_nf_view1 ; cbn.
+
   - intros * ? ? ? ? * wB' [Hconcl]%dup.
     apply compute_domain.
     simp _uconv uconv_tm_red.
@@ -841,7 +927,7 @@ Proof.
     apply compute_domain.
     simp _uconv uconv_tm_red build_nf_view2.
     destruct wB' ; cbn.
-    1-6: now unshelve erewrite whne_nf_view1 ; cbn.
+    1-7: now unshelve erewrite whne_nf_view1 ; cbn.
     do 2 (unshelve erewrite whne_nf_view1 ; tea ; cbn).
 
     eapply typeNeuConvAlg_prem2 in Hconcl as [Hpre0 []]%dup ; eauto.

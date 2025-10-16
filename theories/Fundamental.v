@@ -2,7 +2,7 @@
 From LogRel Require Import Utils Syntax.All GenericTyping DeclarativeTyping LogicalRelation.
 From LogRel.LogicalRelation Require Import Properties.
 From LogRel.Validity Require Import Validity Irrelevance Properties ValidityTactics.
-From LogRel.Validity.Introductions Require Import Application Universe Pi Lambda Var Nat Empty SimpleArr Sigma Id.
+From LogRel.Validity.Introductions Require Import Application Universe Pi Lambda Var Nat Bool Empty SimpleArr Sigma Id.
 
 Set Primitive Projections.
 Set Universe Polymorphism.
@@ -353,6 +353,40 @@ Section Fundamental.
     Unshelve. all: irrValid.
   Qed.
 
+  Lemma FundTyBool : forall Γ : context, FundCon Γ -> FundTy Γ tBool.
+  Proof.
+    intros ??; unshelve econstructor; tea;  eapply boolValid.
+  Qed.
+
+  Lemma FundTmBool : forall Γ : context, FundCon Γ -> FundTm Γ U tBool.
+  Proof.
+    intros ??; unshelve econstructor; tea.
+    2: eapply boolValidU.
+  Qed.
+
+  Lemma FundTmTrue : forall Γ : context, FundCon Γ -> FundTm Γ tBool tTrue.
+  Proof.
+    intros; unshelve econstructor; tea.
+    2:eapply trueValid.
+  Qed.
+
+  Lemma FundTmFalse : forall Γ : context, FundCon Γ -> FundTm Γ tBool tFalse.
+  Proof.
+    intros; unshelve econstructor; tea.
+    2:eapply falseValid.
+  Qed.
+
+  Lemma FundTmBoolElim : forall (Γ : context) (P ht hf n : term),
+    FundTy (Γ,, tBool) P ->
+    FundTm Γ P[tTrue..] ht ->
+    FundTm Γ P[tFalse..] hf ->
+    FundTm Γ tBool n -> FundTm Γ P[n..] (tBoolElim P ht hf n).
+  Proof.
+    intros * [] [] [] []; unshelve econstructor; tea.
+    2: eapply boolElimValid; irrValid.
+    Unshelve. all: irrValid.
+  Qed.
+
   Lemma FundTyEmpty : forall Γ : context, FundCon Γ -> FundTy Γ tEmpty.
   Proof.
     intros ??; unshelve econstructor; tea;  eapply emptyValid.
@@ -415,6 +449,43 @@ Section Fundamental.
     2: eapply natElimSuccValid; try irrValid.
     Unshelve. all: irrValid.
   Qed.
+
+
+  Lemma FundTmEqBoolElimCong : forall (Γ : context)
+      (P P' ht ht' hf hf' n n' : term),
+    FundTyEq (Γ,, tBool) P P' ->
+    FundTmEq Γ P[tTrue..] ht ht' ->
+    FundTmEq Γ P[tFalse..] hf hf' ->
+    FundTmEq Γ tBool n n' ->
+    FundTmEq Γ P[n..] (tBoolElim P ht hf n) (tBoolElim P' ht' hf' n').
+  Proof.
+    intros * [? VP0] [VΓ0] [] []; opector; tea.
+    1: unshelve (eapply lrefl, substS; irrValid); eapply boolValid.
+    unshelve (eapply irrValidTm; [|eapply boolElimCongValid]; irrValid); irrValid.
+  Qed.
+
+  Lemma FundTmEqBoolElimTrue : forall (Γ : context) (P ht hf : term),
+    FundTy (Γ,, tBool) P ->
+    FundTm Γ P[tTrue..] ht ->
+    FundTm Γ P[tFalse..] hf ->
+    FundTmEq Γ P[tTrue..] (tBoolElim P ht hf tTrue) ht.
+  Proof.
+    intros * [] [] []; unshelve econstructor; tea.
+    2: eapply boolElimTrueValid; try irrValid.
+    Unshelve. irrValid.
+  Qed.
+
+  Lemma FundTmEqBoolElimFalse : forall (Γ : context) (P ht hf : term),
+    FundTy (Γ,, tBool) P ->
+    FundTm Γ P[tTrue..] ht ->
+    FundTm Γ P[tFalse..] hf ->
+    FundTmEq Γ P[tFalse..] (tBoolElim P ht hf tFalse) hf.
+  Proof.
+    intros * [] [] []; unshelve econstructor. tea.
+    2: eapply boolElimFalseValid; try irrValid.
+    Unshelve. irrValid.
+  Qed.
+
 
   Lemma FundTmEqEmptyElimCong : forall (Γ : context)
       (P P' n n' : term),
@@ -728,6 +799,7 @@ Lemma Fundamental : (forall Γ : context, [ |-[ de ] Γ ] -> FundCon (ta := ta) 
   + intros; now apply FundTyU.
   + intros; now apply FundTyPi.
   + intros; now apply FundTyNat.
+  + intros; now apply FundTyBool.
   + intros; now apply FundTyEmpty.
   + intros; now apply FundTySig.
   + intros; now apply FundTyId.
@@ -740,6 +812,10 @@ Lemma Fundamental : (forall Γ : context, [ |-[ de ] Γ ] -> FundCon (ta := ta) 
   + intros; now apply FundTmZero.
   + intros; now apply FundTmSucc.
   + intros; now apply FundTmNatElim.
+  + intros; now apply FundTmBool.
+  + intros; now apply FundTmTrue.
+  + intros; now apply FundTmFalse.
+  + intros; now apply FundTmBoolElim.
   + intros; now apply FundTmEmpty.
   + intros; now apply FundTmEmptyElim.
   + intros; now apply FundTmSig.
@@ -766,6 +842,9 @@ Lemma Fundamental : (forall Γ : context, [ |-[ de ] Γ ] -> FundCon (ta := ta) 
   + intros; now apply FundTmEqNatElimCong.
   + intros; now apply FundTmEqNatElimZero.
   + intros; now apply FundTmEqNatElimSucc.
+  + intros; now apply FundTmEqBoolElimCong.
+  + intros; now apply FundTmEqBoolElimTrue.
+  + intros; now apply FundTmEqBoolElimFalse.
   + intros; now apply FundTmEqEmptyElimCong.
   + intros; now apply FundTmEqSigCong.
   + intros; now apply FundTmEqPairCong.

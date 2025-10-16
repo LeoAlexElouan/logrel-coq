@@ -173,6 +173,12 @@ Section Weakenings.
     all: change tNat with tNat⟨ρ⟩; gtyping.
   Qed.
 
+  Lemma wkBool {Γ A B Δ} (ρ : Δ ≤ Γ) (wfΔ : [|- Δ]) : [Γ ||-Bool A ≅ B] -> [Δ ||-Bool A⟨ρ⟩ ≅ B⟨ρ⟩].
+  Proof.
+    intros []; constructor.
+    all: change tBool with tBool⟨ρ⟩; gtyping.
+  Qed.
+
   Lemma wkEmpty {Γ A B Δ} (ρ : Δ ≤ Γ) (wfΔ : [|- Δ]) : [Γ ||-Empty A ≅ B] -> [Δ ||-Empty A⟨ρ⟩ ≅ B⟨ρ⟩].
   Proof.
     intros []; constructor; change tEmpty with tEmpty⟨ρ⟩; gtyping.
@@ -222,6 +228,14 @@ Section Weakenings.
         * intros; constructor.
           change tNat with tNat⟨ρ⟩.
           now eapply wkNeNfEq.
+    - intros; unshelve econstructor.
+      + intros; now apply LRBool_, wkBool.
+      + cbn; intros ????? [ ]; econstructor; change tBool with tBool⟨ρ⟩.
+        1,2: now eapply redtmwf_wk.
+        1: gen_typing.
+        destruct prop; constructor.
+        change tBool with tBool⟨ρ⟩.
+        now eapply wkNeNfEq.
     - intros; unshelve econstructor.
       + intros; now eapply LREmpty_, wkEmpty.
       + cbn; intros ????? []; econstructor; change tEmpty with tEmpty⟨ρ⟩.

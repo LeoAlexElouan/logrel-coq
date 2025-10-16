@@ -64,6 +64,7 @@ Section Properties.
       | @UnivType s, @UnivType s' => s = s'
       | @ProdType A B, @ProdType A' B' => [Γ |- A' ≅ A] × [Γ,, A' |- B ≅ B']
       | NatType, NatType => True
+      | BoolType, BoolType => True
       | EmptyType, EmptyType => True
       | NeType _, NeType _ => [Γ |- T ≅ T' : U]
       | @SigType A B, @SigType A' B' => [Γ |- A ≅ A'] × [Γ,, A |- B ≅ B']
@@ -90,6 +91,7 @@ Section Properties.
       | @UnivType s, @UnivType s' => False
       | @ProdType A B, @ProdType A' B' => [Γ |- A' ≅ A : U] × [Γ,, A' |- B ≅ B' : U]
       | NatType, NatType => True
+      | BoolType, BoolType => True
       | EmptyType, EmptyType => True
       | NeType _, NeType _ => [Γ |- T ≅ T' : U]
       | @SigType A B, @SigType A' B' => [Γ |- A ≅ A' : U] × [Γ,, A |- B ≅ B' : U]
@@ -125,6 +127,24 @@ Section Properties.
     subst; f_equal; apply isNat_uniq.
   Qed.
 
+  Definition bool_hd_view (Γ : context) {t t' : term} (nft : isBool t) (nft' : isBool t') : Type :=
+  match nft, nft' with
+    | TrueBool, TrueBool => True
+    | FalseBool, FalseBool => True
+    | NeBool _, NeBool _ => [Γ |- t ≅ t' : tBool ]
+    | _, _ => False
+  end.
+
+  Lemma bool_hd_view_irr {Γ t0 t0' t1 t1'}
+    (nft0 : isBool t0) (nft0' : isBool t0') (nft1 : isBool t1) (nft1' : isBool t1') :
+    t0 = t1 -> t0' = t1' -> bool_hd_view Γ nft0 nft0' -> bool_hd_view Γ nft1 nft1'.
+  Proof.
+    intros ??.
+    enough (h : bool_hd_view Γ nft0 nft0' = bool_hd_view Γ nft1 nft1')
+    by now rewrite h.
+    subst; f_equal; apply isBool_uniq.
+  Qed.
+
 
   Definition id_hd_view (Γ : context) (A x x' : term) {t t' : term} (nft : isId t) (nft' : isId t') : Type :=
     match nft, nft' with
@@ -155,6 +175,11 @@ Section Properties.
       (nft : isNat t) (nft' : isNat t') :
       [Γ |- t ≅ t' : tNat] ->
       nat_hd_view Γ nft nft' ;
+
+    bool_conv_inj (Γ : context) (t t' : term)
+      (nft : isBool t) (nft' : isBool t') :
+      [Γ |- t ≅ t' : tBool] ->
+      bool_hd_view Γ nft nft' ;
 
     (* empty_conv_inj (Γ : context) (t t' : term) :
       whne t -> whne t' ->
@@ -201,6 +226,12 @@ Section Properties.
         [Γ ,, tNat |- P ≅ P'],
         [Γ |- hz ≅ hz' : P[tZero..]],
         [Γ |- hs ≅ hs' : elimSuccHypTy P] &
+        [Γ |- P[n..] ≅ T]]
+    | @whne_tBoolElim P ht hf n _, @whne_tBoolElim P' ht' hf' n' _ =>
+      [× [Γ |- n ≅ n' : tBool],
+        [Γ ,, tBool |- P ≅ P'],
+        [Γ |- ht ≅ ht' : P[tTrue..]],
+        [Γ |- hf ≅ hf' : P[tFalse..]] &
         [Γ |- P[n..] ≅ T]]
 
     | @whne_tEmptyElim P e _, @whne_tEmptyElim P' e' _ =>

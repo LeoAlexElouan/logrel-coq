@@ -438,6 +438,17 @@ Section PremisePreserve.
     now econstructor.
   Qed.
 
+  Lemma BoolElimCongUAlg_bridge Γ T P ht hf n P' ht' hf' n' :
+    [Γ |-[de] n ~ n' : T] ->
+    well_typed Γ (tBoolElim P ht hf n) × well_typed Γ (tBoolElim P' ht' hf' n') ->
+    [Γ |-[de] T ≅ tBool] × [Γ |-[ de ] n ~ n' : tBool].
+  Proof.
+    intros ? [[? [? [[-> ??? Hn]]]%termGen'] [? [? [[->]]]%termGen']].
+    unshelve epose proof (conv_neu_typing _ _ _ _ _ _ _) ; cycle -3 ; tea.
+    split ; tea.
+    now econstructor.
+  Qed.
+
   Lemma EmptyElimCongUAlg_bridge Γ T P n P' n' :
     [Γ |-[de] n ~ n' : T] ->
     well_typed Γ (tEmptyElim P n) × well_typed Γ (tEmptyElim P' n') ->
@@ -572,9 +583,24 @@ Section UConvSound.
       intros * [].
       now constructor.
 
+    - split.
+      1: now econstructor.
+      intros * [].
+      now constructor.
+
+    - split.
+      1: now econstructor.
+      intros * [].
+      now constructor.
+
+    - split.
+      1: now econstructor.
+      intros * [].
+      now constructor.
+
     - intros * ? [].
       split.
-    
+
       + intros * [Hz%type_isType _].
         2: constructor.
         inversion Hz ; inv_whne.
@@ -730,6 +756,20 @@ Section UConvSound.
       eapply IHs in Hpre3 as Hpos3 ; eauto.
       eexists.
       now eapply neuNatElimCong_concl.
+
+    - intros * ? IH ? [IHP] ? [_ IHt] ? [_ IHf] ? [Hconcl]%dup.
+
+      eapply neuBoolElimCong_prem0 in Hconcl as [Hpre0 []]%dup ; eauto.
+      eapply IH in Hpre0 as [? [Hpost0]%dup].
+      eapply BoolElimCongUAlg_bridge in Hpost0 as [? [Hpost0]%dup]; eauto.
+      eapply neuBoolElimCong_prem1 in Hpost0 as [Hpre1 []]%dup ; eauto.
+      eapply IHP in Hpre1 as [Hpos1]%dup ; eauto.
+      eapply neuBoolElimCong_prem2 in Hpos1 as [Hpre2 []]%dup ; eauto.
+      eapply IHt in Hpre2 as [Hpos2]%dup ; eauto.
+      eapply neuBoolElimCong_prem3 in Hpos2 as [Hpre3 []]%dup ; eauto.
+      eapply IHf in Hpre3 as Hpos3 ; eauto.
+      eexists.
+      now eapply neuBoolElimCong_concl.
 
     - intros * ? IH ? [IHP] ? [Hconcl]%dup.
 

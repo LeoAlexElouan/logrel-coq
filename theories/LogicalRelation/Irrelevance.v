@@ -170,6 +170,7 @@ Section Irrelevance.
     - intros ΠA ihdom ihcod ?? [ΠA' [? eqdom eqcod]] ?; subst; cbn in *.
       now eapply irrΠ.
     - intros NA ?? [NA' ?] ?; subst; intros ??; split; now cbn.
+    - intros BA ?? [BA' ?] ?; subst; intros ??; split; now cbn.
     - intros EA ?? [EA' ?] ?; subst; intros ??; split; now cbn.
     - intros ΣA ihdom ihcod ?? [ΣA' [? eqdom eqcod]] ?; subst; cbn in *.
       now eapply irrΣ.
@@ -209,6 +210,7 @@ Proof.
     5: now eapply cumPolyRed.
     all: tea.
   - intros; now eapply LRNat_.
+  - intros; now eapply LRBool_.
   - intros; now eapply LREmpty_.
   - intros [] IHdom IHcod ?; cbn in *.
     eapply LRSig'; econstructor.
