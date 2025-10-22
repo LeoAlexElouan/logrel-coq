@@ -22,7 +22,7 @@ Section Definitions.
 
   (** **** Context well-formation *)
   Inductive WfContextDecl : context -> Type :=
-      | connil : [ |- ε ]
+      | connil L : [ |- fromFctx L ]
       | concons {Γ A} : 
           [ |- Γ ] -> 
           [ Γ |- A ] -> 
@@ -57,6 +57,10 @@ Section Definitions.
       | wfTypeUniv {Γ} {A} :
           [ Γ |- A : U ] -> 
           [ Γ |- A ]
+      | wfTypeSplit {Γ A new} :
+          [ Γ,, new ↦ true |- A] ->
+          [ Γ,, new ↦ false |- A] ->
+          [ Γ |- A] 
   (** **** Typing *)
   with TypingDecl : context -> term -> term -> Type :=
       | wfVar {Γ} {n decl} :
@@ -105,6 +109,9 @@ Section Definitions.
         [Γ |- hf : P[tFalse..]] ->
         [Γ |- n : tBool] ->
         [Γ |- tBoolElim P ht hf n : P[n..]]
+      | wfTermAlpha {Γ n} :
+          [ Γ |- n : tNat] ->
+          [ Γ |- tAlpha n : tBool]
       | wfTermEmpty {Γ} :
           [|-Γ] ->
           [Γ |- tEmpty : U]
@@ -149,6 +156,10 @@ Section Definitions.
           [ Γ |- t : A ] -> 
           [ Γ |- A ≅ B ] -> 
           [ Γ |- t : B ]
+      | wfTermSplit {Γ t A new} :
+          [ Γ,, new ↦ true |- t : A] ->
+          [ Γ,, new ↦ false |- t : A] ->
+          [ Γ |- t : A]
   (** **** Conversion of types *)
   with ConvTypeDecl : context -> term -> term  -> Type :=  
       | TypePiCong {Γ} {A B C D} :
@@ -180,6 +191,10 @@ Section Definitions.
           [ Γ |- A ≅ B] ->
           [ Γ |- B ≅ C] ->
           [ Γ |- A ≅ C]
+      | TypeSplit {Γ A B new} :
+          [ Γ,, new ↦ true |- A ≅ B] ->
+          [ Γ,, new ↦ false |- A ≅ B] ->
+          [ Γ |- A ≅ B]
   (** **** Conversion of terms *)
   with ConvTermDecl : context -> term -> term -> term -> Type :=
       | TermBRed {Γ} {a t A B} :
@@ -241,6 +256,12 @@ Section Definitions.
           [Γ |- ht : P[tTrue..]] ->
           [Γ |- hf : P[tFalse..]] ->
           [Γ |- tBoolElim P ht hf tFalse ≅ hf : P[tFalse..]]
+      | TermAlphaCong {Γ} {n n'} :
+          [ Γ |- n ≅ n' : tNat] ->
+          [ Γ |- tAlpha n ≅ tAlpha n' : tBool]
+      | TermAlphaConv {Γ n b} :
+          [|-Γ] ->
+          in_Fctx Γ n b -> [ Γ |- tAlpha (nat_to_term n) ≅ bool_to_term b : tBool ]
       | TermEmptyElimCong {Γ P P' e e'} :
           [Γ ,, tEmpty |- P ≅ P'] ->
           [Γ |- e ≅ e' : tEmpty] ->
@@ -329,6 +350,10 @@ Section Definitions.
           [ Γ |- t ≅ t' : A ] ->
           [ Γ |- t' ≅ t'' : A ] ->
           [ Γ |- t ≅ t'' : A ]
+      | TermSplit {Γ t t' A new} :
+          [ Γ,, new ↦ true |- t ≅ t' : A] ->
+          [ Γ,, new ↦ false |- t ≅ t' : A] ->
+          [ Γ |- t ≅ t' : A]
       
   where "[   |- Γ ]" := (WfContextDecl Γ)
   and   "[ Γ |- T ]" := (WfTypeDecl Γ T)
@@ -389,6 +414,10 @@ Section Definitions.
       [Γ |- ht ≅ ht' : P[tTrue..]] ->
       [Γ |- hf ≅ hf' : P[tFalse..]] ->
       [Γ |- tBoolElim P ht hf n ~ tBoolElim P' ht' hf' n' : P[n..]]
+
+  | neuConvAlpha {k n n'} :
+      [Γ |- n ~ n' : tNat] ->
+      [Γ |- tAlpha (nSucc k n) ~ tAlpha (nSucc k n') : tBool]
 
   | neuConvEmpty {P P' e e'} :
       [Γ ,, tEmpty |- P ≅ P'] ->
@@ -533,6 +562,23 @@ End InductionPrinciples.
 
 Arguments WfDeclInductionConcl PCon PTy PTm PTyEq PTmEq : rename.
 
+Lemma consplit Γ new : [|-Γ,, new ↦ true] -> [|-Γ,, new ↦ false] -> [|-Γ].
+Proof.
+  intros Ht Hf.
+  destruct Γ.
+  induction Tctx.
+  - constructor.
+  - set (Γ := Build_context Tctx Fctx) in *.
+    change (Build_context (cons a Tctx) Fctx) with (Γ,,a) in *.
+    inversion Ht; destruct Γ0; cbn in *; subst.
+    change (Build_context Tctx (Fcons' Fctx new true)) with (Γ,, new ↦ true) in *.
+    inversion Hf; destruct Γ0; cbn in *; subst.
+    change (Build_context Tctx (Fcons' Fctx new false)) with (Γ,, new ↦ false) in *.
+    constructor.
+    * now eapply IHTctx.
+    * now eapply wfTypeSplit.
+Qed.
+
 (** ** Generation *)
 
 (** The generation lemma (the name comes from the PTS literature), gives a 
@@ -544,7 +590,7 @@ we cannot use reflexivity in the case where the last rule was not a conversion
 one, and we get the slightly clumsy disjunction of either an equality or a
 conversion proof. We get a better version of generation later on, once we have
 this implication. *)
-
+(* 
 Definition termGenData (Γ : context) (t T : term) : Type :=
   match t with
     | tRel n => ∑ decl, [× T = decl, [|- Γ]& in_ctx Γ n decl]
@@ -560,8 +606,9 @@ Definition termGenData (Γ : context) (t T : term) : Type :=
     | tBool => T = U
     | tTrue => T = tBool
     | tFalse => T = tBool
-    |  tBoolElim P ht hf b =>
+    | tBoolElim P ht hf b =>
       [× T = P[b..], [Γ,, tBool |- P], [Γ |- ht : P[tTrue..]], [Γ |- hf : P[tFalse..]] & [Γ |- b : tBool]]
+    | tAlpha n => T = tBool × [Γ |- n : tNat]
     | tEmpty => T = U
     | tEmptyElim P e =>
       [× T = P[e..], [Γ,, tEmpty |- P] & [Γ |- e : tEmpty]]
@@ -576,6 +623,39 @@ Definition termGenData (Γ : context) (t T : term) : Type :=
       [× T = P[e .: y..], [Γ |- A], [Γ |- x : A], [Γ,, A,, tId A⟨@wk1 Γ A⟩ x⟨@wk1 Γ A⟩ (tRel 0) |- P], [Γ |- hr : P[tRefl A x .: x..]], [Γ |- y : A] & [Γ |- e : tId A x y]]
   end.
 
+
+(* 
+
+Lemma termGenSplit Γ t A new :
+  termGenData (Γ,, new ↦ true) t A ->
+  termGenData (Γ,, new ↦ false) t A ->
+  termGenData Γ t A.
+Proof.
+  intros Ht Hf.
+  induction t.
+  all: cbn in *.
+  + destruct Ht as [? [<- wt in_t]].
+    destruct Hf as [? [<- wf in_f]].
+    eexists ; split.
+    reflexivity.
+    now eapply consplit.
+    apply in_f.
+  + apply Ht.
+  + destruct Ht as [-> Ht1 Ht2].
+    destruct Hf as [_ Hf1 Hf2].
+    prod_splitter.
+    reflexivity.
+    now eapply wfTermSplit.
+    now eapply wfTermSplit.
+  + destruct Ht as [? [-> Ht1 Ht2]].
+    destruct Hf as [B [e Hf1 Hf2]].
+    inversion e; subst.
+    prod_splitter.
+    reflexivity.
+    now eapply wfTypeSplit.
+    now eapply wfTermSplit.
+Admitted. *)
+
 (* Use `termGen` from later on instead after this file. *)
 Lemma _termGen Γ t A :
   [Γ |- t : A] ->
@@ -586,6 +666,12 @@ Proof.
   + destruct IHTypingDecl as [? [? [-> | ]]].
     * prod_splitter; tea; now right.
     * prod_splitter; tea; right; now eapply TypeTrans.
+  + destruct IHTypingDecl1 as [? [? [ -> | ]]], IHTypingDecl2 as [? [? [ -> | ]]].
+    2:{
+    * prod_splitter.
+      now eapply termGenSplit.
+      left; reflexivity.
+    * prod_splitter.
 Qed.
 
 Lemma prod_ty_inv Γ A B :
@@ -628,4 +714,4 @@ Proof.
   inversion Hty ; subst ; refold.
   1-7: inversion Hne.
   easy.
-Qed.
+Qed. *)

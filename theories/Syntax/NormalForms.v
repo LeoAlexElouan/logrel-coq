@@ -2,7 +2,7 @@
 From Stdlib Require Import ssrbool.
 From Equations Require Import Equations. (* for depelim *)
 From LogRel Require Import AutoSubst.Extra Utils.
-From LogRel.Syntax Require Import BasicAst Context.
+From LogRel.Syntax Require Import BasicAst Context Computations.
 
 (** ** Weak-head normal forms and neutrals. *)
 
@@ -30,7 +30,8 @@ with whne : term -> Type :=
   | whne_tEmptyElim {P e} : whne e -> whne (tEmptyElim P e)
   | whne_tFst {p} : whne p -> whne (tFst p)
   | whne_tSnd {p} : whne p -> whne (tSnd p)
-  | whne_tIdElim {A x P hr y e} : whne e -> whne (tIdElim A x P hr y e).
+  | whne_tIdElim {A x P hr y e} : whne e -> whne (tIdElim A x P hr y e)
+  | whne_tAlpha {n t} : whne t -> whne (tAlpha (nSucc n t)).
 
 #[global] Hint Constructors whne whnf : gen_typing.
 
@@ -211,9 +212,22 @@ Qed.
 
 (** * Unicity of witnesses *)
 
+(* 
 Definition whne_uniq {t} (w1 w2 : whne t) : w1 = w2.
 Proof.
-  induction w1; depelim w2; f_equal; eauto.
+  induction w1. 1-8: depelim w2; f_equal; eauto.
+  depelim w2. cbn.
+  - induction n. cbn in *. subst. destruct n0. reflexivity. cbn in *. depelim w1. 
+  induction n.
+  - cbn in *. subst. destruct n0. cbn in *. subst. f_equal. apply IHw1.
+    depelim w1.
+  - cbn in *.
+    destruct n0. cbn in *. subst. depelim w2.
+    cbn in *. inversion H.
+    apply IHn.
+  induction n.
+  - cbn in w2. depelim w2. destruct n.
+  induction n.
 Qed.
 
 Derive Signature for isType.
@@ -240,7 +254,7 @@ Lemma isId_uniq {t} (p q : isId t) : p = q.
 Proof.
   destruct p; depind q; try easy; try now inversion w.
   f_equal; eapply whne_uniq.
-Qed.
+Qed. *)
 
 
 (** ** Canonical forms *)
@@ -357,7 +371,9 @@ Section RenWhnf.
     - remember t⟨ρ⟩ as t'.
       intros Hne.
       induction Hne in t, Heqt' |- * ; cbn.
-      all: push_renaming ; econstructor ; eauto.
+      1-8: push_renaming; econstructor ; eauto.
+      destruct t; cbn in *; try solve [congruence].
+      inversion Heqt'.
     - induction 1 ; cbn.
       all: now econstructor.
   Qed.

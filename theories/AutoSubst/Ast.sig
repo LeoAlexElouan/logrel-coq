@@ -1,4 +1,5 @@
 sort : Type
+
 term(tRel) : Type
 
 tSort : sort -> term
@@ -17,6 +18,8 @@ tTrue : term
 tFalse : term
 tBoolElim : (bind term in term) -> term -> term -> term -> term
 
+tAlpha : term -> term
+
 tEmpty : term
 tEmptyElim : (bind term in term) -> term -> term
 
@@ -28,3 +31,4 @@ tSnd : term -> term
 tId : term -> term -> term -> term
 tRefl : term -> term -> term
 tIdElim : term -> term -> (bind term , term in term) -> term -> term -> term -> term
+

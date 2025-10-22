@@ -57,7 +57,8 @@ Qed.
 
 Theorem section_wk {Γ Δ} (ρ : Γ ≤ Δ) : section ρ.
 Proof.
-  destruct ρ as [ρ Hρ].
+  destruct Γ, Δ.
+  destruct ρ as [ρ Hρ]; cbn.
   induction Hρ ; cbn in *.
   - apply section_id.
   - apply section_compose ; tea.

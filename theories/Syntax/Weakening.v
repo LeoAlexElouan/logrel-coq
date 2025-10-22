@@ -14,7 +14,7 @@ Inductive weakening : Set :=
   | _wk_step (w : weakening) : weakening
   | _wk_up (w : weakening) : weakening.
 
-Fixpoint _wk_id (Γ : context) : weakening :=
+Fixpoint _wk_id (Γ : Tcontext) : weakening :=
   match Γ with
     | nil => _wk_empty
     | cons _ Γ' => _wk_up (_wk_id Γ')
@@ -80,14 +80,14 @@ Qed.
 a predicate on raw weakenings defined above, rather than directly
 using indexed weakenings. *)
 
-Inductive well_weakening : weakening -> context -> context -> Type :=
-  | well_empty : well_weakening _wk_empty ε ε
-  | well_step {Γ Δ : context} (A : term) (ρ : weakening) :
-    well_weakening ρ Γ Δ -> well_weakening (_wk_step ρ) (Γ,, A) Δ
-  | well_up {Γ Δ : context} (A : term) (ρ : weakening) :
-    well_weakening ρ Γ Δ -> well_weakening (_wk_up ρ) (Γ,, A⟨ρ⟩) (Δ,, A).
+Inductive well_weakening : weakening -> Tcontext -> Tcontext -> Type :=
+  | well_empty : well_weakening _wk_empty nil nil
+  | well_step {Γ Δ : Tcontext} (A : term) (ρ : weakening) :
+    well_weakening ρ Γ Δ -> well_weakening (_wk_step ρ) (cons A Γ) Δ
+  | well_up {Γ Δ : Tcontext} (A : term) (ρ : weakening) :
+    well_weakening ρ Γ Δ -> well_weakening (_wk_up ρ) (cons A⟨ρ⟩ Γ) (cons A Δ).
 
-Lemma well_wk_id (Γ : context) : well_weakening (_wk_id Γ) Γ Γ.
+Lemma well_wk_id (Γ : Tcontext) : well_weakening (_wk_id Γ) Γ Γ.
 Proof.
   induction Γ as [|d].
   1: econstructor.
@@ -99,7 +99,7 @@ Proof.
   now asimpl.
 Qed.
 
-Lemma well_wk_compose {ρ ρ' : weakening} {Δ Δ' Δ'' : context} :
+Lemma well_wk_compose {ρ ρ' : weakening} {Δ Δ' Δ'' : Tcontext} :
   well_weakening ρ Δ Δ' -> well_weakening ρ' Δ' Δ'' -> well_weakening (wk_compose ρ ρ') Δ Δ''.
 Proof.
   intros H H'.
@@ -115,8 +115,10 @@ Proof.
     econstructor ; auto.
 Qed.
 
+Definition Fweakening (L L' : Fcontext) : SProp := forall n b, in_Fctx L' n b -> in_Fctx L n b.
+
 #[projections(primitive)]Record wk_well_wk {Γ Δ : context} :=
-  { wk :> weakening ; well_wk :> well_weakening wk Γ Δ}.
+  { wk :> weakening ; well_wk :> well_weakening wk (Tctx Γ) (Tctx Δ); Fwk :> Fweakening Γ Δ}.
 Arguments wk_well_wk : clear implicits.
 Arguments Build_wk_well_wk : clear implicits.
 Notation "Γ ≤ Δ" := (wk_well_wk Γ Δ).
@@ -127,7 +129,7 @@ Notation "Γ ≤ Δ" := (wk_well_wk Γ Δ).
 
 #[global] Instance Ren1_well_wk {Y Z : Type} `{Ren1 (nat -> nat) Y Z} {Γ Δ : context} :
   (Ren1 (Γ ≤ Δ) Y Z) :=
-  fun ρ t => t⟨wk_to_ren ρ.(wk)⟩.
+  fun ρ t => t⟨wk_to_ren ρ⟩. (* fun ρ t => t⟨wk_to_ren ρ.(wk)⟩. *)
 
 Arguments Ren1_well_wk {_ _ _ _ _} _ _/.
 
@@ -144,45 +146,58 @@ Ltac change_well_wk :=
 
 Smpl Add 10 change_well_wk : refold.
 
+
 (** Constructors of well-typed weakenings *)
+Definition Fwk_empty : Fweakening ε ε := fun n b hin => hin.
+Definition wk_empty : (ε ≤ ε) :=
+  Build_wk_well_wk ε ε _wk_empty well_empty Fwk_empty.
 
-Definition wk_empty : (ε ≤ ε) := {| wk := _wk_empty ; well_wk := well_empty |}.
 
+Definition Fwk_step {Γ Δ : context} {A}: Fweakening Γ Δ -> Fweakening (Γ,,A) Δ := fun ρ n b hin => (ρ n b hin).
 Definition wk_step {Γ Δ} A (ρ : Γ ≤ Δ) : (Γ,,A) ≤ Δ :=
-  {| wk := _wk_step ρ ; well_wk := well_step A ρ ρ |}.
+  Build_wk_well_wk (Γ,,A) Δ (_wk_step ρ) (well_step A ρ ρ) (Fwk_step ρ).
 
+Definition Fwk_up {Γ Δ A} (ρ : Γ ≤ Δ): Fweakening (Γ,, A⟨ρ⟩) Δ -> Fweakening (Γ,,A) Δ := fun ρ n b hin => (ρ n b hin).
 Definition wk_up {Γ Δ} A (ρ : Γ ≤ Δ) : (Γ,,  A⟨ρ⟩) ≤ (Δ ,, A) :=
-  {| wk := _wk_up ρ ; well_wk := well_up A ρ ρ |}.
+  Build_wk_well_wk (Γ,,  A⟨ρ⟩) (Δ ,, A) (_wk_up ρ) (well_up A ρ ρ) (Fwk_up ρ ρ).
 
+Definition Fwk_id {Γ} : Fweakening Γ Γ := fun n b hin => hin.
 Definition wk_id {Γ} : Γ ≤ Γ :=
-  {| wk := _wk_id Γ ; well_wk := well_wk_id Γ |}.
+  Build_wk_well_wk Γ Γ (_wk_id (Tctx Γ)) (well_wk_id (Tctx Γ)) Fwk_id.
 
+Definition wk_Fwk {Γ: context} {L} (ρF : Fweakening L Γ) : (Build_context Γ L) ≤ Γ :=
+  Build_wk_well_wk (Build_context Γ L) _ (_wk_id Γ) (well_wk_id Γ) ρF.
+
+Definition Fwk_compose {Γ Γ' Γ''} : Fweakening Γ Γ' -> Fweakening Γ' Γ'' -> Fweakening Γ Γ'' := fun ρ ρ' n b hin => ρ n b (ρ' n b hin).
 Definition wk_well_wk_compose {Γ Γ' Γ'' : context} (ρ : Γ ≤ Γ') (ρ' : Γ' ≤ Γ'') : Γ ≤ Γ'' :=
-  {| wk := wk_compose ρ.(wk) ρ'.(wk) ; well_wk := well_wk_compose ρ.(well_wk) ρ'.(well_wk) |}.
+  Build_wk_well_wk Γ Γ'' (wk_compose ρ.(wk) ρ'.(wk)) (well_wk_compose ρ.(well_wk) ρ'.(well_wk)) (Fwk_compose ρ ρ').
 Notation "ρ ∘w ρ'" := (wk_well_wk_compose ρ ρ').
 
 (** ** The ubiquitous operation of adding one variable at the end of a context *)
 
 Definition wk1 {Γ} A : Γ,, A ≤ Γ := wk_step A (wk_id (Γ := Γ)).
 
-Lemma well_length {Γ Δ : context} (ρ : Γ ≤ Δ) : #|Δ| <= #|Γ|.
+Lemma well_length {Γ Δ : context} (ρ : Γ ≤ Δ) : #|Tctx Δ| <= #|Tctx Γ|.
 Proof.
   destruct ρ as [ρ wellρ].
   induction wellρ.
   all: cbn ; lia.
 Qed.
 
-Lemma id_ren (Γ : context) (ρ : Γ ≤ Γ) : ρ.(wk) = (_wk_id Γ).
+
+Lemma id_ren (Γ : context) (ρ : Γ ≤ Γ) : ρ.(wk) = (_wk_id (Tctx Γ)).
 Proof.
   destruct ρ as [ρ wellρ] ; cbn.
-  pose proof (@eq_refl _ #|Γ|) as eΓ.
+  pose proof (@eq_refl _ #|Tctx Γ|) as eΓ.
   revert eΓ wellρ.
   generalize Γ at 2 4.
   intros Δ e wellρ.
   induction wellρ in e |- *.
   all: cbn.
   - reflexivity.
-  - pose proof (well_length {| wk := ρ ; well_wk := wellρ |}).
+  - set (Γ' := (Build_context Γ0 (Fctx Γ))).
+    set (Δ' := (Build_context Δ0 (Fctx Γ))).
+    pose proof (well_length (Build_wk_well_wk Γ' Δ' ρ wellρ Fwk0)).
     now cbn in * ; lia.
   - rewrite IHwellρ.
     2: now cbn in * ; lia.
@@ -290,7 +305,7 @@ in_ctx Γ n decl ->
 in_ctx Δ (ρ n) (decl⟨ρ⟩).
 Proof.
 intros Hdecl.
-destruct ρ as [ρ wfρ] ; cbn in *.
+destruct ρ as [ρ wfρ Fρ];  destruct Γ as [Γ L], Δ as [Δ L']; unfold in_ctx; cbn in *.
 induction wfρ in n, decl, Hdecl |- *.
 - inversion Hdecl.
 - cbn.
@@ -310,7 +325,7 @@ in_ctx Δ (ρ n) decl ->
 ∑ decl', decl = decl'⟨ρ⟩ × in_ctx Γ n decl'.
 Proof.
 intros Hdecl.
-destruct ρ as [ρ wfρ] ; cbn in *.
+destruct ρ as [ρ wfρ] ; destruct Γ, Δ; unfold in_ctx; cbn in *.
 induction wfρ in n, decl, Hdecl |- *.
 - inversion Hdecl.
 - cbn in *.
@@ -457,3 +472,35 @@ Proof. now asimpl. Qed.
 
 Lemma liftSubstComm Γ F G t σ : G[t]⇑[σ] = G[t[σ] .: @wk1 Γ F >> σ].
 Proof. now bsimpl. Qed.
+
+
+Lemma wk_new : forall (Γ : context) Δ (new : newnat Γ) b, Δ ≤ Γ -> in_Fctx Δ new b -> Δ ≤ (Γ,, new ↦ b).
+Proof.
+  intros Γ Δ new b ρ hin.
+  apply (Build_wk_well_wk _ _ (wk ρ)).
+  apply (well_wk ρ).
+  intros n' b' hin'.
+  destruct new. cbn in *.
+  inversion hin'; subst.
+  + apply hin.
+  + now apply ρ.
+Defined.
+
+Lemma wk_Fup : forall Γ Δ b n (ρ : Δ ≤ Γ ) (newΓ : not_in_Fctx Γ n) (newΔ : not_in_Fctx Δ n),
+  (Δ,, (Build_newnat _ n newΔ) ↦ b) ≤ (Γ,, (Build_newnat _ n newΓ)↦ b).
+Proof.
+  intros Γ Δ b n ρ newΓ newΔ.
+  apply (Build_wk_well_wk _ _ (wk ρ)).
+  apply (well_wk ρ).
+  intros n' b' hin'.
+  inversion hin'; subst.
+  + apply in_hereF.
+  + apply in_thereF.
+    now apply ρ.
+Defined.
+
+Lemma wk_Fstep : forall (L:Fcontext) (new : newnat L) b, Fweakening (Fcons' L new b) L.
+Proof.
+  intros L new b n' b' hin.
+  now apply in_thereF.
+Defined.

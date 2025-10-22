@@ -221,8 +221,9 @@ Section GenericTyping.
 
   Class WfContextProperties :=
   {
-    wfc_nil : [|- ε ] ;
+    wfc_nil {L} : [|- fromFctx L ] ;
     wfc_cons {Γ} {A} : [|- Γ] -> [Γ |- A] -> [|- Γ,,A];
+    wfc_consF {Γ} {new} {b} : [|- Γ] -> [|- Γ,,new ↦ b];
     wfc_wft {Γ A} : [Γ |- A] -> [|- Γ];
     wfc_ty {Γ A t} : [Γ |- t : A] -> [|- Γ];
     wfc_convty {Γ A B} : [Γ |- A ≅ B] -> [|- Γ];
@@ -254,6 +255,10 @@ Section GenericTyping.
     wft_term {Γ} {A} :
       [ Γ |- A : U ] ->
       [ Γ |- A ] ;
+    wft_split {Γ A new} :
+      [ Γ,, new ↦ true |- A] ->
+      [ Γ,, new ↦ false |- A] ->
+      [ Γ |- A] ;
   }.
 
   Class TypingProperties :=
@@ -306,6 +311,9 @@ Section GenericTyping.
       [Γ |- hf : P[tFalse..]] ->
       [Γ |- n : tBool] ->
       [Γ |- tBoolElim P ht hf n : P[n..]] ;
+    ty_alpha {Γ n} :
+      [Γ |- n : tNat] ->
+      [Γ |- tAlpha n : tBool];
     ty_empty {Γ} :
         [|-Γ] ->
         [Γ |- tEmpty : U] ;
@@ -346,8 +354,18 @@ Section GenericTyping.
       [Γ |- y : A] ->
       [Γ |- e : tId A x y] ->
       [Γ |- tIdElim A x P hr y e : P[e .: y..]];
-    ty_exp {Γ t A A'} : [Γ |- t : A'] -> [Γ |- A ⤳* A'] -> [Γ |- t : A] ;
-    ty_conv {Γ t A A'} : [Γ |- t : A'] -> [Γ |- A' ≅ A] -> [Γ |- t : A] ;
+    ty_exp {Γ t A A'} : 
+      [Γ |- t : A'] ->
+      [Γ |- A ⤳* A'] ->
+      [Γ |- t : A] ;
+    ty_conv {Γ t A A'} : 
+      [Γ |- t : A'] -> 
+      [Γ |- A' ≅ A] -> 
+      [Γ |- t : A] ;
+    ty_split {Γ t A ne} :
+      [ Γ,, ne ↦ true |- t : A] ->
+      [ Γ,, ne ↦ false |- t : A] ->
+      [ Γ |- t : A] ;
   }.
 
   Class ConvTypeProperties :=
@@ -375,6 +393,10 @@ Section GenericTyping.
       [Γ |- x ≅ x' : A] ->
       [Γ |- y ≅ y' : A] ->
       [Γ |- tId A x y ≅ tId A' x' y' ] ;
+    convty_split {Γ A A' new} :
+      [ Γ,, new ↦ true |- A ≅ A'] ->
+      [ Γ,, new ↦ false |- A ≅ A'] ->
+      [ Γ |- A ≅ A'] ;
   }.
 
   Class ConvTermProperties :=
@@ -420,6 +442,9 @@ Section GenericTyping.
       [|-Γ] -> [Γ |- tTrue ≅ tTrue : tBool] ;
     convtm_false {Γ} :
       [|-Γ] -> [Γ |- tFalse ≅ tFalse : tBool] ;
+    convtm_alpha {Γ n b} :
+      [|-Γ] ->
+      in_Fctx Γ n b -> [Γ |- tAlpha (nat_to_term n) ≅ bool_to_term b : tBool] ;
     convtm_eta_sig {Γ p p' A B} :
       [Γ |- A] ->
       [Γ ,, A |- B] ->
@@ -442,6 +467,10 @@ Section GenericTyping.
       [Γ |- A ≅ A'] ->
       [Γ |- x ≅ x' : A] ->
       [Γ |- tRefl A x ≅ tRefl A' x' : tId A x x] ;
+    convtm_split {Γ t u A new} :
+      [ Γ,, new ↦ true |- t ≅ u : A] ->
+      [ Γ,, new ↦ false |- t ≅ u : A] ->
+      [ Γ |- t ≅ u :A] ;
   }.
 
   Class ConvNeuProperties :=
@@ -469,6 +498,9 @@ Section GenericTyping.
         [Γ |- hf ≅ hf' : P[tFalse..]] ->
         [Γ |- n ~ n' : tBool] ->
         [Γ |- tBoolElim P ht hf n ~ tBoolElim P' ht' hf' n' : P[n..]] ;
+    convneu_alpha {Γ t u n} :
+      [ Γ |- t ~ u : tNat ] ->
+      [ Γ |- tAlpha (nSucc n t) ~ tAlpha (nSucc n u) : tBool ];
     convneu_emptyElim {Γ P P' e e'} :
         [Γ ,, tEmpty |- P ≅ P'] ->
         [Γ |- e ~ e' : tEmpty] ->
@@ -490,6 +522,10 @@ Section GenericTyping.
       [Γ |- y ≅ y' : A] ->
       [Γ |- e ~ e' : tId A x y] ->
       [Γ |- tIdElim A x P hr y e ~ tIdElim A' x' P' hr' y' e' : P[e .: y..]];
+    convneu_split {Γ t u A new} :
+      [ Γ,, new ↦ true |- t ~ u : A] ->
+      [ Γ,, new ↦ false |- t ~ u : A] ->
+      [ Γ |- t ~ u :A] ;
   }.
 
   Class RedTypeProperties :=
@@ -555,6 +591,12 @@ Section GenericTyping.
       [ Γ |- hf : P[tFalse..] ] ->
       [ Γ |- n ⤳* n' : tBool ] ->
       [ Γ |- tBoolElim P ht hf n ⤳* tBoolElim P ht hf n' : P[n..] ];
+    redtm_alphaSubst {Γ t u n} :
+      [ Γ |- t ⤳* u : tNat ] ->
+      [ Γ |- tAlpha (nSucc n t) ⤳* tAlpha (nSucc n u) : tBool ] ;
+    redtm_alpha {Γ} {n b} :
+        [|- Γ] ->
+        in_Fctx Γ n b ->[ Γ |- tAlpha (nat_to_term n) ⤳* bool_to_term b : tBool ] ;
     redtm_emptyelim {Γ P n n'} :
       [ Γ,, tEmpty |- P ] ->
       [ Γ |- n ⤳* n' : tEmpty ] ->
@@ -636,7 +678,7 @@ Class GenericTypingProperties `(ta : tag)
 (* Priority 2 *)
 #[export] Hint Resolve wfc_nil wfc_cons | 2 : gen_typing.
 #[export] Hint Resolve wft_wk wft_U wft_prod wft_sig wft_Id | 2 : gen_typing.
-#[export] Hint Resolve ty_wk ty_var ty_prod ty_lam ty_app ty_nat ty_bool ty_empty ty_zero ty_succ ty_natElim ty_true ty_false ty_boolElim ty_emptyElim ty_sig ty_pair ty_fst ty_snd ty_Id ty_refl ty_IdElim| 2 : gen_typing.
+#[export] Hint Resolve ty_wk ty_var ty_prod ty_lam ty_app ty_nat ty_bool ty_empty ty_zero ty_succ ty_natElim ty_true ty_false ty_alpha ty_boolElim ty_emptyElim ty_sig ty_pair ty_fst ty_snd ty_Id ty_refl ty_IdElim| 2 : gen_typing.
 #[export] Hint Resolve convty_wk convty_uni convty_prod convty_sig convty_Id | 2 : gen_typing.
 #[export] Hint Resolve convtm_wk convtm_prod convtm_sig convtm_eta convtm_nat convtm_bool convtm_empty convtm_zero convtm_succ convtm_true convtm_false convtm_eta_sig convtm_Id convtm_refl | 2 : gen_typing.
 #[export] Hint Resolve convneu_wk convneu_var convneu_app convneu_natElim convneu_boolElim convneu_emptyElim convneu_fst convneu_snd convneu_IdElim | 2 : gen_typing.
@@ -988,7 +1030,7 @@ Section GenericConsequences.
     [Γ |- A] ->
     [Γ ,, A |- tRel 0 : A⟨↑⟩].
   Proof.
-    intros; refine (ty_var _ (in_here _ _)); gen_typing.
+    intros; refine (ty_var _ (in_here _ _ : in_ctx (Γ,,A) _ _)); gen_typing.
   Qed.
 
   Lemma wft_simple_arr {Γ A B} :
@@ -1135,7 +1177,7 @@ Section GenericConsequences.
       + now eapply wft_wk.
       + replace (arr _ _) with (arr A B)⟨r⟩ by (unfold r; now bsimpl).
         now eapply ty_wk.
-      + unfold r; rewrite wk1_ren_on; now refine (ty_var _ (in_here _ _)).
+      + unfold r; rewrite wk1_ren_on; now refine (ty_var _ (in_here _ _ : in_ctx (Γ,,A) _ _)).
   Qed.
 
   Lemma wft_wk1 {Γ A B} : [Γ |- A] -> [Γ |- B] -> [Γ ,, A |- B⟨↑⟩].
@@ -1257,7 +1299,7 @@ Section GenericConsequences.
     intros ? ? Hf.
     eapply typing_meta_conv.
     eapply ty_app; tea.
-    2: refine (ty_var _ (in_here _ _)); gen_typing.
+    2: refine (ty_var _ (in_here _ _ : in_ctx (Γ,,A) _ _)); gen_typing.
     1: eapply typing_meta_conv; [renToWk; eapply ty_wk; tea;gen_typing|now rewrite wk1_ren_on].
     fold ren_term. now bsimpl.
   Qed.
@@ -1433,6 +1475,7 @@ Section GenericConsequences.
   Qed.
 
 End GenericConsequences.
+
 
 #[export] Hint Resolve tyr_wf_l tmr_wf_l well_typed_well_formed : gen_typing.
 #[export] Hint Resolve redtywf_wk redtywf_term redtywf_red redtywf_refl redtmwf_wk redtmwf_app redtmwf_refl redtm_beta redtmwf_red redtmwf_natElimZero redtmwf_boolElimTrue redtmwf_boolElimFalse| 2 : gen_typing.

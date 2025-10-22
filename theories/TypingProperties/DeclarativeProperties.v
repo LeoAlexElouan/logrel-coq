@@ -9,6 +9,90 @@ Import DeclarativeTypingData.
 Lemma shift_up_ren {Γ Δ t} (ρ : Δ ≤ Γ) : t⟨ρ⟩⟨↑⟩ = t⟨↑ >> up_ren ρ⟩.
 Proof. now asimpl. Qed.
 
+
+Section TypingFWk.
+  Let PCon (Γ : context) := forall L, Fweakening L Γ -> [|- Build_context Γ L].
+  Let PTy (Γ : context) (A : term) := forall L, Fweakening L Γ -> [Build_context Γ L |- A].
+  Let PTm (Γ : context) (A t : term) := forall L, Fweakening L Γ ->
+    [Build_context Γ L |- t : A].
+  Let PTyEq (Γ : context) (A B : term) := forall L, Fweakening L Γ ->
+    [Build_context Γ L |- A ≅ B].
+  Let PTmEq (Γ : context) (A t u : term) := forall L, Fweakening L Γ ->
+    [Build_context Γ L |- t ≅ u : A].
+
+  Theorem typing_Fwk : WfDeclInductionConcl PCon PTy PTm PTyEq PTmEq.
+  Proof.
+    subst PCon PTy PTm PTyEq PTmEq.
+    apply WfDeclInduction.
+    all: try now econstructor.
+    - intros Γ A hΓ ihΓ hA ihA L ρF.
+      change ([|-[ de ] (Build_context Γ L),, A]).
+      now constructor.
+    - intros Γ A new hAt ihAt hAf ihAf L ρF.
+      destruct (trichotomy L new) as [hint|hinf|hnotin].
+      + apply ihAt.
+        apply (wk_new Γ (Build_context Γ L)).
+        now apply wk_Fwk.
+        apply hint.
+      + apply ihAf.
+        apply (wk_new Γ (Build_context Γ L)).
+        now apply wk_Fwk.
+        apply hinf.
+      + apply (wfTypeSplit (new:= Build_newnat (Build_context Γ L) new hnotin)).
+        * apply ihAt; cbn. apply (wk_Fup Γ (Build_context Γ L) true new (wk_Fwk ρF)).
+        * apply ihAf; cbn. apply (wk_Fup Γ (Build_context Γ L) false new (wk_Fwk ρF)).
+    - intros Γ t A new hAt ihAt hAf ihAf L ρF.
+      destruct (trichotomy L new) as [hint|hinf|hnotin].
+      + apply ihAt.
+        apply (wk_new Γ (Build_context Γ L)).
+        now apply wk_Fwk.
+        apply hint.
+      + apply ihAf.
+        apply (wk_new Γ (Build_context Γ L)).
+        now apply wk_Fwk.
+        apply hinf.
+      + apply (wfTermSplit (new:= Build_newnat (Build_context Γ L) new hnotin)).
+        * apply ihAt; cbn. apply (wk_Fup Γ (Build_context Γ L) true new (wk_Fwk ρF)).
+        * apply ihAf; cbn. apply (wk_Fup Γ (Build_context Γ L) false new (wk_Fwk ρF)).
+    - intros Γ A B new hAt ihAt hAf ihAf L ρF.
+      destruct (trichotomy L new) as [hint|hinf|hnotin].
+      + apply ihAt.
+        apply (wk_new Γ (Build_context Γ L)).
+        now apply wk_Fwk.
+        apply hint.
+      + apply ihAf.
+        apply (wk_new Γ (Build_context Γ L)).
+        now apply wk_Fwk.
+        apply hinf.
+      + apply (TypeSplit (new:= Build_newnat (Build_context Γ L) new hnotin)).
+        * apply ihAt; cbn. apply (wk_Fup Γ (Build_context Γ L) true new (wk_Fwk ρF)).
+        * apply ihAf; cbn. apply (wk_Fup Γ (Build_context Γ L) false new (wk_Fwk ρF)).
+    - intros Γ t t' A new hAt ihAt hAf ihAf L ρF.
+      destruct (trichotomy L new) as [hint|hinf|hnotin].
+      + apply ihAt.
+        apply (wk_new Γ (Build_context Γ L)).
+        now apply wk_Fwk.
+        apply hint.
+      + apply ihAf.
+        apply (wk_new Γ (Build_context Γ L)).
+        now apply wk_Fwk.
+        apply hinf.
+      + apply (TermSplit (new:= Build_newnat (Build_context Γ L) new hnotin)).
+        * apply ihAt; cbn. apply (wk_Fup Γ (Build_context Γ L) true new (wk_Fwk ρF)).
+        * apply ihAf; cbn. apply (wk_Fup Γ (Build_context Γ L) false new (wk_Fwk ρF)).
+  Qed.
+
+End TypingFWk.
+
+Lemma wfcon_new : forall Γ new b, [|-Γ] -> [|- Γ,,new ↦ b].
+Proof.
+  destruct typing_Fwk as [? _].
+  intros Γ new b hΓ.
+  apply w.
+  - apply hΓ.
+  - apply wk_Fstep.
+Qed.
+
 Section TypingWk.
 
   Let PCon (Γ : context) := True.
@@ -19,6 +103,7 @@ Section TypingWk.
     [Δ |- A⟨ρ⟩ ≅ B⟨ρ⟩].
   Let PTmEq (Γ : context) (A t u : term) := forall Δ (ρ : Δ ≤ Γ), [|- Δ ] ->
     [Δ |- t⟨ρ⟩ ≅ u⟨ρ⟩ : A⟨ρ⟩].
+
 
   Theorem typing_wk : WfDeclInductionConcl PCon PTy PTm PTyEq PTmEq.
   Proof.
@@ -44,6 +129,22 @@ Section TypingWk.
     - intros * _ IHA ? * ?.
       econstructor.
       now eapply IHA.
+    - intros Γ A new ht Iht hf Ihf Δ ρ hΔ.
+      destruct (trichotomy Δ new) as [hint|hinf|hnotin].
+      + specialize (Iht Δ (wk_new Γ Δ new true ρ hint) hΔ).
+        apply Iht.
+      + specialize (Ihf Δ (wk_new Γ Δ new false ρ hinf) hΔ).
+        apply Ihf.
+      + set (new' := Build_newnat _ new hnotin).
+        apply (wfTypeSplit (new := new')).
+        * pose (wk_Fup Γ Δ true new ρ new new').
+          apply (Iht _ w).
+          destruct typing_Fwk as [? _].
+          apply (w0 Δ hΔ (Fcons' (Fctx Δ) hnotin true)).
+          apply (wk_Fstep Δ new' true).
+        * pose (wk_Fup Γ Δ false new ρ new new').
+          apply (Ihf _ w).
+          now apply wfcon_new.
     - intros * _ IHΓ Hnth ? * ?.
       eapply typing_meta_conv.
       1: econstructor ; tea.
@@ -98,6 +199,7 @@ Section TypingWk.
         now bsimpl.
       * now eapply ihn.
     - intros; now constructor.
+    - intros; now constructor.
     - intros * ? ihP ? ihe **; cbn.
       erewrite subst_ren_wk_up; eapply wfTermEmptyElim.
       * eapply ihP; econstructor; tea; now econstructor.
@@ -137,6 +239,22 @@ Section TypingWk.
       econstructor.
       1: now eapply IHt.
       now eapply IHAB.
+    - intros Γ t A new ht Iht hf Ihf Δ ρ hΔ.
+      destruct (trichotomy Δ new) as [hint|hinf|hnotin].
+      + specialize (Iht Δ (wk_new Γ Δ new true ρ hint) hΔ).
+        apply Iht.
+      + specialize (Ihf Δ (wk_new Γ Δ new false ρ hinf) hΔ).
+        apply Ihf.
+      + set (new' := Build_newnat _ new hnotin).
+        apply (wfTermSplit (new := new')).
+        * pose (wk_Fup Γ Δ true new ρ new new').
+          apply (Iht _ w).
+          destruct typing_Fwk as [? _].
+          apply (w0 Δ hΔ (Fcons' (Fctx Δ) hnotin true)).
+          apply (wk_Fstep Δ new' true).
+        * pose (wk_Fup Γ Δ false new ρ new new').
+          apply (Ihf _ w).
+          now apply wfcon_new.
     - intros Γ A A' B B' _ IHA _ IHAA' _ IHBB' ? ρ ?.
       cbn.
       econstructor.
@@ -162,6 +280,22 @@ Section TypingWk.
       eapply TypeTrans.
       + now eapply IHA.
       + now eapply IHB.
+    - intros Γ A B new ht Iht hf Ihf Δ ρ hΔ.
+      destruct (trichotomy Δ new) as [hint|hinf|hnotin].
+      + specialize (Iht Δ (wk_new Γ Δ new true ρ hint) hΔ).
+        apply Iht.
+      + specialize (Ihf Δ (wk_new Γ Δ new false ρ hinf) hΔ).
+        apply Ihf.
+      + set (new' := Build_newnat _ new hnotin).
+        apply (TypeSplit (new := new')).
+        * pose (wk_Fup Γ Δ true new ρ new new').
+          apply (Iht _ w).
+          destruct typing_Fwk as [? _].
+          apply (w0 Δ hΔ (Fcons' (Fctx Δ) hnotin true)).
+          apply (wk_Fstep Δ new' true).
+        * pose (wk_Fup Γ Δ false new ρ new new').
+          apply (Ihf _ w).
+          now apply wfcon_new.
     - intros Γ u t A B _ IHA _ IHt _ IHu ? ρ ?.
       cbn.
       eapply convtm_meta_conv.
@@ -263,6 +397,14 @@ Section TypingWk.
       * eapply typing_meta_conv.
         1: now eapply ihhf.
         now bsimpl.
+    - intros; now constructor.
+    - intros Γ n b hΓ _ hin Δ ρ hΔ.
+      bsimpl.
+      rewrite nat_to_term_ren.
+      rewrite bool_to_term_ren.
+      constructor.
+      + apply hΔ.
+      + now apply ρ.
     - intros * ? ihP ? ihe **; cbn.
       erewrite subst_ren_wk_up.
       eapply TermEmptyElimCong.
@@ -326,7 +468,23 @@ Section TypingWk.
       now econstructor.
     - intros * _ IHt _ IHt' ? ρ ?.
       now econstructor.
-  Qed.
+    - intros Γ t t' A new ht Iht hf Ihf Δ ρ hΔ.
+      destruct (trichotomy Δ new) as [hint|hinf|hnotin].
+      + specialize (Iht Δ (wk_new Γ Δ new true ρ hint) hΔ).
+        apply Iht.
+      + specialize (Ihf Δ (wk_new Γ Δ new false ρ hinf) hΔ).
+        apply Ihf.
+      + set (new' := Build_newnat _ new hnotin).
+        apply (TermSplit (new := new')).
+        * pose (wk_Fup Γ Δ true new ρ new new').
+          apply (Iht _ w).
+          destruct typing_Fwk as [? _].
+          apply (w0 Δ hΔ (Fcons' (Fctx Δ) hnotin true)).
+          apply (wk_Fstep Δ new' true).
+        * pose (wk_Fup Γ Δ false new ρ new new').
+          apply (Ihf _ w).
+          now apply wfcon_new.
+Qed.
 
 End TypingWk.
 
@@ -343,41 +501,42 @@ Section Boundaries.
   Import DeclarativeTypingData.
 
   Definition boundary_ctx_ctx {Γ A} : [|- Γ,, A] -> [|- Γ].
-  Proof.
+  Proof. 
+    destruct Γ.
     now inversion 1.
   Qed.
 
   Definition boundary_ctx_tip {Γ A} : [|- Γ,, A] -> [Γ |- A].
   Proof.
-    now inversion 1.
+    destruct Γ; now inversion 1.
   Qed.
 
   Definition boundary_tm_ctx {Γ} {t A} :
       [ Γ |- t : A ] ->
       [ |- Γ ].
   Proof.
-    induction 1 ; now eauto using boundary_ctx_ctx.
+    induction 1; eauto using boundary_ctx_ctx, consplit.
   Qed.
 
   Definition boundary_ty_ctx {Γ} {A} :
       [ Γ |- A ] ->
       [ |- Γ ].
   Proof.
-    induction 1; now eauto using boundary_tm_ctx.
+    induction 1; eauto using boundary_tm_ctx, consplit.
   Qed.
 
   Definition boundary_tm_conv_ctx {Γ} {t u A} :
       [ Γ |- t ≅ u : A ] ->
       [ |- Γ ].
   Proof.
-      induction 1 ; now eauto using boundary_tm_ctx, boundary_ty_ctx.
+      induction 1 ; eauto using boundary_tm_ctx, boundary_ty_ctx, consplit.
   Qed.
 
   Definition boundary_ty_conv_ctx {Γ} {A B} :
       [ Γ |- A ≅ B ] ->
       [ |- Γ ].
   Proof.
-    induction 1 ; now eauto using boundary_ty_ctx, boundary_tm_conv_ctx.
+    induction 1 ; now eauto using boundary_ty_ctx, boundary_tm_conv_ctx, consplit.
   Qed.
 
 
@@ -534,7 +693,8 @@ Module WeakDeclarativeTypingProperties.
   #[export, refine] Instance WfCtxDeclProperties : WfContextProperties (ta := de) := {}.
   Proof.
     1-2: now constructor.
-    all: boundary.
+    2-7: boundary.
+    apply wfcon_new.
   Qed.
 
   #[export, refine] Instance WfTypeDeclProperties : WfTypeProperties (ta := de) := {}.
@@ -572,6 +732,7 @@ Module WeakDeclarativeTypingProperties.
   - now econstructor.
   - now econstructor.
   - now econstructor.
+  - now econstructor.
   Qed.
 
   #[export, refine] Instance ConvTermDeclProperties : ConvTermProperties (ta := de) := {}.
@@ -605,11 +766,13 @@ Module WeakDeclarativeTypingProperties.
   - now do 2 econstructor.
   - now do 2 econstructor.
   - now do 2 econstructor.
+  - now econstructor.
   - intros.
     eapply TermTrans; [|now constructor].
     eapply TermTrans; [eapply TermSym; now constructor|].
     constructor; tea; now apply TypeRefl.
   - now do 2 econstructor.
+  - now econstructor.
   - now econstructor.
   - now econstructor.
   Qed.
@@ -629,6 +792,7 @@ Module WeakDeclarativeTypingProperties.
   - intros ??????? [] ?; split; now econstructor.
   - intros ???????????? []; split; now econstructor.
   - intros ???????????? []; split; now econstructor.
+  - intros ???? []; split. now econstructor.
   - intros ?????? []; split; now econstructor.
   - intros ????? []; split; now econstructor.
   - intros ????? []; split; now econstructor.

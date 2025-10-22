@@ -18,6 +18,7 @@ theories/Syntax/NormalForms.v
 theories/Syntax/Weakening.v
 theories/Syntax/UntypedReduction.v
 theories/Syntax/Sections.v
+theories/Syntax/Computations.v
 theories/Syntax/All.v
 
 theories/GenericTyping.v
