@@ -49,7 +49,7 @@ Proof.
   assert [Γ ,, A |- tRel 0 : A'].
   1:{
     eapply ty_conv; tea; escape.
-    unshelve eapply (ty_var _ (in_here _ _)).
+    unshelve eapply (ty_var _ (in_here _ _ : in_ctx (Γ,,A) 0 A⟨↑⟩)).
     now eapply wfc_wft.
   }
   eapply reflect_diag; tea.

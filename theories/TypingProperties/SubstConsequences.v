@@ -15,20 +15,20 @@ Section MoreSubst.
 
   Lemma ctx_refl Γ :
     [|- Γ] ->
-    [|- Γ ≅ Γ].
+    [ Γ | Γ ≅ Γ].
   Proof.
     induction 1.
     all: constructor; tea.
     now econstructor.
   Qed.
 
-  Lemma subst_wk (Γ Δ Δ' : context) (ρ : Δ' ≤ Δ) σ :
+  Lemma subst_wk (Γ : Tcontext) (Δ Δ' : context) (ρ : Δ' ≤ Δ) σ :
     [|- Δ'] ->
     [Δ |-s σ : Γ] ->
     [Δ' |-s σ⟨ρ⟩ : Γ].
   Proof.
     intros ?.
-    induction 1 as [|σ Γ A].
+    induction 1 as [|σ ? A].
     1: now econstructor.
     econstructor.
     - asimpl ; cbn in * ; asimpl.
@@ -41,7 +41,7 @@ Section MoreSubst.
       reflexivity.
   Qed.
 
-  Corollary well_subst_up (Γ Δ : context) A σ :
+  Corollary well_subst_up (Γ : Tcontext) (Δ : context) A σ :
     [Δ |- A] ->
     [Δ |-s σ : Γ] ->
     [Δ ,, A |-s σ⟨↑⟩ : Γ].
@@ -69,7 +69,7 @@ Section MoreSubst.
       cbn ; now renamify.
   Qed.
 
-  Lemma subst_refl (Γ Δ : context) σ :
+  Lemma subst_refl (Γ : context) (Δ : Tcontext) σ :
     [Γ |-s σ : Δ] ->
     [Γ |-s σ ≅ σ : Δ].
   Proof.
@@ -192,16 +192,18 @@ Section MoreSubst.
     all: eassumption.
   Qed.
 
-  Lemma _conv_well_subst (Γ Δ : context) :
-    [|- Γ] ->
-    [ |- Γ ≅ Δ] ->
-    [Γ |-s tRel : Δ].
+  Lemma _conv_well_subst (L : Fcontext) (Γ Δ : Tcontext) :
+    [|- Build_context Γ L] ->
+    [L| Γ ≅ Δ ] ->
+    [Build_context Γ L|-s tRel : Δ].
   Proof.
     intros HΓ.
     induction 1 as [| * ? HA] in HΓ |- *.
     - now econstructor.
-    - assert [Γ |- A] by now inversion HΓ.
-      assert [|- Γ] by now inversion HΓ.
+    - assert [Build_context Γ L |- A] by now inversion HΓ.
+      assert [|- Build_context Γ L] by now inversion HΓ.
+      set (Γ' := Build_context Γ L) in *.
+      change (Build_context (A::Γ)%list L) with (Γ',,A).
       econstructor ; tea.
       + eapply well_subst_ext, well_subst_up ; eauto.
         reflexivity.
@@ -221,20 +223,20 @@ Section Stability.
 
   Let PCon (Γ : context) := True.
   Let PTy (Γ : context) (A : term) := forall Δ,
-    [|-Δ] -> [|- Δ ≅ Γ] -> [Δ |- A].
+    [|-Build_context Δ Γ] -> [Γ| Δ ≅ Γ] -> [Build_context Δ Γ|- A].
   Let PTm (Γ : context) (A t : term) := forall Δ,
-    [|-Δ] -> [|- Δ ≅ Γ] -> [Δ |- t : A].
+    [|-Build_context Δ Γ] -> [Γ| Δ ≅ Γ] -> [Build_context Δ Γ |- t : A].
   Let PTyEq (Γ : context) (A B : term) := forall Δ,
-    [|-Δ] -> [|- Δ ≅ Γ] -> [Δ |- A ≅ B].
+    [|-Build_context Δ Γ] -> [Γ| Δ ≅ Γ] -> [Build_context Δ Γ|- A ≅ B].
   Let PTmEq (Γ : context) (A t u : term) := forall Δ,
-    [|-Δ] -> [|- Δ ≅ Γ] -> [Δ |- t ≅ u : A].
+    [|-Build_context Δ Γ] -> [Γ| Δ ≅ Γ] -> [Build_context Δ Γ|- t ≅ u : A].
 
   Theorem _stability : WfDeclInductionConcl PCon PTy PTm PTyEq PTmEq.
   Proof.
     red; prod_splitter; intros Γ * Hty; red.
     1: easy.
     all: intros ?? Hconv; eapply (_conv_well_subst _) in Hconv ; tea.
-    all: pose proof (Hconv' := Hconv); apply  subst_refl in Hconv'.
+    all: pose proof (Hconv' := Hconv); apply subst_refl in Hconv'.
     4: eapply tm_conv_subst in Hty.
     3: eapply ty_conv_subst in Hty.
     2: eapply tm_subst in Hty.
@@ -244,10 +246,10 @@ Section Stability.
     all: eassumption.
   Qed.
 
-  Definition _convCtxSym {Γ Δ} : [|- Δ] -> [|- Γ] -> [|- Δ ≅ Γ] -> [|- Γ ≅ Δ].
+  Definition _convCtxSym {Γ Δ} : [|- Δ] -> [|- Γ] -> [Γ | Δ ≅ Γ] -> [Γ | Γ ≅ Δ].
   Proof.
     induction 3.
-    all: constructor; inversion H; inversion H0; subst; refold.
+    all: constructor; destruct Γ, Δ; inversion H; inversion H0; subst; refold.
     1: now eauto.
     eapply _stability ; tea.
     1: now symmetry.
@@ -300,7 +302,7 @@ Section ElimSuccHyp.
     1-2: now constructor.
     eapply convty_simple_arr; tea.
     eapply typing_substmap1; tea.
-    do 2 constructor; refine (wfVar _ (in_here _ _)).
+    do 2 econstructor; refine (wfVar _ (in_here _ _ : in_ctx (Γ,, tNat) _ _)).
     constructor; boundary.
   Qed.
 
@@ -355,13 +357,13 @@ Section Boundary.
     in_ctx Γ n decl ->
     [Γ |- decl].
   Proof.
-    intros HΓ Hin.
+    intros HΓ Hin. destruct Γ; cbv in *.
     induction Hin.
     - inversion HΓ ; subst ; cbn in * ; refold.
-      renToWk.
+      change [ Γ0,,d |- d⟨↑⟩]. renToWk.
       now apply typing_wk.
     - inversion HΓ ; subst ; cbn in * ; refold.
-      renToWk.
+      change [ Γ0,,d' |- d⟨↑⟩]. renToWk.
       now eapply typing_wk.
   Qed.
 

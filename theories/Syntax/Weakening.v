@@ -115,7 +115,7 @@ Proof.
     econstructor ; auto.
 Qed.
 
-Definition Fweakening (L L' : Fcontext) : SProp := forall n b, in_Fctx L' n b -> in_Fctx L n b.
+Class Fweakening (L L' : Fcontext) : SProp := ρF : forall n b, in_Fctx L' n b -> in_Fctx L n b.
 
 #[projections(primitive)]Record wk_well_wk {Γ Δ : context} :=
   { wk :> weakening ; well_wk :> well_weakening wk (Tctx Γ) (Tctx Δ); Fwk :> Fweakening Γ Δ}.

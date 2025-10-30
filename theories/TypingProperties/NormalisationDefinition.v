@@ -2,9 +2,9 @@
 From Stdlib Require Import CRelationClasses ssrbool.
 From LogRel Require Import Utils Syntax.All GenericTyping DeclarativeTyping.
 
-Record normalising (t : term) := {
+Record normalising {L} (t : term) := {
   norm_val : term;
-  norm_red : [ t ⤳* norm_val ];
+  norm_red : [L | t ⤳* norm_val ];
   norm_whnf : whnf norm_val;
 }.
 
@@ -12,9 +12,9 @@ Record normalising (t : term) := {
 
 (** Deeply normalising terms (at a given type) *)
 Inductive dnorm_tm : context -> term -> term -> Type :=
-| termDeepRed {Γ t t' A A'} :
-  [A ⤳* A'] ->
-  [t ⤳* t'] ->
+| termDeepRed {Γ : context} {t t' A A'} :
+  [Γ | A ⤳* A'] ->
+  [Γ | t ⤳* t'] ->
   dnf_tm Γ A' t' ->
   dnorm_tm Γ A t
 (** Deep normal forms (whnf, recursively containing normalising subterms) *)
@@ -103,14 +103,14 @@ with dneu : context -> term -> term -> Type :=
 with dneu_red : context -> term -> term -> Type :=
 | neuDeepRed {Γ n A A'} :
   dneu Γ A n ->
-  [A ⤳* A'] ->
+  [Γ | A ⤳* A'] ->
   whnf A' ->
   dneu_red Γ A' n
 
 (** Deeply normalising types *)
 with dnorm_ty : context -> term -> Type :=
-| typeDeepNorm {Γ A A'} :
-  [A ⤳* A'] ->
+| typeDeepNorm {Γ : context} {A A'} :
+  [Γ|A ⤳* A'] ->
   dnf_ty Γ A' ->
   dnorm_ty Γ A
 (** **** Conversion of types reduced to weak-head normal forms *)
@@ -212,7 +212,7 @@ Lemma dnf_ren :
   (fun (Γ : context) (A : term) => forall Δ (ρ : Δ ≤ Γ), dnf_ty Δ A⟨ρ⟩).
 Proof.
   apply DeepNormInduction.
-  all: try (intros ; solve [now econstructor ; eauto using credalg_wk]).
+  all: try (intros ; solve [now econstructor ; eauto using credalg_Fwk]).
   all: try solve [econstructor ; eauto ; cbn ; now erewrite <- !wk_up_ren_on].
   - intros * ?? IH **.
     econstructor.
@@ -257,7 +257,7 @@ Proof.
     econstructor ; eauto.
     + now erewrite !wk_up_wk1.
     + now rewrite wk_refl, <- subst_ren_wk_up2.
-  - econstructor ; eauto using credalg_wk.
+  - econstructor ; eauto using credalg_Fwk.
     now apply whnf_ren.
     Unshelve.
     all: assumption.
@@ -275,7 +275,7 @@ Proof.
   apply DeepNormInduction.
   all: try easy.
   all: intros until T ; intros HT.
-  all: inversion HT ; subst ; eauto using in_ctx_inj.
+  all: inversion HT ; subst ; eauto using in_Tctx_inj.
   all: match goal with | H : forall _ : _, _ -> _ = _, H' : _ |- _ => apply H in H' end.
   1-3: congruence.
   subst ; now eapply whred_det.

@@ -1,6 +1,7 @@
 (** * LogRel.Syntax.Context: definition of contexts and operations on them.*)
 From Stdlib Require Import ssreflect Morphisms Setoid.
 From LogRel Require Import Utils BasicAst AutoSubst.Extra.
+From Equations Require Import Equations.
 
 Set Primitive Projections.
 
@@ -86,7 +87,7 @@ Proof.
   - now apply (hcons (Build_context Γ L) a).
 Qed.
 
-
+Inductive SFalse : SProp := .
 Inductive or_tricho (P Q R : SProp) : Type :=
   | in_left (p :P)
   | in_mid (q : Q)
@@ -115,6 +116,32 @@ Proof.
         now eapply not_in_nowhere.
 Defined.
 
+Lemma notin_is_not_in {L n b} : not_in_Fctx L n -> in_Fctx L n b -> SFalse.
+Proof.
+  intros hnotin hin.
+  induction hin.
+  - inversion hnotin ; subst.
+    easy.
+  - eapply IHhin.
+    now inversion hnotin ; subst.
+Qed.
+
+Lemma functionality (L:Fcontext) n b b': in_Fctx L n b -> in_Fctx L n b' -> b = b'.
+Proof.
+  intros hin hin'.
+  destruct L as [L wfL].
+  destruct b, b'; auto.
+  all: enough (H : SFalse) by inversion H; revert hin hin'.
+  + induction wfL; intros hin hin'; inversion hin; subst; inversion hin'; subst.
+    - now eapply notin_is_not_in.
+    - now eapply notin_is_not_in.
+    - easy.
+  + induction wfL; intros hin hin'; inversion hin; subst; inversion hin'; subst.
+    - now eapply notin_is_not_in.
+    - now eapply notin_is_not_in.
+    - easy.
+Qed.
+
 Lemma new_eq_is_nat_eq {Γ} (new new' : newnat Γ) : newnat_nat _ new = newnat_nat _ new' -> new = new'.
 Proof.
   destruct new as [n new],new' as [n' new']. cbn.
@@ -127,4 +154,46 @@ Proof.
   - left. now apply new_eq_is_nat_eq.
   - right. intros e. apply n. now apply (f_equal (newnat_nat _)).
 Qed.
+
+
+Lemma f_equal2 :
+forall {A1 A2 B:Type} (f:A1 -> A2 -> B) {x1 y1:A1}
+  {x2 y2:A2}, x1 = y1 -> x2 = y2 -> f x1 x2 = f y1 y2.
+Proof. now intros * <- <-. Defined.
+
+Definition Build_context_eq {Γ Γ' L L'} (eΓ : Γ = Γ') (eL : L = L'):
+  Build_context Γ L = Build_context Γ' L':=
+  f_equal2 Build_context eΓ eL.
+
+Lemma Build_context_eq_inv {Γ Γ'} (e : Γ = Γ') : e = Build_context_eq (f_equal Tctx e) (f_equal Fctx e).
+Proof. destruct e; reflexivity. Qed.
+
+Definition Build_Fcontext_eq {L L' wfL wfL'} (eL : L = L'):
+  Build_Fcontext L wfL= Build_Fcontext L' wfL'.
+Proof. destruct eL; reflexivity. Defined.
+
+Definition Build_Fcontext_eq_inv {L L'} (eL : L = L'):
+  eL = Build_Fcontext_eq (f_equal preFctx eL).
+Proof. destruct eL; reflexivity. Qed.
+
+
+Instance FctxEqDec : EqDec Fcontext.
+Proof.
+  intros [L wfL] [L' wfL'].
+  destruct (eq_dec L L') as [<-|ne].
+  - left. reflexivity.
+  - right. intros e. apply ne. apply (f_equal preFctx e).
+Qed.
+
+
+Instance ctxqDec : EqDec context.
+Proof.
+  intros [Γ L] [Γ' L'].
+  destruct (eq_dec Γ Γ') as [<-|neΓ].
+  destruct (eq_dec L L') as [<-|neL].
+  + left; reflexivity.
+  + right. intros e. apply neL. apply (f_equal Fctx e).
+  + right. intros e. apply neΓ. apply (f_equal Tctx e).
+Qed.
+
 

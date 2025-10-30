@@ -11,16 +11,16 @@ Section Properties.
   (** Typing is stable by substitution *) 
   Class TypingSubst :=
   {
-    ty_subst {Γ Δ σ A} :
+    ty_subst {Γ : context} {Δ σ A} :
       [|- Δ] -> [Δ |-s σ : Γ] ->
       [Γ |- A] -> [Δ |- A[σ]];
-    tm_subst {Γ Δ σ A t} :
+    tm_subst {Γ : context} {Δ σ A t} :
       [|- Δ] -> [Δ |-s σ : Γ] ->
       [Γ |- t : A] -> [Δ |- t[σ] : A[σ]];
-    ty_conv_subst {Γ Δ σ σ' A B} :
+    ty_conv_subst {Γ : context} {Δ σ σ' A B} :
       [|- Δ] -> [Δ |-s σ ≅ σ' : Γ] ->
       [Γ |- A ≅ B] -> [Δ |- A[σ] ≅ B[σ']];
-    tm_conv_subst {Γ Δ σ σ' A t u} :
+    tm_conv_subst {Γ : context} {Δ σ σ' A t u} :
       [|- Δ] -> [Δ |-s σ ≅ σ' : Γ] ->
       [Γ |- t ≅ u : A] -> [Δ |- t[σ] ≅ u[σ'] : A[σ]] ;
   }.
@@ -264,8 +264,8 @@ Section Properties.
 
   Class Normalisation :=
   {
-    tm_norm {Γ A t} : [Γ |- t : A] -> normalising t ;
-    ty_norm {Γ A} : [Γ |- A] -> normalising A ;
+    tm_norm {Γ A t} : [Γ |- t : A] -> @normalising Γ t ;
+    ty_norm {Γ A} : [Γ |- A] -> @normalising Γ A ;
   }.
 
   Class DeepNormalisation :=

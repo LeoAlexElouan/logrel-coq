@@ -402,9 +402,7 @@ Section TypingWk.
       bsimpl.
       rewrite nat_to_term_ren.
       rewrite bool_to_term_ren.
-      constructor.
-      + apply hΔ.
-      + now apply ρ.
+      constructor; [ | apply ρ]; easy.
     - intros * ? ihP ? ihe **; cbn.
       erewrite subst_ren_wk_up.
       eapply TermEmptyElimCong.
@@ -577,14 +575,14 @@ Section TypeErasure.
 
 Lemma redtmdecl_red Γ t u A :
   [Γ |- t ⤳* u : A] ->
-  [t ⤳* u].
+  [Γ | t ⤳* u].
 Proof.
 apply reddecl_red.
 Qed.
 
 Lemma redtydecl_red Γ A B :
   [Γ |- A ⤳* B] ->
-  [A ⤳* B].
+  [Γ|A ⤳* B].
 Proof.
 apply reddecl_red.
 Qed.
@@ -621,7 +619,7 @@ Lemma redtmdecl_wk {Γ Δ t u A} (ρ : Δ ≤ Γ) :
 Proof.
   intros * ? []; split.
   - now apply typing_wk.
-  - now apply credalg_wk.
+  - now apply credalg_Fwk.
   - now apply typing_wk.
 Qed.
 
@@ -630,7 +628,7 @@ Lemma redtydecl_wk {Γ Δ A B} (ρ : Δ ≤ Γ) :
 Proof.
   intros * ? []; split.
   - now apply typing_wk.
-  - now apply credalg_wk.
+  - now apply credalg_Fwk.
   - now apply typing_wk.
 Qed.
 
@@ -777,6 +775,13 @@ Module WeakDeclarativeTypingProperties.
   - now econstructor.
   Qed.
 
+  Lemma TermnSuccCong {Γ : context} {t u : term} {n : nat}:
+    [Γ |-[ de ] t ≅ u : tNat] ->
+    [Γ |-[ de ] nSucc n t ≅ nSucc n u : tNat].
+  Proof.
+    induction n; intros; now constructor.
+  Defined.
+
   #[export, refine] Instance ConvNeuDeclProperties : ConvNeuProperties (ta := de) := {}.
   Proof.
   - split; red.
@@ -792,12 +797,30 @@ Module WeakDeclarativeTypingProperties.
   - intros ??????? [] ?; split; now econstructor.
   - intros ???????????? []; split; now econstructor.
   - intros ???????????? []; split; now econstructor.
-  - intros ???? []; split. now econstructor.
+  - intros ???? []; split.
+    1-2 : now apply whne_tAlphanSucc.
+    constructor.
+    now apply TermnSuccCong.
   - intros ?????? []; split; now econstructor.
   - intros ????? []; split; now econstructor.
   - intros ????? []; split; now econstructor.
   - intros * ??????? []; split; now econstructor.
+  - intros ????? [] []; split; tea.
+    now eapply TermSplit.
   Qed.
+
+  Lemma wfTermnSucc {Γ : context} {t : term} {n : nat}:
+    [Γ |-[ de ] t : tNat] ->
+    [Γ |-[ de ] nSucc n t : tNat].
+  Proof.
+    induction n; intros; [easy| now constructor].
+  Defined.
+
+  Lemma wfTermnattoterm {Γ : context} {n : nat}:
+    [|-Γ] -> [Γ |-[ de ] nat_to_term n : tNat].
+  Proof.
+    induction n; now constructor.
+  Defined.
 
   #[export, refine] Instance RedTermDeclProperties : RedTermProperties (ta := de) := {}.
   Proof.
@@ -837,6 +860,15 @@ Module WeakDeclarativeTypingProperties.
     + repeat (constructor; tea).
     + now eapply redalg_boolElim.
     + constructor; first [eassumption|now apply TermRefl|now apply TypeRefl].
+  - intros * []; split.
+    + constructor. now apply wfTermnSucc.
+    + eauto using redalg_alphanSucc, redalg_alpha.
+    + constructor.
+      now apply TermnSuccCong.
+  - intros * ??; split.
+    + constructor. now apply wfTermnattoterm.
+    + apply redalg_one_step. now econstructor.
+    + now constructor.
   - intros * ? []; split.
     + repeat (constructor; tea).
     + now eapply redalg_emptyElim.

@@ -42,8 +42,8 @@ Notation "[ |- Γ ]" := (wf_context Γ)
 Notation "[ |-[ ta  ] Γ ]" := (wf_context (ta := ta) Γ)
   (at level 0, ta, Γ at level 50) : typing_scope.
 (** The contexts Γ and Δ are convertible *)
-Reserved Notation "[ |- Γ ≅ Δ ]" (at level 0, Γ, Δ at level 50).
-Reserved Notation "[ |-[ ta  ] Γ ≅ Δ ]" (at level 0, ta, Γ, Δ at level 50).
+Reserved Notation "[ L | Γ ≅ Δ ]" (at level 0, L, Γ, Δ at level 50).
+Reserved Notation "[ L |[ ta  ] Γ ≅ Δ ]" (at level 0, ta, L, Γ, Δ at level 50).
 (** The type A is well-formed in Γ *)
 Notation "[ Γ |- A ]" := (wf_type Γ A)
   (at level 0, Γ, A at level 50, only parsing) : typing_scope.
@@ -124,9 +124,9 @@ Class OneStepRedTerm (ta : tag) := osred_tm : context -> term -> term -> term ->
 Class RedTerm (ta : tag) := red_tm : context -> term -> term -> term -> Set.
 
 (** Term t untyped one-step weak-head reduces to term t' *)
-Reserved Notation "[ t ⤳ t' ]" (at level 0, t, t' at level 50).
+Reserved Notation "[ L | t ⤳ t' ]" (at level 0, t, t' at level 50).
 (** Term t untyped multi-step weak-head reduces to term t' *)
-Reserved Notation "[ t ⤳* t' ]" (at level 0, t, t' at level 50).
+Reserved Notation "[ L | t ⤳* t' ]" (at level 0, t, t' at level 50).
 
 (** Type A one-step weak-head reduces to type B in Γ *)
 Reserved Notation "[ Γ |- A ⤳ B ]" (at level 0, Γ, A, B at level 50).
@@ -243,7 +243,7 @@ Reserved Notation "[ Γ ||-< l >Π  A ]" (at level 0, Γ, l, A at level 50).
 Reserved Notation "[ Γ ||-< l >  A ]" (at level 0, Γ, l, A at level 50).
 (** The types A and B are reducibly convertible in Γ at level l, given the proof R that A is reducible *)
 Reserved Notation "[ Γ ||-< l >  A ≅ B | R ]" (at level 0, Γ, l, A, B, R at level 50).
-(** The term t is reducible at type A and level l in Γ, given the proof R that A is reducible *)
+(** The term t is reducible at type A  and level l in Γ, given the proof R that A is reducible *)
 Reserved Notation "[ Γ ||-< l >  t : A | R ]" (at level 0, Γ, l, t, A, R at level 50).
 (** The terms t and u are reducibly convertible at type A and level l in Γ, given the proof R that A is reducible *)
 Reserved Notation "[ Γ ||-< l > t ≅ u : A | R ]" (at level 0, Γ, l, t, u, A, R at level 50).

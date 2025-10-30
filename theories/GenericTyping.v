@@ -75,24 +75,24 @@ Section RedDefinitions.
 
   (** *** Lifting of typing and conversion to contexts and substitutions *)
 
-  Inductive WellSubst (Γ : context) : context -> (nat -> term) -> Type :=
-    | well_sempty (σ : nat -> term) : [Γ |-s σ : ε ]
-    | well_scons (σ : nat -> term) (Δ : context) A :
+  Inductive WellSubst (Γ : context) : Tcontext -> (nat -> term) -> Type :=
+    | well_sempty (σ : nat -> term) : [Γ |-s σ : nil]
+    | well_scons (σ : nat -> term) (Δ : Tcontext) A :
       [Γ |-s ↑ >> σ : Δ] -> [Γ |- σ var_zero : A[↑ >> σ]] ->
-      [Γ |-s σ : Δ,, A]
+      [Γ |-s σ : (A::Δ)%list]
   where "[ Γ '|-s' σ : Δ ]" := (WellSubst Γ Δ σ).
 
-  Inductive ConvSubst (Γ : context) : context -> (nat -> term) -> (nat -> term) -> Type :=
-  | conv_sempty (σ τ : nat -> term) : [Γ |-s σ ≅ τ : ε ]
-  | conv_scons (σ τ : nat -> term) (Δ : context) A :
+  Inductive ConvSubst (Γ : context) : Tcontext -> (nat -> term) -> (nat -> term) -> Type :=
+  | conv_sempty (σ τ : nat -> term) : [Γ |-s σ ≅ τ : nil ]
+  | conv_scons (σ τ : nat -> term) (Δ : Tcontext) A :
     [Γ |-s ↑ >> σ ≅ ↑ >> τ : Δ] -> [Γ |- σ var_zero ≅ τ var_zero: A[↑ >> σ]] ->
-    [Γ |-s σ ≅ τ : Δ,, A]
+    [Γ |-s σ ≅ τ : (A::Δ)%list ]
   where "[ Γ '|-s' σ ≅ τ : Δ ]" := (ConvSubst Γ Δ σ τ).
 
-  Inductive ConvCtx : context -> context -> Type :=
-  | conv_cempty : [ |- ε ≅ ε]
-  | conv_ccons Γ A Δ B : [ |- Γ ≅ Δ ] -> [Γ |- A ≅ B] -> [ |- Γ,, A ≅ Δ,, B]
-  where "[ |- Γ ≅ Δ ]" := (ConvCtx Γ Δ).
+  Inductive ConvCtx (L :Fcontext) : Tcontext -> Tcontext -> Type :=
+  | conv_cempty : [ L | ε ≅ ε]
+  | conv_ccons Γ A Δ B : [ L | Γ ≅ Δ ] -> [Build_context Γ L |- A ≅ B] -> [L | (A::Γ)%list ≅ (B::Δ)%list]
+  where "[ L | Γ ≅ Δ ]" := (ConvCtx L Γ Δ).
 
 
   Lemma well_subst_ext Γ Δ (σ σ' : nat -> term) :
@@ -144,7 +144,7 @@ Section RedDefinitions.
 
   Record RedClosureClass (Γ : context) (A : class) (t u : term) := {
     reddecl_typ : match A with istype => [Γ |- t] | isterm A => [Γ |- t : A] end;
-    reddecl_red : RedClosureAlg t u;
+    reddecl_red : @RedClosureAlg Γ t u;
     reddecl_conv : ConvClass Γ A t u ;
   }.
 
@@ -193,8 +193,8 @@ Notation "[ Γ '|-s' σ : A ]" := (WellSubst Γ A σ) (only parsing) : typing_sc
 Notation "[ Γ |-[ ta ']s' σ : A ]" := (WellSubst (ta := ta) Γ A σ) : typing_scope.
 Notation "[ Γ '|-s' σ ≅ τ : A ]" := (ConvSubst Γ A σ τ) (only parsing) : typing_scope.
 Notation "[ Γ |-[ ta ']s' σ ≅ τ : A ]" := (ConvSubst (ta := ta) Γ A σ τ) : typing_scope.
-Notation "[ |- Γ ≅ Δ ]" := (ConvCtx Γ Δ) (only parsing) : typing_scope.
-Notation "[ |-[ ta  ] Γ ≅ Δ ]" := (ConvCtx (ta := ta) Γ Δ) : typing_scope.
+Notation "[ L | Γ ≅ Δ ]" := (ConvCtx L Γ Δ) (only parsing) : typing_scope.
+Notation "[ L |[ ta  ] Γ ≅ Δ ]" := (ConvCtx (ta := ta) L Γ Δ) : typing_scope.
 Notation "[ Γ |- t ∈ A ]" := (WellClass Γ A t) : typing_scope.
 Notation "[ Γ |-[ ta  ] t ∈ A ]" := (WellClass (ta := ta) Γ A t) : typing_scope.
 Notation "[ Γ |- t ≅ t' ∈ A ]" := (ConvClass Γ A t t') : typing_scope.
@@ -532,7 +532,7 @@ Section GenericTyping.
   {
     redty_wk {Γ Δ A B} (ρ : Δ ≤ Γ) :
       [|- Δ ] -> [Γ |- A ⤳* B] -> [Δ |- A⟨ρ⟩ ⤳* B⟨ρ⟩] ;
-    redty_sound {Γ A B} : [Γ |- A ⤳* B] -> [A ⤳* B] ;
+    redty_sound {Γ A B} : [Γ |- A ⤳* B] -> [Γ | A ⤳* B] ;
     redty_ty_src {Γ A B} : [Γ |- A ⤳* B] -> [Γ |- A] ;
     redty_term {Γ A B} :
       [ Γ |- A ⤳* B : U] -> [Γ |- A ⤳* B ] ;
@@ -547,7 +547,7 @@ Section GenericTyping.
   {
     redtm_wk {Γ Δ t u A} (ρ : Δ ≤ Γ) :
       [|- Δ ] -> [Γ |- t ⤳* u : A] -> [Δ |- t⟨ρ⟩ ⤳* u⟨ρ⟩ : A⟨ρ⟩] ;
-    redtm_sound {Γ A t u} : [Γ |- t ⤳* u : A] -> [t ⤳* u] ;
+    redtm_sound {Γ A t u} : [Γ |- t ⤳* u : A] -> [Γ | t ⤳* u] ;
     redtm_ty_src {Γ A t u} : [Γ |- t ⤳* u : A] -> [Γ |- t : A] ;
     redtm_beta {Γ A B t u} :
       [ Γ |- A ] ->
@@ -854,7 +854,7 @@ Section GenericConsequences.
   #[local] Hint Resolve  redtm_conv | 6 : gen_typing.
 
   Lemma redty_red {Γ A B} :
-      [Γ |- A ⤳* B] -> [ A ⤳* B ].
+      [Γ |- A ⤳* B] -> [Γ | A ⤳* B ].
   Proof.
     intros ?%redty_sound.
     assumption.
@@ -862,7 +862,7 @@ Section GenericConsequences.
 
   Lemma redtm_red {Γ t u A} :
       [Γ |- t ⤳* u : A] ->
-      [t ⤳* u].
+      [Γ|t ⤳* u].
   Proof.
     intros ?%redtm_sound.
     assumption.
@@ -876,7 +876,7 @@ Section GenericConsequences.
     intros ? []; constructor; gen_typing.
   Qed.
 
-  Lemma redtywf_red {Γ A B} : [Γ |- A :⤳*: B] -> [A ⤳* B].
+  Lemma redtywf_red {Γ A B} : [Γ |- A :⤳*: B] -> [Γ | A ⤳* B].
   Proof.
     intros []; now eapply redty_red.
   Qed.
@@ -905,7 +905,7 @@ Section GenericConsequences.
   Proof.  intros ? []; constructor; gen_typing. Qed.
 
   Definition redtmwf_red {Γ t u A} :
-    [Γ |- t :⤳*: u : A] -> [t ⤳* u].
+    [Γ |- t :⤳*: u : A] -> [Γ|t ⤳* u].
   Proof. intros []; now eapply redtm_red. Qed.
 
   Definition redtmwf_conv {Γ} {t u A B} :
@@ -1384,7 +1384,7 @@ Section GenericConsequences.
   Lemma redtm_whnf {Γ t u A} : [Γ |- t ⤳* u : A] -> whnf t -> t = u.
   Proof.
     intros.
-    apply red_whnf; [|assumption].
+    eapply red_whnf; [|assumption].
     now eapply redtm_sound.
   Qed.
 
@@ -1401,7 +1401,7 @@ Section GenericConsequences.
   Lemma redty_whnf {Γ A B} : [Γ |- A ⤳* B] -> whnf A -> A = B.
   Proof.
     intros.
-    apply red_whnf; [|eassumption].
+    eapply red_whnf; [|eassumption].
     now eapply redty_sound.
   Qed.
 

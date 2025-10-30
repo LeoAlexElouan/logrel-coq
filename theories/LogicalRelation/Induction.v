@@ -302,7 +302,7 @@ Section Inversions.
     | NeType _ => ∑ (h : [Γ ||-ne A ≅ B]), lr = LRne_ l h × h.(neRedTy.tyL) = A'
     end.
 
-  Lemma invLREqL {Γ l A B A'} (lr : [Γ ||-<l> A ≅ B]) (r : [A ⤳* A']) (w : isType A') : invLRTyEqL lr w.
+  Lemma invLREqL {Γ l A B A'} (lr : [Γ ||-<l> A ≅ B]) (r : [Γ | A ⤳* A']) (w : isType A') : invLRTyEqL lr w.
   Proof.
     assert (A' = (whredtyL lr).(tyred_whnf)); subst.
     1: eapply whred_det; try apply isType_whnf; tea; gtyping.

@@ -2,6 +2,7 @@
 From Stdlib Require Import Morphisms List CRelationClasses.
 From Stdlib Require Import ssrbool.
 From smpl Require Import Smpl.
+From Equations Require Import Equations.
 
 Set Universe Polymorphism.
 Set Polymorphic Inductive Cumulativity.
@@ -102,6 +103,25 @@ Hint Extern 10 =>
     | H : [× _, _, _, _, _, _, _, _ & _] |- _ => destruct H
     | H : [× _, _, _, _, _, _, _, _, _ & _] |- _ => destruct H
   end : core.
+
+
+Derive NoConfusion for prod.
+
+Instance prodEqDec A B : EqDec A -> EqDec B -> EqDec (A × B).
+Proof.
+  intros eqA eqB.
+  intros p1 p2.
+  destruct p1 as (a & b).
+  destruct p2 as (a' & b').
+  assert (deca : ({a = a'} + {a <> a'})) by (now apply eqA).
+  assert (decb : ({b = b'} + {b <> b'})) by (now apply eqB).
+  destruct deca as [aeq|anoteq].
+  destruct decb as [beq|bnoteq].
+  - left. now f_equal.
+  - right. intro eq. noconf eq. apply bnoteq. reflexivity.
+  - right. intro eq. noconf eq. apply anoteq. reflexivity.
+Defined.
+
 
 Inductive sigT {A : Type} (P : A -> Type) : Type :=
   | existT (projT1 : A) (projT2 : P projT1) : sigT P.

@@ -61,7 +61,7 @@ Proof.
   erewrite liftSubstComm.
   rewrite up_liftSubst_eq.
   now rewrite wk1_ren.
-  Unshelve. all: tea; constructor.
+  Unshelve. all: tea. apply fromTctx. repeat constructor.
 Qed.
 
 Lemma liftSubst_singleSubst_eq {t u v: term} : t[u]⇑[v..] = t[u[v..]..].

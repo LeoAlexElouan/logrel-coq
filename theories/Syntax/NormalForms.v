@@ -31,7 +31,8 @@ with whne : term -> Type :=
   | whne_tFst {p} : whne p -> whne (tFst p)
   | whne_tSnd {p} : whne p -> whne (tSnd p)
   | whne_tIdElim {A x P hr y e} : whne e -> whne (tIdElim A x P hr y e)
-  | whne_tAlpha {n t} : whne t -> whne (tAlpha (nSucc n t)).
+  | whne_tAlpha {t} : whne t -> whne (tAlpha t)
+  | whne_tAlphaSucc {t} : whne (tAlpha t) -> whne (tAlpha (tSucc t)).
 
 #[global] Hint Constructors whne whnf : gen_typing.
 
@@ -56,6 +57,15 @@ Qed.
 Lemma neLambda A t : whne (tLambda A t) -> False.
 Proof.
   inversion 1.
+Qed.
+
+
+Lemma whne_tAlphanSucc {t n} : whne t -> whne (tAlpha (nSucc n t)).
+Proof.
+  intros hne.
+  induction n.
+  + now constructor.
+  + now (apply whne_tAlphaSucc).
 Qed.
 
 #[global] Hint Resolve neSort nePi neLambda : gen_typing.
@@ -93,7 +103,7 @@ Inductive isBool : term -> Type :=
   | TrueBool : isBool tTrue
   | FalseBool : isBool tFalse
   | NeBool {n} : whne n -> isBool n.
-  
+
 Inductive isPair : term -> Type :=
   | PairPair {A B a b} : isPair (tPair A B a b)
   | NePair {p} : whne p -> isPair p.
@@ -212,22 +222,12 @@ Qed.
 
 (** * Unicity of witnesses *)
 
-(* 
+
 Definition whne_uniq {t} (w1 w2 : whne t) : w1 = w2.
 Proof.
-  induction w1. 1-8: depelim w2; f_equal; eauto.
-  depelim w2. cbn.
-  - induction n. cbn in *. subst. destruct n0. reflexivity. cbn in *. depelim w1. 
-  induction n.
-  - cbn in *. subst. destruct n0. cbn in *. subst. f_equal. apply IHw1.
-    depelim w1.
-  - cbn in *.
-    destruct n0. cbn in *. subst. depelim w2.
-    cbn in *. inversion H.
-    apply IHn.
-  induction n.
-  - cbn in w2. depelim w2. destruct n.
-  induction n.
+  induction w1. all: depelim w2; f_equal; eauto.
+  - depelim w1.
+  - depelim w2.
 Qed.
 
 Derive Signature for isType.
@@ -254,7 +254,7 @@ Lemma isId_uniq {t} (p q : isId t) : p = q.
 Proof.
   destruct p; depind q; try easy; try now inversion w.
   f_equal; eapply whne_uniq.
-Qed. *)
+Qed. 
 
 
 (** ** Canonical forms *)
@@ -288,7 +288,7 @@ Proof.
   split.
   - intros [].
     all: try solve [left ; now constructor | now right].
-  - intros [[]|[]] ; now repeat constructor.
+  - intros [[]|[]]; now do 2 constructor.
 Qed.
 
 Lemma not_can_whne t : whnf t -> ¬ isCanonical t -> whne t.
@@ -371,9 +371,13 @@ Section RenWhnf.
     - remember t⟨ρ⟩ as t'.
       intros Hne.
       induction Hne in t, Heqt' |- * ; cbn.
-      1-8: push_renaming; econstructor ; eauto.
+      1-9: push_renaming; econstructor ; eauto.
       destruct t; cbn in *; try solve [congruence].
-      inversion Heqt'.
+      destruct t; cbn in *; try solve [congruence].
+      apply whne_tAlphaSucc.
+      apply IHHne.
+      inversion Heqt'; subst.
+      reflexivity.
     - induction 1 ; cbn.
       all: now econstructor.
   Qed.
