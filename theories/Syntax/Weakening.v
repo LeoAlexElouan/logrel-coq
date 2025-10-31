@@ -116,6 +116,7 @@ Proof.
 Qed.
 
 Class Fweakening (L L' : Fcontext) : SProp := ρF : forall n b, in_Fctx L' n b -> in_Fctx L n b.
+Notation "L ≤ε L'" := (Fweakening L L').
 
 #[projections(primitive)]Record wk_well_wk {Γ Δ : context} :=
   { wk :> weakening ; well_wk :> well_weakening wk (Tctx Γ) (Tctx Δ); Fwk :> Fweakening Γ Δ}.
@@ -146,29 +147,30 @@ Ltac change_well_wk :=
 
 Smpl Add 10 change_well_wk : refold.
 
+#[global] Hint Immediate Fwk : typeclass_instances.
 
 (** Constructors of well-typed weakenings *)
-Definition Fwk_empty : Fweakening ε ε := fun n b hin => hin.
+Definition Fwk_empty : ε ≤ε ε := fun n b hin => hin.
 Definition wk_empty : (ε ≤ ε) :=
   Build_wk_well_wk ε ε _wk_empty well_empty Fwk_empty.
 
 
-Definition Fwk_step {Γ Δ : context} {A}: Fweakening Γ Δ -> Fweakening (Γ,,A) Δ := fun ρ n b hin => (ρ n b hin).
+Definition _Fwk_step {Γ Δ : context} {A}: Γ ≤ε Δ -> (Γ,,A) ≤ε Δ := fun ρ n b hin => (ρ n b hin). (* For symmetry. Fwk_id should always work *)
 Definition wk_step {Γ Δ} A (ρ : Γ ≤ Δ) : (Γ,,A) ≤ Δ :=
-  Build_wk_well_wk (Γ,,A) Δ (_wk_step ρ) (well_step A ρ ρ) (Fwk_step ρ).
+  Build_wk_well_wk (Γ,,A) Δ (_wk_step ρ) (well_step A ρ ρ) (_Fwk_step ρ).
 
-Definition Fwk_up {Γ Δ A} (ρ : Γ ≤ Δ): Fweakening (Γ,, A⟨ρ⟩) Δ -> Fweakening (Γ,,A) Δ := fun ρ n b hin => (ρ n b hin).
+Definition Fwk_up {Γ Δ A} (ρ : Γ ≤ Δ): (Γ,, A⟨ρ⟩) ≤ε Δ -> (Γ,,A) ≤ε Δ := fun ρ n b hin => (ρ n b hin).
 Definition wk_up {Γ Δ} A (ρ : Γ ≤ Δ) : (Γ,,  A⟨ρ⟩) ≤ (Δ ,, A) :=
   Build_wk_well_wk (Γ,,  A⟨ρ⟩) (Δ ,, A) (_wk_up ρ) (well_up A ρ ρ) (Fwk_up ρ ρ).
 
-Definition Fwk_id {Γ} : Fweakening Γ Γ := fun n b hin => hin.
+Definition Fwk_id {Γ} : Γ ≤ε Γ := fun n b hin => hin.
 Definition wk_id {Γ} : Γ ≤ Γ :=
   Build_wk_well_wk Γ Γ (_wk_id (Tctx Γ)) (well_wk_id (Tctx Γ)) Fwk_id.
 
-Definition wk_Fwk {Γ: context} {L} (ρF : Fweakening L Γ) : (Build_context Γ L) ≤ Γ :=
+Definition wk_Fwk {Γ: context} {L} (ρF : L ≤ε Γ) : (Build_context Γ L) ≤ Γ :=
   Build_wk_well_wk (Build_context Γ L) _ (_wk_id Γ) (well_wk_id Γ) ρF.
 
-Definition Fwk_compose {Γ Γ' Γ''} : Fweakening Γ Γ' -> Fweakening Γ' Γ'' -> Fweakening Γ Γ'' := fun ρ ρ' n b hin => ρ n b (ρ' n b hin).
+Definition Fwk_compose {Γ Γ' Γ''} : Γ ≤ε Γ' -> Γ' ≤ε Γ'' -> Γ ≤ε Γ'' := fun ρ ρ' n b hin => ρ n b (ρ' n b hin).
 Definition wk_well_wk_compose {Γ Γ' Γ'' : context} (ρ : Γ ≤ Γ') (ρ' : Γ' ≤ Γ'') : Γ ≤ Γ'' :=
   Build_wk_well_wk Γ Γ'' (wk_compose ρ.(wk) ρ'.(wk)) (well_wk_compose ρ.(well_wk) ρ'.(well_wk)) (Fwk_compose ρ ρ').
 Notation "ρ ∘w ρ'" := (wk_well_wk_compose ρ ρ').
@@ -474,16 +476,29 @@ Lemma liftSubstComm Γ F G t σ : G[t]⇑[σ] = G[t[σ] .: @wk1 Γ F >> σ].
 Proof. now bsimpl. Qed.
 
 
-Lemma wk_new : forall (Γ : context) Δ (new : newnat Γ) b, Δ ≤ Γ -> in_Fctx Δ new b -> Δ ≤ (Γ,, new ↦ b).
+Lemma Fwk_new {L L' : Fcontext} (new : newnat L) b :  L' ≤ε L -> in_Fctx L' new b ->  L' ≤ε (Fcons' L new b).
+Proof.
+  intros Fρ hin n' b' hin'.
+  destruct new; cbn in *.
+  inversion hin'; subst.
+  - apply hin.
+  - now apply Fρ.
+Defined.
+
+Lemma wk_new : forall {Γ Δ: context} (new : newnat Γ) b, Δ ≤ Γ -> in_Fctx Δ new b -> Δ ≤ (Γ,, new ↦ b).
 Proof.
   intros Γ Δ new b ρ hin.
   apply (Build_wk_well_wk _ _ (wk ρ)).
   apply (well_wk ρ).
-  intros n' b' hin'.
-  destruct new. cbn in *.
-  inversion hin'; subst.
-  + apply hin.
-  + now apply ρ.
+  eapply Fwk_new; [apply ρ | apply hin].
+Defined.
+
+Lemma Fwk_Fup : forall {L L'} b n (Fρ :  L' ≤ε L) (newL : not_in_Fctx L n) (newL' : not_in_Fctx L' n),
+   (Fcons' L' (Build_newnat _ n newL') b) ≤ε (Fcons' L (Build_newnat _ n newL) b).
+Proof.
+  intros L L' b n Fρ newL newL' n' b' hin'.
+  inversion hin'; subst; constructor.
+  now apply Fρ.
 Defined.
 
 Lemma wk_Fup : forall Γ Δ b n (ρ : Δ ≤ Γ ) (newΓ : not_in_Fctx Γ n) (newΔ : not_in_Fctx Δ n),
@@ -492,15 +507,12 @@ Proof.
   intros Γ Δ b n ρ newΓ newΔ.
   apply (Build_wk_well_wk _ _ (wk ρ)).
   apply (well_wk ρ).
-  intros n' b' hin'.
-  inversion hin'; subst.
-  + apply in_hereF.
-  + apply in_thereF.
-    now apply ρ.
+  eapply Fwk_Fup.
+  apply ρ.
 Defined.
 
-Lemma wk_Fstep : forall (L:Fcontext) (new : newnat L) b, Fweakening (Fcons' L new b) L.
-Proof.
-  intros L new b n' b' hin.
-  now apply in_thereF.
-Defined.
+Definition Fwk_Fstep {L L':Fcontext} (new : newnat L') b :  L' ≤ε L ->  (Fcons' L' new b) ≤ε L:=
+  fun Fρ n b hin => in_thereF _ _ _ _ _ (Fρ _ _ hin).
+
+Definition wk_Fstep {Γ Δ} new b (ρ : Γ ≤ Δ) : (Γ,,new ↦ b) ≤ Δ :=
+  Build_wk_well_wk (Γ,,new ↦ b) Δ ρ ρ (Fwk_Fstep _ _ ρ).

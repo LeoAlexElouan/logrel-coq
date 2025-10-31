@@ -21,6 +21,8 @@ theories/Syntax/Sections.v
 theories/Syntax/Computations.v
 theories/Syntax/All.v
 
+theories/Monad.v
+
 theories/GenericTyping.v
 theories/DeclarativeTyping.v
 

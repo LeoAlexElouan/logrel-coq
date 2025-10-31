@@ -178,6 +178,7 @@ Reserved Notation "[ Γ |-[ ta  ] t :⤳*: u : A ]" (at level 0, ta, Γ, t, u, A
 
 (** ** Weakenings *)
 (** Well-formed weakening *)
+Reserved Notation "L ≤ε L'" (at level 40).
 Reserved Notation "Γ ≤ Δ" (at level 40).
 (** Composition of weakenings *)
 Reserved Notation "ρ ∘w ρ'" (at level 50).

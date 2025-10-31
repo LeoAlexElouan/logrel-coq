@@ -87,12 +87,17 @@ Proof.
   - now apply (hcons (Build_context Γ L) a).
 Qed.
 
+(* Properties of in_Fctx *)
+
 Inductive SFalse : SProp := .
-Inductive or_tricho (P Q R : SProp) : Type :=
+Inductive STrue : SProp := SI.
+(* Inductive SAnd (A B : SProp) : SProp := Sconj (a : A) (b : B). *)
+Inductive or_tricho {P Q R : SProp} : Type :=
   | in_left (p :P)
   | in_mid (q : Q)
   | in_right (r : R).
 
+Arguments or_tricho : clear implicits.
 
 Lemma trichotomy L n : or_tricho (in_Fctx L n true) (in_Fctx L n false) (not_in_Fctx L n).
 Proof.
@@ -142,7 +147,10 @@ Proof.
     - easy.
 Qed.
 
-Lemma new_eq_is_nat_eq {Γ} (new new' : newnat Γ) : newnat_nat _ new = newnat_nat _ new' -> new = new'.
+(* equality of new nat*)
+
+Lemma new_eq_is_nat_eq {Γ} (new new' : newnat Γ) :
+  newnat_nat _ new = newnat_nat _ new' -> new = new'.
 Proof.
   destruct new as [n new],new' as [n' new']. cbn.
   intros <-. reflexivity.
@@ -155,6 +163,7 @@ Proof.
   - right. intros e. apply n. now apply (f_equal (newnat_nat _)).
 Qed.
 
+(* Equality decidability *)
 
 Lemma f_equal2 :
 forall {A1 A2 B:Type} (f:A1 -> A2 -> B) {x1 y1:A1}
@@ -196,4 +205,22 @@ Proof.
   + right. intros e. apply neΓ. apply (f_equal Tctx e).
 Qed.
 
+(* Inversions *)
+
+Lemma wfFcons_notin {L n b} : wfFcontext (cons (n,b) L) -> not_in_Fctx L n.
+Proof.
+  intros wf.
+  change (match ((n, b)::L)%list  with nil => STrue | cons (pair n b) L => not_in_Fctx L n end).
+  induction wf; easy.
+Qed.
+
+Definition wfFcons_new {L n b} : wfFcontext (cons (n,b) L) -> newnat L :=
+  fun wfL => Build_newnat L n (wfFcons_notin wfL).
+
+Lemma wfFcons_wfF {L n b} : wfFcontext (cons (n,b) L) -> wfFcontext L.
+Proof.
+  intros wf.
+  change (match ((n, b)::L)%list  with nil => STrue | cons (pair n b) L => wfFcontext L end).
+  induction wf; easy.
+Qed.
 
