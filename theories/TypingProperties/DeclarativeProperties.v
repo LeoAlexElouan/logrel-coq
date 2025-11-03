@@ -29,54 +29,38 @@ Section TypingFWk.
       change ([|-[ de ] (Build_context Γ L),, A]).
       now constructor.
     - intros Γ A new hAt ihAt hAf ihAf L ρF.
-      destruct (trichotomy L new) as [hint|hinf|hnotin].
+      destruct (decide_in L new) as [[] hin|hnotin].
       + apply ihAt.
-        apply (wk_new Γ (Build_context Γ L)).
-        now apply wk_Fwk.
-        apply hint.
+        now apply (Fwk_new new true).
       + apply ihAf.
-        apply (wk_new Γ (Build_context Γ L)).
-        now apply wk_Fwk.
-        apply hinf.
+        now apply (Fwk_new new false).
       + apply (wfTypeSplit (new:= Build_newnat (Build_context Γ L) new hnotin)).
         * apply ihAt; cbn. apply (wk_Fup Γ (Build_context Γ L) true new (wk_Fwk ρF)).
         * apply ihAf; cbn. apply (wk_Fup Γ (Build_context Γ L) false new (wk_Fwk ρF)).
     - intros Γ t A new hAt ihAt hAf ihAf L ρF.
-      destruct (trichotomy L new) as [hint|hinf|hnotin].
+      destruct (decide_in L new) as [[] hin|hnotin].
       + apply ihAt.
-        apply (wk_new Γ (Build_context Γ L)).
-        now apply wk_Fwk.
-        apply hint.
+        now apply (Fwk_new new true).
       + apply ihAf.
-        apply (wk_new Γ (Build_context Γ L)).
-        now apply wk_Fwk.
-        apply hinf.
+        now apply (Fwk_new new false).
       + apply (wfTermSplit (new:= Build_newnat (Build_context Γ L) new hnotin)).
         * apply ihAt; cbn. apply (wk_Fup Γ (Build_context Γ L) true new (wk_Fwk ρF)).
         * apply ihAf; cbn. apply (wk_Fup Γ (Build_context Γ L) false new (wk_Fwk ρF)).
     - intros Γ A B new hAt ihAt hAf ihAf L ρF.
-      destruct (trichotomy L new) as [hint|hinf|hnotin].
+      destruct (decide_in L new) as [[] hin|hnotin].
       + apply ihAt.
-        apply (wk_new Γ (Build_context Γ L)).
-        now apply wk_Fwk.
-        apply hint.
+        now apply (Fwk_new new true).
       + apply ihAf.
-        apply (wk_new Γ (Build_context Γ L)).
-        now apply wk_Fwk.
-        apply hinf.
+        now apply (Fwk_new new false).
       + apply (TypeSplit (new:= Build_newnat (Build_context Γ L) new hnotin)).
         * apply ihAt; cbn. apply (wk_Fup Γ (Build_context Γ L) true new (wk_Fwk ρF)).
         * apply ihAf; cbn. apply (wk_Fup Γ (Build_context Γ L) false new (wk_Fwk ρF)).
     - intros Γ t t' A new hAt ihAt hAf ihAf L ρF.
-      destruct (trichotomy L new) as [hint|hinf|hnotin].
+      destruct (decide_in L new) as [[] hin|hnotin].
       + apply ihAt.
-        apply (wk_new Γ (Build_context Γ L)).
-        now apply wk_Fwk.
-        apply hint.
+        now apply (Fwk_new new true).
       + apply ihAf.
-        apply (wk_new Γ (Build_context Γ L)).
-        now apply wk_Fwk.
-        apply hinf.
+        now apply (Fwk_new new false).
       + apply (TermSplit (new:= Build_newnat (Build_context Γ L) new hnotin)).
         * apply ihAt; cbn. apply (wk_Fup Γ (Build_context Γ L) true new (wk_Fwk ρF)).
         * apply ihAf; cbn. apply (wk_Fup Γ (Build_context Γ L) false new (wk_Fwk ρF)).
@@ -91,6 +75,7 @@ Proof.
   apply w.
   - apply hΓ.
   - apply wk_Fstep.
+    apply wk_id.
 Qed.
 
 Section TypingWk.
@@ -130,18 +115,16 @@ Section TypingWk.
       econstructor.
       now eapply IHA.
     - intros Γ A new ht Iht hf Ihf Δ ρ hΔ.
-      destruct (trichotomy Δ new) as [hint|hinf|hnotin].
-      + specialize (Iht Δ (wk_new Γ Δ new true ρ hint) hΔ).
+      destruct (decide_in Δ new) as [[] hin|hnotin].
+      + specialize (Iht Δ (wk_new new true ρ hin) hΔ).
         apply Iht.
-      + specialize (Ihf Δ (wk_new Γ Δ new false ρ hinf) hΔ).
+      + specialize (Ihf Δ (wk_new new false ρ hin) hΔ).
         apply Ihf.
       + set (new' := Build_newnat _ new hnotin).
         apply (wfTypeSplit (new := new')).
         * pose (wk_Fup Γ Δ true new ρ new new').
           apply (Iht _ w).
-          destruct typing_Fwk as [? _].
-          apply (w0 Δ hΔ (Fcons' (Fctx Δ) hnotin true)).
-          apply (wk_Fstep Δ new' true).
+          now apply wfcon_new.
         * pose (wk_Fup Γ Δ false new ρ new new').
           apply (Ihf _ w).
           now apply wfcon_new.
@@ -240,18 +223,16 @@ Section TypingWk.
       1: now eapply IHt.
       now eapply IHAB.
     - intros Γ t A new ht Iht hf Ihf Δ ρ hΔ.
-      destruct (trichotomy Δ new) as [hint|hinf|hnotin].
-      + specialize (Iht Δ (wk_new Γ Δ new true ρ hint) hΔ).
+      destruct (decide_in Δ new) as [[] hin|hnotin].
+      + specialize (Iht Δ (wk_new new true ρ hin) hΔ).
         apply Iht.
-      + specialize (Ihf Δ (wk_new Γ Δ new false ρ hinf) hΔ).
+      + specialize (Ihf Δ (wk_new new false ρ hin) hΔ).
         apply Ihf.
       + set (new' := Build_newnat _ new hnotin).
         apply (wfTermSplit (new := new')).
         * pose (wk_Fup Γ Δ true new ρ new new').
           apply (Iht _ w).
-          destruct typing_Fwk as [? _].
-          apply (w0 Δ hΔ (Fcons' (Fctx Δ) hnotin true)).
-          apply (wk_Fstep Δ new' true).
+          now apply wfcon_new.
         * pose (wk_Fup Γ Δ false new ρ new new').
           apply (Ihf _ w).
           now apply wfcon_new.
@@ -281,18 +262,16 @@ Section TypingWk.
       + now eapply IHA.
       + now eapply IHB.
     - intros Γ A B new ht Iht hf Ihf Δ ρ hΔ.
-      destruct (trichotomy Δ new) as [hint|hinf|hnotin].
-      + specialize (Iht Δ (wk_new Γ Δ new true ρ hint) hΔ).
+      destruct (decide_in Δ new) as [[] hin|hnotin].
+      + specialize (Iht Δ (wk_new new true ρ hin) hΔ).
         apply Iht.
-      + specialize (Ihf Δ (wk_new Γ Δ new false ρ hinf) hΔ).
+      + specialize (Ihf Δ (wk_new new false ρ hin) hΔ).
         apply Ihf.
       + set (new' := Build_newnat _ new hnotin).
         apply (TypeSplit (new := new')).
         * pose (wk_Fup Γ Δ true new ρ new new').
           apply (Iht _ w).
-          destruct typing_Fwk as [? _].
-          apply (w0 Δ hΔ (Fcons' (Fctx Δ) hnotin true)).
-          apply (wk_Fstep Δ new' true).
+          now apply wfcon_new.
         * pose (wk_Fup Γ Δ false new ρ new new').
           apply (Ihf _ w).
           now apply wfcon_new.
@@ -467,18 +446,16 @@ Section TypingWk.
     - intros * _ IHt _ IHt' ? ρ ?.
       now econstructor.
     - intros Γ t t' A new ht Iht hf Ihf Δ ρ hΔ.
-      destruct (trichotomy Δ new) as [hint|hinf|hnotin].
-      + specialize (Iht Δ (wk_new Γ Δ new true ρ hint) hΔ).
+      destruct (decide_in Δ new) as [[] hin|hnotin].
+      + specialize (Iht Δ (wk_new new true ρ hin) hΔ).
         apply Iht.
-      + specialize (Ihf Δ (wk_new Γ Δ new false ρ hinf) hΔ).
+      + specialize (Ihf Δ (wk_new new false ρ hin) hΔ).
         apply Ihf.
       + set (new' := Build_newnat _ new hnotin).
         apply (TermSplit (new := new')).
         * pose (wk_Fup Γ Δ true new ρ new new').
           apply (Iht _ w).
-          destruct typing_Fwk as [? _].
-          apply (w0 Δ hΔ (Fcons' (Fctx Δ) hnotin true)).
-          apply (wk_Fstep Δ new' true).
+          now apply wfcon_new.
         * pose (wk_Fup Γ Δ false new ρ new new').
           apply (Ihf _ w).
           now apply wfcon_new.

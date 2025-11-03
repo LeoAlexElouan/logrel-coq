@@ -252,13 +252,6 @@ Proof.
   all: now constructor.
 Defined.
 
-Lemma cFredalg L L' t u: 
-  Fweakening L' L ->
-  [L | t ⤳* u] -> [L' | t ⤳* u].
-Proof.
-  induction 2; econstructor; eauto using oFredalg.
-Defined.
-
 Lemma oredalg_wk (ρ : nat -> nat) L (t u : term) :
   [L | t ⤳ u] ->
   [L | t⟨ρ⟩ ⤳ u⟨ρ⟩].
@@ -291,6 +284,13 @@ Proof.
   all: try (edestruct IHHred as [? [->]]; [reflexivity|..]).
   all: eexists ; split ; cycle -1 ; [now econstructor | now bsimpl].
 Qed. *)
+
+Lemma cFredalg L L' t u: 
+  Fweakening L' L ->
+  [L | t ⤳* u] -> [L' | t ⤳* u].
+Proof.
+  induction 2; econstructor; eauto using oFredalg.
+Defined.
 
 Lemma credalg_wk (ρ : nat -> nat) {L} (t u : term) :
 [L|t ⤳* u] ->

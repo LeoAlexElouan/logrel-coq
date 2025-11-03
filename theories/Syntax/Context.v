@@ -92,14 +92,43 @@ Qed.
 Inductive SFalse : SProp := .
 Inductive STrue : SProp := SI.
 (* Inductive SAnd (A B : SProp) : SProp := Sconj (a : A) (b : B). *)
-Inductive or_tricho {P Q R : SProp} : Type :=
+(* Inductive or_tricho {P Q R : SProp} : Type :=
   | in_left (p :P)
   | in_mid (q : Q)
-  | in_right (r : R).
+  | in_right (r : R). 
 
-Arguments or_tricho : clear implicits.
+Inductive SSig {A : Type} (P : A -> SProp): SProp :=
+  | SExist : forall Sproj1 : A, P Sproj1 -> SSig P.
+Inductive SOr (A B : SProp) : SProp :=
+  | SOr_introl : A -> SOr A B
+  | SOr_intror : B -> SOr A B.
 
-Lemma trichotomy L n : or_tricho (in_Fctx L n true) (in_Fctx L n false) (not_in_Fctx L n).
+Arguments SOr_introl {_ _}.
+Arguments SOr_intror {_ _}.
+Arguments or_tricho : clear implicits. *)
+
+Inductive decide_in_type L n : Type :=
+  | is_in b : (in_Fctx L n b) -> decide_in_type L n
+  | is_notin : not_in_Fctx L n -> decide_in_type L n.
+
+Arguments is_in {_ _}.
+Arguments is_notin {_ _}.
+
+Lemma decide_in L n : decide_in_type L n.
+Proof.
+  induction L as [|[n' b'] L [b hin|hnotin]].
+  - right.
+    constructor.
+  - apply (is_in b).
+    now apply in_thereF.
+  - pose proof (PeanoNat.Nat.eq_dec n n') as e.
+    destruct e as [<-|].
+    + apply (is_in b').
+      constructor.
+    + right.
+      now eapply not_in_nowhere.
+Qed.
+(* Lemma trichotomy L n : or_tricho (in_Fctx L n true) (in_Fctx L n false) (not_in_Fctx L n).
 Proof.
   induction L.
   - apply in_right.
@@ -119,7 +148,7 @@ Proof.
         constructor.
       * apply in_right.
         now eapply not_in_nowhere.
-Defined.
+Defined. *)
 
 Lemma notin_is_not_in {L n b} : not_in_Fctx L n -> in_Fctx L n b -> SFalse.
 Proof.
@@ -147,6 +176,32 @@ Proof.
     - easy.
 Qed.
 
+Lemma functionality_inversion (L : Fcontext) n : in_Fctx L n true -> in_Fctx L n false -> SFalse.
+Proof.
+  intros hinf hint.
+  pose proof (functionality _ _ _ _ hinf hint) as eqtf.
+  inversion eqtf.
+Qed.
+
+Lemma decide_in_in (L : Fcontext) n b (hin : in_Fctx L n b) :
+  decide_in L n = is_in b hin.
+Proof.
+  destruct (decide_in L n) as [b' hin'|hnotin].
+  - destruct (functionality L n b b' hin hin').
+    reflexivity.
+  - destruct (notin_is_not_in hnotin hin).
+Qed.
+(* 
+Lemma trichotomy_in (L : Fcontext) n b (hin : in_Fctx L n b) :
+  trichotomy L n = match b return (forall (hin : in_Fctx L n b), _) with true => fun hin => in_left hin| false => fun hin => in_mid hin end hin.
+Proof.
+  destruct (trichotomy L n).
+  1,2: destruct b.
+  1,4: reflexivity.
+  + destruct (functionality_inversion L n p hin).
+  + destruct (functionality_inversion L n hin q).
+  + destruct (notin_is_not_in r hin).
+Qed. *)
 (* equality of new nat*)
 
 Lemma new_eq_is_nat_eq {Γ} (new new' : newnat Γ) :

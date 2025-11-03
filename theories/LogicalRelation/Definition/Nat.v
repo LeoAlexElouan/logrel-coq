@@ -1,6 +1,6 @@
 (** * LogRel.LogicalRelation.Definition.Nat : Definition of the logical relation for nat *)
 From Stdlib Require Import CRelationClasses.
-From LogRel Require Import Utils Syntax.All GenericTyping.
+From LogRel Require Import Utils Syntax.All GenericTyping Monad.
 From LogRel.LogicalRelation.Definition Require Import Prelude Ne.
 
 Set Primitive Projections.
@@ -11,7 +11,7 @@ Set Polymorphic Inductive Cumulativity.
 (** ** Reducibility of natural number type *)
 Module NatRedTy.
 
-  Record NatRedTy `{ta : tag} `{WfType ta} `{RedType ta}
+  Record SNatRedTy `{ta : tag} `{WfType ta} `{RedType ta}
     {Γ : context} {A B : term}
   : Set :=
   {
@@ -19,26 +19,31 @@ Module NatRedTy.
     redR : [Γ |- B :⤳*: tNat]
   }.
 
-  Arguments NatRedTy {_ _ _}.
+  Arguments SNatRedTy {_ _ _}.
+
+  Definition NatRedTy `{ta : tag} `{WfType ta} `{RedType ta} Γ A B : Type :=
+    Split (fun Δ (ρ : Δ ≤ Γ) => SNatRedTy Δ A⟨ρ⟩  B⟨ρ⟩).
 
   Section NatRedTy.
   Context `{ta : tag} `{WfType ta} `{RedType ta}.
 
-  Definition whredL {Γ A B} : NatRedTy Γ A B -> [Γ |- A ↘].
+  Definition whredL {Γ A B} : SNatRedTy Γ A B -> [Γ |- A ↘].
   Proof. intros []; econstructor; tea; constructor. Defined.
 
-  Definition whredR {Γ A B} : NatRedTy Γ A B -> [Γ |- B ↘].
+  Definition whredR {Γ A B} : SNatRedTy Γ A B -> [Γ |- B ↘].
   Proof. intros []; econstructor; tea; constructor. Defined.
 
   End NatRedTy.
 
 End NatRedTy.
 
-Export NatRedTy(NatRedTy, Build_NatRedTy).
+Export NatRedTy(SNatRedTy, Build_SNatRedTy, NatRedTy).
+Notation "[ Γ ||-SNat A ≅ B ]" := (SNatRedTy Γ A B) (at level 0, Γ, A at level 50).
 Notation "[ Γ ||-Nat A ≅ B ]" := (NatRedTy Γ A B) (at level 0, Γ, A at level 50).
 
+
 #[program]
-Instance WhRedTyNatRedTy `{GenericTypingProperties} {Γ} : WhRedTyRel Γ (NatRedTy Γ) :=
+Instance WhRedTyNatRedTy `{GenericTypingProperties} {Γ} : WhRedTyRel Γ (SNatRedTy Γ) :=
   {|
     whredtyL := fun A B RAB => NatRedTy.whredL RAB ;
     whredtyR := fun A B RAB => NatRedTy.whredR RAB ;
@@ -50,23 +55,26 @@ Module NatRedTmEq.
 Section NatRedTmEq.
   Context `{ta : tag} `{WfContext ta} `{WfType ta} `{ConvType ta}
     `{RedType ta} `{Typing ta} `{ConvNeuConv ta} `{ConvTerm ta}
-    `{RedTerm ta} {Γ : context}.
+    `{RedTerm ta}.
 
-  Inductive NatRedTmEq : term -> term -> Set :=
-  | Build_NatRedTmEq {t u}
+  Inductive SNatRedTmEq (Γ : context) : term -> term -> Set :=
+  | Build_SNatRedTmEq {t u}
     (nfL nfR : term)
     (redL : [Γ |- t :⤳*: nfL : tNat])
     (redR : [Γ |- u :⤳*: nfR : tNat ])
     (eq : [Γ |- nfL ≅ nfR : tNat])
-    (prop : NatPropEq nfL nfR) : NatRedTmEq t u
+    (prop : NatPropEq Γ nfL nfR) : SNatRedTmEq Γ t u
 
-  with NatPropEq : term -> term -> Set :=
+  with NatPropEq (Γ : context): term -> term -> Set :=
   | zeroReq :
-    NatPropEq tZero tZero
+    NatPropEq Γ tZero tZero
   | succReq {n n'} :
-    NatRedTmEq n n' ->
-    NatPropEq (tSucc n) (tSucc n')
-  | neReq {ne ne'} : [Γ ||-NeNf ne ≅ ne' : tNat] -> NatPropEq ne ne'.
+    NatRedTmEq Γ n n' ->
+    NatPropEq Γ(tSucc n) (tSucc n')
+  | neReq {ne ne'} : [Γ ||-NeNf ne ≅ ne' : tNat] -> NatPropEq Γ ne ne'
+
+  with NatRedTmEq (Γ : context) : term -> term -> Set :=
+  | Split_NatRedTmEq t u: Split (fun Δ (ρ : Δ ≤ Γ) => NatRedTmEq Δ t⟨ρ⟩ u⟨ρ⟩) -> NatRedTmEq Γ t u.
 
   Section Def.
     Context `{!GenericTypingProperties _ _ _ _ _ _ _ _ _}.
