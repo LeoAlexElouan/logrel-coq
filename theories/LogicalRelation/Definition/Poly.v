@@ -1,6 +1,6 @@
 (** * LogRel.LogicalRelation.Definition.Poly : Definition of the logical relation for polynomial *)
 From Stdlib Require Import CRelationClasses.
-From LogRel Require Import Utils Syntax.All GenericTyping.
+From LogRel Require Import Utils Syntax.All GenericTyping Monad.
 From LogRel.LogicalRelation.Definition Require Import Prelude.
 
 Set Primitive Projections.
@@ -23,7 +23,7 @@ Module PolyRedPack.
     shpRed {Δ} (ρ : Δ ≤ Γ) : [ |- Δ ] -> LRPack@{i} Δ shp⟨ρ⟩ shp'⟨ρ⟩ ;
     posRed {Δ} {a b} (ρ : Δ ≤ Γ) (h : [ |- Δ ]) :
         [ (shpRed ρ h) |  Δ ||- a ≅ b : shp⟨ρ⟩ ≅ shp'⟨ρ⟩] ->
-        LRPack@{i} Δ (pos[a .: (ρ >> tRel)]) (pos'[b .: (ρ >> tRel)]);
+        Split (fun Ξ ρ' => LRPack@{i} Ξ (pos[a .: (ρ' ∘w ρ >> tRel)]) (pos'[b .: (ρ' ∘w ρ >> tRel)]));
   }.
 
   Arguments PolyRedPack {_ _ _ _}.

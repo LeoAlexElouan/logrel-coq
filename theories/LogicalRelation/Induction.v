@@ -74,7 +74,7 @@ same. Both need to be proven simultaneously, because of contravariance in the pr
     (forall (Γ : context) (A B : term) (ΠA : PiRedTyPack@{j} Γ A B) (HAad : PiRedTyAdequate (LR rec) ΠA),
       PolyHyp P Γ ΠA HAad (P (LRPi rec ΠA HAad))) ->
 
-    (forall Γ A B (NA : [Γ ||-Nat A ≅ B]), P (LRNat rec NA)) ->
+    (forall Γ A B (NA : [Γ ||-SNat A ≅ B]), P (LRNat rec NA)) ->
 
     (forall Γ A B (NA : [Γ ||-Bool A ≅ B]), P (LRBool rec NA)) ->
 
@@ -128,7 +128,7 @@ same. Both need to be proven simultaneously, because of contravariance in the pr
     (forall (l : TypeLevel) (Γ : context) (A B : term) (ΠA : PiRedTy@{i j k l} Γ l A B),
       PolyHypLogRel P Γ ΠA (P (LRPi' ΠA).(LRAd.adequate ))) ->
 
-    (forall l Γ A B (NA : [Γ ||-Nat A ≅ B]), P (LRNat (LogRelRec l) NA)) ->
+    (forall l Γ A B (NA : [Γ ||-SNat A ≅ B]), P (LRNat (LogRelRec l) NA)) ->
 
     (forall l Γ A B (NA : [Γ ||-Bool A ≅ B]), P (LRBool (LogRelRec l) NA)) ->
 
@@ -172,7 +172,7 @@ same. Both need to be proven simultaneously, because of contravariance in the pr
     (forall (l : TypeLevel) (Γ : context) (A B : term) (ΠA : PiRedTy@{i j k l} Γ l A B),
       PolyHypTyUr P Γ ΠA (P (LRPi' ΠA))) ->
 
-    (forall l Γ A B (NA : [Γ ||-Nat A ≅ B]), P (LRNat_ l NA)) ->
+    (forall l Γ A B (NA : [Γ ||-SNat A ≅ B]), P (LRNat_ l NA)) ->
 
     (forall l Γ A B (NA : [Γ ||-Bool A ≅ B]), P (LRBool_ l NA)) ->
 
@@ -206,7 +206,7 @@ same. Both need to be proven simultaneously, because of contravariance in the pr
     (forall (l : TypeLevel) (Γ : context) (A B : term) (ΠA : PiRedTy@{i j k l} Γ l A B),
       P (LRPi' ΠA)) ->
 
-    (forall l Γ A B (NA : [Γ ||-Nat A ≅ B]), P (LRNat_ l NA)) ->
+    (forall l Γ A B (NA : [Γ ||-SNat A ≅ B]), P (LRNat_ l NA)) ->
 
     (forall l Γ A B (NA : [Γ ||-Bool A ≅ B]), P (LRBool_ l NA)) ->
 

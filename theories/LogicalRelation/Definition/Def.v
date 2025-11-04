@@ -27,11 +27,11 @@ Inductive LR@{i j k} `{ta : tag}
       LR rec Γ A B (fun t u =>  [ Γ ||-ne t ≅ u : A | neA])
   | LRPi {Γ : context} {A B : term} (ΠA : PiRedTyPack@{j} Γ A B) (ΠAad : PiRedTyAdequate@{j k} (LR rec) ΠA) :
     LR rec Γ A B (PiRedTmEq ΠA)
-  | LRNat {Γ A B} (NA : [Γ ||-Nat A ≅ B]) :
+  | LRNat {Γ A B} (NA : [Γ ||-SNat A ≅ B]) :
     LR rec Γ A B (NatRedTmEq Γ)
-  | LRBool {Γ A B} (NA : [Γ ||-Bool A ≅ B]) :
+  | LRBool {Γ A B} (NA : [Γ ||-SBool A ≅ B]) :
     LR rec Γ A B (BoolRedTmEq Γ)
-  | LREmpty {Γ A B} (NA : [Γ ||-Empty A ≅ B]) :
+  | LREmpty {Γ A B} (NA : [Γ ||-SEmpty A ≅ B]) :
     LR rec Γ A B (EmptyRedTmEq Γ)
   | LRSig {Γ : context} {A B : term} (ΣA : SigRedTyPack@{j} Γ A B) (ΣAad : SigRedTyAdequate@{j k} (LR rec) ΣA) :
     LR rec Γ A B (SigRedTmEq ΣA)
@@ -100,7 +100,7 @@ Section MoreDefs.
     : [ LogRel@{i j k l} l | Γ ||- A  ≅ B] :=
     LRbuild (LRPi (LogRelRec l) ΠA ΠAad).
 
-  Definition LRNat_@{i j k l} l {Γ A B} (NA : [Γ ||-Nat A ≅ B])
+  Definition LRNat_@{i j k l} l {Γ A B} (NA : [Γ ||-SNat A ≅ B])
     : [LogRel@{i j k l} l | Γ ||- A ≅ B] :=
     LRbuild (LRNat (LogRelRec l) NA).
 

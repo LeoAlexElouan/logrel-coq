@@ -74,30 +74,30 @@ Section NatRedTmEq.
   | neReq {ne ne'} : [Γ ||-NeNf ne ≅ ne' : tNat] -> NatPropEq Γ ne ne'
 
   with NatRedTmEq (Γ : context) : term -> term -> Set :=
-  | Split_NatRedTmEq t u: Split (fun Δ (ρ : Δ ≤ Γ) => NatRedTmEq Δ t⟨ρ⟩ u⟨ρ⟩) -> NatRedTmEq Γ t u.
+  | Build_NatRedTmEq t u (d : DTree Γ): (forall Δ ρ, SNatRedTmEq Δ t⟨ρ⟩ u⟨ρ⟩) -> NatRedTmEq Γ t u.
 
   Section Def.
     Context `{!GenericTypingProperties _ _ _ _ _ _ _ _ _}.
 
-    Lemma NatPropEq_isNat {t t' : term} :
-      NatPropEq t t' -> isNat t × isNat t'.
+    Lemma NatPropEq_isNat Γ {t t' : term} :
+      NatPropEq Γ t t' -> isNat t × isNat t'.
     Proof.
       intros [| |?? []]; split; constructor.
       all: eapply convneu_whne; eassumption + now symmetry.
     Defined.
 
-    Definition whnfL {t u} : NatPropEq t u -> whnf t.
+    Definition whnfL {Γ t u} : NatPropEq Γ t u -> whnf t.
     Proof. intros []%NatPropEq_isNat; now eapply isNat_whnf. Qed.
 
-    Definition whnfR {t u} : NatPropEq t u -> whnf u.
+    Definition whnfR {Γ t u} : NatPropEq Γ t u -> whnf u.
     Proof. intros []%NatPropEq_isNat; now eapply isNat_whnf. Qed.
 
-    Definition whredL {t u} : NatRedTmEq t u -> [Γ |- t ↘ tNat].
+    Definition whredL {Γ t u} : SNatRedTmEq Γ t u -> [Γ |- t ↘ tNat].
     Proof.
       intros []; econstructor; tea; now eapply whnfL.
     Defined.
 
-    Definition whredR {t u} : NatRedTmEq t u -> [Γ |- u ↘ tNat].
+    Definition whredR {Γ t u} : SNatRedTmEq Γ t u -> [Γ |- u ↘ tNat].
     Proof.
       intros []; econstructor; tea; now eapply whnfR.
     Defined.
@@ -105,14 +105,17 @@ Section NatRedTmEq.
   End Def.
 
 
-Scheme NatRedTmEq_mut_rect := Induction for NatRedTmEq Sort Type with
-    NatPropEq_mut_rect := Induction for NatPropEq Sort Type.
+Scheme SNatRedTmEq_mut_rect := Induction for SNatRedTmEq Sort Type with
+    NatPropEq_mut_rect := Induction for NatPropEq Sort Type with
+    NatRedTmEq_mut_rect := Induction for NatRedTmEq Sort Type.
 
 Combined Scheme _NatRedInduction from
+  SNatRedTmEq_mut_rect,
   NatRedTmEq_mut_rect,
   NatPropEq_mut_rect.
 
 Combined Scheme _NatRedEqInduction from
+  SNatRedTmEq_mut_rect,
   NatRedTmEq_mut_rect,
   NatPropEq_mut_rect.
 
@@ -131,20 +134,22 @@ Let NatRedEqInductionType :=
 (* KM: looks like there is a bunch of polymorphic universes appearing there... *)
 Lemma NatRedEqInduction : NatRedEqInductionType.
 Proof.
-  intros PRedEq PPropEq **; split; now apply (_NatRedEqInduction PRedEq PPropEq).
+  intros PSRedEq PPropEq PRedEq **; split; [|split]; now apply (_NatRedEqInduction PSRedEq PPropEq PRedEq).
 Defined.
 
 End NatRedTmEq.
-Arguments NatRedTmEq {_ _ _ _ _}.
+Arguments SNatRedTmEq {_ _ _ _ _}.
 Arguments NatPropEq {_ _ _ _ _}.
+Arguments NatRedTmEq {_ _ _ _ _}.
 End NatRedTmEq.
 
-Export NatRedTmEq(NatRedTmEq,Build_NatRedTmEq, NatPropEq, NatRedEqInduction, NatPropEq_isNat).
+Export NatRedTmEq(NatRedTmEq,Build_NatRedTmEq,SNatRedTmEq,Build_SNatRedTmEq, NatPropEq, NatRedEqInduction, NatPropEq_isNat).
 
+Notation "[ Γ ||-SNat t ≅ u :Nat]" := (@SNatRedTmEq _ _ _ _ _ Γ t u).  (* (at level 0, Γ, t, u, A, RA at level 50). *)
 Notation "[ Γ ||-Nat t ≅ u :Nat]" := (@NatRedTmEq _ _ _ _ _ Γ t u).  (* (at level 0, Γ, t, u, A, RA at level 50). *)
 
 #[program]
-Instance NatRedTmEqWhRed `{GenericTypingProperties} {Γ} : WhRedTmRel Γ tNat (NatRedTmEq Γ) :=
+Instance NatRedTmEqWhRed `{GenericTypingProperties} {Γ} : WhRedTmRel Γ tNat (SNatRedTmEq Γ) :=
   {| whredtmL := fun t u Rtu => NatRedTmEq.whredL Rtu ;
     whredtmR := fun t u Rtu => NatRedTmEq.whredR Rtu |}.
 Next Obligation.

@@ -1,0 +1,16 @@
+From LogRel Require Import Utils Syntax.All.
+
+Inductive Dtree (L : Fcontext) : Type :=
+  | leaf : Dtree L
+  | node (new : newnat L):
+    Dtree (Fcons' L new true) ->
+    Dtree (Fcons' L new false) ->
+    Dtree L.
+
+Arguments leaf {_}.
+Arguments node {_ _}.
+Search "SProp.
+Fixpoint overtree {L} (d : Dtree L) L' : SProp :=
+  match d with
+  | leaf => Fweakening L' L
+  | node dt df => 

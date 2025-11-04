@@ -1,6 +1,6 @@
 (** * LogRel.LogicalRelation.Definition.Id : Definition of the logical relation for indentity types *)
 From Stdlib Require Import CRelationClasses.
-From LogRel Require Import Utils Syntax.All GenericTyping.
+From LogRel Require Import Utils Syntax.All GenericTyping Monad.
 From LogRel.LogicalRelation.Definition Require Import Prelude Ne.
 
 Set Primitive Projections.
@@ -74,7 +74,7 @@ Section IdRedTmEq.
   | neReq {ne ne'} : [Γ ||-NeNf ne ≅ ne' : IdRedTyPack.outTy IA] -> IdPropEq ne ne'.
 
 
-  Record IdRedTmEq  {t u : term} : Type :=
+  Record SIdRedTmEq  {t u : term} : Type :=
     Build_IdRedTmEq {
       nfL : term ;
       nfR : term ;
@@ -83,6 +83,7 @@ Section IdRedTmEq.
       eq : [Γ |- nfL ≅ nfR : IdRedTyPack.outTy IA] ;
       prop : IdPropEq nfL nfR ;
   }.
+
 
   Section Def.
     Context `{!GenericTypingProperties _ _ _ _ _ _ _ _ _}.
@@ -99,16 +100,23 @@ Section IdRedTmEq.
     Definition whnfR {t u} : IdPropEq t u -> whnf u.
     Proof. intros []%IdPropEq_isId ; now eapply isId_whnf. Qed.
 
-    Definition whredL {t u} : @IdRedTmEq t u -> [Γ |- t ↘ IdRedTyPack.outTy IA].
+    Definition whredL {t u} : @SIdRedTmEq t u -> [Γ |- t ↘ IdRedTyPack.outTy IA].
     Proof. intros []; econstructor; tea; now eapply whnfL. Defined.
 
-    Definition whredR {t u} : @IdRedTmEq t u -> [Γ |- u ↘ IdRedTyPack.outTy IA].
+    Definition whredR {t u} : @SIdRedTmEq t u -> [Γ |- u ↘ IdRedTyPack.outTy IA].
     Proof. intros []; econstructor; tea; now eapply whnfR. Defined.
   End Def.
 
+
 End IdRedTmEq.
-Arguments IdRedTmEq {_ _ _ _ _ _ _ _ _ _ _ _}.
+Arguments SIdRedTmEq {_ _ _ _ _ _ _ _ _ _ _ _}.
 Arguments IdPropEq {_ _ _ _ _ _ _ _ _ _}.
+
+Definition IdRedTmEq@{i j} `{ta : tag} `{WfContext ta} `{WfType ta} `{ConvType ta}
+  `{RedType ta} `{Typing ta} `{ConvNeuConv ta} `{ConvTerm ta}
+  `{RedTerm ta} {Γ : context} {A B: term} (IA : forall Δ (ρ : Δ ≤ Γ), IdRedTyPack@{i} Δ A⟨ρ⟩ B⟨ρ⟩) t u : Type@{j} :=
+  Split@{i j} (fun Δ (ρ : Δ ≤ Γ) => SIdRedTmEq@{i} (Γ:=Δ) (A:=A⟨ρ⟩) (B:=B⟨ρ⟩) (IA Δ ρ) t⟨ρ⟩ u⟨ρ⟩).
+
 End IdRedTmEq.
 
 Export IdRedTmEq(IdRedTmEq,Build_IdRedTmEq, IdPropEq, IdPropEq_isId).
