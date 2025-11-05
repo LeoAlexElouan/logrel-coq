@@ -14,7 +14,7 @@ Definition PiRedTyPack `{ta : tag} `{WfContext ta} `{WfType ta} `{ConvType ta} `
   ParamRedTyPack (T:=tProd).
 
 Definition PiRedTyAdequate@{i j} `{ta : tag} `{WfContext ta} `{WfType ta} `{ConvType ta} `{RedType ta}
-    {Γ : context} {A B : term} (R : RedRel@{i j}) (ΠA : PiRedTyPack@{i} Γ A B)
+    {Γ : context} {A B : term} (R : RedRel@{i j}) (ΠA : PiRedTyPack@{i j} Γ A B)
   : Type@{j} := PolyRedPackAdequate R ΠA.
 
 Module PiRedTyPack := ParamRedTyPack.
@@ -27,7 +27,7 @@ Inductive isLRFun `{ta : tag} `{WfContext ta}
     [Γ |-  ΠA.(PiRedTyPack.domL) ≅ A'] ->
     (forall {Δ a b} (ρ : Δ ≤ Γ) (h : [ |- Δ ])
       (ha : [ ΠA.(PolyRedPack.shpRed) ρ h | Δ ||- a ≅ b : ΠA.(PiRedTyPack.domL)⟨ρ⟩ ]),
-      [ΠA.(PolyRedPack.posRed) ρ h ha | Δ ||- t[a .: (ρ >> tRel)] ≅ t[b .: (ρ >> tRel)] : ΠA.(PiRedTyPack.codL)[a .: (ρ >> tRel)]]) ->
+      [Split_LRPack (ΠA.(PolyRedPack.posRed) ρ h ha) | Δ ||- t[a .: (ρ >> tRel)] ≅ t[b .: (ρ >> tRel)] : ΠA.(PiRedTyPack.codL)[a .: (ρ >> tRel)]]) ->
   isLRFun ΠA (tLambda A' t)
 | NeLRFun : forall f : term, [Γ |- f ~ f : PiRedTyPack.outTy ΠA] -> isLRFun ΠA f.
 
@@ -39,7 +39,7 @@ Module PiRedTmEq.
     {Γ A B} (ΠA : PiRedTyPack Γ A B) (nfL nfR : term) Δ a b :=
     forall (ρ : Δ ≤ Γ) (h : [ |- Δ ])
       (hab : [ΠA.(PolyRedPack.shpRed) ρ h | Δ ||- a ≅ b : ΠA.(domL)⟨ρ⟩ ] ),
-      [ ΠA.(PolyRedPack.posRed) ρ h hab | Δ ||- tApp nfL⟨ρ⟩ a ≅ tApp nfR⟨ρ⟩ b : _ ].
+      [ Split_LRPack (ΠA.(PolyRedPack.posRed) ρ h hab) | Δ ||- tApp nfL⟨ρ⟩ a ≅ tApp nfR⟨ρ⟩ b : _ ].
 
   Arguments appRed /.
 

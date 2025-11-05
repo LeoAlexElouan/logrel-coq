@@ -1,6 +1,6 @@
 (** * LogRel.LogicalRelation.Definition.Ne : Definition of the logical relation for neutal types and terms *)
 From Stdlib Require Import CRelationClasses.
-From LogRel Require Import Utils Syntax.All GenericTyping.
+From LogRel Require Import Utils Syntax.All GenericTyping Monad.
 From LogRel.LogicalRelation.Definition Require Import Prelude.
 
 Set Primitive Projections.
@@ -11,7 +11,7 @@ Set Polymorphic Inductive Cumulativity.
 
 Module neRedTy.
 
-  Record neRedTy `{ta : tag}
+  Record SneRedTy `{ta : tag}
     `{WfType ta} `{ConvNeuConv ta} `{RedType ta}
     {Γ : context} {A B : term}
   : Set := {
@@ -22,23 +22,28 @@ Module neRedTy.
     eq : [ Γ |- tyL ~ tyR : U] ;
   }.
 
-  Arguments neRedTy {_ _ _ _}.
+  Arguments SneRedTy {_ _ _ _}.
 
   Definition whredL `{GenericTypingProperties} {Γ : context} {A B : term} :
-    neRedTy Γ A B -> [Γ |- A ↘ ].
+    SneRedTy Γ A B -> [Γ |- A ↘ ].
   Proof. intros []; econstructor; tea; constructor; now eapply convneu_whne. Defined.
 
   Definition whredR `{GenericTypingProperties} {Γ : context} {A B : term} :
-    neRedTy Γ A B -> [Γ |- B ↘ ].
+    SneRedTy Γ A B -> [Γ |- B ↘ ].
   Proof. intros []; econstructor; tea; constructor; eapply convneu_whne; now symmetry. Defined.
+
+  Definition neRedTy `{ta : tag}
+    `{WfType ta} `{ConvNeuConv ta} `{RedType ta} : forall Γ A B, Set :=
+    Split_Rel SneRedTy.
 
 End neRedTy.
 
-Export neRedTy(neRedTy, Build_neRedTy).
+Export neRedTy(neRedTy, SneRedTy, Build_SneRedTy).
+Notation "[ Γ ||-Sne A ≅ B ]" := (SneRedTy Γ A B).
 Notation "[ Γ ||-ne A ≅ B ]" := (neRedTy Γ A B).
 
 #[program]
-Instance neRedTyWhRedTy `{GenericTypingProperties} {Γ} : WhRedTyRel Γ (neRedTy Γ) :=
+Instance neRedTyWhRedTy `{GenericTypingProperties} {Γ} : WhRedTyRel Γ (SneRedTy Γ) :=
   {| whredtyL := fun A B RAB => neRedTy.whredL RAB ;
      whredtyR := fun A B RAB => neRedTy.whredR RAB ;
   |}.
@@ -50,10 +55,10 @@ Qed.
 
 Module neRedTmEq.
 
-  Record neRedTmEq `{ta : tag}
+  Record SneRedTmEq `{ta : tag}
     `{WfType ta} `{RedType ta}
     `{Typing ta} `{ConvType ta} `{ConvTerm ta} `{ConvNeuConv ta} `{RedTerm ta}
-    {Γ : context} {A B : term} {R : [ Γ ||-ne A ≅ B]} {t u  : term}
+    {Γ : context} {A B : term} {R : [ Γ ||-Sne A ≅ B]} {t u  : term}
   : Set := {
     termL     : term;
     termR     : term;
@@ -62,23 +67,30 @@ Module neRedTmEq.
     eq : [ Γ |- termL ~ termR : R.(neRedTy.tyL)] ;
   }.
 
-  Arguments neRedTmEq {_ _ _ _ _ _ _ _ _ _ _} _ _ _.
+  Arguments SneRedTmEq {_ _ _ _ _ _ _ _ _ _ _} _ _ _.
 
-  Definition whredL `{GenericTypingProperties} {Γ : context} {t u A B : term} {R : [ Γ ||-ne A ≅ B]} :
-    neRedTmEq R t u -> [Γ |- t ↘  R.(neRedTy.tyL)].
+  Definition whredL `{GenericTypingProperties} {Γ : context} {t u A B : term} {R : [ Γ ||-Sne A ≅ B]} :
+    SneRedTmEq R t u -> [Γ |- t ↘  R.(neRedTy.tyL)].
   Proof.  intros []; econstructor; tea; constructor; now eapply convneu_whne. Defined.
 
-  Definition whredR `{GenericTypingProperties} {Γ : context} {t u A B : term} {R : [ Γ ||-ne A ≅ B]} :
-    neRedTmEq R t u -> [Γ |- u ↘  R.(neRedTy.tyL)].
+  Definition whredR `{GenericTypingProperties} {Γ : context} {t u A B : term} {R : [ Γ ||-Sne A ≅ B]} :
+    SneRedTmEq R t u -> [Γ |- u ↘  R.(neRedTy.tyL)].
   Proof. intros []; econstructor; tea; constructor; eapply convneu_whne; now symmetry. Defined.
+
+  Definition neRedTmEq `{ta : tag}
+    `{WfType ta} `{RedType ta}
+    `{Typing ta} `{ConvType ta} `{ConvTerm ta} `{ConvNeuConv ta} `{RedTerm ta}
+    {Γ A B} (R : forall Δ (ρ : Δ ≤ Γ), [ Δ ||-Sne A⟨ρ⟩ ≅ B⟨ρ⟩]) t u : Set :=
+      Split (fun Δ ρ => SneRedTmEq (R Δ ρ) t⟨ρ⟩ u⟨ρ⟩).
 
 End neRedTmEq.
 
-Export neRedTmEq(neRedTmEq, Build_neRedTmEq).
+Export neRedTmEq(neRedTmEq, SneRedTmEq, Build_SneRedTmEq).
+Notation "[ Γ ||-Sne t ≅ u : A | R ] " := (SneRedTmEq (Γ:=Γ) (A:=A) R t u).
 Notation "[ Γ ||-ne t ≅ u : A | R ] " := (neRedTmEq (Γ:=Γ) (A:=A) R t u).
 
 #[program]
-Instance neRedTmWhRedTm `{GenericTypingProperties} {Γ A B} (R : [Γ ||-ne A ≅ B]) : WhRedTmRel Γ (neRedTy.tyL R) (neRedTmEq R) :=
+Instance neRedTmWhRedTm `{GenericTypingProperties} {Γ A B} (R : [Γ ||-Sne A ≅ B]) : WhRedTmRel Γ (neRedTy.tyL R) (SneRedTmEq R) :=
   {| whredtmL := fun t u Rtu => neRedTmEq.whredL Rtu ;
      whredtmR := fun t u Rtu => neRedTmEq.whredR Rtu ;
   |}.

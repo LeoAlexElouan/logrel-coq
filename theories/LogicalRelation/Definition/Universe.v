@@ -1,6 +1,6 @@
 (** * LogRel.LogicalRelation.Definition.Universe : Definition of the logical relation for universes *)
 From Stdlib Require Import CRelationClasses.
-From LogRel Require Import Utils Syntax.All GenericTyping.
+From LogRel Require Import Utils Syntax.All GenericTyping Monad.
 From LogRel.LogicalRelation.Definition Require Import Prelude.
 
 Set Primitive Projections.
@@ -41,7 +41,7 @@ Qed.
 
 Module URedTy.
 
-  Record URedTy `{ta : tag} `{!WfType ta} `{!RedType ta} {l} {Γ : context} {A B : term}
+  Record SURedTy `{ta : tag} `{!WfType ta} `{!RedType ta} {l} {Γ : context} {A B : term}
   : Set := {
     level  : TypeLevel;
     lt  : level << l;
@@ -49,39 +49,44 @@ Module URedTy.
     redR : [ Γ |- B  :⤳*: U ] ;
   }.
 
-  Arguments URedTy {_ _ _}.
+  Arguments SURedTy {_ _ _}.
 
-  Definition wfCtx  `{WfContextProperties}  {l} {Γ : context} {A B : term} : URedTy l Γ A B -> [|- Γ].
+  Definition wfCtx  `{WfContextProperties}  {l} {Γ : context} {A B : term} : SURedTy l Γ A B -> [|- Γ].
   Proof. intros []; timeout 1 gen_typing. Qed.
 
   Definition whredL `{ta : tag} `{!WfType ta} `{!RedType ta} `{WfContext ta} {l} {Γ : context} {A B : term} :
-    URedTy l Γ A B -> [Γ |- A ↘ ].
+    SURedTy l Γ A B -> [Γ |- A ↘ ].
   Proof. intros []; timeout 1 gen_typing. Defined.
 
   Definition whredR `{ta : tag} `{!WfType ta} `{!RedType ta} `{WfContext ta} {l} {Γ : context} {A B : term} :
-    URedTy l Γ A B -> [Γ |- B ↘ ].
+    SURedTy l Γ A B -> [Γ |- B ↘ ].
   Proof. intros []; timeout 1 gen_typing. Defined.
+
+  Definition URedTy `{ta : tag} `{!WfType ta} `{!RedType ta} l (Γ : context) (A B : term) :
+    Set :=
+    Split (fun Δ (ρ : Δ ≤ Γ) => SURedTy l Δ A⟨ρ⟩ B⟨ρ⟩).
 
 End URedTy.
 
-Export URedTy(URedTy,Build_URedTy).
+Export URedTy(URedTy, SURedTy, Build_SURedTy).
 
 #[program]
-Instance URedTyWhRedTy `{GenericTypingProperties} {Γ l} : WhRedTyRel Γ (URedTy l Γ) :=
+Instance URedTyWhRedTy `{GenericTypingProperties} {Γ l} : WhRedTyRel Γ (SURedTy l Γ) :=
  {| whredtyL := fun A B RAB => URedTy.whredL RAB ;
     whredtyR := fun A B RAB => URedTy.whredR RAB ;
  |}.
 Next Obligation. destruct h; gtyping. Qed.
 
+Notation "[ Γ ||-SU< l > A ≅ B ]" := (SURedTy l Γ A B) (at level 0, Γ, l, A, B at level 50).
 Notation "[ Γ ||-U< l > A ≅ B ]" := (URedTy l Γ A B) (at level 0, Γ, l, A, B at level 50).
 
 Import EqNotations.
 
 Lemma level_unique `{ta : tag} `{!WfType ta} `{!RedType ta} `{WfContext ta}
   {Γ lA lB l A A' B B'}
-  (RA : [Γ ||-U<lA> A ≅ A'])
-  (RB : [Γ ||-U<lB> B ≅ B'])
-  (RAB : [Γ ||-U<l> A ≅ B]) : RA.(URedTy.level) = RB.(URedTy.level).
+  (RA : [Γ ||-SU<lA> A ≅ A'])
+  (RB : [Γ ||-SU<lB> B ≅ B'])
+  (RAB : [Γ ||-SU<l> A ≅ B]) : RA.(URedTy.level) = RB.(URedTy.level).
 Proof.
   (* If we introduce more universes this lemma should still hold because
     RAB entails that A ⤳* U RAB.(level), B ⤳* U RAB.(level)
@@ -93,9 +98,9 @@ Qed.
 
 Lemma level_unique' `{ta : tag} `{!WfType ta} `{!RedType ta} `{WfContext ta}
   {Γ lA lB l A A' B B'}
-  (RA : [Γ ||-U<lA> A' ≅ A])
-  (RB : [Γ ||-U<lB> B' ≅ B])
-  (RAB : [Γ ||-U<l> A ≅ B]) : RA.(URedTy.level) = RB.(URedTy.level).
+  (RA : [Γ ||-SU<lA> A' ≅ A])
+  (RB : [Γ ||-SU<lB> B' ≅ B])
+  (RAB : [Γ ||-SU<l> A ≅ B]) : RA.(URedTy.level) = RB.(URedTy.level).
 Proof.
   (* If we introduce more universes this lemma should still hold because
     RAB entails that A ⤳* U RAB.(level), B ⤳* U RAB.(level)
@@ -107,7 +112,7 @@ Qed.
 
 Module URedTm.
 
-  Record URedTm `{ta : tag} `{Typing ta} `{RedTerm ta}
+  Record SURedTm `{ta : tag} `{Typing ta} `{RedTerm ta}
     {level : TypeLevel} {Γ : context} {t : term}
   : Set := {
     te : term;
@@ -115,46 +120,60 @@ Module URedTm.
     type : isType te;
   }.
 
-  Arguments URedTm {_ _ _}.
+  Arguments SURedTm {_ _ _}.
+
+  Definition URedTm `{ta : tag} `{Typing ta} `{RedTerm ta}
+    (level : TypeLevel) (Γ : context) (t : term) :
+      Set :=
+      Split (fun Δ (ρ : Δ ≤ Γ) => SURedTm level Δ t⟨ρ⟩).
 
   Definition whred `{ta : tag} `{Typing ta} `{RedTerm ta}
     {l} {Γ : context} {t: term} :
-    URedTm l Γ t -> [Γ |- t ↘  U].
+    SURedTm l Γ t -> [Γ |- t ↘  U].
   Proof. intros []; gtyping. Defined.
 
-  Record URedTmEq@{i j} `{ta : tag} `{WfType ta}
+  Record SURedTmEq@{i j} `{ta : tag} `{WfType ta}
     `{Typing ta} `{ConvTerm ta} `{RedType ta} `{RedTerm ta}
     {l} {rec : forall {l'}, l' << l -> RedRel@{i j}}
-    {Γ : context} {A B : term} {R : [Γ ||-U<l> A ≅ B]} {t u}
+    {Γ : context} {A B : term} {R : [Γ ||-SU<l> A ≅ B]} {t u}
   : Type@{j} := {
-      redL : URedTm R.(URedTy.level) Γ t ;
-      redR : URedTm R.(URedTy.level) Γ u ;
+      redL : SURedTm R.(URedTy.level) Γ t ;
+      redR : SURedTm R.(URedTy.level) Γ u ;
       eq   : [ Γ |- redL.(te) ≅ redR.(te) : U ];
       relEq : [ rec R.(URedTy.lt) | Γ ||- t ≅ u ] ;
   }.
 
-  Arguments URedTmEq {_ _ _ _ _ _ _ } rec.
+  Arguments SURedTmEq {_ _ _ _ _ _ _ } rec.
+
+  Definition URedTmEq@{i j} `{ta : tag} `{WfType ta}
+    `{Typing ta} `{ConvTerm ta} `{RedType ta} `{RedTerm ta}
+    {l} (rec : forall l', l' << l -> RedRel@{i j}) (Γ : context) (A B : term) (R :forall Δ (ρ : Δ ≤ Γ), [Δ ||-SU<l> A⟨ρ⟩ ≅ B⟨ρ⟩]) t u:
+      Type@{j} :=
+      Split (fun Δ (ρ : Δ ≤ Γ) => SURedTmEq rec Δ A⟨ρ⟩ B⟨ρ⟩ (R Δ ρ) t⟨ρ⟩ u⟨ρ⟩).
 
   Definition whredL `{ta : tag} `{WfContext ta} `{WfType ta}
     `{Typing ta} `{ConvTerm ta} `{RedType ta} `{RedTerm ta}
     {l} {rec : forall l', l' << l -> RedRel}
-    {Γ : context} {t u A B : term} {R : [Γ ||-U<l> A ≅ B]} :
-    URedTmEq rec Γ A B R t u -> [Γ |- t ↘  U].
+    {Γ : context} {t u A B : term} {R : [Γ ||-SU<l> A ≅ B]} :
+    SURedTmEq rec Γ A B R t u -> [Γ |- t ↘  U].
   Proof. intros []; now eapply whred. Defined.
 
   Definition whredR `{ta : tag} `{WfContext ta} `{WfType ta}
     `{Typing ta} `{ConvTerm ta} `{RedType ta} `{RedTerm ta}
     {l} {rec : forall l', l' << l -> RedRel}
-    {Γ : context} {t u A B : term} {R : [Γ ||-U<l> A ≅ B]} :
-    URedTmEq rec Γ A B R t u -> [Γ |- u ↘  U].
+    {Γ : context} {t u A B : term} {R : [Γ ||-SU<l> A ≅ B]} :
+    SURedTmEq rec Γ A B R t u -> [Γ |- u ↘  U].
   Proof. intros []; now eapply whred. Defined.
+
 
 End URedTm.
 
-Export URedTm(URedTm,Build_URedTm,URedTmEq,Build_URedTmEq).
-Notation "[ R | Γ ||-U t ≅ u : A | l ]" := (URedTmEq R Γ A _ l t u) (at level 0, R, Γ, t, u, A, l at level 50).
-Notation "[ R | Γ ||-U t ≅ u : A ≅ B | l ]" := (URedTmEq R Γ A B l t u) (at level 0, R, Γ, t, u, A, B, l at level 50).
+Export URedTm(URedTm, SURedTm, Build_SURedTm,URedTmEq, SURedTmEq, Build_SURedTmEq).
+Notation "[ rec | Γ ||-SU t ≅ u : A | R ]" := (SURedTmEq rec Γ A _ R t u) (at level 0, R, Γ, t, u, A, rec at level 50).
+Notation "[ rec | Γ ||-SU t ≅ u : A ≅ B | R ]" := (URedTmEq rec Γ A B R t u) (at level 0, R, Γ, t, u, A, B, rec at level 50).
+Notation "[ rec | Γ ||-U t ≅ u : A | R ]" := (URedTmEq rec Γ A _ R t u) (at level 0, R, Γ, t, u, A, rec at level 50).
+Notation "[ rec | Γ ||-U t ≅ u : A ≅ B | R ]" := (URedTmEq rec Γ A B R t u) (at level 0, R, Γ, t, u, A, B, rec at level 50).
 
-Instance URedTmWhRed `{GenericTypingProperties} {Γ l} : WhRedTm Γ U (URedTm l Γ) :=
+Instance URedTmWhRed `{GenericTypingProperties} {Γ l} : WhRedTm Γ U (SURedTm l Γ) :=
   fun t => URedTm.whred.
 

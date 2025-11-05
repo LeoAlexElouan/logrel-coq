@@ -10,20 +10,21 @@ Set Polymorphic Inductive Cumulativity.
 
 (** ** Reducibility of a polynomial A,, B  *)
 
+
 Module PolyRedPack.
 
   (* A polynomial is a pair (shp, pos) of a type of shapes [Γ |- shp] and
     a dependent type of positions [Γ |- pos] *)
   (* This should be used as a common entry for Π, Σ, W and M types *)
 
-  Record PolyRedPack@{i} `{ta : tag}
+  Record PolyRedPack@{i j} `{ta : tag}
     `{WfContext ta} `{WfType ta} `{ConvType ta}
     {Γ : context} {shp shp' pos pos' : term}
-  : Type (* @ max(Set, i+1) *) := {
+  : Type@{j} (* @ max(Set, i+1) *) := {
     shpRed {Δ} (ρ : Δ ≤ Γ) : [ |- Δ ] -> LRPack@{i} Δ shp⟨ρ⟩ shp'⟨ρ⟩ ;
-    posRed {Δ} {a b} (ρ : Δ ≤ Γ) (h : [ |- Δ ]) :
+    posRed {Δ} (ρ : Δ ≤ Γ) {a b} (h : [ |- Δ ]) :
         [ (shpRed ρ h) |  Δ ||- a ≅ b : shp⟨ρ⟩ ≅ shp'⟨ρ⟩] ->
-        Split (fun Ξ ρ' => LRPack@{i} Ξ (pos[a .: (ρ' ∘w ρ >> tRel)]) (pos'[b .: (ρ' ∘w ρ >> tRel)]));
+        Split_Rel@{j} LRPack@{i} Δ (pos[a .: (ρ >> tRel)]) (pos'[b .: (ρ >> tRel)]);
   }.
 
   Arguments PolyRedPack {_ _ _ _}.
@@ -35,11 +36,11 @@ Module PolyRedPack.
   make reasoning easier. *)
   Record PolyRedPackAdequate@{i j} `{ta : tag}
     `{WfContext ta} `{WfType ta} `{ConvType ta} {shp shp' pos pos' : term}
-    {Γ : context} {R : RedRel@{i j}}  {PA : PolyRedPack@{i} Γ shp shp' pos pos'}
-  : Type@{j} := {
+    {Γ : context} {R : RedRel@{i j}}  {PA : PolyRedPack@{i j} Γ shp shp' pos pos'} : Type@{j}
+      := {
     shpAd {Δ} (ρ : Δ ≤ Γ) (h : [ |- Δ ]) : LRPackAdequate@{i j} R (PA.(shpRed) ρ h);
-    posAd {Δ a b} (ρ : Δ ≤ Γ) (h : [ |- Δ ]) (ha : [ PA.(shpRed) ρ h | Δ ||- a ≅ b : shp⟨ρ⟩ ])
-      : LRPackAdequate@{i j} R (PA.(posRed) ρ h ha);
+    posAd {Δ a b} (ρ : Δ ≤ Γ) (h : [ |- Δ ]) (ha : [ PA.(shpRed) ρ h | Δ ||- a ≅ b : shp⟨ρ⟩ ]) :
+      dover (fun Ξ ρ' => LRPackAdequate@{i j} R) (PA.(posRed) ρ h ha);
   }.
 
   Arguments PolyRedPackAdequate {_ _ _ _ _ _ _ _ _}.

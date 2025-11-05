@@ -21,8 +21,8 @@ Module BoolRedTy.
 
   Arguments SBoolRedTy {_ _ _}.
 
-  Definition BoolRedTy `{ta : tag} `{WfType ta} `{RedType ta} Γ A B : Type :=
-    Split (fun Δ (ρ : Δ ≤ Γ) => SBoolRedTy Δ A⟨ρ⟩ B⟨ρ⟩).
+  Definition BoolRedTy `{ta : tag} `{WfType ta} `{RedType ta} : forall Γ A B, Type :=
+    Split_Rel SBoolRedTy.
 
   Section BoolRedTy.
   Context `{ta : tag} `{WfType ta} `{RedType ta}.
@@ -75,8 +75,8 @@ Section BoolRedTmEq.
   }.
   Arguments SBoolRedTmEq : clear implicits.
 
-  Definition BoolRedTmEq Γ t u : Set :=
-    Split (fun Δ (ρ : Δ ≤ Γ) => SBoolRedTmEq Δ t⟨ρ⟩ u⟨ρ⟩).
+  Definition BoolRedTmEq : forall Γ t u, Set :=
+    Split_Rel SBoolRedTmEq.
 
   Section Def.
     Context `{!GenericTypingProperties _ _ _ _ _ _ _ _ _}.

@@ -34,23 +34,23 @@ Proof.
 Qed.
 
 
-Fixpoint DTree_psh {L} L' {Fρ : L' ≤ε L} : DTree L -> DTree L'.
+Fixpoint DTree_PSh {L} L' {Fρ : L' ≤ε L} : DTree L -> DTree L'.
 Proof.
   intros d.
   destruct d as [| new dt df].
   - apply leaf.
   - destruct (decide_in L' new) as [b hin |hnotin].
-    + refine (DTree_psh (Fcons' L new b) L' _ (match b with true=>dt|false=>df end)).
+    + refine (DTree_PSh (Fcons' L new b) L' _ (match b with true=>dt|false=>df end)).
       now eapply Fwk_new.
     + refine (@node _ (Build_newnat L' new hnotin) _ _).
-      * unshelve eapply (DTree_psh _ _ _ dt).
+      * unshelve eapply (DTree_PSh _ _ _ dt).
         now eapply Fwk_Fup.
-      * unshelve eapply (DTree_psh _ _ _ df).
+      * unshelve eapply (DTree_PSh _ _ _ df).
         now eapply Fwk_Fup.
 Defined.
 
-Lemma overtree_psh (L L' L'' : Fcontext) (Fρ : L' ≤ε L) (d : DTree L) :
-  overtree (DTree_psh L' d) L'' -> overtree d L''.
+Lemma overtree_PSh (L L' L'' : Fcontext) (Fρ : L' ≤ε L) (d : DTree L) :
+  overtree (DTree_PSh L' d) L'' -> overtree d L''.
 Proof.
   intros Hover; assert (Fρ' : L'' ≤ε L') by now eapply overtree_Fwk.
   revert L' L'' Fρ Fρ' Hover;
@@ -71,36 +71,40 @@ Qed.
 
 Local Set Universe Polymorphism.
 
-Definition psh@{i j} Γ : Type@{j} := forall Δ, Δ ≤ Γ -> Type@{i}.
 
-Definition psh_psh {Γ Δ} (ρ : Γ ≤ Δ): psh Δ -> psh Γ :=
+Definition PSh@{i} Γ : Type@{i+1} := forall (Δ : context), Δ ≤ Γ -> Type@{i}.
+
+Definition PSh_PSh {Γ Δ} (ρ : Γ ≤ Δ): PSh Δ -> PSh Γ :=
   fun A Ξ σ => A Ξ (σ ∘w ρ).
 
-Lemma psh_rew {Γ} (A : psh Γ) : forall Δ (ρ ρ' : Δ ≤ Γ), ρ =1 ρ' -> A Δ ρ -> A Δ ρ'.
+Lemma PSh_rew {Γ} (A : PSh Γ) : forall Δ (ρ ρ' : Δ ≤ Γ), ρ =1 ρ' -> A Δ ρ -> A Δ ρ'.
 Proof.
   intros Δ ρ ρ' heq1 hA.
   apply wk_to_ren_inj in heq1.
   now destruct heq1.
 Qed.
 
-Definition hom {Γ} (A B : psh Γ) := forall Δ ρ, A Δ ρ -> B Δ ρ.
+Definition hom {Γ} (A B : PSh Γ) := forall Δ ρ, A Δ ρ -> B Δ ρ.
 
-Lemma hom_psh {Γ} {A B : psh Γ} : hom A B -> forall Δ (ρ : Δ ≤ Γ), hom (psh_psh ρ A) (psh_psh ρ B).
+Lemma hom_PSh {Γ} {A B : PSh Γ} : hom A B -> forall Δ (ρ : Δ ≤ Γ), hom (PSh_PSh ρ A) (PSh_PSh ρ B).
 Proof.
   intros hhom Δ ρ Ξ σ hA.
   apply hhom.
   apply hA.
 Qed.
 
-Record Split@{i j} {Γ} (A : psh@{i j} Γ) : Type@{i} := {
+Record Split@{i} {Γ} (A : PSh@{i} Γ) : Type@{i} := {
   dtree : DTree Γ;
   cover : forall (Δ : context) ρ, overtree dtree Δ -> A Δ ρ
 }.
 
-Definition Split_psh {Γ} : psh Γ -> psh Γ:=
- fun A Δ ρ => Split (psh_psh ρ A).
+Arguments dtree {_ _}.
+Arguments cover {_ _} _ {_}.
 
-Lemma split_hom_psh Γ (A B : psh Γ) : hom A B -> Split A -> Split B.
+Definition Split_PSh {Γ} : PSh Γ -> PSh Γ:=
+ fun A Δ ρ => Split (PSh_PSh ρ A).
+
+Lemma split_hom_PSh Γ (A B : PSh Γ) : hom A B -> Split A -> Split B.
 Proof.
   intros hhom hA.
   destruct hA as [dA hA].
@@ -110,39 +114,39 @@ Proof.
   now apply hA.
 Qed.
 
-Lemma Split_wkn Γ (A : psh Γ) : Split A -> forall Δ ρ, Split_psh A Δ ρ.
+Lemma Split_wkn Γ (A : PSh Γ) : Split A -> forall Δ ρ, Split_PSh A Δ ρ.
 Proof.
   intros [dA hA] Δ ρ.
-  exists (DTree_psh Δ dA).
+  exists (DTree_PSh Δ dA).
   intros Ξ σ Hover.
   apply hA.
-  now eapply overtree_psh.
+  now eapply overtree_PSh.
 Qed.
 
-Lemma Split_wkn_inv Γ A : (forall Δ (ρ : Δ ≤ Γ), Split_psh A Δ ρ) -> Split A.
+Lemma Split_wkn_inv Γ A : (forall Δ (ρ : Δ ≤ Γ), Split_PSh A Δ ρ) -> Split A.
 Proof.
   intros.
-  eapply split_hom_psh.
+  eapply split_hom_PSh.
   2: apply (X Γ wk_id).
   intros Δ ρ hA.
-  refine (psh_rew A _ _ _ _ hA).
+  refine (PSh_rew A _ _ _ _ hA).
   bsimpl.
   reflexivity.
 Qed.
 
-Definition shf {Γ} (A : psh Γ) := forall Δ (ρ : Δ ≤ Γ) new,
+Definition shf {Γ} (A : PSh Γ) := forall Δ (ρ : Δ ≤ Γ) new,
     A (Δ,,new↦true) (wk_Fstep _ _ ρ) ->
     A (Δ,,new↦false) (wk_Fstep _ _ ρ) ->
     A Δ ρ.
 
-Lemma shf_psh {Γ A} : shf A -> forall Δ (ρ : Δ ≤ Γ), shf (psh_psh ρ A).
+Lemma shf_PSh {Γ A} : shf A -> forall Δ (ρ : Δ ≤ Γ), shf (PSh_PSh ρ A).
 Proof.
   intros hAshf Δ ρ Ξ σ new hAt hAf.
-  unfold psh_psh, shf in *.
+  unfold PSh_PSh, shf in *.
   now eapply hAshf.
 Qed.
 
-Lemma Split_shf {Γ} {A : psh Γ} : shf (Split_psh A).
+Lemma Split_shf {Γ} {A : PSh Γ} : shf (Split_PSh A).
 Proof.
   intros Δ ρ new [dAt hAt] [dAf hAf].
   exists (node dAt dAf).
@@ -150,16 +154,16 @@ Proof.
   cbn in hover.
   destruct (decide_in Ξ new) as [[] hin|hnotin].
   - specialize (hAt Ξ (wk_new new true σ hin) hover).
-    refine (psh_rew A _ _ _ _ hAt).
+    refine (PSh_rew A _ _ _ _ hAt).
     bsimpl. reflexivity.
   - specialize (hAf Ξ (wk_new new false σ hin) hover).
-    refine (psh_rew A _ _ _ _ hAf).
+    refine (PSh_rew A _ _ _ _ hAf).
     bsimpl. reflexivity.
   - destruct hover.
 Qed.
 
 
-Lemma split_bind_alg : forall Γ (A B: psh Γ),
+Lemma split_bind_alg : forall Γ (A B: PSh Γ),
   shf B ->
   hom A B ->
   Split A -> (forall Δ (ρ : Δ ≤ Γ), B Δ ρ).
@@ -171,12 +175,12 @@ Proof.
     apply hA.
     apply ρ.
   - change L with (Fctx (Build_context Γ L)) in new.
-    specialize (ihAt (psh_psh (wk_Fstep new true wk_id) A)
-      (psh_psh (wk_Fstep new true wk_id) B) (shf_psh hBshf _ _) (hom_psh hhom _ _)).
-    specialize (ihAf (psh_psh (wk_Fstep new false wk_id) A)
-      (psh_psh (wk_Fstep new false wk_id) B) (shf_psh hBshf _ _) (hom_psh hhom _ _)).
+    specialize (ihAt (PSh_PSh (wk_Fstep new true wk_id) A)
+      (PSh_PSh (wk_Fstep new true wk_id) B) (shf_PSh hBshf _ _) (hom_PSh hhom _ _)).
+    specialize (ihAf (PSh_PSh (wk_Fstep new false wk_id) A)
+      (PSh_PSh (wk_Fstep new false wk_id) B) (shf_PSh hBshf _ _) (hom_PSh hhom _ _)).
     assert (forall (b: bool) Δ (ρ : Δ ≤ (Build_context Γ L),,new ↦ b),
-      overtree (match b with true => dt| false => df end) Δ -> psh_psh (wk_Fstep new b wk_id) A Δ ρ) as H.
+      overtree (match b with true => dt| false => df end) Δ -> PSh_PSh (wk_Fstep new b wk_id) A Δ ρ) as H.
     1:{ intros b Δ ρ hover.
         apply hA; cbn.
         rewrite (decide_in_in Δ new b (Fwk ρ new b (in_hereF L new b))).
@@ -187,26 +191,25 @@ Proof.
     intros Δ ρ.
     destruct (decide_in Δ new) as [[] hin|hnotin].
     + specialize (ihAt Δ (wk_new new true ρ hin)).
-      refine (psh_rew B _ _ ρ _ ihAt).
+      refine (PSh_rew B _ _ ρ _ ihAt).
       bsimpl. reflexivity.
     + specialize (ihAf Δ (wk_new new false ρ hin)).
-      refine (psh_rew B _ _ ρ _ ihAf).
+      refine (PSh_rew B _ _ ρ _ ihAf).
       bsimpl. reflexivity.
     + set (new' := Build_newnat Δ new hnotin).
       eapply hBshf.
       * specialize (ihAt (Δ,, new' ↦ true) (wk_Fup _ _ true new ρ new new')).
-        refine (psh_rew B _ _ _ _ ihAt).
+        refine (PSh_rew B _ _ _ _ ihAt).
         bsimpl. reflexivity.
       * specialize (ihAf (Δ,, new' ↦ false) (wk_Fup _ _ false new ρ new new')).
-        refine (psh_rew B _ _ _ _ ihAf).
+        refine (PSh_rew B _ _ _ _ ihAf).
         bsimpl. reflexivity.
 Qed.
 
 
-
-Lemma Split_bind : forall Γ (A B : psh Γ),
+Lemma Split_bind : forall Γ (A B : PSh Γ),
   Split A ->
-  (forall Δ (ρ : Δ ≤ Γ), A Δ ρ -> Split_psh B Δ ρ) ->
+  (forall Δ (ρ : Δ ≤ Γ), A Δ ρ -> Split_PSh B Δ ρ) ->
   Split B.
 Proof.
   intros Γ A B hA f.
@@ -216,3 +219,14 @@ Proof.
   - exact f.
   - apply hA.
 Qed.
+
+
+Definition dover {Γ} {A : PSh Γ} (P : forall Δ ρ, A Δ ρ -> Type)
+  (hA : Split A) := forall L (hover : overtree hA.(dtree) L),
+  P (Build_context Γ L) (wk_Fwk (overtree_Fwk hover)) (hA.(cover) (wk_Fwk (overtree_Fwk hover)) hover).
+
+
+
+
+
+

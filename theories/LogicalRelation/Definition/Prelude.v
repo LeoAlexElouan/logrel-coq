@@ -1,6 +1,6 @@
 (** * LogRel.LogicalRelation.Definition.Prelude: Structures employed to define the logical relation *)
 From Stdlib Require Import CRelationClasses.
-From LogRel Require Import Utils Syntax.All GenericTyping.
+From LogRel Require Import Utils Syntax.All GenericTyping Monad.
 
 Set Primitive Projections.
 Set Universe Polymorphism.
@@ -95,3 +95,16 @@ Class WhRedTmRel `{ta : tag} `{Typing ta} `{RedTerm ta} `{ConvTerm ta} Γ A (P :
   whredtmR : forall {t u}, P t u -> [Γ |- u ↘ A ] ;
   whredtm_conv : forall {t u} (h : P t u), [Γ |- (whredtmL h).(tmred_whnf) ≅ (whredtmR h).(tmred_whnf) : A] ;
 }.
+
+(** Monad **)
+
+
+Definition Rel_PSh (R : forall Γ A B, Type) Γ A B : PSh Γ :=
+  fun Δ (ρ : Δ ≤ Γ) => R Δ A⟨ρ⟩ B⟨ρ⟩.
+
+Definition Split_Rel@{i} : (forall Γ A B, Type@{i}) -> (forall Γ A B, Type@{i}) :=
+  fun R Γ A B => Split@{i} (Rel_PSh R Γ A B).
+
+
+Definition Split_LRPack {Γ A B} (hSplit : Split_Rel LRPack Γ A B) : LRPack Γ A B :=
+  Build_LRPack Γ A B (fun a b => dover (fun Δ ρ R =>[R | Δ ||- a⟨ρ⟩ ≅ b⟨ρ⟩ : A⟨ρ⟩ ≅ B⟨ρ⟩]) hSplit).

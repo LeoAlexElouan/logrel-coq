@@ -14,7 +14,7 @@ Definition SigRedTyPack `{ta : tag} `{WfContext ta} `{WfType ta} `{ConvType ta} 
   ParamRedTyPack (T:=tSig).
 
 Definition SigRedTyAdequate@{i j} `{ta : tag} `{WfContext ta} `{WfType ta} `{ConvType ta} `{RedType ta}
-    {Γ : context} {A B : term} (R : RedRel@{i j}) (ΣA : SigRedTyPack@{i} Γ A B)
+    {Γ : context} {A B : term} (R : RedRel@{i j}) (ΣA : SigRedTyPack@{i j} Γ A B)
   : Type@{j} := PolyRedPackAdequate R ΣA.
 
 Module SigRedTyPack := ParamRedTyPack.
@@ -30,7 +30,7 @@ Inductive isLRPair `{ta : tag} `{WfContext ta}
   (rfst : forall {Δ} (ρ : Δ ≤ Γ) (h : [ |- Δ ]),
       [ΣA.(PolyRedPack.shpRed) ρ h | Δ ||- a⟨ρ⟩ ≅ a⟨ρ⟩ : (SigRedTyPack.domL ΣA)⟨ρ⟩])
   (rsnd : forall {Δ} (ρ : Δ ≤ Γ) (h : [ |- Δ ]),
-      [ΣA.(PolyRedPack.posRed) ρ h (rfst ρ h) | Δ ||- b⟨ρ⟩ ≅ b⟨ρ⟩ : (SigRedTyPack.codL ΣA)[a⟨ρ⟩ .: (ρ >> tRel)] ]),
+      [Split_LRPack (ΣA.(PolyRedPack.posRed) ρ h (rfst ρ h))| Δ ||- b⟨ρ⟩ ≅ b⟨ρ⟩ : (SigRedTyPack.codL ΣA)[a⟨ρ⟩ .: (ρ >> tRel)] ]),
 
   isLRPair ΣA (tPair A' B' a b)
 
@@ -75,7 +75,7 @@ Module SigRedTmEq.
     eqFst [Δ] (ρ : Δ ≤ Γ) (h : [ |- Δ ]) :
       [ΣA.(PolyRedPack.shpRed) ρ h | Δ ||- tFst redL.(nf)⟨ρ⟩ ≅ tFst redR.(nf)⟨ρ⟩ : ΣA.(ParamRedTyPack.domL)⟨ρ⟩] ;
     eqSnd [Δ] (ρ : Δ ≤ Γ) (h : [ |- Δ ]) :
-      [ΣA.(PolyRedPack.posRed) ρ h (eqFst ρ h) | Δ ||- tSnd redL.(nf)⟨ρ⟩ ≅ tSnd redR.(nf)⟨ρ⟩ : _] ;
+      [Split_LRPack (ΣA.(PolyRedPack.posRed) ρ h (eqFst ρ h))| Δ ||- tSnd redL.(nf)⟨ρ⟩ ≅ tSnd redR.(nf)⟨ρ⟩ : _] ;
   }.
 
   Arguments SigRedTmEq {_ _ _ _ _ _ _ _ _ _ _ _}.

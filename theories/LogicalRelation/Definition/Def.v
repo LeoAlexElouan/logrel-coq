@@ -1,6 +1,6 @@
 (** * LogRel.LogicalRelation.Definition.Def : Definition of the logical relation *)
 From Stdlib Require Import CRelationClasses.
-From LogRel Require Import Utils Syntax.All GenericTyping.
+From LogRel Require Import Utils Syntax.All GenericTyping Monad.
 From LogRel.LogicalRelation.Definition Require Import Prelude Ne Universe Poly Pi Sig Nat Bool Empty Id.
 
 
@@ -21,11 +21,11 @@ Inductive LR@{i j k} `{ta : tag}
   `{RedType ta} `{RedTerm ta}
   {l : TypeLevel} (rec : forall l', l' << l -> RedRel@{i j})
 : RedRel@{j k} :=
-  | LRU {Γ A B} (H : [Γ ||-U<l> A ≅ B]) :
+  | LRU {Γ A B} (H :forall Δ (ρ : Δ ≤ Γ), [Δ ||-SU<l> A⟨ρ⟩ ≅ B⟨ρ⟩]) :
       LR rec Γ A B (fun t u => [ rec | Γ ||-U t ≅ u : A | H ])
-  | LRne {Γ A B} (neA : [ Γ ||-ne A ≅ B]) :
+  | LRne {Γ A B} (neA : forall Δ (ρ : Δ ≤ Γ), [ Δ ||-Sne A⟨ρ⟩ ≅ B⟨ρ⟩]) :
       LR rec Γ A B (fun t u =>  [ Γ ||-ne t ≅ u : A | neA])
-  | LRPi {Γ : context} {A B : term} (ΠA : PiRedTyPack@{j} Γ A B) (ΠAad : PiRedTyAdequate@{j k} (LR rec) ΠA) :
+  | LRPi {Γ : context} {A B : term} (ΠA : PiRedTyPack@{j k} Γ A B) (ΠAad : PiRedTyAdequate@{j k} (LR rec) ΠA) :
     LR rec Γ A B (PiRedTmEq ΠA)
   | LRNat {Γ A B} (NA : [Γ ||-SNat A ≅ B]) :
     LR rec Γ A B (NatRedTmEq Γ)
@@ -33,10 +33,11 @@ Inductive LR@{i j k} `{ta : tag}
     LR rec Γ A B (BoolRedTmEq Γ)
   | LREmpty {Γ A B} (NA : [Γ ||-SEmpty A ≅ B]) :
     LR rec Γ A B (EmptyRedTmEq Γ)
-  | LRSig {Γ : context} {A B : term} (ΣA : SigRedTyPack@{j} Γ A B) (ΣAad : SigRedTyAdequate@{j k} (LR rec) ΣA) :
+  | LRSig {Γ : context} {A B : term} (ΣA : SigRedTyPack@{j k} Γ A B) (ΣAad : SigRedTyAdequate@{j k} (LR rec) ΣA) :
     LR rec Γ A B (SigRedTmEq ΣA)
-  | LRId {Γ A B} (IA : IdRedTyPack@{j} Γ A B) (IAad : IdRedTyAdequate@{j k} (LR rec) IA) :
-    LR rec Γ A B (IdRedTmEq IA)
+  | LRId {Γ A B} (IA : forall Δ (ρ : Δ ≤ Γ), IdRedTyPack@{j} Δ A⟨ρ⟩ B⟨ρ⟩)
+      (IAad : forall Δ (ρ : Δ ≤ Γ), IdRedTyAdequate@{j k} (LR rec) (IA Δ ρ)) :
+    LR rec Γ A B (IdRedTmEq@{j} IA)
   .
 
 Set Elimination Schemes.
@@ -87,15 +88,15 @@ Section MoreDefs.
       LRAd.pack := {| LRPack.eqTm := tmeq |} ;
       LRAd.adequate := H |}.
 
-  Definition LRU_@{i j k l} {l Γ A B} (H : [Γ ||-U<l> A ≅ B])
+  Definition LRU_@{i j k l} {l Γ A B} (H : forall Δ (ρ : Δ ≤ Γ), [Δ ||-SU<l> A⟨ρ⟩ ≅ B⟨ρ⟩])
     : [ LogRel@{i j k l} l | Γ ||- A ≅ B ] :=
     LRbuild (LRU (LogRelRec l) H).
 
-  Definition LRne_@{i j k l} l {Γ A B} (neA : [Γ ||-ne A ≅ B])
+  Definition LRne_@{i j k l} l {Γ A B} (neA : forall Δ (ρ : Δ ≤ Γ), [Δ ||-Sne A⟨ρ⟩ ≅ B⟨ρ⟩])
     : [ LogRel@{i j k l} l | Γ ||- A ≅ B ] :=
     LRbuild (LRne (LogRelRec l) neA).
 
-  Definition LRPi_@{i j k l} l {Γ A B} (ΠA : PiRedTyPack@{k} Γ A B)
+  Definition LRPi_@{i j k l} l {Γ A B} (ΠA : PiRedTyPack@{k l} Γ A B)
     (ΠAad : PiRedTyAdequate (LR (LogRelRec@{i j k} l)) ΠA)
     : [ LogRel@{i j k l} l | Γ ||- A  ≅ B] :=
     LRbuild (LRPi (LogRelRec l) ΠA ΠAad).
@@ -104,16 +105,16 @@ Section MoreDefs.
     : [LogRel@{i j k l} l | Γ ||- A ≅ B] :=
     LRbuild (LRNat (LogRelRec l) NA).
 
-  Definition LRBool_@{i j k l} l {Γ A B} (NA : [Γ ||-Bool A ≅ B])
+  Definition LRBool_@{i j k l} l {Γ A B} (NA : [Γ ||-SBool A ≅ B])
     : [LogRel@{i j k l} l | Γ ||- A ≅ B] :=
     LRbuild (LRBool (LogRelRec l) NA).
 
-  Definition LREmpty_@{i j k l} l {Γ A B} (NA : [Γ ||-Empty A ≅ B])
+  Definition LREmpty_@{i j k l} l {Γ A B} (NA : [Γ ||-SEmpty A ≅ B])
     : [LogRel@{i j k l} l | Γ ||- A ≅ B] :=
     LRbuild (LREmpty (LogRelRec l) NA).
 
-  Definition LRId_@{i j k l} l {Γ A B} (IA : IdRedTyPack@{k} Γ A B)
-    (IAad : IdRedTyAdequate (LR (LogRelRec@{i j k} l)) IA)
+  Definition LRId_@{i j k l} l {Γ A B} (IA : forall Δ (ρ : Δ ≤ Γ), IdRedTyPack@{k} Δ A⟨ρ⟩ B⟨ρ⟩)
+      (IAad : forall Δ (ρ : Δ ≤ Γ), IdRedTyAdequate@{k l} (LR (LogRelRec@{i j k} l)) (IA Δ ρ))
     : [LogRel@{i j k l} l | Γ ||- A ≅ B] :=
     LRbuild (LRId (LogRelRec l) IA IAad).
 
@@ -135,7 +136,7 @@ Section LogRelRecFoldLemmas.
     `{!ConvType ta} `{!ConvTerm ta} `{!ConvNeuConv ta}
     `{!RedType ta} `{!RedTerm ta}.
 
-  Lemma redTyRecFwd@{i j k l} {l Γ U0 U1 A B} (h : [Γ ||-U<l> U0 ≅ U1]) :
+  Lemma redTyRecFwd@{i j k l} {l Γ U0 U1 A B} (h : [Γ ||-SU<l> U0 ≅ U1]) :
     [LogRelRec@{j k l} l (URedTy.level h) (URedTy.lt h) | Γ ||- A ≅ B] ->
     [LogRel@{i j k l} (URedTy.level h) | Γ ||- A ≅ B].
   Proof.
@@ -146,7 +147,7 @@ Section LogRelRecFoldLemmas.
     cbn. easy.
   Defined.
 
-  Lemma redTyRecBwd@{i j k l} {l Γ U0 U1 A B} (h : [Γ ||-U<l> U0 ≅ U1]) :
+  Lemma redTyRecBwd@{i j k l} {l Γ U0 U1 A B} (h : [Γ ||-SU<l> U0 ≅ U1]) :
     [LogRel@{i j k l} (URedTy.level h) | Γ ||- A ≅ B] ->
     [LogRelRec@{j k l} l (URedTy.level h) (URedTy.lt h) | Γ ||- A ≅ B].
   Proof.
@@ -156,14 +157,14 @@ Section LogRelRecFoldLemmas.
     cbn. easy.
   Defined.
 
-  Lemma redTmRecFwd@{i j k l} {l Γ U0 U1 A B t u} (h : [Γ ||-U<l> U0 ≅ U1])
+  Lemma redTmRecFwd@{i j k l} {l Γ U0 U1 A B t u} (h : [Γ ||-SU<l> U0 ≅ U1])
     (RAB : [LogRelRec@{j k l} l (URedTy.level h) (URedTy.lt h) | Γ ||- A ≅ B]) :
     [RAB | _ ||- t ≅ u : _] -> [redTyRecFwd@{i j k l} h RAB | _ ||- t ≅ u : _].
   Proof.
     destruct h as [? []]; now cbn.
   Defined.
 
-  Lemma redTmRecBwd@{i j k l} {l Γ U0 U1 A B t u} (h : [Γ ||-U<l> U0 ≅ U1])
+  Lemma redTmRecBwd@{i j k l} {l Γ U0 U1 A B t u} (h : [Γ ||-SU<l> U0 ≅ U1])
     (RAB : [LogRel@{i j k l} (URedTy.level h) | Γ ||- A ≅ B]) :
     [RAB | _ ||- t ≅ u : _] -> [redTyRecBwd h RAB | _ ||- t ≅ u : _].
   Proof.
@@ -171,3 +172,5 @@ Section LogRelRecFoldLemmas.
   Qed.
 
 End LogRelRecFoldLemmas.
+
+

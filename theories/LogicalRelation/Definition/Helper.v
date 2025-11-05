@@ -36,7 +36,7 @@ Section PolyRed.
           [ LogRel@{i j k l} l | Δ ||- pos[a .: (ρ >> tRel)] ≅ pos'[b .: (ρ >> tRel)]] ;
     }.
 
-  Definition from@{i j k l} {PA : PolyRedPack@{k} Γ shp shp' pos pos'}
+  Definition from@{i j k l} {PA : PolyRedPack@{k l} Γ shp shp' pos pos'}
     (PAad : PolyRedPackAdequate@{k l} (LogRel@{i j k l} l) PA)
     : PolyRed@{i j k l}.
   Proof.
