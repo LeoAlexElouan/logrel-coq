@@ -26,11 +26,11 @@ Inductive isLRFun `{ta : tag} `{WfContext ta}
     [Γ |- A'] ->
     [Γ |-  ΠA.(PiRedTyPack.domL) ≅ A'] ->
     (forall {Δ a b} (ρ : Δ ≤ Γ) (h : [ |- Δ ])
-      (ha : [ ΠA.(PolyRedPack.shpRed) ρ h | Δ ||- a ≅ b : ΠA.(PiRedTyPack.domL)⟨ρ⟩ ]),
+      (ha : forall Ξ (ρ' : Ξ ≤ Δ) (h' : [|- Ξ]),
+        [ ΠA.(PolyRedPack.shpRed) (ρ' ∘w ρ) h' | Ξ ||- a⟨ρ'⟩ ≅ b⟨ρ'⟩ : ΠA.(PiRedTyPack.domL)⟨ρ'∘w ρ⟩ ]),
       [Split_LRPack (ΠA.(PolyRedPack.posRed) ρ h ha) | Δ ||- t[a .: (ρ >> tRel)] ≅ t[b .: (ρ >> tRel)] : ΠA.(PiRedTyPack.codL)[a .: (ρ >> tRel)]]) ->
   isLRFun ΠA (tLambda A' t)
 | NeLRFun : forall f : term, [Γ |- f ~ f : PiRedTyPack.outTy ΠA] -> isLRFun ΠA f.
-
 Module PiRedTmEq.
 
   Import PiRedTyPack.
@@ -38,7 +38,7 @@ Module PiRedTmEq.
   Definition appRed `{ta : tag} `{WfContext ta} `{WfType ta} `{ConvType ta} `{RedType ta}
     {Γ A B} (ΠA : PiRedTyPack Γ A B) (nfL nfR : term) Δ a b :=
     forall (ρ : Δ ≤ Γ) (h : [ |- Δ ])
-      (hab : [ΠA.(PolyRedPack.shpRed) ρ h | Δ ||- a ≅ b : ΠA.(domL)⟨ρ⟩ ] ),
+      (hab : forall Ξ (ρ' : Ξ ≤ Δ) (h' : [|- Ξ]), [ΠA.(PolyRedPack.shpRed) (ρ' ∘w ρ) h' | Ξ ||- a⟨ρ'⟩ ≅ b⟨ρ'⟩ : ΠA.(domL)⟨ρ'∘w ρ⟩ ] ),
       [ Split_LRPack (ΠA.(PolyRedPack.posRed) ρ h hab) | Δ ||- tApp nfL⟨ρ⟩ a ≅ tApp nfR⟨ρ⟩ b : _ ].
 
   Arguments appRed /.

@@ -10,6 +10,12 @@ Set Polymorphic Inductive Cumulativity.
 
 (** ** Reducibility of a polynomial A,, B  *)
 
+Definition Split_LRPack `{ta : tag}
+    `{WfContext ta} `{WfType ta} `{ConvType ta} {Γ Δ} {ρ : Δ ≤ Γ} {A B} {a b}
+  (hSplit : Split (fun Ξ (ρ' : Ξ ≤ Δ) => [|-Ξ] -> LRPack Ξ (A[a .: (ρ'∘w ρ >> tRel)]) (B[b .: (ρ' ∘w ρ >> tRel)]))) :
+  LRPack Δ A[a .: (ρ >> tRel)] B[b .: (ρ >> tRel)] :=
+  Build_LRPack Δ A[a .: (ρ >> tRel)] B[b .: (ρ >> tRel)]
+    (fun t u => dover (fun Ξ ρ' R =>forall (h : [|-Ξ]), [(R h) | Ξ ||- t⟨ρ'⟩ ≅ u⟨ρ'⟩ : A[a .: (ρ'∘w ρ >> tRel)] ≅ B[b .: (ρ'∘w ρ >> tRel)]]) hSplit).
 
 Module PolyRedPack.
 
@@ -23,11 +29,17 @@ Module PolyRedPack.
   : Type@{j} (* @ max(Set, i+1) *) := {
     shpRed {Δ} (ρ : Δ ≤ Γ) : [ |- Δ ] -> LRPack@{i} Δ shp⟨ρ⟩ shp'⟨ρ⟩ ;
     posRed {Δ} (ρ : Δ ≤ Γ) {a b} (h : [ |- Δ ]) :
-        [ (shpRed ρ h) |  Δ ||- a ≅ b : shp⟨ρ⟩ ≅ shp'⟨ρ⟩] ->
-        Split_Rel@{j} LRPack@{i} Δ (pos[a .: (ρ >> tRel)]) (pos'[b .: (ρ >> tRel)]);
+        (forall Ξ (ρ' : Ξ ≤ Δ) (h' : [|- Ξ]), [ (shpRed (ρ' ∘w ρ) h') |  Ξ ||- a⟨ρ'⟩ ≅ b⟨ρ'⟩ : shp⟨ρ'∘w ρ⟩ ≅ shp'⟨ρ'∘w ρ⟩]) ->
+        Split@{j} (fun Ξ (ρ' : Ξ ≤ Δ) => [|-Ξ] ->LRPack@{i} Ξ (pos[a .: (ρ'∘w ρ >> tRel)]) (pos'[b .: (ρ' ∘w ρ >> tRel)]));
   }.
 
   Arguments PolyRedPack {_ _ _ _}.
+
+(*   Lemma posRed_LRPack `{ta : tag}
+    `{WfContext ta} `{WfType ta} `{ConvType ta}: forall Γ shp shp' pos pos' (PA : PolyRedPack Γ shp shp' pos pos') Δ (ρ : Δ ≤ Γ) a b
+    (h : [ |- Δ ]) (ha : [ PA.(shpRed) ρ h | Δ ||- a ≅ b : shp⟨ρ⟩ ]),
+      LRPack Δ pos[a .: (ρ >> tRel)] pos'[b .: (ρ >> tRel)].
+  Proof. intros.  *)
 
   (** We separate the recursive "data", ie the fact that we have reducibility data (an LRPack)
   for the domain and codomain, and the fact that these are in the graph of the logical relation.
@@ -39,8 +51,9 @@ Module PolyRedPack.
     {Γ : context} {R : RedRel@{i j}}  {PA : PolyRedPack@{i j} Γ shp shp' pos pos'} : Type@{j}
       := {
     shpAd {Δ} (ρ : Δ ≤ Γ) (h : [ |- Δ ]) : LRPackAdequate@{i j} R (PA.(shpRed) ρ h);
-    posAd {Δ a b} (ρ : Δ ≤ Γ) (h : [ |- Δ ]) (ha : [ PA.(shpRed) ρ h | Δ ||- a ≅ b : shp⟨ρ⟩ ]) :
-      dover (fun Ξ ρ' => LRPackAdequate@{i j} R) (PA.(posRed) ρ h ha);
+    posAd {Δ a b} (ρ : Δ ≤ Γ) (h : [ |- Δ ])
+      (ha : forall Ξ (ρ' : Ξ ≤ Δ) (h' : [|- Ξ]), [ (PA.(shpRed) (ρ' ∘w ρ) h') |  Ξ ||- a⟨ρ'⟩ ≅ b⟨ρ'⟩ : shp⟨ρ'∘w ρ⟩ ≅ shp'⟨ρ'∘w ρ⟩]) :
+      LRPackAdequate@{i j} R (Split_LRPack (PA.(posRed) ρ h ha));
   }.
 
   Arguments PolyRedPackAdequate {_ _ _ _ _ _ _ _ _}.

@@ -106,5 +106,3 @@ Definition Split_Rel@{i} : (forall Γ A B, Type@{i}) -> (forall Γ A B, Type@{i}
   fun R Γ A B => Split@{i} (Rel_PSh R Γ A B).
 
 
-Definition Split_LRPack {Γ A B} (hSplit : Split_Rel LRPack Γ A B) : LRPack Γ A B :=
-  Build_LRPack Γ A B (fun a b => dover (fun Δ ρ R =>[R | Δ ||- a⟨ρ⟩ ≅ b⟨ρ⟩ : A⟨ρ⟩ ≅ B⟨ρ⟩]) hSplit).

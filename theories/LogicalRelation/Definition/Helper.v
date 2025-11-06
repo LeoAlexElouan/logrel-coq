@@ -32,7 +32,7 @@ Section PolyRed.
     {
       shpRed [Δ] (ρ : Δ ≤ Γ) : [ |- Δ ] -> [ LogRel@{i j k l} l | Δ ||- shp⟨ρ⟩ ≅ shp'⟨ρ⟩ ] ;
       posRed [Δ a b] (ρ : Δ ≤ Γ) (h : [ |- Δ ]) :
-          [ (shpRed ρ h) |  Δ ||- a ≅ b : shp⟨ρ⟩] ->
+          (forall Ξ ρ' (h': [|-Ξ]), [ (shpRed (ρ'∘w ρ) h') |  Ξ ||- a⟨ρ'⟩ ≅ b⟨ρ'⟩ : shp⟨ρ'∘w ρ⟩]) ->
           [ LogRel@{i j k l} l | Δ ||- pos[a .: (ρ >> tRel)] ≅ pos'[b .: (ρ >> tRel)]] ;
     }.
 
@@ -42,14 +42,24 @@ Section PolyRed.
   Proof.
     unshelve econstructor; intros.
     - econstructor; unshelve eapply PolyRedPack.shpAd; cycle 2; tea.
-    - econstructor; unshelve eapply PolyRedPack.posAd; cycle 2; tea.
+    - unshelve econstructor.
+      + apply Split_LRPack.
+        now eapply PolyRedPack.posRed.
+      + now eapply PolyRedPack.posAd.
   Defined.
 
-  Definition toPack@{i j k l} (PA : PolyRed@{i j k l}) : PolyRedPack@{k} Γ shp shp' pos pos'.
+  Definition toPack@{i j k l} (PA : PolyRed@{i j k l}) : PolyRedPack@{k l} Γ shp shp' pos pos'.
   Proof.
     unshelve econstructor.
     - now eapply shpRed.
-    - intros; now eapply posRed.
+    - intros * h hshp; cbn in hshp. exists (Monad.leaf Δ).
+      intros Ξ ρ' _ h'.
+      unshelve eapply posRed.
+      apply PA.
+      apply h'.
+      intros Z ρ'' h''.
+      specialize (hshp Z (ρ''∘w ρ') h'').
+      apply X.
   Defined.
 
   Definition toAd@{i j k l} (PA : PolyRed@{i j k l}) : PolyRedPackAdequate@{k l} (LogRel@{i j k l} l) (toPack PA).
