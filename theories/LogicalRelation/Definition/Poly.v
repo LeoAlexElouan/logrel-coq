@@ -11,11 +11,9 @@ Set Polymorphic Inductive Cumulativity.
 (** ** Reducibility of a polynomial A,, B  *)
 
 Definition Split_LRPack `{ta : tag}
-    `{WfContext ta} `{WfType ta} `{ConvType ta} {Γ Δ} {ρ : Δ ≤ Γ} {A B} {a b}
-  (hSplit : Split (fun Ξ (ρ' : Ξ ≤ Δ) => [|-Ξ] -> LRPack Ξ (A[a .: (ρ'∘w ρ >> tRel)]) (B[b .: (ρ' ∘w ρ >> tRel)]))) :
-  LRPack Δ A[a .: (ρ >> tRel)] B[b .: (ρ >> tRel)] :=
-  Build_LRPack Δ A[a .: (ρ >> tRel)] B[b .: (ρ >> tRel)]
-    (fun t u => dover (fun Ξ ρ' R =>forall (h : [|-Ξ]), [(R h) | Ξ ||- t⟨ρ'⟩ ≅ u⟨ρ'⟩ : A[a .: (ρ'∘w ρ >> tRel)] ≅ B[b .: (ρ'∘w ρ >> tRel)]]) hSplit).
+    `{WfContext ta} `{WfType ta} `{ConvType ta} {Γ A B} (hSplit : Split_Rel (fun Ξ A' B' => [|-Ξ] -> LRPack Ξ A' B') Γ A B) : LRPack Γ A B :=
+  Build_LRPack Γ A B (fun a b => dover (fun Δ ρ R => forall (h : [|-Δ]), [R h| Δ ||- a⟨ρ⟩ ≅ b⟨ρ⟩ : A⟨ρ⟩ ≅ B⟨ρ⟩]) hSplit).
+
 
 Module PolyRedPack.
 
@@ -30,7 +28,7 @@ Module PolyRedPack.
     shpRed {Δ} (ρ : Δ ≤ Γ) : [ |- Δ ] -> LRPack@{i} Δ shp⟨ρ⟩ shp'⟨ρ⟩ ;
     posRed {Δ} (ρ : Δ ≤ Γ) {a b} (h : [ |- Δ ]) :
         (forall Ξ (ρ' : Ξ ≤ Δ) (h' : [|- Ξ]), [ (shpRed (ρ' ∘w ρ) h') |  Ξ ||- a⟨ρ'⟩ ≅ b⟨ρ'⟩ : shp⟨ρ'∘w ρ⟩ ≅ shp'⟨ρ'∘w ρ⟩]) ->
-        Split@{j} (fun Ξ (ρ' : Ξ ≤ Δ) => [|-Ξ] ->LRPack@{i} Ξ (pos[a .: (ρ'∘w ρ >> tRel)]) (pos'[b .: (ρ' ∘w ρ >> tRel)]));
+        Split_Rel@{j} (fun Ξ A B => [|-Ξ] -> LRPack@{i} Ξ A B) Δ pos[a .: (ρ >> tRel)] pos'[b .: (ρ >> tRel)];
   }.
 
   Arguments PolyRedPack {_ _ _ _}.

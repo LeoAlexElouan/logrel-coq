@@ -1,6 +1,6 @@
 (** * LogRel.LogicalRelation.Definition.Helper: Auxilliary definitions and rebundling of structures from the logical relation *)
 From Stdlib Require Import CRelationClasses.
-From LogRel Require Import Utils Syntax.All GenericTyping.
+From LogRel Require Import Utils Syntax.All GenericTyping Monad.
 From LogRel.LogicalRelation.Definition Require Import Prelude Ne Universe Poly Pi Sig Nat Empty Id Def.
 
 Set Primitive Projections.
@@ -32,8 +32,8 @@ Section PolyRed.
     {
       shpRed [Δ] (ρ : Δ ≤ Γ) : [ |- Δ ] -> [ LogRel@{i j k l} l | Δ ||- shp⟨ρ⟩ ≅ shp'⟨ρ⟩ ] ;
       posRed [Δ a b] (ρ : Δ ≤ Γ) (h : [ |- Δ ]) :
-          (forall Ξ ρ' (h': [|-Ξ]), [ (shpRed (ρ'∘w ρ) h') |  Ξ ||- a⟨ρ'⟩ ≅ b⟨ρ'⟩ : shp⟨ρ'∘w ρ⟩]) ->
-          [ LogRel@{i j k l} l | Δ ||- pos[a .: (ρ >> tRel)] ≅ pos'[b .: (ρ >> tRel)]] ;
+          (forall Ξ (ρ' : Ξ ≤ Δ) (h': [|-Ξ]), [ (shpRed (ρ'∘w ρ) h') |  Ξ ||- a⟨ρ'⟩ ≅ b⟨ρ'⟩ : shp⟨ρ'∘w ρ⟩]) ->
+          Split (fun Ξ (ρ' : Ξ ≤ Δ) => [ LogRel@{i j k l} l | Ξ ||- pos[a .: (ρ >> tRel)]⟨ρ'⟩ ≅ pos'[b .: (ρ >> tRel)]⟨ρ'⟩]);
     }.
 
   Definition from@{i j k l} {PA : PolyRedPack@{k l} Γ shp shp' pos pos'}
@@ -52,21 +52,23 @@ Section PolyRed.
   Proof.
     unshelve econstructor.
     - now eapply shpRed.
-    - intros * h hshp; cbn in hshp. exists (Monad.leaf Δ).
+    - intros * h hshp; cbn in hshp.
+      exists (Monad.leaf Δ); unfold Rel_PSh.
       intros Ξ ρ' _ h'.
-      unshelve eapply posRed.
-      apply PA.
-      apply h'.
-      intros Z ρ'' h''.
-      specialize (hshp Z (ρ''∘w ρ') h'').
-      apply X.
+      do 2 rewrite <- subst_ren_subst_mixed3.
+      unshelve eapply posRed; tea.
+      intros Z ρ'' h''. rewrite <- wk_comp_assoc, 2 wk_comp_ren_on.
+      apply hshp.
   Defined.
 
   Definition toAd@{i j k l} (PA : PolyRed@{i j k l}) : PolyRedPackAdequate@{k l} (LogRel@{i j k l} l) (toPack PA).
   Proof.
     unshelve econstructor; intros.
-    - eapply LRAd.adequate; eapply posRed.
-    - eapply LRAd.adequate; eapply shpRed.
+    - eapply LRAd.adequate.
+    - unfold LRPackAdequate.
+      unfold Split_LRPack.
+      
+     eapply (LRAd.adequate@{k l} (R:= LogRel@{i j k l} l)). eapply shpRed.
   Defined.
 
   Lemma eta@{i j k l} (PA : PolyRed@{i j k l}) : from (toAd PA) = PA.
