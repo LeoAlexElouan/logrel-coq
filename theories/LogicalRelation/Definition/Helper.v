@@ -32,8 +32,8 @@ Section PolyRed.
     {
       shpRed [Δ] (ρ : Δ ≤ Γ) : [ |- Δ ] -> [ LogRel@{i j k l} l | Δ ||- shp⟨ρ⟩ ≅ shp'⟨ρ⟩ ] ;
       posRed [Δ a b] (ρ : Δ ≤ Γ) (h : [ |- Δ ]) :
-          (forall Ξ (ρ' : Ξ ≤ Δ) (h': [|-Ξ]), [ (shpRed (ρ'∘w ρ) h') |  Ξ ||- a⟨ρ'⟩ ≅ b⟨ρ'⟩ : shp⟨ρ'∘w ρ⟩]) ->
-          Split (fun Ξ (ρ' : Ξ ≤ Δ) => [ LogRel@{i j k l} l | Ξ ||- pos[a .: (ρ >> tRel)]⟨ρ'⟩ ≅ pos'[b .: (ρ >> tRel)]⟨ρ'⟩]);
+          [ shpRed ρ h | Δ ||- a ≅ b : shp⟨ρ⟩] ->
+          Split_Rel (fun Ξ A B => [ LogRel@{i j k l} l | Ξ ||- A ≅ B]) Δ pos[a .: (ρ >> tRel)] pos'[b .: (ρ >> tRel)];
     }.
 
   Definition from@{i j k l} {PA : PolyRedPack@{k l} Γ shp shp' pos pos'}
@@ -42,47 +42,42 @@ Section PolyRed.
   Proof.
     unshelve econstructor; intros.
     - econstructor; unshelve eapply PolyRedPack.shpAd; cycle 2; tea.
-    - unshelve econstructor.
-      + apply Split_LRPack.
-        now eapply PolyRedPack.posRed.
-      + now eapply PolyRedPack.posAd.
+    - exists (PA.(PolyRedPack.posRed) ρ h X).(dtree); intros.
+      unshelve econstructor.
+      + now eapply (PA.(PolyRedPack.posRed) ρ h X).(cover).
+      + now eapply PAad.
   Defined.
 
   Definition toPack@{i j k l} (PA : PolyRed@{i j k l}) : PolyRedPack@{k l} Γ shp shp' pos pos'.
   Proof.
     unshelve econstructor.
     - now eapply shpRed.
-    - intros * h hshp; cbn in hshp.
-      exists (Monad.leaf Δ); unfold Rel_PSh.
-      intros Ξ ρ' _ h'.
-      do 2 rewrite <- subst_ren_subst_mixed3.
-      unshelve eapply posRed; tea.
-      intros Z ρ'' h''. rewrite <- wk_comp_assoc, 2 wk_comp_ren_on.
-      apply hshp.
+    - intros * hshp; cbn in hshp.
+      exists (PA.(posRed) ρ h hshp).(dtree). intros Ξ ρ' hover.
+      now eapply posRed.
   Defined.
 
   Definition toAd@{i j k l} (PA : PolyRed@{i j k l}) : PolyRedPackAdequate@{k l} (LogRel@{i j k l} l) (toPack PA).
   Proof.
     unshelve econstructor; intros.
     - eapply LRAd.adequate.
-    - unfold LRPackAdequate.
-      unfold Split_LRPack.
-      
-     eapply (LRAd.adequate@{k l} (R:= LogRel@{i j k l} l)). eapply shpRed.
+    - intros Ξ ρ' hover.
+      eapply LRAd.adequate.
   Defined.
 
-  Lemma eta@{i j k l} (PA : PolyRed@{i j k l}) : from (toAd PA) = PA.
-  Proof. destruct PA; reflexivity. Qed.
 
-  Lemma beta_pack@{i j k l} {PA : PolyRedPack@{k} Γ shp shp' pos pos'}
+  Lemma eta@{i j k l} (PA : PolyRed@{i j k l}) : from (toAd PA) = PA.
+  Proof. reflexivity. Qed.
+
+  Lemma beta_pack@{i j k l} {PA : PolyRedPack@{k l} Γ shp shp' pos pos'}
     (PAad : PolyRedPackAdequate@{k l} (LogRel@{i j k l} l) PA)
     : toPack (from PAad) = PA.
-  Proof. destruct PA, PAad; reflexivity. Qed.
+  Proof. reflexivity. Qed.
 
-  Lemma beta_ad@{i j k l} {PA : PolyRedPack@{k} Γ shp shp' pos pos'}
+  Lemma beta_ad@{i j k l} {PA : PolyRedPack@{k l} Γ shp shp' pos pos'}
     (PAad : PolyRedPackAdequate@{k l} (LogRel@{i j k l} l) PA)
     : toAd (from PAad) = PAad.
-  Proof. destruct PA, PAad; reflexivity. Qed.
+  Proof. reflexivity. Qed.
 
 End PolyRed.
 
@@ -115,7 +110,7 @@ Section ParamRedTy.
       polyRed :> PolyRed@{i j k l} Γ l domL domR codL codR
     }.
 
-  Definition from@{i j k l} {PA : ParamRedTyPack@{k} (T:=T) Γ A B}
+  Definition from@{i j k l} {PA : ParamRedTyPack@{k l} (T:=T) Γ A B}
     (PAad : PolyRedPackAdequate@{k l} (LogRel@{i j k l} l) PA) :
     ParamRedTy@{i j k l}.
   Proof.
@@ -129,7 +124,7 @@ Section ParamRedTy.
   Defined.
 
   Definition toPack@{i j k l} (PA : ParamRedTy@{i j k l}) :
-    ParamRedTyPack@{k} (T:=T) Γ A B.
+    ParamRedTyPack@{k l} (T:=T) Γ A B.
   Proof.
     exists (domL PA) (domR PA) (codL PA) (codR PA).
     - now eapply redL.
@@ -146,12 +141,12 @@ Section ParamRedTy.
   Lemma eta@{i j k l} (PA : ParamRedTy@{i j k l}) : from (toAd PA) = PA.
   Proof. destruct PA; reflexivity. Qed.
 
-  Lemma beta_pack@{i j k l} {PA : ParamRedTyPack@{k} (T:=T) Γ A B}
+  Lemma beta_pack@{i j k l} {PA : ParamRedTyPack@{k l} (T:=T) Γ A B}
     (PAad : PolyRedPackAdequate@{k l} (LogRel@{i j k l} l) PA)
     : toPack (from PAad) = PA.
   Proof. destruct PA, PAad; reflexivity. Qed.
 
-  Lemma beta_ad@{i j k l} {PA : ParamRedTyPack@{k} (T:=T) Γ A B}
+  Lemma beta_ad@{i j k l} {PA : ParamRedTyPack@{k l} (T:=T) Γ A B}
     (PAad : PolyRedPackAdequate@{k l} (LogRel@{i j k l} l) PA)
     : toAd (from PAad) = PAad.
   Proof. destruct PA, PAad; reflexivity. Qed.
@@ -263,7 +258,7 @@ Section IdRedTy.
     `{!ConvType ta} `{!ConvTerm ta} `{!ConvNeuConv ta}
     `{!RedType ta} `{!RedTerm ta}.
 
-  Record IdRedTy@{i j k l} {Γ : context} {l} {A B : term}
+  Record SIdRedTy@{i j k l} {Γ : context} {l} {A B : term}
   : Type :=
   {
     tyL : term ;
@@ -282,10 +277,10 @@ Section IdRedTy.
     tyPER : PER tyRed.(LRPack.eqTm) ;
   }.
 
-
+  Definition IdRedTy Γ l A B := Split (fun Δ (ρ : Δ ≤ Γ) => @SIdRedTy Γ l A B).
 
   Definition from@{i j k l} {Γ l A B} {IA : IdRedTyPack@{k} Γ A B} (IAad : IdRedTyAdequate@{k l} (LogRel@{i j k l} l) IA)
-    : @IdRedTy@{i j k l} Γ l A B.
+    : @SIdRedTy@{i j k l} Γ l A B.
   Proof.
     unshelve econstructor; try (exact IA.(IdRedTyPack.redL) + exact IA.(IdRedTyPack.redR)).
     - econstructor; apply IAad.
@@ -295,7 +290,7 @@ Section IdRedTy.
     - exact IA.(IdRedTyPack.tyPER).
   Defined.
 
-  Definition toPack@{i j k l} {Γ l A B} (IA : @IdRedTy@{i j k l} Γ l A B) : IdRedTyPack@{k} Γ A B.
+  Definition toPack@{i j k l} {Γ l A B} (IA : @SIdRedTy@{i j k l} Γ l A B) : IdRedTyPack@{k} Γ A B.
   Proof.
     unshelve econstructor; try (exact IA.(IdRedTy.redL) + exact IA.(IdRedTy.redR)).
     - apply IA.(tyRed).
@@ -305,7 +300,7 @@ Section IdRedTy.
     - exact IA.(IdRedTy.tyPER).
   Defined.
 
-  Definition to@{i j k l} {Γ l A B} (IA : @IdRedTy@{i j k l} Γ l A B) : IdRedTyAdequate@{k l} (LogRel@{i j k l} l) (toPack IA).
+  Definition to@{i j k l} {Γ l A B} (IA : @SIdRedTy@{i j k l} Γ l A B) : IdRedTyAdequate@{k l} (LogRel@{i j k l} l) (toPack IA).
   Proof.
     econstructor; apply IA.(tyRed).
   Defined.
@@ -318,52 +313,54 @@ Section IdRedTy.
     to (from IAad) = IAad.
   Proof. reflexivity. Qed.
 
-  Lemma eta@{i j k l} {Γ l A B} (IA : @IdRedTy@{i j k l} Γ l A B) : from  (to IA) = IA.
+  Lemma eta@{i j k l} {Γ l A B} (IA : @SIdRedTy@{i j k l} Γ l A B) : from  (to IA) = IA.
   Proof. reflexivity. Qed.
 
-  Definition IdRedTmEq {Γ l A B} (IA : @IdRedTy Γ l A B) := IdRedTmEq (toPack IA).
-  Definition IdPropEq {Γ l A B} (IA : @IdRedTy Γ l A B) := IdPropEq (toPack IA).
+  Definition IdRedTmEq {Γ l A B} (IA : forall Δ (ρ : Δ ≤ Γ), @SIdRedTy Δ l A⟨ρ⟩ B⟨ρ⟩) := IdRedTmEq (fun Δ ρ => toPack (IA Δ ρ)).
+  Definition IdPropEq {Γ l A B} (IA : @SIdRedTy Γ l A B) := IdPropEq (toPack IA).
+  Definition SIdRedTmEq {Γ l A B} (IA : @SIdRedTy Γ l A B) := SIdRedTmEq (toPack IA).
 
-  Definition LRId'@{i j k l} {l Γ A B} (IA : @IdRedTy@{i j k l} Γ l A B)
+  Definition LRId'@{i j k l} {l Γ A B} (IA : forall Δ (ρ : Δ ≤ Γ), @SIdRedTy Δ l A⟨ρ⟩ B⟨ρ⟩)
     : [ LogRel@{i j k l} l | Γ ||- A ≅ B] :=
-    LRbuild (LRId (LogRelRec l) _ (to IA)).
+    LRbuild (LRId (LogRelRec l) _ (fun Δ ρ => to (IA Δ ρ))).
 End IdRedTy.
 
-Arguments IdRedTy {_ _ _ _ _ _ _ _ _}.
+Arguments SIdRedTy {_ _ _ _ _ _ _ _ _}.
 
-  Definition whredL `{GenericTypingProperties} {l Γ A B} : IdRedTy Γ l A B -> [Γ |- A ↘ ].
+  Definition whredL `{GenericTypingProperties} {l Γ A B} : SIdRedTy Γ l A B -> [Γ |- A ↘ ].
   Proof. intros []; econstructor; tea; constructor. Defined.
 
-  Definition whredR `{GenericTypingProperties} {l Γ A B} : IdRedTy Γ l A B -> [Γ |- B ↘ ].
+  Definition whredR `{GenericTypingProperties} {l Γ A B} : SIdRedTy Γ l A B -> [Γ |- B ↘ ].
   Proof. intros []; econstructor; tea; constructor. Defined.
 
-  Definition outTy `{GenericTypingProperties} {l Γ A B} (IA : IdRedTy Γ l A B) := IdRedTyPack.outTy (toPack IA).
+  Definition outTy `{GenericTypingProperties} {l Γ A B} (IA : SIdRedTy Γ l A B) := IdRedTyPack.outTy (toPack IA).
 
 End IdRedTy.
 
-Export IdRedTy(IdRedTy, Build_IdRedTy,IdRedTmEq,IdPropEq,LRId').
+Export IdRedTy(IdRedTy, SIdRedTy, Build_SIdRedTy, SIdRedTmEq, IdRedTmEq, IdPropEq, LRId').
 Arguments IdRedTy.outTy _ /.
 
+Notation "[ Γ ||-SId< l > A ≅ B ]" := (SIdRedTy Γ l A B) (at level 0, Γ, l,  A, B at level 50).
 Notation "[ Γ ||-Id< l > A ≅ B ]" := (IdRedTy Γ l A B) (at level 0, Γ, l,  A, B at level 50).
 Notation "[ Γ ||-Id< l > t : A | RA ]" := (IdRedTmEq (Γ:=Γ) (l:=l) (A:=A) RA t t) (at level 0, Γ, l, t, A, RA at level 50).
 Notation "[ Γ ||-Id< l > t ≅ u : A | RA ]" := (IdRedTmEq (Γ:=Γ) (l:=l) (A:=A) RA t u) (at level 0, Γ, l, t, u, A, RA at level 50).
 
 #[program]
-Instance IdRedTyWhRed `{GenericTypingProperties} {Γ l} : WhRedTyRel Γ (IdRedTy Γ l) :=
+Instance IdRedTyWhRed `{GenericTypingProperties} {Γ l} : WhRedTyRel Γ (SIdRedTy Γ l) :=
   {| whredtyL := fun A B RAB => IdRedTy.whredL RAB ;
      whredtyR := fun A B RAB => IdRedTy.whredR RAB ; |}.
 Next Obligation. now destruct h. Qed.
 
 #[program]
-Instance IdRedTmWhRedRel `{GenericTypingProperties} {Γ l A B} (IA : [Γ ||-Id<l> A ≅ B])
-  : WhRedTmRel Γ (IdRedTy.outTy IA) (IdRedTmEq IA) :=
+Instance IdRedTmWhRedRel `{GenericTypingProperties} {Γ l A B} (IA : [Γ ||-SId<l> A ≅ B])
+  : WhRedTmRel Γ (IdRedTy.outTy IA) (SIdRedTmEq IA) :=
   {| whredtmL := fun t u Rtu => IdRedTmEq.whredL Rtu ;
      whredtmR := fun t u Rtu => IdRedTmEq.whredR Rtu ; |}.
 Next Obligation. now destruct h. Qed.
 
 #[program]
-Instance URedTmEqWhRedRel  `{GenericTypingProperties} {Γ l A B} (UA : [Γ ||-U<l> A ≅ B])
-  : WhRedTmRel Γ U (URedTmEq (LogRelRec l) Γ _ _ UA) :=
+Instance URedTmEqWhRedRel  `{GenericTypingProperties} {Γ l A B} (UA : [Γ ||-SU<l> A ≅ B])
+  : WhRedTmRel Γ U (SURedTmEq (LogRelRec l) Γ _ _ UA) :=
   {| whredtmL := fun t u Rtu => URedTm.whredL Rtu ;
      whredtmR := fun t u Rtu => URedTm.whredR Rtu ; |}.
 Next Obligation. now destruct h. Qed.

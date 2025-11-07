@@ -93,13 +93,13 @@ Proof.
   apply hA.
 Qed.
 
-Record Split@{i} {Γ} (A : PSh@{i} Γ) : Type@{i} := {
+#[projections(primitive)] Record Split@{i} {Γ} (A : PSh@{i} Γ) : Type@{i} := {
   dtree : DTree Γ;
   cover : forall (Δ : context) ρ, overtree dtree Δ -> A Δ ρ
 }.
 
 Arguments dtree {_ _}.
-Arguments cover {_ _} _ {_}.
+Arguments cover {_ _}.
 
 Definition Split_PSh {Γ} : PSh Γ -> PSh Γ:=
  fun A Δ ρ => Split (PSh_PSh ρ A).
@@ -220,13 +220,22 @@ Proof.
   - apply hA.
 Qed.
 
-
+(* 
 Definition dover {Γ} {A : PSh Γ} (P : forall Δ ρ, A Δ ρ -> Type)
   (hA : Split A) := forall L (hover : overtree hA.(dtree) L),
   P (Build_context Γ L) (wk_Fwk (overtree_Fwk hover)) (hA.(cover) (wk_Fwk (overtree_Fwk hover)) hover).
+ *)
 
+Definition dover {Γ} {A : PSh Γ} (P : forall Δ ρ, A Δ ρ -> Type)
+  (hA : Split A) := forall Δ (ρ : Δ ≤ Γ) (hover : overtree hA.(dtree) Δ),
+  P Δ ρ (hA.(cover) Δ ρ hover).
 
+Definition dover_apply {Γ} {A : PSh Γ} {P Q: forall Δ ρ, A Δ ρ -> Type} {hA : Split A} :
+  (forall {Δ ρ a}, P Δ ρ a -> Q Δ ρ a) -> dover P hA -> dover Q hA :=
+ (fun f hdover Δ ρ hover => f Δ ρ _ (hdover _ _ _)).
 
-
+Definition ddover {Γ} {A : PSh Γ} {P: forall Δ ρ, A Δ ρ -> Type} (Q : forall Δ ρ a, P Δ ρ a -> Type) {hA : Split A} :
+  dover P hA -> Type :=
+ (fun hdover => forall Δ ρ hover, Q Δ ρ _ (hdover _ _ hover)).
 
 

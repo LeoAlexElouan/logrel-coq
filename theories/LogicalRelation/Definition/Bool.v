@@ -38,7 +38,7 @@ Module BoolRedTy.
 End BoolRedTy.
 
 Export BoolRedTy(SBoolRedTy, BoolRedTy, Build_SBoolRedTy).
-Notation "[ Γ ||-SBool A ≅ B ]" := (BoolRedTy Γ A B) (at level 0, Γ, A at level 50).
+Notation "[ Γ ||-SBool A ≅ B ]" := (SBoolRedTy Γ A B) (at level 0, Γ, A at level 50).
 Notation "[ Γ ||-Bool A ≅ B ]" := (BoolRedTy Γ A B) (at level 0, Γ, A at level 50).
 
 #[program]

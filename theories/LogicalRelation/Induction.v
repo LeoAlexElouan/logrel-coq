@@ -1,5 +1,5 @@
 (** * LogRel.LogicalRelation.Induction: good induction principles for the logical relation. *)
-From LogRel Require Import Utils Syntax.All GenericTyping LogicalRelation.
+From LogRel Require Import Utils Syntax.All GenericTyping LogicalRelation Monad.
 
 Set Universe Polymorphism.
 
@@ -25,7 +25,6 @@ Section Inductions.
 
 (** Reducibility at a lower level implies reducibility at a higher level, and their decoding are the
 same. Both need to be proven simultaneously, because of contravariance in the product case. *)
-
   Fixpoint LR_embedding@{i j k l} {l l'} (l_ : l << l')
     {Γ A B tmeq} (lr : LogRel@{i j k l} l Γ A B tmeq) {struct lr}
     : (LogRel@{i j k l} l' Γ A B tmeq) :=
@@ -35,13 +34,13 @@ same. Both need to be proven simultaneously, because of contravariance in the pr
             LR_embedding l_ (PAad.(PolyRedPack.shpAd) ρ h) ;
           PolyRedPack.posAd (Δ : context) (a b : term) (ρ : Δ ≤ _) (h : [  |- Δ])
               (ha : [PolyRedPack.shpRed PA ρ h | Δ ||- a ≅ b : _]) :=
-            LR_embedding l_ (PAad.(PolyRedPack.posAd) ρ h ha)
+            dover_apply (fun _ _ _ => LR_embedding l_) (PAad.(PolyRedPack.posAd) ρ h ha)
         |}
     in
     match lr with
     | LRU _ H =>
         match
-          (match l_ with Oi => fun H' => elim H'.(URedTy.lt) end H)
+          (match l_ with Oi => fun H' => elim (H' _ wk_id).(URedTy.lt) end H)
         with end
     | LRne _ neA => LRne _ neA
     | LRPi _ ΠA ΠAad => LRPi _ ΠA (embedPolyAd ΠAad)
@@ -49,8 +48,9 @@ same. Both need to be proven simultaneously, because of contravariance in the pr
     | LRBool _ NA => LRBool _ NA
     | LREmpty _ NA => LREmpty _ NA
     | LRSig _ PA PAad => LRSig _ PA (embedPolyAd PAad)
-    | LRId _ IA IAad => LRId _ IA {| IdRedTyPack.tyAd := LR_embedding l_ IAad.(IdRedTyPack.tyAd) ; |}
+    | LRId _ IA IAad => LRId _ IA (fun Δ ρ => {| IdRedTyPack.tyAd := LR_embedding l_ (IAad _ _).(IdRedTyPack.tyAd) ; |})
     end.
+
 
   (** A basic induction principle, that handles only the first point in the list above *)
 
@@ -58,33 +58,33 @@ same. Both need to be proven simultaneously, because of contravariance in the pr
     ((forall {Δ} (ρ : Δ ≤ Γ) (h : [ |- Δ]), P (HAad.(PolyRedPack.shpAd) ρ h)) ->
       (forall {Δ a b} (ρ : Δ ≤ Γ) (h : [ |- Δ ])
         (ha : [ ΠA.(PolyRedPack.shpRed) ρ h | Δ ||- a ≅ b: _ ]),
-        P (HAad.(PolyRedPack.posAd) ρ h ha)) -> G).
+        ddover (fun _ _ _ => P) (HAad.(PolyRedPack.posAd) ρ h ha)) -> G).
 
   Theorem LR_rect@{i j k o}
     (l : TypeLevel)
     (rec : forall l', l' << l -> RedRel@{i j})
     (P : forall {Γ A B tmeq}, LR@{i j k} rec Γ A B tmeq  -> Type@{o}) :
 
-    (forall (Γ : context) A B (h : [Γ ||-U<l> A ≅ B]),
+    (forall (Γ : context) A B (h : forall Δ (ρ : Δ ≤ Γ), [Δ ||-SU<l> A⟨ρ⟩ ≅ B⟨ρ⟩]),
       P (LRU rec h)) ->
 
-    (forall (Γ : context) (A B : term) (neA : [Γ ||-ne A ≅ B]),
+    (forall (Γ : context) (A B : term) (neA : forall Δ (ρ : Δ ≤ Γ), [Δ ||-Sne A⟨ρ⟩ ≅ B⟨ρ⟩]),
       P (LRne rec neA)) ->
 
-    (forall (Γ : context) (A B : term) (ΠA : PiRedTyPack@{j} Γ A B) (HAad : PiRedTyAdequate (LR rec) ΠA),
+    (forall (Γ : context) (A B : term) (ΠA : PiRedTyPack@{j k} Γ A B) (HAad : PiRedTyAdequate (LR rec) ΠA),
       PolyHyp P Γ ΠA HAad (P (LRPi rec ΠA HAad))) ->
 
     (forall Γ A B (NA : [Γ ||-SNat A ≅ B]), P (LRNat rec NA)) ->
 
-    (forall Γ A B (NA : [Γ ||-Bool A ≅ B]), P (LRBool rec NA)) ->
+    (forall Γ A B (NA : [Γ ||-SBool A ≅ B]), P (LRBool rec NA)) ->
 
-    (forall Γ A B (NA : [Γ ||-Empty A ≅ B]), P (LREmpty rec NA)) ->
+    (forall Γ A B (NA : [Γ ||-SEmpty A ≅ B]), P (LREmpty rec NA)) ->
 
-    (forall (Γ : context) (A B : term) (ΠA : SigRedTyPack@{j} Γ A B) (HAad : SigRedTyAdequate (LR rec) ΠA),
+    (forall (Γ : context) (A B : term) (ΠA : SigRedTyPack@{j k} Γ A B) (HAad : SigRedTyAdequate (LR rec) ΠA),
       PolyHyp P Γ ΠA HAad (P (LRSig rec ΠA HAad))) ->
 
-    (forall Γ A B (IA : IdRedTyPack@{j} Γ A B) (IAad : IdRedTyAdequate (LR rec) IA),
-      P IAad.(IdRedTyPack.tyAd) ->
+    (forall Γ A B (IA : forall Δ (ρ : Δ ≤ Γ), IdRedTyPack@{j} Δ A⟨ρ⟩ B⟨ρ⟩) (IAad : forall Δ (ρ : Δ ≤ Γ), IdRedTyAdequate (LR rec) (IA Δ ρ)),
+      (forall Δ (ρ : Δ ≤ Γ), P (IAad Δ ρ).(IdRedTyPack.tyAd)) ->
       (* (forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), P (IAad.(IdRedTyPack.tyKripkeAd) ρ wfΔ)) -> *)
       P (LRId rec IA IAad)) ->
 
@@ -98,12 +98,12 @@ same. Both need to be proven simultaneously, because of contravariance in the pr
     - eapply HU.
     - eapply Hne.
     - eapply HPi.
-      all: intros ; eapply HRec.
+      all: repeat intro; eapply HRec.
     - eapply HNat.
     - eapply HBool.
     - eapply HEmpty.
     - eapply HSig.
-      all: intros; eapply HRec.
+      all: repeat intro; eapply HRec.
     - eapply HId; intros; eapply HRec.
   Defined.
 
@@ -113,16 +113,18 @@ same. Both need to be proven simultaneously, because of contravariance in the pr
     ((forall {Δ} (ρ : Δ ≤ Γ) (h : [ |- Δ]), P (ΠA.(PolyRed.shpRed) ρ h).(LRAd.adequate)) ->
     (forall {Δ a b} (ρ : Δ ≤ Γ) (h : [ |- Δ ])
       (ha : [ Δ ||-< _ > a ≅ b : _ |  ΠA.(PolyRed.shpRed) ρ h ]),
-      P (ΠA.(PolyRed.posRed) ρ h ha).(LRAd.adequate)) -> G).
+      dover (fun _ _ hSplit => P (LRAd.adequate hSplit)) (ΠA.(PolyRed.posRed) ρ h ha)) -> G).
+
+
 
   (** Induction principle specialized to LogRel as the reducibility relation on lower levels *)
   Theorem LR_rect_LogRelRec@{i j k l o}
     (P : forall {l Γ A B tmeq}, LogRel@{i j k l} l Γ A B tmeq -> Type@{o}) :
 
-    (forall l (Γ : context) A B (h : [Γ ||-U<l> A ≅ B]),
+    (forall l (Γ : context) A B (h : forall Δ (ρ : Δ ≤ Γ), [Δ ||-SU<l> A⟨ρ⟩ ≅ B⟨ρ⟩]),
       P (LRU (LogRelRec l) h)) ->
 
-    (forall (l : TypeLevel) (Γ : context) (A B : term) (neA : [Γ ||-ne A ≅ B]),
+    (forall (l : TypeLevel) (Γ : context) (A B : term) (neA : forall Δ (ρ : Δ ≤ Γ), [Δ ||-Sne A⟨ρ⟩ ≅ B⟨ρ⟩]),
       P (LRne (LogRelRec l) neA)) ->
 
     (forall (l : TypeLevel) (Γ : context) (A B : term) (ΠA : PiRedTy@{i j k l} Γ l A B),
@@ -130,15 +132,15 @@ same. Both need to be proven simultaneously, because of contravariance in the pr
 
     (forall l Γ A B (NA : [Γ ||-SNat A ≅ B]), P (LRNat (LogRelRec l) NA)) ->
 
-    (forall l Γ A B (NA : [Γ ||-Bool A ≅ B]), P (LRBool (LogRelRec l) NA)) ->
+    (forall l Γ A B (NA : [Γ ||-SBool A ≅ B]), P (LRBool (LogRelRec l) NA)) ->
 
-    (forall l Γ A B (NA : [Γ ||-Empty A ≅ B]), P (LREmpty (LogRelRec l) NA)) ->
+    (forall l Γ A B (NA : [Γ ||-SEmpty A ≅ B]), P (LREmpty (LogRelRec l) NA)) ->
 
     (forall (l : TypeLevel) (Γ : context) (A B : term) (ΠA : SigRedTy@{i j k l} Γ l A B),
       PolyHypLogRel P Γ ΠA (P (LRSig' ΠA).(LRAd.adequate ))) ->
 
-    (forall l Γ A B (IA :  [Γ ||-Id<l> A ≅ B]),
-      P (IA.(IdRedTy.tyRed).(LRAd.adequate)) ->
+    (forall l Γ A B (IA : forall Δ (ρ : Δ ≤ Γ), [Δ ||-SId<l> A⟨ρ⟩ ≅ B⟨ρ⟩]),
+      (forall Δ (ρ : Δ ≤ Γ), P ((IA Δ ρ).(IdRedTy.tyRed).(LRAd.adequate))) ->
       (* (forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), P (IA.(IdRedTy.tyKripke) ρ wfΔ).(LRAd.adequate)) -> *)
 
       P (LRId' IA).(LRAd.adequate)) ->
@@ -151,22 +153,22 @@ same. Both need to be proven simultaneously, because of contravariance in the pr
     1,2,4,5,6: auto.
     - intros; eapply (HPi _ _ _ _ (ParamRedTy.from HAad)); eauto.
     - intros; eapply (HSig _ _ _ _ (ParamRedTy.from HAad)); eauto.
-    - intros; eapply (HId _ _ _ _ (IdRedTy.from IAad)) ; eauto.
+    - intros; eapply (HId _ _ _ _ (fun Δ ρ => IdRedTy.from (IAad Δ ρ))) ; eauto.
   Defined.
 
   Notation PolyHypTyUr P Γ ΠA G :=
     ((forall {Δ} (ρ : Δ ≤ Γ) (h : [ |- Δ]), P (ΠA.(PolyRed.shpRed) ρ h)) ->
     (forall {Δ a b} (ρ : Δ ≤ Γ) (h : [ |- Δ ])
       (ha : [ ΠA.(PolyRed.shpRed) ρ h | Δ ||- a ≅ b : _ ]),
-      P (ΠA.(PolyRed.posRed) ρ h ha)) -> G).
+      dover (fun _ _ => P) (ΠA.(PolyRed.posRed) ρ h ha)) -> G).
 
   Theorem LR_rect_TyUr@{i j k l o}
     (P : forall {l Γ A B}, [LogRel@{i j k l} l | Γ ||- A ≅ B] -> Type@{o}) :
 
-    (forall l (Γ : context) A B (h : [Γ ||-U<l> A ≅ B]),
+    (forall l (Γ : context) A B (h : forall Δ (ρ : Δ ≤ Γ), [Δ ||-SU<l> A⟨ρ⟩ ≅ B⟨ρ⟩]),
       P (LRU_ h)) ->
 
-    (forall (l : TypeLevel) (Γ : context) (A B : term) (neA : [Γ ||-ne A ≅ B]),
+    (forall (l : TypeLevel) (Γ : context) (A B : term) (neA : forall Δ (ρ : Δ ≤ Γ), [Δ ||-Sne A⟨ρ⟩ ≅ B⟨ρ⟩]),
       P (LRne_ l neA)) ->
 
     (forall (l : TypeLevel) (Γ : context) (A B : term) (ΠA : PiRedTy@{i j k l} Γ l A B),
@@ -174,15 +176,15 @@ same. Both need to be proven simultaneously, because of contravariance in the pr
 
     (forall l Γ A B (NA : [Γ ||-SNat A ≅ B]), P (LRNat_ l NA)) ->
 
-    (forall l Γ A B (NA : [Γ ||-Bool A ≅ B]), P (LRBool_ l NA)) ->
+    (forall l Γ A B (NA : [Γ ||-SBool A ≅ B]), P (LRBool_ l NA)) ->
 
-    (forall l Γ A B (NA : [Γ ||-Empty A ≅ B]), P (LREmpty_ l NA)) ->
+    (forall l Γ A B (NA : [Γ ||-SEmpty A ≅ B]), P (LREmpty_ l NA)) ->
 
     (forall (l : TypeLevel) (Γ : context) (A B : term) (ΠA : SigRedTy@{i j k l} Γ l A B),
       PolyHypTyUr P Γ ΠA (P (LRSig' ΠA))) ->
 
-    (forall l Γ A B (IA :  [Γ ||-Id<l> A ≅ B]),
-      P (IA.(IdRedTy.tyRed)) ->
+    (forall l Γ A B (IA : forall Δ (ρ : Δ ≤ Γ), [Δ ||-SId<l> A⟨ρ⟩ ≅ B⟨ρ⟩]),
+      (forall Δ (ρ : Δ ≤ Γ), P (IA Δ ρ).(IdRedTy.tyRed)) ->
       (* (forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), P (IA.(IdRedTy.tyKripke) ρ wfΔ)) -> *)
       P (LRId' IA)) ->
 
@@ -197,10 +199,10 @@ same. Both need to be proven simultaneously, because of contravariance in the pr
   Theorem LR_case_TyUr@{i j k l o}
     (P : forall {l Γ A B}, [LogRel@{i j k l} l | Γ ||- A ≅ B] -> Type@{o}) :
 
-    (forall l (Γ : context) A B (h : [Γ ||-U<l> A ≅ B]),
+    (forall l (Γ : context) A B (h : forall Δ (ρ : Δ ≤ Γ), [Δ ||-SU<l> A⟨ρ⟩ ≅ B⟨ρ⟩]),
       P (LRU_ h)) ->
 
-    (forall (l : TypeLevel) (Γ : context) (A B : term) (neA : [Γ ||-ne A ≅ B]),
+    (forall (l : TypeLevel) (Γ : context) (A B : term) (neA : forall Δ (ρ : Δ ≤ Γ), [Δ ||-Sne A⟨ρ⟩ ≅ B⟨ρ⟩]),
       P (LRne_ l neA)) ->
 
     (forall (l : TypeLevel) (Γ : context) (A B : term) (ΠA : PiRedTy@{i j k l} Γ l A B),
@@ -208,14 +210,14 @@ same. Both need to be proven simultaneously, because of contravariance in the pr
 
     (forall l Γ A B (NA : [Γ ||-SNat A ≅ B]), P (LRNat_ l NA)) ->
 
-    (forall l Γ A B (NA : [Γ ||-Bool A ≅ B]), P (LRBool_ l NA)) ->
+    (forall l Γ A B (NA : [Γ ||-SBool A ≅ B]), P (LRBool_ l NA)) ->
 
-    (forall l Γ A B (NA : [Γ ||-Empty A ≅ B]), P (LREmpty_ l NA)) ->
+    (forall l Γ A B (NA : [Γ ||-SEmpty A ≅ B]), P (LREmpty_ l NA)) ->
 
     (forall (l : TypeLevel) (Γ : context) (A B : term) (ΠA : SigRedTy@{i j k l} Γ l A B),
       P (LRSig' ΠA)) ->
 
-    (forall l Γ A B (IA :  [Γ ||-Id<l> A ≅ B]),
+    (forall l Γ A B (IA : forall Δ (ρ : Δ ≤ Γ), [Δ ||-SId<l> A⟨ρ⟩ ≅ B⟨ρ⟩]),
       P (LRId' IA)) ->
 
     forall (l : TypeLevel) (Γ : context) (A B : term) (lr : [LogRel@{i j k l} l | Γ ||- A ≅ B]),
@@ -244,7 +246,16 @@ Instance whredTyLR `{GenericTypingProperties} {Γ l} : WhRedTyRel Γ (LRAdequate
 Proof.
   unshelve econstructor; intros ?? lr; caseLR lr;
     try first [now eapply whredtyL | now eapply whredtyR | now eapply whredty_conv].
+  1-9: intros hconv; specialize (hconv Γ wk_id) as hconv'; do 2 rewrite wk_id_ren_on in hconv'; revert hconv';
+    try first [now eapply whredtyL | now eapply whredtyR].
+  all: cbn.
+  + intros. eapply (@whredty_conv ta H0 H5 H2 Γ _ (@URedTyWhRedTy ta H H0 H1 H2 H3 H4 H5 H6 H7 Γ l) _ _ hconv').
+  + intros. destruct (wk_id_ren_on Γ A), (wk_id_ren_on Γ B). cbn.
+    eapply (@whredty_conv ta H0 H5 H2 Γ _ (@neRedTyWhRedTy ta H H0 H1 H2 H3 H4 H5 H6 H7 Γ) _ _ (hconv Γ wk_id)).
+  + intros. destruct (wk_id_ren_on Γ A), (wk_id_ren_on Γ B). cbn.
+    eapply (@whredty_conv ta H0 H5 H2 Γ _ (@IdRedTyWhRed ta H H0 H1 H2 H3 H4 H5 H6 H7 Γ l) _ _ (hconv Γ wk_id)).
 Defined.
+
 
 Instance whredTmLR `{GenericTypingProperties} {Γ A B l} (RAB : [Γ ||-<l> A ≅ B]) :
   WhRedTmRel Γ (whredtyL RAB).(tyred_whnf) (RAB.(LRPack.eqTm)).

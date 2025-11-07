@@ -10,11 +10,6 @@ Set Polymorphic Inductive Cumulativity.
 
 (** ** Reducibility of a polynomial A,, B  *)
 
-Definition Split_LRPack `{ta : tag}
-    `{WfContext ta} `{WfType ta} `{ConvType ta} {Γ A B} (hSplit : Split_Rel (fun Ξ A' B' => [|-Ξ] -> LRPack Ξ A' B') Γ A B) : LRPack Γ A B :=
-  Build_LRPack Γ A B (fun a b => dover (fun Δ ρ R => forall (h : [|-Δ]), [R h| Δ ||- a⟨ρ⟩ ≅ b⟨ρ⟩ : A⟨ρ⟩ ≅ B⟨ρ⟩]) hSplit).
-
-
 Module PolyRedPack.
 
   (* A polynomial is a pair (shp, pos) of a type of shapes [Γ |- shp] and
@@ -27,17 +22,12 @@ Module PolyRedPack.
   : Type@{j} (* @ max(Set, i+1) *) := {
     shpRed {Δ} (ρ : Δ ≤ Γ) : [ |- Δ ] -> LRPack@{i} Δ shp⟨ρ⟩ shp'⟨ρ⟩ ;
     posRed {Δ} (ρ : Δ ≤ Γ) {a b} (h : [ |- Δ ]) :
-        (forall Ξ (ρ' : Ξ ≤ Δ) (h' : [|- Ξ]), [ (shpRed (ρ' ∘w ρ) h') |  Ξ ||- a⟨ρ'⟩ ≅ b⟨ρ'⟩ : shp⟨ρ'∘w ρ⟩ ≅ shp'⟨ρ'∘w ρ⟩]) ->
-        Split_Rel@{j} (fun Ξ A B => [|-Ξ] -> LRPack@{i} Ξ A B) Δ pos[a .: (ρ >> tRel)] pos'[b .: (ρ >> tRel)];
+        [ shpRed ρ h | Δ ||- a ≅ b : shp⟨ρ⟩ ≅ shp'⟨ρ⟩] ->
+        Split_Rel@{j} LRPack@{i} Δ pos[a .: (ρ >> tRel)] pos'[b .: (ρ >> tRel)];
   }.
 
   Arguments PolyRedPack {_ _ _ _}.
 
-(*   Lemma posRed_LRPack `{ta : tag}
-    `{WfContext ta} `{WfType ta} `{ConvType ta}: forall Γ shp shp' pos pos' (PA : PolyRedPack Γ shp shp' pos pos') Δ (ρ : Δ ≤ Γ) a b
-    (h : [ |- Δ ]) (ha : [ PA.(shpRed) ρ h | Δ ||- a ≅ b : shp⟨ρ⟩ ]),
-      LRPack Δ pos[a .: (ρ >> tRel)] pos'[b .: (ρ >> tRel)].
-  Proof. intros.  *)
 
   (** We separate the recursive "data", ie the fact that we have reducibility data (an LRPack)
   for the domain and codomain, and the fact that these are in the graph of the logical relation.
@@ -50,8 +40,8 @@ Module PolyRedPack.
       := {
     shpAd {Δ} (ρ : Δ ≤ Γ) (h : [ |- Δ ]) : LRPackAdequate@{i j} R (PA.(shpRed) ρ h);
     posAd {Δ a b} (ρ : Δ ≤ Γ) (h : [ |- Δ ])
-      (ha : forall Ξ (ρ' : Ξ ≤ Δ) (h' : [|- Ξ]), [ (PA.(shpRed) (ρ' ∘w ρ) h') |  Ξ ||- a⟨ρ'⟩ ≅ b⟨ρ'⟩ : shp⟨ρ'∘w ρ⟩ ≅ shp'⟨ρ'∘w ρ⟩]) :
-      LRPackAdequate@{i j} R (Split_LRPack (PA.(posRed) ρ h ha));
+      (ha :[ PA.(shpRed) ρ h | Δ ||- a ≅ b : shp⟨ρ⟩ ≅ shp'⟨ρ⟩]) :
+      dover (fun Ξ ρ' hSplit => LRPackAdequate@{i j} R hSplit) (PA.(posRed) ρ h ha);
   }.
 
   Arguments PolyRedPackAdequate {_ _ _ _ _ _ _ _ _}.

@@ -75,7 +75,7 @@ Section IdRedTmEq.
 
 
   Record SIdRedTmEq  {t u : term} : Type :=
-    Build_IdRedTmEq {
+    Build_SIdRedTmEq {
       nfL : term ;
       nfR : term ;
       redL : [Γ |- t :⤳*: nfL : IdRedTyPack.outTy IA ] ;
@@ -119,4 +119,4 @@ Definition IdRedTmEq@{i} `{ta : tag} `{WfContext ta} `{WfType ta} `{ConvType ta}
 
 End IdRedTmEq.
 
-Export IdRedTmEq(IdRedTmEq,Build_IdRedTmEq, IdPropEq, IdPropEq_isId).
+Export IdRedTmEq(IdRedTmEq, SIdRedTmEq, Build_SIdRedTmEq, IdPropEq, IdPropEq_isId).

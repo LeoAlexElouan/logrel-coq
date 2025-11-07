@@ -1,6 +1,6 @@
 (** * LogRel.LogicalRelation.Definition.Sig : Definition of the logical relation for dependent sums *)
 From Stdlib Require Import CRelationClasses.
-From LogRel Require Import Utils Syntax.All GenericTyping.
+From LogRel Require Import Utils Syntax.All GenericTyping Monad.
 From LogRel.LogicalRelation.Definition Require Import Prelude Poly.
 
 Set Primitive Projections.
@@ -19,12 +19,6 @@ Definition SigRedTyAdequate@{i j} `{ta : tag} `{WfContext ta} `{WfType ta} `{Con
 
 Module SigRedTyPack := ParamRedTyPack.
 
-Lemma fst_comp : forall {Γ A A' a Δ Ξ} {ρ : Δ ≤ Γ} {ρ' : Ξ ≤ Δ} {R}, [R | Ξ ||- a⟨ρ'∘w ρ⟩ ≅ a⟨ρ'∘w ρ⟩ : A ≅ A'] ->
- [R | Ξ ||- a⟨ρ⟩⟨ρ'⟩ ≅ a⟨ρ⟩⟨ρ'⟩ : A].
-Proof.
-  intros * heq.
-  now rewrite wk_comp_ren_on.
-Defined.
 
 Inductive isLRPair `{ta : tag} `{WfContext ta}
   `{WfType ta} `{ConvType ta} `{RedType ta} `{Typing ta} `{ConvTerm ta} `{ConvNeuConv ta}
@@ -37,7 +31,7 @@ Inductive isLRPair `{ta : tag} `{WfContext ta}
   (rfst : forall {Δ} (ρ : Δ ≤ Γ) (h : [ |- Δ ]),
       [ΣA.(PolyRedPack.shpRed) ρ h | Δ ||- a⟨ρ⟩ ≅ a⟨ρ⟩ : (SigRedTyPack.domL ΣA)⟨ρ⟩])
   (rsnd : forall {Δ} (ρ : Δ ≤ Γ) (h : [ |- Δ ]),
-      [Split_LRPack (ΣA.(PolyRedPack.posRed) ρ h (fun Ξ (ρ' : Ξ ≤ Δ) h'=> fst_comp (rfst (ρ'∘w ρ) h')))| Δ ||- b⟨ρ⟩ ≅ b⟨ρ⟩ : (SigRedTyPack.codL ΣA)[a⟨ρ⟩ .: (ρ >> tRel)] ]),
+      dover (fun Ξ ρ' hSplit => [hSplit | Ξ ||- b⟨ρ⟩⟨ρ'⟩ ≅ b⟨ρ⟩⟨ρ'⟩ : (SigRedTyPack.codL ΣA)[a⟨ρ⟩ .: (ρ >> tRel)]⟨ρ'⟩]) (ΣA.(PolyRedPack.posRed) ρ h (rfst ρ h))),
 
   isLRPair ΣA (tPair A' B' a b)
 
@@ -72,13 +66,6 @@ Module SigRedTmEq.
     destruct ispair; constructor; now eapply convneu_whne.
   Defined.
 
-  Lemma fst_comp : forall {Γ A A' a a' Δ Ξ} {ρ : Δ ≤ Γ} {ρ' : Ξ ≤ Δ} {R}, [R | Ξ ||- tFst a⟨ρ'∘w ρ⟩ ≅ tFst a'⟨ρ'∘w ρ⟩ : A ≅ A'] ->
-   [R | Ξ ||- (tFst a⟨ρ⟩)⟨ρ'⟩ ≅ (tFst a'⟨ρ⟩)⟨ρ'⟩ : A].
-  Proof.
-    intros * heq.
-    do 2 rewrite <- wk_fst.
-    now do 2 rewrite wk_comp_ren_on.
-  Defined.
 
   Record SigRedTmEq `{ta : tag} `{WfContext ta}
     `{WfType ta} `{ConvType ta} `{RedType ta}
@@ -91,7 +78,7 @@ Module SigRedTmEq.
     eqFst [Δ] (ρ : Δ ≤ Γ) (h : [ |- Δ ]) :
       [ΣA.(PolyRedPack.shpRed) ρ h | Δ ||- tFst redL.(nf)⟨ρ⟩ ≅ tFst redR.(nf)⟨ρ⟩ : ΣA.(ParamRedTyPack.domL)⟨ρ⟩] ;
     eqSnd [Δ] (ρ : Δ ≤ Γ) (h : [ |- Δ ]) :
-      [Split_LRPack (ΣA.(PolyRedPack.posRed) ρ h (fun Ξ (ρ' : Ξ ≤ Δ) h'=> fst_comp (eqFst (ρ'∘w ρ) h')))| Δ ||- tSnd redL.(nf)⟨ρ⟩ ≅ tSnd redR.(nf)⟨ρ⟩ : _] ;
+      dover (fun Ξ ρ' hSplit => [ hSplit| Ξ ||- (tSnd redL.(nf)⟨ρ⟩)⟨ρ'⟩ ≅ (tSnd redR.(nf)⟨ρ⟩)⟨ρ'⟩ : _]) (ΣA.(PolyRedPack.posRed) ρ h (eqFst ρ h));
   }.
 
   Arguments SigRedTmEq {_ _ _ _ _ _ _ _ _ _ _ _}.

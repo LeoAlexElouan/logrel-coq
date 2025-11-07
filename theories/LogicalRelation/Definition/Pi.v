@@ -1,6 +1,6 @@
 (** * LogRel.LogicalRelation.Definition.Pi : Definition of the logical relation for dependent products *)
 From Stdlib Require Import CRelationClasses.
-From LogRel Require Import Utils Syntax.All GenericTyping.
+From LogRel Require Import Utils Syntax.All GenericTyping Monad.
 From LogRel.LogicalRelation.Definition Require Import Prelude Poly.
 
 Set Primitive Projections.
@@ -26,9 +26,8 @@ Inductive isLRFun `{ta : tag} `{WfContext ta}
     [Γ |- A'] ->
     [Γ |-  ΠA.(PiRedTyPack.domL) ≅ A'] ->
     (forall {Δ a b} (ρ : Δ ≤ Γ) (h : [ |- Δ ])
-      (ha : forall Ξ (ρ' : Ξ ≤ Δ) (h' : [|- Ξ]),
-        [ ΠA.(PolyRedPack.shpRed) (ρ' ∘w ρ) h' | Ξ ||- a⟨ρ'⟩ ≅ b⟨ρ'⟩ : ΠA.(PiRedTyPack.domL)⟨ρ'∘w ρ⟩ ]),
-      [Split_LRPack (ΠA.(PolyRedPack.posRed) ρ h ha) | Δ ||- t[a .: (ρ >> tRel)] ≅ t[b .: (ρ >> tRel)] : ΠA.(PiRedTyPack.codL)[a .: (ρ >> tRel)]]) ->
+      (ha : [ ΠA.(PolyRedPack.shpRed) ρ h | Δ ||- a ≅ b : ΠA.(PiRedTyPack.domL)⟨ρ⟩ ]),
+      dover (fun Ξ ρ' hSplit =>[ hSplit| Ξ ||- t[a .: (ρ >> tRel)]⟨ρ'⟩ ≅ t[b .: (ρ >> tRel)]⟨ρ'⟩ : ΠA.(PiRedTyPack.codL)[a .: (ρ >> tRel)]⟨ρ'⟩]) (ΠA.(PolyRedPack.posRed) ρ h ha)) ->
   isLRFun ΠA (tLambda A' t)
 | NeLRFun : forall f : term, [Γ |- f ~ f : PiRedTyPack.outTy ΠA] -> isLRFun ΠA f.
 Module PiRedTmEq.
@@ -38,8 +37,8 @@ Module PiRedTmEq.
   Definition appRed `{ta : tag} `{WfContext ta} `{WfType ta} `{ConvType ta} `{RedType ta}
     {Γ A B} (ΠA : PiRedTyPack Γ A B) (nfL nfR : term) Δ a b :=
     forall (ρ : Δ ≤ Γ) (h : [ |- Δ ])
-      (hab : forall Ξ (ρ' : Ξ ≤ Δ) (h' : [|- Ξ]), [ΠA.(PolyRedPack.shpRed) (ρ' ∘w ρ) h' | Ξ ||- a⟨ρ'⟩ ≅ b⟨ρ'⟩ : ΠA.(domL)⟨ρ'∘w ρ⟩ ] ),
-      [ Split_LRPack (ΠA.(PolyRedPack.posRed) ρ h hab) | Δ ||- tApp nfL⟨ρ⟩ a ≅ tApp nfR⟨ρ⟩ b : _ ].
+      (hab : [ΠA.(PolyRedPack.shpRed) (ρ) h | Δ ||- a ≅ b : ΠA.(domL)⟨ρ⟩]),
+      dover (fun Ξ ρ' hSplit => [ hSplit | Ξ ||- (tApp nfL⟨ρ⟩ a)⟨ρ'⟩ ≅ (tApp nfR⟨ρ⟩ b)⟨ρ'⟩ : _ ]) (ΠA.(PolyRedPack.posRed) ρ h hab).
 
   Arguments appRed /.
 
