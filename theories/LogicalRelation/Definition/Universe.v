@@ -122,10 +122,10 @@ Module URedTm.
 
   Arguments SURedTm {_ _ _}.
 
-  Definition URedTm `{ta : tag} `{Typing ta} `{RedTerm ta}
+  Definition URedTm `{ta : tag} `{Typing ta} `{RedTerm ta} `{WfContext ta}
     (level : TypeLevel) (Γ : context) (t : term) :
       Set :=
-      Split (fun Δ (ρ : Δ ≤ Γ) => SURedTm level Δ t⟨ρ⟩).
+      Split (fun Δ (ρ : Δ ≤ Γ) => [|-Δ] -> SURedTm level Δ t⟨ρ⟩).
 
   Definition whred `{ta : tag} `{Typing ta} `{RedTerm ta}
     {l} {Γ : context} {t: term} :
@@ -146,10 +146,10 @@ Module URedTm.
   Arguments SURedTmEq {_ _ _ _ _ _ _ } rec.
 
   Definition URedTmEq@{i j} `{ta : tag} `{WfType ta}
-    `{Typing ta} `{ConvTerm ta} `{RedType ta} `{RedTerm ta}
-    {l} (rec : forall l', l' << l -> RedRel@{i j}) (Γ : context) (A B : term) (R :forall Δ (ρ : Δ ≤ Γ), [Δ ||-SU<l> A⟨ρ⟩ ≅ B⟨ρ⟩]) t u:
+    `{Typing ta} `{ConvTerm ta} `{RedType ta} `{RedTerm ta} `{WfContext ta}
+    {l} (rec : forall l', l' << l -> RedRel@{i j}) (Γ : context) (A B : term) (R :forall Δ (ρ : Δ ≤ Γ), [|-Δ] -> [Δ ||-SU<l> A⟨ρ⟩ ≅ B⟨ρ⟩]) t u:
       Type@{j} :=
-      Split (fun Δ (ρ : Δ ≤ Γ) => SURedTmEq rec Δ A⟨ρ⟩ B⟨ρ⟩ (R Δ ρ) t⟨ρ⟩ u⟨ρ⟩).
+      Split (fun Δ (ρ : Δ ≤ Γ) => forall (hΔ : [|-Δ]), SURedTmEq rec Δ A⟨ρ⟩ B⟨ρ⟩ (R Δ ρ hΔ) t⟨ρ⟩ u⟨ρ⟩).
 
   Definition whredL `{ta : tag} `{WfContext ta} `{WfType ta}
     `{Typing ta} `{ConvTerm ta} `{RedType ta} `{RedTerm ta}

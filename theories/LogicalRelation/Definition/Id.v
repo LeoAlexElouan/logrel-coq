@@ -114,8 +114,8 @@ Arguments IdPropEq {_ _ _ _ _ _ _ _ _ _}.
 
 Definition IdRedTmEq@{i} `{ta : tag} `{WfContext ta} `{WfType ta} `{ConvType ta}
   `{RedType ta} `{Typing ta} `{ConvNeuConv ta} `{ConvTerm ta}
-  `{RedTerm ta} {Γ : context} {A B: term} (IA : forall Δ (ρ : Δ ≤ Γ), IdRedTyPack@{i} Δ A⟨ρ⟩ B⟨ρ⟩) t u : Type@{i} :=
-  Split@{i} (fun Δ (ρ : Δ ≤ Γ) => SIdRedTmEq@{i} (Γ:=Δ) (A:=A⟨ρ⟩) (B:=B⟨ρ⟩) (IA Δ ρ) t⟨ρ⟩ u⟨ρ⟩).
+  `{RedTerm ta} {Γ : context} {A B: term} (IA : forall Δ (ρ : Δ ≤ Γ), [|-Δ] -> IdRedTyPack@{i} Δ A⟨ρ⟩ B⟨ρ⟩) t u : Type@{i} :=
+  Split@{i} (fun Δ (ρ : Δ ≤ Γ) => forall (hΔ : [|-Δ]), SIdRedTmEq@{i} (Γ:=Δ) (A:=A⟨ρ⟩) (B:=B⟨ρ⟩) (IA Δ ρ hΔ) t⟨ρ⟩ u⟨ρ⟩).
 
 End IdRedTmEq.
 

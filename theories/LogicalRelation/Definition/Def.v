@@ -21,9 +21,9 @@ Inductive LR@{i j k} `{ta : tag}
   `{RedType ta} `{RedTerm ta}
   {l : TypeLevel} (rec : forall l', l' << l -> RedRel@{i j})
 : RedRel@{j k} :=
-  | LRU {Γ A B} (H :forall Δ (ρ : Δ ≤ Γ), [Δ ||-SU<l> A⟨ρ⟩ ≅ B⟨ρ⟩]) :
+  | LRU {Γ A B} (hΓ : [|-Γ]) (H :forall Δ (ρ : Δ ≤ Γ), [|-Δ] -> [Δ ||-SU<l> A⟨ρ⟩ ≅ B⟨ρ⟩]) :
       LR rec Γ A B (fun t u => [ rec | Γ ||-U t ≅ u : A | H ])
-  | LRne {Γ A B} (neA : forall Δ (ρ : Δ ≤ Γ), [ Δ ||-Sne A⟨ρ⟩ ≅ B⟨ρ⟩]) :
+  | LRne {Γ A B} (hΓ : [|-Γ]) (neA : forall Δ (ρ : Δ ≤ Γ),[|-Δ] -> [ Δ ||-Sne A⟨ρ⟩ ≅ B⟨ρ⟩]) :
       LR rec Γ A B (fun t u =>  [ Γ ||-ne t ≅ u : A | neA])
   | LRPi {Γ : context} {A B : term} (ΠA : PiRedTyPack@{j k} Γ A B) (ΠAad : PiRedTyAdequate@{j k} (LR rec) ΠA) :
     LR rec Γ A B (PiRedTmEq ΠA)
@@ -35,8 +35,8 @@ Inductive LR@{i j k} `{ta : tag}
     LR rec Γ A B (EmptyRedTmEq Γ)
   | LRSig {Γ : context} {A B : term} (ΣA : SigRedTyPack@{j k} Γ A B) (ΣAad : SigRedTyAdequate@{j k} (LR rec) ΣA) :
     LR rec Γ A B (SigRedTmEq ΣA)
-  | LRId {Γ A B} (IA : forall Δ (ρ : Δ ≤ Γ), IdRedTyPack@{j} Δ A⟨ρ⟩ B⟨ρ⟩)
-      (IAad : forall Δ (ρ : Δ ≤ Γ), IdRedTyAdequate@{j k} (LR rec) (IA Δ ρ)) :
+  | LRId {Γ A B} (hΓ : [|-Γ]) (IA : forall Δ (ρ : Δ ≤ Γ), [|-Δ] -> IdRedTyPack@{j} Δ A⟨ρ⟩ B⟨ρ⟩)
+      (IAad : forall Δ (ρ : Δ ≤ Γ) (hΔ : [|-Δ]), IdRedTyAdequate@{j k} (LR rec) (IA Δ ρ hΔ)) :
     LR rec Γ A B (IdRedTmEq@{j} IA)
   .
 
@@ -88,13 +88,13 @@ Section MoreDefs.
       LRAd.pack := {| LRPack.eqTm := tmeq |} ;
       LRAd.adequate := H |}.
 
-  Definition LRU_@{i j k l} {l Γ A B} (H : forall Δ (ρ : Δ ≤ Γ), [Δ ||-SU<l> A⟨ρ⟩ ≅ B⟨ρ⟩])
+  Definition LRU_@{i j k l} {l Γ A B} (hΓ : [|-Γ]) (H : forall Δ (ρ : Δ ≤ Γ), [|-Δ] -> [Δ ||-SU<l> A⟨ρ⟩ ≅ B⟨ρ⟩])
     : [ LogRel@{i j k l} l | Γ ||- A ≅ B ] :=
-    LRbuild (LRU (LogRelRec l) H).
+    LRbuild (LRU (LogRelRec l) hΓ H).
 
-  Definition LRne_@{i j k l} l {Γ A B} (neA : forall Δ (ρ : Δ ≤ Γ), [Δ ||-Sne A⟨ρ⟩ ≅ B⟨ρ⟩])
+  Definition LRne_@{i j k l} l {Γ A B} hΓ (neA : forall Δ (ρ : Δ ≤ Γ),[|-Δ] -> [Δ ||-Sne A⟨ρ⟩ ≅ B⟨ρ⟩])
     : [ LogRel@{i j k l} l | Γ ||- A ≅ B ] :=
-    LRbuild (LRne (LogRelRec l) neA).
+    LRbuild (LRne (LogRelRec l) hΓ neA).
 
   Definition LRPi_@{i j k l} l {Γ A B} (ΠA : PiRedTyPack@{k l} Γ A B)
     (ΠAad : PiRedTyAdequate (LR (LogRelRec@{i j k} l)) ΠA)
@@ -113,10 +113,10 @@ Section MoreDefs.
     : [LogRel@{i j k l} l | Γ ||- A ≅ B] :=
     LRbuild (LREmpty (LogRelRec l) NA).
 
-  Definition LRId_@{i j k l} l {Γ A B} (IA : forall Δ (ρ : Δ ≤ Γ), IdRedTyPack@{k} Δ A⟨ρ⟩ B⟨ρ⟩)
-      (IAad : forall Δ (ρ : Δ ≤ Γ), IdRedTyAdequate@{k l} (LR (LogRelRec@{i j k} l)) (IA Δ ρ))
+  Definition LRId_@{i j k l} l {Γ A B} hΓ (IA : forall Δ (ρ : Δ ≤ Γ), [|-Δ] -> IdRedTyPack@{k} Δ A⟨ρ⟩ B⟨ρ⟩)
+      (IAad : forall Δ (ρ : Δ ≤ Γ) (hΔ : [|-Δ]), IdRedTyAdequate@{k l} (LR (LogRelRec@{i j k} l)) (IA Δ ρ hΔ))
     : [LogRel@{i j k l} l | Γ ||- A ≅ B] :=
-    LRbuild (LRId (LogRelRec l) IA IAad).
+    LRbuild (LRId (LogRelRec l) hΓ IA IAad).
 
 End MoreDefs.
 

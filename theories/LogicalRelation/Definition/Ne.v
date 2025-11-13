@@ -79,9 +79,9 @@ Module neRedTmEq.
 
   Definition neRedTmEq `{ta : tag}
     `{WfType ta} `{RedType ta}
-    `{Typing ta} `{ConvType ta} `{ConvTerm ta} `{ConvNeuConv ta} `{RedTerm ta}
-    {Γ A B} (R : forall Δ (ρ : Δ ≤ Γ), [ Δ ||-Sne A⟨ρ⟩ ≅ B⟨ρ⟩]) t u : Set :=
-      Split (fun Δ ρ => SneRedTmEq (R Δ ρ) t⟨ρ⟩ u⟨ρ⟩).
+    `{Typing ta} `{ConvType ta} `{ConvTerm ta} `{ConvNeuConv ta} `{RedTerm ta} `{WfContext ta}
+    {Γ A B} (R : forall Δ (ρ : Δ ≤ Γ),[|-Δ] -> [ Δ ||-Sne A⟨ρ⟩ ≅ B⟨ρ⟩]) t u : Set :=
+      Split (fun Δ ρ => forall (hΔ : [|-Δ]), SneRedTmEq (R Δ ρ hΔ) t⟨ρ⟩ u⟨ρ⟩).
 
 End neRedTmEq.
 

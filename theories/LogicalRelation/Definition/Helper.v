@@ -316,13 +316,13 @@ Section IdRedTy.
   Lemma eta@{i j k l} {Γ l A B} (IA : @SIdRedTy@{i j k l} Γ l A B) : from  (to IA) = IA.
   Proof. reflexivity. Qed.
 
-  Definition IdRedTmEq {Γ l A B} (IA : forall Δ (ρ : Δ ≤ Γ), @SIdRedTy Δ l A⟨ρ⟩ B⟨ρ⟩) := IdRedTmEq (fun Δ ρ => toPack (IA Δ ρ)).
+  Definition IdRedTmEq {Γ l A B} (IA : forall Δ (ρ : Δ ≤ Γ), [|-Δ] -> @SIdRedTy Δ l A⟨ρ⟩ B⟨ρ⟩) := IdRedTmEq (fun Δ ρ hΔ => toPack (IA Δ ρ hΔ)).
   Definition IdPropEq {Γ l A B} (IA : @SIdRedTy Γ l A B) := IdPropEq (toPack IA).
   Definition SIdRedTmEq {Γ l A B} (IA : @SIdRedTy Γ l A B) := SIdRedTmEq (toPack IA).
 
-  Definition LRId'@{i j k l} {l Γ A B} (IA : forall Δ (ρ : Δ ≤ Γ), @SIdRedTy Δ l A⟨ρ⟩ B⟨ρ⟩)
+  Definition LRId'@{i j k l} {l Γ A B} hΓ (IA : forall Δ (ρ : Δ ≤ Γ), [|-Δ] -> @SIdRedTy Δ l A⟨ρ⟩ B⟨ρ⟩)
     : [ LogRel@{i j k l} l | Γ ||- A ≅ B] :=
-    LRbuild (LRId (LogRelRec l) _ (fun Δ ρ => to (IA Δ ρ))).
+    LRbuild (LRId (LogRelRec l) hΓ _ (fun Δ ρ hΔ => to (IA Δ ρ hΔ))).
 End IdRedTy.
 
 Arguments SIdRedTy {_ _ _ _ _ _ _ _ _}.
