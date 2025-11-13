@@ -12,24 +12,14 @@ Section Escapes.
       [Γ |- A] × [Γ |- B] × [Γ |- A ≅ B].
   Proof.
     indLR lr.
-    - intros hΓ h.
-      specialize (h Γ wk_id hΓ).
-      do 2 rewrite wk_id_ren_on in h. revert h.
-      intros []; prod_splitter; [ | | eapply convty_exp]; gen_typing.
-    - intros hΓ h.
-      specialize (h Γ wk_id hΓ).
-      do 2 rewrite wk_id_ren_on in h. revert h.
-      intros []; prod_splitter; [ | | eapply convty_exp]; gen_typing.
+    - intros []; prod_splitter; [ | | eapply convty_exp]; gen_typing.
+    - intros []; prod_splitter; [ | | eapply convty_exp]; gen_typing.
     - intros [???? [] []] _ _; prod_splitter;[ | | eapply convty_exp]; gtyping.
     - intros []; prod_splitter; [| |eapply convty_exp]; gtyping.
     - intros []; prod_splitter; [| |eapply convty_exp]; gtyping.
     - intros []; prod_splitter; [| |eapply convty_exp]; gtyping.
     - intros [???? [] []] _ _; prod_splitter; [| |eapply convty_exp]; gtyping.
-    - intros hΓ h ih.
-      specialize (ih Γ wk_id hΓ).
-      set (h':= h Γ wk_id hΓ) in *; clearbody h'; clear h; rename h' into h. revert h ih.
-      do 2 rewrite wk_id_ren_on.
-      intros [] _ ; prod_splitter; [| |eapply convty_exp]; gtyping.
+    - intros [] _ ; prod_splitter; [| |eapply convty_exp]; gtyping.
   Qed.
 
   Lemma escape {l Γ A B} :

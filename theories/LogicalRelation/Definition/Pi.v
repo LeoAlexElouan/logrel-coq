@@ -27,7 +27,7 @@ Inductive isLRFun `{ta : tag} `{WfContext ta}
     [Γ |-  ΠA.(PiRedTyPack.domL) ≅ A'] ->
     (forall {Δ a b} (ρ : Δ ≤ Γ) (h : [ |- Δ ])
       (ha : [ ΠA.(PolyRedPack.shpRed) ρ h | Δ ||- a ≅ b : ΠA.(PiRedTyPack.domL)⟨ρ⟩ ]),
-      dover (fun Ξ ρ' hSplit =>[ hSplit| Ξ ||- t[a .: (ρ >> tRel)]⟨ρ'⟩ ≅ t[b .: (ρ >> tRel)]⟨ρ'⟩ : ΠA.(PiRedTyPack.codL)[a .: (ρ >> tRel)]⟨ρ'⟩]) (ΠA.(PolyRedPack.posRed) ρ h ha)) ->
+      dSplit (fun Ξ ρ' hSplit =>[ hSplit| Ξ ||- t[a .: (ρ >> tRel)]⟨ρ'⟩ ≅ t[b .: (ρ >> tRel)]⟨ρ'⟩ : ΠA.(PiRedTyPack.codL)[a .: (ρ >> tRel)]⟨ρ'⟩]) (ΠA.(PolyRedPack.posRed) ρ h ha)) ->
   isLRFun ΠA (tLambda A' t)
 | NeLRFun : forall f : term, [Γ |- f ~ f : PiRedTyPack.outTy ΠA] -> isLRFun ΠA f.
 Module PiRedTmEq.

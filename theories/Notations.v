@@ -217,6 +217,15 @@ Reserved Notation "[ Γ ||-ne t : A | neA ]" (at level 0, Γ, t, A, neA at level
 (** Terms t and u are reducibly convertible at type A in Γ, given the proof neA that A is reducible as neutral *)
 Reserved Notation "[ Γ ||-ne t ≅ u : A | neA ]" (at level 0, Γ, t, u, A at level 50).
 
+(** A is reducible as a neutral in Γ *)
+Reserved Notation "[ Γ ||-Sne A ]" (at level 0, Γ, A at level 50).
+(** Set B is reducibly convertible to type A in Γ, given the proof neA that A is reducible as neutral *)
+Reserved Notation "[ Γ ||-Sne A ≅ B | neA ]" (at level 0, Γ, A, B, neA at level 50).
+(** Term t is reducible at type A in Γ, given the proof neA that A is reducible as neutral *)
+Reserved Notation "[ Γ ||-Sne t : A | neA ]" (at level 0, Γ, t, A, neA at level 50).
+(** Terms t and u are reducibly convertible at type A in Γ, given the proof neA that A is reducible as neutral *)
+Reserved Notation "[ Γ ||-Sne t ≅ u : A | neA ]" (at level 0, Γ, t, u, A at level 50).
+
 (** The type U is reducible in Γ at level l *)
 Reserved Notation "[ Γ ||-U l ]" (at level 0, Γ, l at level 50).
 (** The type B is reducibly convertible to U *)

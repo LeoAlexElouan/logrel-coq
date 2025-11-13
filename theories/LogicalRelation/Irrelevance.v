@@ -1,6 +1,6 @@
 (** * LogRel.LogicalRelation.Irrelevance: symmetry and irrelevance of the logical relation. *)
 From Stdlib Require Import CRelationClasses.
-From LogRel Require Import Utils Syntax.All GenericTyping LogicalRelation.
+From LogRel Require Import Utils Syntax.All GenericTyping LogicalRelation Monad.
 From LogRel.LogicalRelation Require Import Induction Escape.
 
 Set Universe Polymorphism.
@@ -31,7 +31,7 @@ Section Irrelevance.
 
   Lemma irrImplU@{h i j k l h' i' j' k' l' } {l1 l2}
     (ih : forall l, l << l1 -> l << l2 -> cumImpl@{h i j k h' i' j' k'} l)
-    {Γ A B1 B2} (h : [Γ ||-U<l1> A ≅ B1]) (h' : [Γ ||-U<l2> A ≅ B2]) {t u} :
+    {Γ A B1 B2} (h : [Γ ||-SU<l1> A ≅ B1]) (h' : [Γ ||-SU<l2> A ≅ B2]) {t u} :
     [LogRel@{i j k l} l1 | _ ||- t ≅ u : _ | LRU_ h] -> [LogRel@{i' j' k' l'} l2 | _ ||- t ≅ u : _| LRU_ h'].
   Proof.
     assert (eq : h.(URedTy.level) = h'.(URedTy.level)) by now destruct h.(URedTy.lt), h'.(URedTy.lt).
@@ -52,7 +52,7 @@ Section Irrelevance.
 
   Lemma irrU@{h h'} {l1 l2}
     (ih : forall l, l << l1 -> l << l2 -> cum@{h i j k h' i' j' k'} l)
-    {Γ A B1 B2} (h : [Γ ||-U<l1> A ≅ B1]) (h' : [Γ ||-U<l2> A ≅ B2]) : irr (LRU_ h) (LRU_ h').
+    {Γ A B1 B2} (h : [Γ ||-SU<l1> A ≅ B1]) (h' : [Γ ||-SU<l2> A ≅ B2]) : irr (LRU_ h) (LRU_ h').
   Proof.
     intros ??; split; eapply irrImplU;
     intros ? lt1 lt2 ???; [apply (fst (ih _ lt1 lt2 _ _ _) ) | apply (snd (ih _ lt2 lt1 _ _ _) )].
@@ -62,8 +62,9 @@ Section Irrelevance.
   Context {l1 l2 Γ A B1 B2} (ΠA: [Γ ||-Π< l1 > A ≅ B1]) (ΠA': [Γ ||-Π< l2 > A ≅ B2])
     (ihdom: forall Δ (ρ : Δ ≤ Γ) (h : [|- Δ]) B2 (R2 : [Δ ||-< l2 > (ParamRedTy.domL ΠA)⟨ρ⟩ ≅ B2]),
       irr (PolyRed.shpRed ΠA ρ h) R2)
-    (ihcod: forall Δ a b (ρ : Δ ≤ Γ) (h : [|- Δ]) (ha : [PolyRed.shpRed ΠA ρ h | Δ ||- a ≅ b : _ ]) B2
-      (R2 : [Δ ||-< l2 > (ParamRedTy.codL ΠA)[a .: ρ >> tRel] ≅ B2]), irr (PolyRed.posRed ΠA ρ h ha) R2)
+    (ihcod: forall Δ a b (ρ : Δ ≤ Γ) (h : [|- Δ]) (ha : [PolyRed.shpRed ΠA ρ h | Δ ||- a ≅ b : _ ]),
+    dover (fun Ξ ρ' hSplit => forall B2 (R2 : [Ξ ||-< l2 > (ParamRedTy.codL ΠA)[a .: ρ >> tRel]⟨ρ'⟩ ≅ B2]), irr hSplit R2)
+      (PolyRed.posRed ΠA ρ h ha))
     (eqdom: ParamRedTy.domL ΠA' = ParamRedTy.domL ΠA)
     (eqcod: ParamRedTy.codL ΠA' = ParamRedTy.codL ΠA).
 
@@ -71,7 +72,30 @@ Section Irrelevance.
   Proof.
     destruct ΠA, ΠA'; cbn in *; subst.
     intros ? ; split ; intros [|]; constructor; tea; cbn in *.
-    1,2: unshelve (intros; eapply ihcod;  apply e); tea; now eapply ihdom.
+    + intros. cbn in *. unfold irr in ihdom. eapply (fst (ihdom Δ ρ h _ _ a b)) in ha as ha'.
+      specialize (d _ _ _ _ h ha').
+      revert d.
+      unshelve eapply (fun hA => Split_bind _ _ _ hA _); clear hA.
+      intros Ξ ρ' d. unfold Split_PSh; cbn in *.
+      exists (Split_wkn _ _ (PolyRed.posRed polyRed0 ρ h ha') Ξ ρ').(dtree).
+      intros Z ρ'' hover Z' ρ''' hover'; cbn in *.
+      unfold Split_wkn in *.
+      rewrite <- wk_comp_assoc.
+      eapply ihcod.
+      specialize (d Z' (ρ'''∘w ρ'')); cbn in d. unshelve apply d.
+      apply (overtree_PSh _ _ _ ρ''' _ hover).
+    + intros. cbn in *. unfold irr in ihdom. eapply (snd (ihdom Δ ρ h _ _ a b)) in ha as ha'.
+      specialize (d _ _ _ _ h ha').
+      revert d.
+      unshelve eapply (fun hA => Split_bind _ _ _ hA _); clear hA.
+      intros Ξ ρ' d. unfold Split_PSh; cbn in *.
+      exists (Split_wkn _ _ (PolyRed.posRed polyRed ρ h ha') Ξ ρ').(dtree).
+      intros Z ρ'' hover Z' ρ''' hover'; cbn in *.
+      unfold Split_wkn in *.
+      rewrite <- wk_comp_assoc.
+      eapply ihcod.
+      specialize (d Z' (ρ'''∘w ρ'')); cbn in d. unshelve apply d.
+      apply (overtree_PSh _ _ _ ρ''' _ hover).
   Qed.
 
   Lemma irrPiRedTm0 {t} : PiRedTm ΠA' t <≈> PiRedTm ΠA t.

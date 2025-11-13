@@ -49,7 +49,7 @@ Proof.
         now eapply Fwk_Fup.
 Defined.
 
-Lemma overtree_PSh (L L' L'' : Fcontext) (Fρ : L' ≤ε L) (d : DTree L) :
+Lemma over_Dtree_PSh (L L' L'' : Fcontext) (Fρ : L' ≤ε L) (d : DTree L) :
   overtree (DTree_PSh L' d) L'' -> overtree d L''.
 Proof.
   intros Hover; assert (Fρ' : L'' ≤ε L') by now eapply overtree_Fwk.
@@ -67,6 +67,21 @@ Proof.
       now eapply (Fwk_new (Build_newnat L' new hnotin') true Fρ').
     + refine (ihf _ _ _ _ Hover).
       now eapply (Fwk_new (Build_newnat L' new hnotin') false Fρ').
+Qed.
+
+Lemma overtree_PSh (L L' L'' : Fcontext) (Fρ : L'' ≤ε L') (d : DTree L) :
+  overtree d L' -> overtree d L''.
+Proof.
+  intros.
+  induction d as [ | L new dt iht df ihf].
+  + now eapply Fwk_compose.
+  + cbn in *.
+    destruct (decide_in L' new) as [[] hin'|hnotin'].
+    - rewrite (decide_in_in L'' new _ (Fρ _ _ hin')).
+      now apply iht.
+    - rewrite (decide_in_in L'' new _ (Fρ _ _ hin')).
+      now apply ihf.
+    - destruct H.
 Qed.
 
 Local Set Universe Polymorphism.
@@ -120,8 +135,8 @@ Proof.
   exists (DTree_PSh Δ dA).
   intros Ξ σ Hover.
   apply hA.
-  now eapply overtree_PSh.
-Qed.
+  now eapply over_Dtree_PSh.
+Defined.
 
 Lemma Split_wkn_inv Γ A : (forall Δ (ρ : Δ ≤ Γ), Split_PSh A Δ ρ) -> Split A.
 Proof.
@@ -220,15 +235,13 @@ Proof.
   - apply hA.
 Qed.
 
-(* 
-Definition dover {Γ} {A : PSh Γ} (P : forall Δ ρ, A Δ ρ -> Type)
-  (hA : Split A) := forall L (hover : overtree hA.(dtree) L),
-  P (Build_context Γ L) (wk_Fwk (overtree_Fwk hover)) (hA.(cover) (wk_Fwk (overtree_Fwk hover)) hover).
- *)
 
 Definition dover {Γ} {A : PSh Γ} (P : forall Δ ρ, A Δ ρ -> Type)
   (hA : Split A) := forall Δ (ρ : Δ ≤ Γ) (hover : overtree hA.(dtree) Δ),
   P Δ ρ (hA.(cover) Δ ρ hover).
+
+Definition dSplit {Γ} {A : PSh Γ} (P : forall Δ ρ, A Δ ρ -> Type) (hA : Split A) 
+  := Split (fun Δ  (ρ : Δ ≤ Γ) => dover (fun Ξ ρ' => P Ξ (ρ'∘w ρ)) (Split_wkn Γ A hA Δ ρ)).
 
 Definition dover_apply {Γ} {A : PSh Γ} {P Q: forall Δ ρ, A Δ ρ -> Type} {hA : Split A} :
   (forall {Δ ρ a}, P Δ ρ a -> Q Δ ρ a) -> dover P hA -> dover Q hA :=

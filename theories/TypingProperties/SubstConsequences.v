@@ -2,7 +2,7 @@
 From Stdlib Require Import CRelationClasses.
 From LogRel Require Import Utils Syntax.All DeclarativeTyping GenericTyping.
 From LogRel.TypingProperties Require Import DeclarativeProperties PropertiesDefinition.
-
+Kill it early
 (** Many lemmas in this file, prefixed by an underscore, have extraneous premises, which we cannot remove immediately because of circular dependencies. The stronger version which one wants to use is the one without underscore. *)
 
 Set Printing Primitive Projection Parameters.
