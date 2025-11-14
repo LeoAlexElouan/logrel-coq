@@ -1,6 +1,6 @@
 (** * LogRel.LogicalRelation.Irrelevance: symmetry and irrelevance of the logical relation. *)
 From Stdlib Require Import CRelationClasses.
-From LogRel Require Import Utils Syntax.All GenericTyping LogicalRelation.
+From LogRel Require Import Utils Syntax.All GenericTyping LogicalRelation Monad.
 From LogRel.LogicalRelation Require Import Induction Escape Irrelevance.
 
 Set Universe Polymorphism.
@@ -28,7 +28,7 @@ Section Symmetry.
   Definition symPoly {Γ l A A' B B'} (ΠA : PolyRed Γ l A A' B B')
     (ihdom: forall (Δ : context) (ρ : Δ ≤ Γ) (h : [ |-[ ta ] Δ]), sym (PolyRed.shpRed ΠA ρ h))
     (ihcod: forall (Δ : context) (a b : term) (ρ : Δ ≤ Γ) (h : [ |-[ ta ] Δ])
-      (ha : [PolyRed.shpRed ΠA ρ h | Δ ||- a ≅ b : _]), sym (PolyRed.posRed ΠA ρ h ha))
+      (ha : [PolyRed.shpRed ΠA ρ h | Δ ||- a ≅ b : _]), dover (fun _ _ => sym) (PolyRed.posRed ΠA ρ h ha))
       : PolyRed Γ l A' A B' B.
   Proof.
     unshelve econstructor.
