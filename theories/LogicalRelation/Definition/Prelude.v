@@ -103,6 +103,16 @@ Definition Rel_PSh (R : forall Γ A B, Type) Γ A B : PSh Γ :=
   fun Δ (ρ : Δ ≤ Γ) => R Δ A⟨ρ⟩ B⟨ρ⟩.
 
 Definition Split_Rel@{i} : (forall Γ A B, Type@{i}) -> (forall Γ A B, Type@{i}) :=
-  fun R Γ A B => Split@{i} (Rel_PSh R Γ A B).
+  fun R Γ A B => Split@{i} (fun Δ (ρ : Δ ≤ Γ) => R Δ A⟨ρ⟩ B⟨ρ⟩).
+
+Definition Rel_PSh_root (R : forall Γ A B, Type) Γ A B : (forall Δ (ρ : Δ ≤ Γ), R Δ A⟨ρ⟩ B⟨ρ⟩) -> R Γ A B.
+Proof. intros hPSh; specialize (hPSh Γ wk_id); erewrite 2!wk_id_ren_on in hPSh; tea. Qed.
+
+Lemma convty_shf `{GenericTypingProperties} {Γ A B} : shf (fun Δ (ρ : Δ ≤ Γ) => [Δ |- A⟨ρ⟩ ≅ B⟨ρ⟩]).
+Proof.
+  intros Δ ρ new.
+  apply convty_split.
+Qed.
+
 
 

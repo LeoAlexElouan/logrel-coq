@@ -1,5 +1,5 @@
 From Stdlib Require Import CRelationClasses.
-From LogRel Require Import Utils Syntax.All GenericTyping LogicalRelation.
+From LogRel Require Import Utils Syntax.All GenericTyping LogicalRelation Monad.
 From LogRel.LogicalRelation Require Import Induction Escape Irrelevance Symmetry.
 From Equations Require Import Equations.
 
@@ -63,9 +63,9 @@ Section Transitivity.
     (ihdom : forall Δ (ρ : Δ ≤ Γ) (h : [|- Δ]) l2 C (RBC : [Δ ||-< l2 > B1⟨ρ⟩ ≅ C]),
       trans (PolyRed.shpRed PAB ρ h) RBC)
     (ihcod : forall Δ a b (ρ : Δ ≤ Γ) (h : [|- Δ])
-      (ha : [PolyRed.shpRed PAB ρ h | Δ ||- a ≅ b: _]) l2 C
-      (RBC : [Δ ||-< l2 > B2[b .: ρ >> tRel] ≅ C]),
-      trans (PolyRed.posRed PAB ρ h ha) RBC) :
+      (ha : [PolyRed.shpRed PAB ρ h | Δ ||- a ≅ b: _]) l2 C,
+      dover (fun Ξ ρ' hSplit => forall (RBC : [Ξ ||-< l2 > B2[b .: ρ >> tRel]⟨ρ'⟩ ≅ C⟨ρ'⟩]),
+          trans hSplit RBC) (PolyRed.posRed PAB ρ h ha)) :
     PolyRed@{i j k l} Γ l1 A1 C1 A2 C2.
   Proof.
     unshelve econstructor.
@@ -74,6 +74,16 @@ Section Transitivity.
       all: tea.
     - cbn; intros ????? hab.
       pose proof (factor _ hab) as [haa hab'].
+      pose proof (PBC.(PolyRed.posRed)) as hBC.
+      specialize (hBC _ _ _ _ _ hab').
+      revert hBC; unshelve eapply (fun hA => Split_bind hA _); clear hA.
+      intros Ξ ρ' hBC; cbn in *.
+      exists (DTree_PSh Ξ (PolyRed.posRed PAB ρ h haa).(dtree)).
+      intros Z ρ'' hover.
+      specialize (ihcod Δ a a ρ h haa l2 C2[b .: ρ >> tRel] Z (ρ'' ∘w ρ') (over_DTree_PSh _ _ _ _ _ hover)); cbn in ihcod.
+      unshelve eapply transRed, ihcod.
+      do 2 rewrite <- subst_ren_subst_mixed3.
+      eapply PBC.(PolyRed.posRed).
       unshelve eapply transRed, ihcod.
       2: now eapply PBC.(PolyRed.posRed).
       all: tea.

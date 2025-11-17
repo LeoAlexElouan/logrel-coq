@@ -33,14 +33,15 @@ Section Symmetry.
   Proof.
     unshelve econstructor.
     * intros; now unshelve eapply symRed, ihdom.
-    * intros; (unshelve eapply symRed, ihcod); tea.
-      now eapply symRedTm.
+    * intros * ha; cbn in *.
+      exists (PolyRed.posRed ΠA ρ h (fst (symRedTm (ihdom Δ ρ h)) ha)).(dtree).
+      intros; now eapply ihcod.
   Defined.
 
   Definition symParamRedTy {T Γ l A A'} (ΠA : ParamRedTy T Γ l A A')
     (ihdom: forall (Δ : context) (ρ : Δ ≤ Γ) (h : [ |-[ ta ] Δ]), sym (PolyRed.shpRed ΠA ρ h))
     (ihcod: forall (Δ : context) (a b : term) (ρ : Δ ≤ Γ) (h : [ |-[ ta ] Δ])
-      (ha : [PolyRed.shpRed ΠA ρ h | Δ ||- a ≅ b : _]), sym (PolyRed.posRed ΠA ρ h ha))
+      (ha : [PolyRed.shpRed ΠA ρ h | Δ ||- a ≅ b : _]), dover (fun _ _ => sym) (PolyRed.posRed ΠA ρ h ha))
       : ParamRedTy T Γ l A' A.
   Proof.
     destruct ΠA; cbn in *; unshelve econstructor.
@@ -53,7 +54,7 @@ Section Symmetry.
     Context {Γ l A A'} (ΠA : [Γ ||-Π<l> A ≅ A'])
       (ihdom: forall (Δ : context) (ρ : Δ ≤ Γ) (h : [ |-[ ta ] Δ]), sym (PolyRed.shpRed ΠA ρ h))
       (ihcod: forall (Δ : context) (a b : term) (ρ : Δ ≤ Γ) (h : [ |-[ ta ] Δ])
-        (ha : [PolyRed.shpRed ΠA ρ h | Δ ||- a ≅ b : _]), sym (PolyRed.posRed ΠA ρ h ha)).
+        (ha : [PolyRed.shpRed ΠA ρ h | Δ ||- a ≅ b : _]), dover (fun _ _ => sym) (PolyRed.posRed ΠA ρ h ha)).
 
     Let symΠ := symParamRedTy ΠA ihdom ihcod.
 
@@ -63,14 +64,26 @@ Section Symmetry.
       - intros [???? Rbody|].
         * constructor; tea.
           1: etransitivity; tea; eapply ParamRedTy.eqdom.
-          intros; eapply ihcod, Rbody.
+          intros.
+          specialize (Rbody Δ b a ρ h (fst (symRedTm _) ha)).
+          revert Rbody; eapply split_hom_PSh; intros Ξ ρ' Rbody.
+          intros Z ρ'' hover.
+          now eapply ihcod, Rbody.
         * constructor; eapply convneu_conv; tea; eapply ParamRedTy.eq.
       - intros [???? Rbody|].
         * constructor; tea.
           1: etransitivity; tea; eapply ParamRedTy.eqdom.
           intros ? a b ρ h ha.
-          unshelve eapply ihcod, irrLR, Rbody; tea.
-          now eapply ihdom.
+          specialize (Rbody Δ b a ρ h (snd (symRedTm _) ha)).
+          revert Rbody; unshelve eapply (fun hA => Split_bind hA _); clear hA.
+          intros Ξ ρ' Rbody; cbn in *.
+          exists (DTree_PSh Ξ (PolyRed.posRed ΠA ρ h
+            (fst (symRedTm (ihdom Δ ρ h)) (snd (symRedTm (ihdom Δ ρ h)) ha))).(dtree)).
+          intros Z ρ'' hover Z' ρ''' hover'; cbn in *.
+          specialize (Rbody Z' (ρ'''∘w ρ'')); cbn in *.
+          rewrite <- wk_comp_assoc.
+          unshelve eapply ihcod, irrLR, Rbody.
+          apply (overtree_PSh _ hover).
         * constructor; eapply convneu_conv; tea; eapply ParamRedTy.eq.
     Qed.
 
@@ -84,7 +97,23 @@ Section Symmetry.
     Proof.
       split; intros []; unshelve econstructor; try now eapply symPiRedTm.
       1,3: cbn; eapply convtm_conv; [now symmetry| eapply PiRedTy.eq].
-      all: cbn; intros; unshelve eapply ihcod, irrLR, eqApp; tea; now eapply ihdom.
+      - intros Δ a b ρ h hab; cbn in *.
+        specialize (eqApp Δ b a ρ h (fst (symRedTm _) hab)).
+        revert eqApp; eapply split_hom_PSh; intros Ξ ρ' eqApp.
+          intros Z ρ'' hover.
+          now eapply ihcod, eqApp.
+      - intros Δ a b ρ h hab; cbn in *.
+        specialize (eqApp Δ b a ρ h (snd (symRedTm _) hab)).
+          revert eqApp; unshelve eapply (fun hA => Split_bind hA _); clear hA.
+          intros Ξ ρ' eqApp.
+          exists (DTree_PSh Ξ (PolyRed.posRed ΠA ρ h
+            (fst (symRedTm (ihdom Δ ρ h)) (snd (symRedTm _) hab))).(dtree)).
+          intros Z ρ'' hover Z' ρ''' hover'; cbn in *.
+          specialize (eqApp Z' (ρ'''∘w ρ'')). cbn in *.
+          change (wk_compose ρ''' (wk_compose ρ'' ρ')) with (wk (ρ''' ∘w (ρ'' ∘w ρ'))).
+          rewrite <- wk_comp_assoc.
+          unshelve eapply ihcod, irrLR, eqApp.
+          apply (overtree_PSh _ hover).
     Qed.
 
     Definition symLRΠ : sym (LRPi' ΠA).
@@ -92,7 +121,7 @@ Section Symmetry.
   End SymΠ.
 
 
-  Lemma symNe {Γ A B} : [Γ ||-ne A ≅ B] -> [Γ ||-ne B ≅ A].
+  Lemma symNe {Γ A B} : [Γ ||-Sne A ≅ B] -> [Γ ||-Sne B ≅ A].
   Proof.
     intros []; unshelve econstructor.
     3,4: tea.
@@ -105,14 +134,19 @@ Section Symmetry.
   Qed.
 
   Lemma symNatRedTmEq {Γ} :
+    (forall t u, SNatRedTmEq Γ t u -> SNatRedTmEq Γ u t) ×
     (forall t u, NatRedTmEq Γ t u -> NatRedTmEq Γ u t) ×
     (forall t u, NatPropEq Γ t u -> NatPropEq Γ u t).
   Proof.
-    eapply NatRedEqInduction.
+    eapply (NatRedEqInduction) with
+      (P:= fun Γ t u _ => SNatRedTmEq Γ u t)
+      (P1:= fun Γ t u _ => NatRedTmEq Γ u t)
+      (P0:= fun Γ t u _ => NatPropEq Γ u t).
     - intros; econstructor; tea; now symmetry.
     - constructor.
     - intros; now constructor.
     - intros; constructor; now eapply symNeNf.
+    - intros; now constructor.
   Qed.
 
   Lemma symBoolPropEq {Γ} :
@@ -123,7 +157,7 @@ Section Symmetry.
   Qed.
 
   Lemma symBoolRedTmEq {Γ} :
-    forall t u, BoolRedTmEq Γ t u -> BoolRedTmEq Γ u t.
+    forall t u, SBoolRedTmEq Γ t u -> SBoolRedTmEq Γ u t.
   Proof.
     intros ?? []; econstructor; tea.
     2: now eapply symBoolPropEq.
@@ -135,7 +169,7 @@ Section Symmetry.
     Context {Γ l A A'} (ΣA : [Γ ||-Σ<l> A ≅ A'])
       (ihdom: forall (Δ : context) (ρ : Δ ≤ Γ) (h : [ |-[ ta ] Δ]), sym (PolyRed.shpRed ΣA ρ h))
       (ihcod: forall (Δ : context) (a b : term) (ρ : Δ ≤ Γ) (h : [ |-[ ta ] Δ])
-        (ha : [PolyRed.shpRed ΣA ρ h | Δ ||- a ≅ b : _]), sym (PolyRed.posRed ΣA ρ h ha)).
+        (ha : [PolyRed.shpRed ΣA ρ h | Δ ||- a ≅ b : _]), dover (fun _ _ => sym) (PolyRed.posRed ΣA ρ h ha)).
 
     Let symΣ := symParamRedTy ΣA ihdom ihcod.
 
@@ -146,19 +180,47 @@ Section Symmetry.
         * unshelve eapply PairLRPair; tea.
           2: etransitivity; tea; eapply ParamRedTy.eqdom.
           + intros; now eapply ihdom.
-          + etransitivity; tea; erewrite 2!eq_subst_scons.
-            symmetry; eapply escapeEq.
-            unshelve eapply PolyRed.posRed, r1; gtyping.
-          + intros; (unshelve now eapply ihcod, irrLR); tea.
+          + etransitivity; tea.
+            apply Rel_PSh_root.
+            assert [|-Γ] as hΓ by gtyping.
+            pose proof (PolyRed.posRed ΣA wk_id hΓ (r1 _ wk_id _)) as hSplit; revert hSplit.
+            apply (split_bind_alg convty_shf).
+            intros Δ ρ.
+            erewrite 2!eq_subst_scons.
+            intros hLR.
+            symmetry; now eapply escapeEq.
+          + intros; cbn.
+            specialize (r2 _ ρ h).
+            revert r2; unshelve eapply (fun hA => Split_bind hA _); clear hA.
+            intros Ξ ρ' r2; cbn in *.
+            exists (DTree_PSh Ξ (PolyRedPack.posRed ΣA ρ h (r1 Δ ρ h)).(dtree)).
+            intros Z ρ'' hover Z' ρ''' hover'; cbn in *.
+            rewrite <- wk_comp_assoc.
+            unshelve eapply ihcod, irrLR, r2.
+            now eapply overtree_PSh.
         * constructor; eapply convneu_conv; tea; eapply ParamRedTy.eq.
       - intros [???????? r1 r2|].
         * unshelve eapply PairLRPair; tea.
           2: etransitivity; tea; eapply ParamRedTy.eqdom.
           + intros; now eapply ihdom.
-          + etransitivity; tea; erewrite 2!eq_subst_scons.
-            symmetry; eapply escapeEq.
-            unshelve eapply PolyRed.posRed, r1; gtyping.
-          + intros; (unshelve now eapply ihcod, irrLR); tea.
+          + etransitivity; tea.
+            apply Rel_PSh_root.
+            assert [|-Γ] as hΓ by gtyping.
+            pose proof (PolyRed.posRed symΣ wk_id hΓ (r1 _ wk_id _)) as hSplit; revert hSplit.
+            apply (split_bind_alg convty_shf).
+            intros Δ ρ.
+            erewrite 2!eq_subst_scons.
+            intros hLR.
+            symmetry; now eapply escapeEq.
+          + intros; cbn.
+            specialize (r2 _ ρ h).
+            revert r2; unshelve eapply (fun hA => Split_bind hA _); clear hA.
+            intros Ξ ρ' r2; cbn in *.
+            exists (DTree_PSh Ξ (PolyRedPack.posRed symΣ ρ h (r1 Δ ρ h)).(dtree)).
+            intros Z ρ'' hover Z' ρ''' hover'; cbn in *.
+            rewrite <- wk_comp_assoc.
+            unshelve eapply ihcod, irrLR, r2.
+            now eapply overtree_PSh.
         * constructor; eapply convneu_conv; tea; eapply ParamRedTy.eq.
     Qed.
 
@@ -173,7 +235,26 @@ Section Symmetry.
       split; intros []; unshelve econstructor; try now eapply symSigRedTm.
       3,5: cbn; eapply convtm_conv; [now symmetry| eapply PiRedTy.eq].
       1,2: cbn; intros; now eapply ihdom.
-      all: cbn; intros; unshelve (now eapply ihcod, irrLR); tea.
+      + intros; cbn in *.
+        specialize (eqSnd _ ρ h).
+        revert eqSnd; unshelve eapply (fun hA => Split_bind hA _); clear hA.
+        intros Ξ ρ' eqSnd; cbn in *.
+        exists (DTree_PSh Ξ (PolyRed.posRed ΣA ρ h (eqFst _ ρ h)).(dtree)).
+        intros Z ρ'' hover Z' ρ''' hover'; cbn in *.
+        change (wk_compose ρ''' (wk_compose ρ'' ρ')) with (wk (ρ''' ∘w (ρ'' ∘w ρ'))).
+        rewrite <- wk_comp_assoc.
+        unshelve eapply ihcod, irrLR, eqSnd.
+        now eapply overtree_PSh.
+      + intros; cbn in *.
+        specialize (eqSnd _ ρ h).
+        revert eqSnd; unshelve eapply (fun hA => Split_bind hA _); clear hA.
+        intros Ξ ρ' eqSnd; cbn in *.
+        exists (DTree_PSh Ξ (PolyRed.posRed symΣ ρ h (eqFst _ ρ h)).(dtree)).
+        intros Z ρ'' hover Z' ρ''' hover'; cbn in *.
+        change (wk_compose ρ''' (wk_compose ρ'' ρ')) with (wk (ρ''' ∘w (ρ'' ∘w ρ'))).
+        rewrite <- wk_comp_assoc.
+        unshelve eapply ihcod, irrLR, eqSnd.
+        now eapply overtree_PSh.
     Qed.
 
     Definition symLRΣ : sym (LRSig' ΣA).
@@ -181,9 +262,9 @@ Section Symmetry.
   End SymΣ.
 
   Section SymId.
-  Context {Γ l A B} (IA: [Γ ||-Id< l > A ≅ B]) (ihdom:  sym (IdRedTy.tyRed IA)).
+  Context {Γ l A B} (IA: [Γ ||-SId< l > A ≅ B]) (ihdom:  sym (IdRedTy.tyRed IA)).
 
-  Lemma symId : [Γ ||-Id<l> B ≅ A].
+  Lemma symId : [Γ ||-SId<l> B ≅ A].
   Proof.
     destruct IA; unshelve econstructor.
     8,9: tea.
@@ -219,7 +300,7 @@ Section Symmetry.
     - eapply symNeNf, NeNf.conv_; tea; eapply IdRedTy.eq.
   Qed.
 
-  Lemma symIdRedTmEq {t u} : IdRedTmEq IA t u <≈> IdRedTmEq symId u t.
+  Lemma symIdRedTmEq {t u} : SIdRedTmEq IA t u <≈> SIdRedTmEq symId u t.
   Proof.
     split; intros [????? ?%symIdPropEq]; econstructor; tea.
     3,6: eapply convtm_conv; [now symmetry|]; eapply IdRedTy.eq.
@@ -261,6 +342,8 @@ Section Symmetry.
     - intros ΠA ihdom ihcod ih.
       eapply symLRΠ.
       all: intros; eauto.
+      intros Ξ ρ' hover.
+      specialize (ihcod Δ a b ρ h ha Ξ ρ' hover); now apply ihcod.
     - intros NA _; unshelve econstructor.
       + eapply LRNat_; destruct NA; now econstructor.
       + intros; cbn; split; eapply symNatRedTmEq.
@@ -271,6 +354,8 @@ Section Symmetry.
       + eapply LREmpty_; destruct EA; now econstructor.
       + intro; cbn; split; intros []; econstructor; tea; now eapply symNeNf.
     - intros ΣA ihdom ihcod ih; eapply symLRΣ; intros; eauto.
+      intros Ξ ρ' hover.
+      specialize (ihcod Δ a b ρ h ha Ξ ρ' hover); now apply ihcod.
     - intros IA ihdom ih; eapply symLRId; eauto.
   Qed.
 

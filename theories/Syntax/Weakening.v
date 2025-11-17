@@ -567,7 +567,7 @@ Proof.
   now apply Fρ.
 Defined.
 
-Lemma wk_Fup : forall Γ Δ b n (ρ : Δ ≤ Γ ) (newΓ : not_in_Fctx Γ n) (newΔ : not_in_Fctx Δ n),
+Lemma wk_Fup : forall {Γ Δ} b n (ρ : Δ ≤ Γ ) (newΓ : not_in_Fctx Γ n) (newΔ : not_in_Fctx Δ n),
   (Δ,, (Build_newnat _ n newΔ) ↦ b) ≤ (Γ,, (Build_newnat _ n newΓ)↦ b).
 Proof.
   intros Γ Δ b n ρ newΓ newΔ.
