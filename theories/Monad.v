@@ -233,6 +233,25 @@ Proof.
   apply Split_shf.
 Qed.
 
+Lemma Split_Splitfree {Γ} {A : PSh Γ} : Split A -> Split (fun Δ ρ => forall Ξ ρ', A Ξ (ρ'∘w ρ)).
+Proof.
+  intros * [dA hA].
+  exists dA.
+  intros * hover *.
+  apply hA.
+  now apply overtree_PSh.
+Qed.
+
+Lemma Split_bind' : forall {Γ} {A B : PSh Γ},
+  Split A ->
+  (forall Δ (ρ : Δ ≤ Γ), (forall Ξ ρ', A Ξ (ρ'∘w ρ)) -> Split (fun Ξ ρ' => B Ξ (ρ' ∘w ρ))) ->
+  Split B.
+Proof.
+  intros Γ A B hA f.
+  apply Split_Splitfree in hA.
+  now eapply Split_bind.
+Qed.
+
 
 Definition dover {Γ} {A : PSh Γ} (P : forall Δ ρ, A Δ ρ -> Type)
   (hA : Split A) := forall Δ (ρ : Δ ≤ Γ) (hover : overtree hA.(dtree) Δ),

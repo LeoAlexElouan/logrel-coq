@@ -76,23 +76,19 @@ Section Transitivity.
       pose proof (factor _ hab) as [haa hab'].
       pose proof (PBC.(PolyRed.posRed)) as hBC.
       specialize (hBC _ _ _ _ _ hab').
-      revert hBC; unshelve eapply (fun hA => Split_bind hA _); clear hA.
+      revert hBC; unshelve eapply (fun hA => Split_bind' hA _); clear hA.
       intros Ξ ρ' hBC; cbn in *.
       exists (DTree_PSh Ξ (PolyRed.posRed PAB ρ h haa).(dtree)).
       intros Z ρ'' hover.
       specialize (ihcod Δ a a ρ h haa l2 C2[b .: ρ >> tRel] Z (ρ'' ∘w ρ') (over_DTree_PSh _ _ _ _ _ hover)); cbn in ihcod.
       unshelve eapply transRed, ihcod.
-      do 2 rewrite <- subst_ren_subst_mixed3.
-      eapply PBC.(PolyRed.posRed).
-      unshelve eapply transRed, ihcod.
-      2: now eapply PBC.(PolyRed.posRed).
-      all: tea.
+      apply hBC.
   Qed.
 
 
   Context {Γ : context} {l1 l2 : TypeLevel} {A B C : term}.
 
-  Definition transLRne (neAB : [Γ ||-ne A ≅ B]) (neBC : [Γ ||-ne B ≅ C]) :
+  Definition transLRne (neAB : [Γ ||-Sne A ≅ B]) (neBC : [Γ ||-Sne B ≅ C]) :
     neRedTy.tyL neBC = neRedTy.tyR neAB ->
     trans (LRne_ l1 neAB) (LRne_ l2 neBC).
   Proof.
@@ -117,9 +113,9 @@ Section Transitivity.
       (ihdom : forall Δ (ρ : Δ ≤ Γ) (h : [|- Δ]) l2 C (RBC : [Δ ||-< l2 > (ParamRedTy.domR ΠAB)⟨ρ⟩ ≅ C]),
         trans (PolyRed.shpRed ΠAB ρ h) RBC)
       (ihcod : forall Δ a b (ρ : Δ ≤ Γ) (h : [|- Δ])
-        (ha : [PolyRed.shpRed ΠAB ρ h | Δ ||- a ≅ b: _]) l2 C
-        (RBC : [Δ ||-< l2 > (ParamRedTy.codR ΠAB) [b .: ρ >> tRel] ≅ C]),
-        trans (PolyRed.posRed ΠAB ρ h ha) RBC)
+        (ha : [PolyRed.shpRed ΠAB ρ h | Δ ||- a ≅ b: _]) l2 C, dover (fun Ξ ρ' hSplit => forall
+        (RBC : [Ξ ||-< l2 > (ParamRedTy.codR ΠAB)[b .: ρ >> tRel]⟨ρ'⟩ ≅ C⟨ρ'⟩]),
+        trans hSplit RBC) (PolyRed.posRed ΠAB ρ h ha))
       (eqdom : ParamRedTy.domL ΠBC = ParamRedTy.domR ΠAB)
       (eqcod : ParamRedTy.codL ΠBC = ParamRedTy.codR ΠAB).
 
