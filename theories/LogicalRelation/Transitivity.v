@@ -134,8 +134,17 @@ Section Transitivity.
     Proof.
       intros [?? isfun]; cbn in *; econstructor; tea.
       destruct isfun as [???? eqbody|]; constructor; tea.
-      intros; unshelve eapply irrLR, eqbody; tea.
-      now eapply irrLR.
+      intros *.
+      eapply irrLR in ha as ha'.
+      specialize (eqbody Δ a b ρ h ha').
+      eapply Split_bind; [apply eqbody|clear eqbody].
+      intros Ξ ρ' eqbody; cbn in eqbody.
+      exists (DTree_PSh Ξ (PolyRed.posRed ΠAB ρ h ha').(dtree)).
+      intros Z ρ'' hover Z' ρ''' hover'; cbn.
+      rewrite <- wk_comp_assoc.
+      eapply irrLR; cbn.
+      unshelve eapply eqbody.
+      apply (overtree_PSh _ hover).
     Defined.
 
     #[local]
@@ -149,11 +158,20 @@ Section Transitivity.
         cbn in *; destruct ΠAB; cbn in *; subst; cbn.
         unshelve epose proof (factor (ihdom _ ρ h _ _ (PolyRed.shpRed ΠBC ρ h)) _) as [haa hab'].
         3: eapply irrLR, hab.
-        unshelve eapply irrLR, ihcod.
-        9: now unshelve eapply eqbody.
+        specialize (eqbody Δ a b ρ h hab').
+        eapply Split_bind; [apply eqbody|clear eqbody].
+        intros Ξ ρ' eqbody.
+        exists (DTree_PSh Ξ (PolyRed.posRed ΠBC ρ h hab').(dtree)).
+        intros Θ ρ'' hover Ω ρ''' hover'; cbn in *.
+        rewrite <- wk_comp_assoc.
+        specialize (eqbody Ω (ρ'''∘w ρ'') (overtree_PSh _ hover)); cbn in *.
+        unshelve eapply irrLR, eqbody.
+        4: unshelve eapply eqbody.
         1,2: tea.
+        1: eapply overtree_PSh; now eapply over_DTree_PSh.
         eapply (symLR _).(symRedTm).
-        unshelve eapply irrLR, eqbody; tea.
+        unshelve eapply irrLR. 5:{
+        eapply (eqbody Ω (ρ'''∘w ρ'')). ; tea.
         now eapply irrLR, (symLR _).(symRedTm).
       - eapply convneu_conv; tea; cbn; rewrite eqΠ; symmetry; apply ParamRedTy.eq.
     Defined.

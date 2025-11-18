@@ -265,7 +265,25 @@ Proof.
 Qed.
 
 Definition dSplit {Γ} {A : PSh Γ} (P : forall Δ ρ, A Δ ρ -> Type) (hA : Split A) 
-  := Split (fun Δ  (ρ : Δ ≤ Γ) => dover (fun Ξ ρ' => P Ξ (ρ'∘w ρ)) (Split_wkn hA _)).
+  := Split (fun Δ (ρ : Δ ≤ Γ) => dover (fun Ξ ρ' => P Ξ (ρ'∘w ρ)) (Split_wkn hA _)).
+
+Definition irr_dPSh {Γ A} (P : forall Δ ρ, A Δ ρ -> Type) := forall Δ (ρ : Δ ≤ Γ) (a a' : A Δ ρ), P Δ ρ a -> P Δ ρ a'.
+
+Goal forall Γ A (P : forall Δ ρ, A Δ ρ -> Type) hA, irr_dPSh P -> dSplit P hA ->
+  dover (fun Δ (ρ : Δ ≤ Γ) hSplit => Split (fun Ξ ρ' => P Ξ (ρ'∘w ρ) (hSplit Ξ ρ'))) (Split_Splitfree hA).
+Proof.
+  intros * hirr hP Δ ρ hover.
+  eapply Split_bind.
+  apply (Split_wkn hP ρ).
+  clear hP.
+  intros Ξ ρ' hP. unfold PSh_PSh in hP.
+  exists (Split_wkn hA (ρ' ∘w ρ)).(dtree).
+  intros Θ ρ'' hover'.
+  specialize (hP Θ ρ'' hover'). cbn in hP.
+  rewrite <- wk_comp_assoc in hP.
+  eapply hirr.
+  apply hP.
+
 
 Definition dover_apply {Γ} {A : PSh Γ} {P Q: forall Δ ρ, A Δ ρ -> Type} {hA : Split A} :
   (forall {Δ ρ a}, P Δ ρ a -> Q Δ ρ a) -> dover P hA -> dover Q hA :=
