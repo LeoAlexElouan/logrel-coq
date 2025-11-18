@@ -27,10 +27,13 @@ Inductive isLRFun `{ta : tag} `{WfContext ta}
     [Γ |-  ΠA.(PiRedTyPack.domL) ≅ A'] ->
     (forall {Δ a b} (ρ : Δ ≤ Γ) (h : [ |- Δ ])
       (ha : [ ΠA.(PolyRedPack.shpRed) ρ h | Δ ||- a ≅ b : ΠA.(PiRedTyPack.domL)⟨ρ⟩ ]),
-      dSplit (fun Ξ ρ' hSplit =>[ hSplit| Ξ ||- t[a .: (ρ >> tRel)]⟨ρ'⟩ ≅ t[b .: (ρ >> tRel)]⟨ρ'⟩ : ΠA.(PiRedTyPack.codL)[a .: (ρ >> tRel)]⟨ρ'⟩])
-        (ΠA.(PolyRedPack.posRed) ρ h ha)) ->
+      dover (Split_Splitfree (ΠA.(PolyRedPack.posRed) ρ h ha)) (fun Ξ ρ' hSplit =>
+        (Split (fun Θ ρ'' => [hSplit Θ ρ''| Θ ||- t[a .: (ρ >> tRel)]⟨ρ''∘w ρ'⟩ ≅ t[b .: (ρ >> tRel)]⟨ρ''∘w ρ'⟩ : ΠA.(PiRedTyPack.codL)[a .: (ρ >> tRel)]⟨ρ'⟩])))) ->
   isLRFun ΠA (tLambda A' t)
 | NeLRFun : forall f : term, [Γ |- f ~ f : PiRedTyPack.outTy ΠA] -> isLRFun ΠA f.
+      (* dSplit (fun Ξ ρ' hSplit =>[ hSplit| Ξ ||- t[a .: (ρ >> tRel)]⟨ρ'⟩ ≅ t[b .: (ρ >> tRel)]⟨ρ'⟩ : ΠA.(PiRedTyPack.codL)[a .: (ρ >> tRel)]⟨ρ'⟩])
+        (ΠA.(PolyRedPack.posRed) ρ h ha)) -> *)
+
 Module PiRedTmEq.
 
   Import PiRedTyPack.

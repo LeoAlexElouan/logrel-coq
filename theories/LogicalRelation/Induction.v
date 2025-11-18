@@ -113,7 +113,7 @@ same. Both need to be proven simultaneously, because of contravariance in the pr
     ((forall {Δ} (ρ : Δ ≤ Γ) (h : [ |- Δ]), P (ΠA.(PolyRed.shpRed) ρ h).(LRAd.adequate)) ->
     (forall {Δ a b} (ρ : Δ ≤ Γ) (h : [ |- Δ ])
       (ha : [ Δ ||-< _ > a ≅ b : _ |  ΠA.(PolyRed.shpRed) ρ h ]),
-      dover (fun _ _ hSplit => P (LRAd.adequate hSplit)) (ΠA.(PolyRed.posRed) ρ h ha)) -> G).
+      dover (ΠA.(PolyRed.posRed) ρ h ha) (fun _ _ hSplit => P (LRAd.adequate hSplit))) -> G).
 
 
 
@@ -159,7 +159,7 @@ same. Both need to be proven simultaneously, because of contravariance in the pr
     ((forall {Δ} (ρ : Δ ≤ Γ) (h : [ |- Δ]), P (ΠA.(PolyRed.shpRed) ρ h)) ->
     (forall {Δ a b} (ρ : Δ ≤ Γ) (h : [ |- Δ ])
       (ha : [ ΠA.(PolyRed.shpRed) ρ h | Δ ||- a ≅ b : _ ]),
-      dover (fun _ _ => P) (ΠA.(PolyRed.posRed) ρ h ha)) -> G).
+      dover (ΠA.(PolyRed.posRed) ρ h ha) (fun _ _ => P)) -> G).
 
   Theorem LR_rect_TyUr@{i j k l o}
     (P : forall {l Γ A B}, [LogRel@{i j k l} l | Γ ||- A ≅ B] -> Type@{o}) :

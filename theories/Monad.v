@@ -129,10 +129,10 @@ Proof.
   now apply hA.
 Qed.
 
-Lemma Split_wkn {Γ} {A : PSh Γ} : Split A -> forall {Δ} ρ, Split_PSh A Δ ρ.
+Lemma Split_wkn {Γ} {A : PSh Γ} : Split A -> forall {Δ} ρ, Split (fun Ξ (ρ' : Ξ ≤ Δ) => A Ξ (ρ'∘w ρ)).
 Proof.
-  intros [dA hA] Δ ρ.
-  exists (DTree_PSh Δ dA).
+  intros hA Δ ρ.
+  exists (DTree_PSh Δ hA.(dtree)).
   intros Ξ σ Hover.
   apply hA.
   now eapply over_DTree_PSh.
@@ -178,26 +178,36 @@ Proof.
 Qed.
 
 
-Lemma split_bind_alg : forall {Γ} {A B: PSh Γ},
-  shf B ->
-  hom A B ->
-  Split A -> (forall Δ (ρ : Δ ≤ Γ), B Δ ρ).
+Lemma split_bind_alg_over : forall {Γ} {A B: PSh Γ},
+  shf B -> forall (hA : Split A),
+  (forall Δ (ρ : Δ ≤ Γ), overtree hA.(dtree) Δ -> A Δ ρ -> B Δ ρ)->
+  forall Δ (ρ : Δ ≤ Γ), B Δ ρ.
 Proof.
-  intros [Γ L] A B hBshf hhom [dA hA]; cbn in *.
+  intros [Γ L] A B hBshf [dA hA] hhom; cbn in *.
   induction dA as [L |L new dt ihAt df ihAf].
-  - intros Δ ρ. cbn in *.
+  - intros Δ ρ; cbn in *.
     apply hhom.
-    apply hA.
-    apply ρ.
+    2: apply hA.
+    all: apply ρ.
   - change L with (Fctx (Build_context Γ L)) in new.
     specialize (ihAt (PSh_PSh (wk_Fstep new true wk_id) A)
-      (PSh_PSh (wk_Fstep new true wk_id) B) (shf_PSh hBshf) (hom_PSh hhom)).
+      (PSh_PSh (wk_Fstep new true wk_id) B) (shf_PSh hBshf)).
     specialize (ihAf (PSh_PSh (wk_Fstep new false wk_id) A)
-      (PSh_PSh (wk_Fstep new false wk_id) B) (shf_PSh hBshf) (hom_PSh hhom)).
+      (PSh_PSh (wk_Fstep new false wk_id) B) (shf_PSh hBshf)).
     assert (forall (b: bool) Δ (ρ : Δ ≤ (Build_context Γ L),,new ↦ b),
       overtree (match b with true => dt| false => df end) Δ -> PSh_PSh (wk_Fstep new b wk_id) A Δ ρ) as H.
     1:{ intros b Δ ρ hover.
         apply hA; cbn.
+        rewrite (decide_in_in Δ new b (Fwk ρ new b (in_hereF L new b))).
+        now destruct b. }
+    specialize (ihAt (H true)).
+    specialize (ihAf (H false)).
+    clear H.
+    assert (forall (b: bool) Δ (ρ : Δ ≤ (Build_context Γ L),,new ↦ b),
+      overtree (match b with true => dt| false => df end) Δ ->
+      PSh_PSh (wk_Fstep new b wk_id) A Δ ρ -> PSh_PSh (wk_Fstep new b wk_id) B Δ ρ) as H.
+    1:{ intros b Δ ρ hover.
+        apply hhom; cbn.
         rewrite (decide_in_in Δ new b (Fwk ρ new b (in_hereF L new b))).
         now destruct b. }
     specialize (ihAt (H true)).
@@ -221,6 +231,16 @@ Proof.
         bsimpl. reflexivity.
 Qed.
 
+Lemma split_bind_alg : forall {Γ} {A B: PSh Γ},
+  shf B ->
+  hom A B ->
+  Split A -> (forall Δ (ρ : Δ ≤ Γ), B Δ ρ).
+Proof.
+  intros.
+  eapply (split_bind_alg_over X X1).
+  intros; now eapply X0.
+Qed.
+
 
 Lemma Split_bind : forall {Γ} {A B : PSh Γ},
   Split A ->
@@ -235,39 +255,42 @@ Qed.
 
 Lemma Split_Splitfree {Γ} {A : PSh Γ} : Split A -> Split (fun Δ ρ => forall Ξ ρ', A Ξ (ρ'∘w ρ)).
 Proof.
-  intros * [dA hA].
-  exists dA.
+  intros * hA.
+  exists hA.(dtree).
   intros * hover *.
-  apply hA.
-  now apply overtree_PSh.
-Qed.
+  apply hA.(cover).
+  now apply overtree_PSh. Show Proof.
+Defined.
 
-Lemma Split_bind' : forall {Γ} {A B : PSh Γ},
-  Split A ->
-  (forall Δ (ρ : Δ ≤ Γ), (forall Ξ ρ', A Ξ (ρ'∘w ρ)) -> Split (fun Ξ ρ' => B Ξ (ρ' ∘w ρ))) ->
+Lemma Split_bind_over : forall {Γ} {A B : PSh Γ} (hA :Split A),
+  (forall Δ (ρ : Δ ≤ Γ), overtree hA.(dtree) Δ -> (forall Ξ ρ', A Ξ (ρ'∘w ρ)) -> Split (fun Ξ ρ' => B Ξ (ρ' ∘w ρ))) ->
   Split B.
 Proof.
   intros Γ A B hA f.
-  apply Split_Splitfree in hA.
-  now eapply Split_bind.
+  apply Split_wkn_inv.
+  unshelve eapply split_bind_alg_over.
+  2: apply (Split_Splitfree hA).
+  1: apply Split_shf.
+  apply f.
 Qed.
 
 
-Definition dover {Γ} {A : PSh Γ} (P : forall Δ ρ, A Δ ρ -> Type)
-  (hA : Split A) := forall Δ (ρ : Δ ≤ Γ) (hover : overtree hA.(dtree) Δ),
+Definition dover {Γ} {A : PSh Γ} (hA : Split A) (P : forall Δ ρ, A Δ ρ -> Type)
+  := forall Δ (ρ : Δ ≤ Γ) (hover : overtree hA.(dtree) Δ),
   P Δ ρ (hA.(cover) Δ ρ hover).
 
-Definition dover_PSh {Γ} {A : PSh Γ} {P} {hA : Split A}: dover P hA -> forall {Δ} {ρ : Δ ≤ Γ},
-  dover (fun Ξ ρ' => P Ξ (ρ'∘w ρ)) (Split_wkn hA ρ).
+
+Definition dover_PSh {Γ} {A : PSh Γ} {P} {hA : Split A}: dover hA P -> forall {Δ} {ρ : Δ ≤ Γ},
+  dover (Split_wkn hA ρ) (fun Ξ ρ' => P Ξ (ρ'∘w ρ)).
 Proof.
   intros d Δ ρ Ξ ρ' hover.
   apply d.
 Qed.
 
 Definition dSplit {Γ} {A : PSh Γ} (P : forall Δ ρ, A Δ ρ -> Type) (hA : Split A) 
-  := Split (fun Δ (ρ : Δ ≤ Γ) => dover (fun Ξ ρ' => P Ξ (ρ'∘w ρ)) (Split_wkn hA _)).
+  := Split (fun Δ (ρ : Δ ≤ Γ) => dover (Split_wkn hA _) (fun Ξ ρ' => P Ξ (ρ'∘w ρ))).
 
-Definition irr_dPSh {Γ A} (P : forall Δ ρ, A Δ ρ -> Type) := forall Δ (ρ : Δ ≤ Γ) (a a' : A Δ ρ), P Δ ρ a -> P Δ ρ a'.
+(* Definition irr_dPSh {Γ A} (P : forall Δ ρ, A Δ ρ -> Type) := forall Δ (ρ : Δ ≤ Γ) (a a' : A Δ ρ), P Δ ρ a -> P Δ ρ a'.
 
 Goal forall Γ A (P : forall Δ ρ, A Δ ρ -> Type) hA, irr_dPSh P -> dSplit P hA ->
   dover (fun Δ (ρ : Δ ≤ Γ) hSplit => Split (fun Ξ ρ' => P Ξ (ρ'∘w ρ) (hSplit Ξ ρ'))) (Split_Splitfree hA).
@@ -282,15 +305,15 @@ Proof.
   specialize (hP Θ ρ'' hover'). cbn in hP.
   rewrite <- wk_comp_assoc in hP.
   eapply hirr.
-  apply hP.
+  apply hP. *)
 
 
 Definition dover_apply {Γ} {A : PSh Γ} {P Q: forall Δ ρ, A Δ ρ -> Type} {hA : Split A} :
-  (forall {Δ ρ a}, P Δ ρ a -> Q Δ ρ a) -> dover P hA -> dover Q hA :=
+  (forall {Δ ρ a}, P Δ ρ a -> Q Δ ρ a) -> dover hA P-> dover hA Q:=
  (fun f hdover Δ ρ hover => f Δ ρ _ (hdover _ _ _)).
 
 Definition ddover {Γ} {A : PSh Γ} {P: forall Δ ρ, A Δ ρ -> Type} (Q : forall Δ ρ a, P Δ ρ a -> Type) {hA : Split A} :
-  dover P hA -> Type :=
+  dover hA P-> Type :=
  (fun hdover => forall Δ ρ hover, Q Δ ρ _ (hdover _ _ hover)).
 
 (* 
@@ -304,16 +327,18 @@ Proof.
 Qed. *)
 
 Definition dover_to_split : forall {Γ} {A B : PSh Γ} (P : forall Δ (ρ : Δ ≤ Γ), A Δ ρ -> Type) (hA : Split A),
-  (forall Δ (ρ : Δ ≤ Γ) (a : forall Ξ ρ', A Ξ (ρ'∘w ρ)), overtree hA.(dtree) Δ -> (forall Ξ (ρ' : Ξ ≤ Δ), P _ _ (a _ ρ')) -> B Δ ρ) ->
-  dover P hA -> Split B.
+  (forall Δ (ρ : Δ ≤ Γ) (a : forall Ξ ρ', A Ξ (ρ'∘w ρ)),
+    overtree hA.(dtree) Δ -> (forall Ξ (ρ' : Ξ ≤ Δ), P _ _ (a _ ρ')) -> Split (fun Ξ ρ' => B Ξ (ρ'∘w ρ))) ->
+  dover hA P-> Split B.
 Proof.
   intros * d d'.
-  exists hA.(dtree).
-  intros * hover.
-  unshelve eapply d; tea.
-  + intros. eapply (cover hA). 
-    apply (overtree_PSh _ hover).
-  + intros. apply d'.
+  eapply (Split_bind_over) with (hA := Split_Splitfree hA).
+  intros Δ ρ hover a.
+  eapply d.
+  apply hover.
+  intros.
+  unshelve apply d'.
+  now apply overtree_PSh.
 Qed.
 
 (* 

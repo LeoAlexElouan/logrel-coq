@@ -63,11 +63,10 @@ Section Irrelevance.
     (ihdom: forall Δ (ρ : Δ ≤ Γ) (h : [|- Δ]) B2 (R2 : [Δ ||-< l2 > (ParamRedTy.domL ΠA)⟨ρ⟩ ≅ B2]),
       irr (PolyRed.shpRed ΠA ρ h) R2)
     (ihcod: forall Δ a b (ρ : Δ ≤ Γ) (h : [|- Δ]) (ha : [PolyRed.shpRed ΠA ρ h | Δ ||- a ≅ b : _ ]),
-    dover (fun Ξ ρ' hSplit => forall B2 (R2 : [Ξ ||-< l2 > _ ≅ B2]), irr hSplit R2)
-      (PolyRed.posRed ΠA ρ h ha))
+    dover (PolyRed.posRed ΠA ρ h ha)
+      (fun Ξ ρ' hSplit => forall B2 (R2 : [Ξ ||-< l2 > _ ≅ B2]), irr hSplit R2))
     (eqdom: ParamRedTy.domL ΠA' = ParamRedTy.domL ΠA)
     (eqcod: ParamRedTy.codL ΠA' = ParamRedTy.codL ΠA).
-
 
   Lemma irrIsLRFun : forall t, isLRFun ΠA' t <≈> isLRFun ΠA t.
   Proof.
@@ -75,7 +74,22 @@ Section Irrelevance.
     intros ? ; split ; intros [|]; constructor; tea; cbn in *.
     + intros; cbn in *.
       eapply (fst (ihdom Δ ρ h _ _ a b)) in ha as ha'.
-      specialize (d _ _ _ _ h ha').
+      intros Ξ ρ' hover.
+      specialize (d _ _ _ _ h ha'); cbn in *.
+      unshelve eapply dover_PSh in d; [|apply ρ'|].
+      eapply dover_to_split; [clear d|eapply d].
+      intros Θ ρ'' hLR hover' d; cbn in *.
+      specialize (ihcod Δ a b ρ h ha).
+      unshelve eapply dover_PSh in ihcod; [|apply (ρ''∘w ρ' )|].
+      eapply dover_to_split; [clear ihcod|eapply ihcod].
+      intros Ω ρ''' hcod hover'' ihcod.
+      exists (leaf _).
+      intros Γ' ρ'''' _; cbn in *.
+      specialize (ihcod Γ' ρ'''').
+      rewrite wk_comp_assoc.
+      unfold irr in ihcod.
+      eapply (fst (ihcod _ _ _ _)).
+      eapply ihcod.
       revert d; unshelve eapply (fun hA => Split_bind hA _); clear hA.
       intros Ξ ρ' d; cbn in *.
       exists (Split_wkn (PolyRed.posRed polyRed0 ρ h ha') ρ').(dtree).
