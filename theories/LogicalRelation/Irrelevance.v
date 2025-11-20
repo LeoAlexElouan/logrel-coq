@@ -74,43 +74,16 @@ Section Irrelevance.
     intros ? ; split ; intros [|]; constructor; tea; cbn in *.
     + intros; cbn in *.
       eapply (fst (ihdom Δ ρ h _ _ a b)) in ha as ha'.
-      intros Ξ ρ' hover.
-      specialize (d _ _ _ _ h ha'); cbn in *.
-      unshelve eapply dover_PSh in d; [|apply ρ'|].
-      eapply dover_to_split; [clear d|eapply d].
-      intros Θ ρ'' hLR hover' d; cbn in *.
-      specialize (ihcod Δ a b ρ h ha).
-      unshelve eapply dover_PSh in ihcod; [|apply (ρ''∘w ρ' )|].
-      eapply dover_to_split; [clear ihcod|eapply ihcod].
-      intros Ω ρ''' hcod hover'' ihcod.
-      exists (leaf _).
-      intros Γ' ρ'''' _; cbn in *.
-      specialize (ihcod Γ' ρ'''').
-      rewrite wk_comp_assoc.
-      unfold irr in ihcod.
-      eapply (fst (ihcod _ _ _ _)).
-      eapply ihcod.
-      revert d; unshelve eapply (fun hA => Split_bind hA _); clear hA.
-      intros Ξ ρ' d; cbn in *.
-      exists (Split_wkn (PolyRed.posRed polyRed0 ρ h ha') ρ').(dtree).
-      intros Z ρ'' hover Z' ρ''' hover'; cbn in *.
-      unfold Split_wkn in *.
-      rewrite <- wk_comp_assoc.
-      eapply ihcod.
-      specialize (d Z' (ρ'''∘w ρ'')); cbn in d. unshelve apply d.
-      apply (overtree_PSh _ hover).
+      specialize (d _ _ _ _ h ha').
+      eapply dSplit_bind; [clear d| apply d].
+      intros Ξ ρ' hover hover' d; cbn in *.
+      eapply ihcod, d.
     + intros; cbn in *.
       eapply (snd (ihdom Δ ρ h _ _ a b)) in ha as ha'.
       specialize (d _ _ _ _ h ha').
-      revert d; unshelve eapply (fun hA => Split_bind hA _); clear hA.
-      intros Ξ ρ' d; cbn in *.
-      exists (Split_wkn (PolyRed.posRed polyRed ρ h ha') ρ').(dtree).
-      intros Z ρ'' hover Z' ρ''' hover'; cbn in *.
-      unfold Split_wkn in *.
-      rewrite <- wk_comp_assoc.
-      eapply ihcod.
-      specialize (d Z' (ρ'''∘w ρ'')); cbn in d. unshelve apply d.
-      apply (overtree_PSh _ hover).
+      eapply dSplit_bind; [clear d| apply d].
+      intros Ξ ρ' hover hover' d; cbn in *.
+      eapply ihcod, d.
   Qed.
 
   Lemma irrPiRedTm0 {t} : PiRedTm ΠA' t <≈> PiRedTm ΠA t.
@@ -128,29 +101,17 @@ Section Irrelevance.
       intros; destruct ΠA, ΠA'; cbn in *; subst.
       eapply (snd (ihdom Δ ρ h _ _ a b)) in hab as hab'.
       specialize (eqApp _ _ _ _ h hab').
-      revert eqApp; unshelve eapply (fun hA => Split_bind hA _); clear hA.
-      intros Ξ ρ' eqApp. cbn in *.
-      exists (Split_wkn (PolyRed.posRed polyRed ρ h hab') ρ').(dtree).
-      intros Z ρ'' hover Z' ρ''' hover'. cbn in *.
-      change (wk_compose ρ''' (wk_compose ρ'' ρ')) with (wk (ρ''' ∘w (ρ'' ∘w ρ'))).
-      rewrite <- wk_comp_assoc.
-      eapply ihcod.
-      specialize (eqApp Z' (ρ'''∘w ρ'')); cbn in eqApp. unshelve apply eqApp.
-      apply (overtree_PSh _ hover).
+      eapply dSplit_bind; [clear eqApp| apply eqApp].
+      intros Ξ ρ' hover hover' eqApp; cbn in *.
+      eapply ihcod, eqApp.
     - exists (fst irrPiRedTm0 rL) (fst irrPiRedTm0 rR); cbn.
       1: now rewrite <-eqdom, <-eqcod.
       intros; destruct ΠA, ΠA'; cbn in *; subst.
       eapply (fst (ihdom Δ ρ h _ _ a b)) in hab as hab'.
       specialize (eqApp _ _ _ _ h hab').
-      revert eqApp; unshelve eapply (fun hA => Split_bind hA _); clear hA.
-      intros Ξ ρ' eqApp. cbn in *.
-      exists (Split_wkn (PolyRed.posRed polyRed0 ρ h hab') ρ').(dtree).
-      intros Z ρ'' hover Z' ρ''' hover'. cbn in *.
-      change (wk_compose ρ''' (wk_compose ρ'' ρ')) with (wk (ρ''' ∘w (ρ'' ∘w ρ'))).
-      rewrite <- wk_comp_assoc.
-      eapply ihcod.
-      specialize (eqApp Z' (ρ'''∘w ρ'')); cbn in eqApp. unshelve apply eqApp.
-      apply (overtree_PSh _ hover).
+      eapply dSplit_bind; [clear eqApp| apply eqApp].
+      intros Ξ ρ' hover hover' eqApp; cbn in *.
+      eapply ihcod, eqApp.
   Qed.
 
   End IrrΠ.
@@ -159,8 +120,8 @@ Section Irrelevance.
   Context {l1 l2 Γ A B1 B2} (ΣA: [Γ ||-Σ< l1 > A ≅ B1]) (ΣA': [Γ ||-Σ< l2 > A ≅ B2])
     (ihdom: forall Δ (ρ : Δ ≤ Γ) (h : [|- Δ]) B2 (R2 : [Δ ||-< l2 > (ParamRedTy.domL ΣA)⟨ρ⟩ ≅ B2]), irr (PolyRed.shpRed ΣA ρ h) R2)
     (ihcod: forall Δ a b (ρ : Δ ≤ Γ) (h : [|- Δ]) (ha : [PolyRed.shpRed ΣA ρ h | Δ ||- a ≅ b : _ ]),
-    dover (fun Ξ ρ' hSplit => forall B2 (R2 : [Ξ ||-< l2 > (ParamRedTy.codL ΣA)[a .: ρ >> tRel]⟨ρ'⟩ ≅ B2]), irr hSplit R2)
-      (PolyRed.posRed ΣA ρ h ha))
+    dover (PolyRed.posRed ΣA ρ h ha)
+    (fun Ξ ρ' hSplit => forall B2 (R2 : [Ξ ||-< l2 > (ParamRedTy.codL ΣA)[a .: ρ >> tRel]⟨ρ'⟩ ≅ B2]), irr hSplit R2))
     (eqdom: ParamRedTy.domL ΣA' = ParamRedTy.domL ΣA)
     (eqcod: ParamRedTy.codL ΣA' = ParamRedTy.codL ΣA).
 
@@ -173,26 +134,14 @@ Section Irrelevance.
     1,2: now unshelve (intros; now eapply ihdom).
     + intros; cbn in *.
       specialize (rsnd _ ρ h).
-      set (rfst' := rfst Δ ρ h) in *; clearbody rfst'; clear rfst; rename rfst' into rfst.
-      revert rsnd; unshelve eapply (fun hA => Split_bind hA _); clear hA.
-      intros Ξ ρ' rsnd.
-      exists (Split_wkn (PolyRed.posRed polyRed0 ρ h rfst) ρ').(dtree).
-      intros Z ρ'' hover Z' ρ''' hover'; cbn in *.
-      rewrite <- wk_comp_assoc.
-      eapply ihcod.
-      specialize (rsnd Z' (ρ'''∘w ρ'')); cbn in rsnd. unshelve apply rsnd.
-      apply (overtree_PSh _ hover).
+      eapply dSplit_bind; [clear rsnd| apply rsnd].
+      intros Ξ ρ' hover hover' rsnd; cbn in *.
+      eapply ihcod, rsnd.
     + intros; cbn in *.
       specialize (rsnd _ ρ h).
-      set (rfst' := rfst Δ ρ h) in *; clearbody rfst'; clear rfst; rename rfst' into rfst.
-      revert rsnd; unshelve eapply (fun hA => Split_bind hA _); clear hA.
-      intros Ξ ρ' rsnd.
-      exists (Split_wkn (PolyRed.posRed polyRed ρ h rfst) ρ').(dtree).
-      intros Z ρ'' hover Z' ρ''' hover'; cbn in *.
-      rewrite <- wk_comp_assoc.
-      eapply ihcod.
-      specialize (rsnd Z' (ρ'''∘w ρ'')); cbn in rsnd. unshelve apply rsnd.
-      apply (overtree_PSh _ hover).
+      eapply dSplit_bind; [clear rsnd| apply rsnd].
+      intros Ξ ρ' hover hover' rsnd; cbn in *.
+      eapply ihcod, rsnd.
   Qed.
 
   Lemma irrRedSigTm0 : forall t, SigRedTm ΣA' t <≈> SigRedTm ΣA t.
@@ -209,28 +158,14 @@ Section Irrelevance.
     1,2: now unshelve (intros; eapply ihdom; eauto).
     + intros; cbn in *.
       specialize (eqSnd _ ρ h).
-      set (eqFst' := eqFst Δ ρ h) in *; clearbody eqFst'; clear eqFst; rename eqFst' into eqFst.
-      revert eqSnd; unshelve eapply (fun hA => Split_bind hA _); clear hA.
-      intros Ξ ρ' eqSnd.
-      exists (Split_wkn (PolyRed.posRed polyRed ρ h eqFst) ρ').(dtree).
-      intros Z ρ'' hover Z' ρ''' hover'; cbn in *.
-      change (wk_compose ρ''' (wk_compose ρ'' ρ')) with (wk (ρ''' ∘w (ρ'' ∘w ρ'))).
-      rewrite <- wk_comp_assoc.
-      eapply ihcod.
-      specialize (eqSnd Z' (ρ'''∘w ρ'')); cbn in eqSnd. unshelve apply eqSnd.
-      apply (overtree_PSh _ hover).
+      eapply dSplit_bind; [clear eqSnd| apply eqSnd].
+      intros Ξ ρ' hover hover' eqSnd; cbn in *.
+      eapply ihcod, eqSnd.
     + intros; cbn in *.
       specialize (eqSnd _ ρ h).
-      set (eqFst' := eqFst Δ ρ h) in *; clearbody eqFst'; clear eqFst; rename eqFst' into eqFst.
-      revert eqSnd; unshelve eapply (fun hA => Split_bind hA _); clear hA.
-      intros Ξ ρ' eqSnd.
-      exists (Split_wkn (PolyRed.posRed polyRed0 ρ h eqFst) ρ').(dtree).
-      intros Z ρ'' hover Z' ρ''' hover'; cbn in *.
-      change (wk_compose ρ''' (wk_compose ρ'' ρ')) with (wk (ρ''' ∘w (ρ'' ∘w ρ'))).
-      rewrite <- wk_comp_assoc.
-      eapply ihcod.
-      specialize (eqSnd Z' (ρ'''∘w ρ'')); cbn in eqSnd. unshelve apply eqSnd.
-      apply (overtree_PSh _ hover).
+      eapply dSplit_bind; [clear eqSnd| apply eqSnd].
+      intros Ξ ρ' hover hover' eqSnd; cbn in *.
+      eapply ihcod, eqSnd.
   Qed.
 
   End IrrΣ.

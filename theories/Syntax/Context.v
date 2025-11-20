@@ -191,6 +191,14 @@ Proof.
     reflexivity.
   - destruct (notin_is_not_in hnotin hin).
 Qed.
+
+Lemma decide_in_new (L : Fcontext) (new : newnat L) :
+  decide_in L new = is_notin new.
+Proof.
+  destruct (decide_in L new) as [b hin|hnotin].
+  - destruct (notin_is_not_in new hin).
+  - reflexivity.
+Qed.
 (* 
 Lemma trichotomy_in (L : Fcontext) n b (hin : in_Fctx L n b) :
   trichotomy L n = match b return (forall (hin : in_Fctx L n b), _) with true => fun hin => in_left hin| false => fun hin => in_mid hin end hin.

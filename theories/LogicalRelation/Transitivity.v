@@ -64,8 +64,8 @@ Section Transitivity.
       trans (PolyRed.shpRed PAB ρ h) RBC)
     (ihcod : forall Δ a b (ρ : Δ ≤ Γ) (h : [|- Δ])
       (ha : [PolyRed.shpRed PAB ρ h | Δ ||- a ≅ b: _]) l2 C,
-      dover (fun Ξ ρ' hSplit => forall (RBC : [Ξ ||-< l2 > B2[b .: ρ >> tRel]⟨ρ'⟩ ≅ C⟨ρ'⟩]),
-          trans hSplit RBC) (PolyRed.posRed PAB ρ h ha)) :
+      dover (PolyRed.posRed PAB ρ h ha) (fun Ξ ρ' hSplit => forall (RBC : [Ξ ||-< l2 > B2[b .: ρ >> tRel]⟨ρ'⟩ ≅ C⟨ρ'⟩]),
+          trans hSplit RBC)) :
     PolyRed@{i j k l} Γ l1 A1 C1 A2 C2.
   Proof.
     unshelve econstructor.
@@ -76,7 +76,7 @@ Section Transitivity.
       pose proof (factor _ hab) as [haa hab'].
       pose proof (PBC.(PolyRed.posRed)) as hBC.
       specialize (hBC _ _ _ _ _ hab').
-      revert hBC; unshelve eapply (fun hA => Split_bind' hA _); clear hA.
+      eapply Split_bind_free; [apply hBC | clear hBC].
       intros Ξ ρ' hBC; cbn in *.
       exists (DTree_PSh Ξ (PolyRed.posRed PAB ρ h haa).(dtree)).
       intros Z ρ'' hover.
@@ -113,9 +113,9 @@ Section Transitivity.
       (ihdom : forall Δ (ρ : Δ ≤ Γ) (h : [|- Δ]) l2 C (RBC : [Δ ||-< l2 > (ParamRedTy.domR ΠAB)⟨ρ⟩ ≅ C]),
         trans (PolyRed.shpRed ΠAB ρ h) RBC)
       (ihcod : forall Δ a b (ρ : Δ ≤ Γ) (h : [|- Δ])
-        (ha : [PolyRed.shpRed ΠAB ρ h | Δ ||- a ≅ b: _]) l2 C, dover (fun Ξ ρ' hSplit => forall
-        (RBC : [Ξ ||-< l2 > (ParamRedTy.codR ΠAB)[b .: ρ >> tRel]⟨ρ'⟩ ≅ C⟨ρ'⟩]),
-        trans hSplit RBC) (PolyRed.posRed ΠAB ρ h ha))
+        (ha : [PolyRed.shpRed ΠAB ρ h | Δ ||- a ≅ b: _]) l2 C, dover (PolyRed.posRed ΠAB ρ h ha)
+          (fun Ξ ρ' hSplit => forall (RBC : [Ξ ||-< l2 > (ParamRedTy.codR ΠAB)[b .: ρ >> tRel]⟨ρ'⟩ ≅ C⟨ρ'⟩]),
+            trans hSplit RBC))
       (eqdom : ParamRedTy.domL ΠBC = ParamRedTy.domR ΠAB)
       (eqcod : ParamRedTy.codL ΠBC = ParamRedTy.codR ΠAB).
 
@@ -137,14 +137,9 @@ Section Transitivity.
       intros *.
       eapply irrLR in ha as ha'.
       specialize (eqbody Δ a b ρ h ha').
-      eapply Split_bind; [apply eqbody|clear eqbody].
-      intros Ξ ρ' eqbody; cbn in eqbody.
-      exists (DTree_PSh Ξ (PolyRed.posRed ΠAB ρ h ha').(dtree)).
-      intros Z ρ'' hover Z' ρ''' hover'; cbn.
-      rewrite <- wk_comp_assoc.
-      eapply irrLR; cbn.
-      unshelve eapply eqbody.
-      apply (overtree_PSh _ hover).
+      eapply dSplit_bind; [clear eqbody | apply eqbody].
+      intros Ξ ρ' hover hover' eqbody; cbn in *.
+      eapply irrLR, eqbody.
     Defined.
 
     #[local]
@@ -156,15 +151,21 @@ Section Transitivity.
       - etransitivity; tea; cbn; rewrite eqdom; apply ParamRedTy.eqdom.
       - intros ??? ρ h hab.
         cbn in *; destruct ΠAB; cbn in *; subst; cbn.
-        unshelve epose proof (factor (ihdom _ ρ h _ _ (PolyRed.shpRed ΠBC ρ h)) _) as [haa hab'].
+        unshelve epose proof (factor (ihdom _ ρ h _ _ (PolyRed.shpRed ΠBC ρ h)) _)
+          as [haa hab'].
         3: eapply irrLR, hab.
-        specialize (eqbody Δ a b ρ h hab').
-        eapply Split_bind; [apply eqbody|clear eqbody].
-        intros Ξ ρ' eqbody.
-        exists (DTree_PSh Ξ (PolyRed.posRed ΠBC ρ h hab').(dtree)).
-        intros Θ ρ'' hover Ω ρ''' hover'; cbn in *.
-        rewrite <- wk_comp_assoc.
-        specialize (eqbody Ω (ρ'''∘w ρ'') (overtree_PSh _ hover)); cbn in *.
+        unshelve eapply dSplit_bind_over.
+        2: apply (PolyRed.posRed polyRed ρ h haa).
+        intros Ξ ρ' hover.
+        specialize (eqbody Δ a b ρ h hab'); cbn in *.
+        eapply dSplit_wkn in eqbody.
+        eapply dSplit_bind; [clear eqbody|apply eqbody].
+        intros Θ ρ'' hover' hover'' eqbody; cbn in *.
+        eapply irrLR.
+        unshelve eapply ihcod.
+        10: unshelve eapply eqbody.
+        4: eapply (symLR _).(symRedTm), irrLR. eqbody.
+        
         unshelve eapply irrLR, eqbody.
         4: unshelve eapply eqbody.
         1,2: tea.
