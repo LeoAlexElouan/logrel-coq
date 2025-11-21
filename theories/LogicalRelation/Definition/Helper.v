@@ -347,6 +347,8 @@ Notation "[ Γ ||-SId< l > A ≅ B ]" := (SIdRedTy Γ l A B) (at level 0, Γ, l,
 Notation "[ Γ ||-Id< l > A ≅ B ]" := (IdRedTy Γ l A B) (at level 0, Γ, l,  A, B at level 50).
 Notation "[ Γ ||-Id< l > t : A | RA ]" := (IdRedTmEq (Γ:=Γ) (l:=l) (A:=A) RA t t) (at level 0, Γ, l, t, A, RA at level 50).
 Notation "[ Γ ||-Id< l > t ≅ u : A | RA ]" := (IdRedTmEq (Γ:=Γ) (l:=l) (A:=A) RA t u) (at level 0, Γ, l, t, u, A, RA at level 50).
+Notation "[ Γ ||-SId< l > t : A | RA ]" := (SIdRedTmEq (Γ:=Γ) (l:=l) (A:=A) RA t t) (at level 0, Γ, l, t, A, RA at level 50).
+Notation "[ Γ ||-SId< l > t ≅ u : A | RA ]" := (SIdRedTmEq (Γ:=Γ) (l:=l) (A:=A) RA t u) (at level 0, Γ, l, t, u, A, RA at level 50).
 
 #[program]
 Instance IdRedTyWhRed `{GenericTypingProperties} {Γ l} : WhRedTyRel Γ (SIdRedTy Γ l) :=

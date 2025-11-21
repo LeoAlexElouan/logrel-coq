@@ -272,6 +272,10 @@ Reserved Notation "[ Γ ||-Id< l > A ]" (at level 0, Γ, l,  A at level 50).
 Reserved Notation "[ Γ ||-Id< l > A ≅ B | RA ]" (at level 0, Γ, l, A, B, RA at level 50).
 Reserved Notation "[ Γ ||-Id< l > t : A | RA ]" (at level 0, Γ, l, t, A, RA at level 50).
 Reserved Notation "[ Γ ||-Id< l > t ≅ u : A | RA ]" (at level 0, Γ, l, t, u, A, RA at level 50).
+Reserved Notation "[ Γ ||-SId< l > A ]" (at level 0, Γ, l,  A at level 50).
+Reserved Notation "[ Γ ||-SId< l > A ≅ B | RA ]" (at level 0, Γ, l, A, B, RA at level 50).
+Reserved Notation "[ Γ ||-SId< l > t : A | RA ]" (at level 0, Γ, l, t, A, RA at level 50).
+Reserved Notation "[ Γ ||-SId< l > t ≅ u : A | RA ]" (at level 0, Γ, l, t, u, A, RA at level 50).
 
 
 

@@ -74,7 +74,7 @@ Section NatRedTmEq.
   | neReq {ne ne'} : [Γ ||-NeNf ne ≅ ne' : tNat] -> NatPropEq Γ ne ne'
 
   with NatRedTmEq (Γ : context) : term -> term -> Set :=
-  | Build_NatRedTmEq t u (d : DTree Γ): (forall Δ ρ, SNatRedTmEq Δ t⟨ρ⟩ u⟨ρ⟩) -> NatRedTmEq Γ t u.
+  | Build_NatRedTmEq t u (d : DTree Γ): (forall Δ (ρ : Δ ≤ Γ), overtree d Δ -> SNatRedTmEq Δ t⟨ρ⟩ u⟨ρ⟩) -> NatRedTmEq Γ t u.
 
   Section Def.
     Context `{!GenericTypingProperties _ _ _ _ _ _ _ _ _}.
@@ -155,3 +155,22 @@ Instance NatRedTmEqWhRed `{GenericTypingProperties} {Γ} : WhRedTmRel Γ tNat (S
 Next Obligation.
   now destruct h.
 Qed.
+
+Section Monad.
+  Context `{ta : tag} `{WfContext ta} `{WfType ta} `{ConvType ta}
+    `{RedType ta} `{Typing ta} `{ConvNeuConv ta} `{ConvTerm ta}
+    `{RedTerm ta}.
+  Lemma Nat_SplitSNat : forall {Γ t u}, NatRedTmEq Γ t u -> Split_Rel SNatRedTmEq Γ t u.
+  Proof.
+    intros Γ t u h.
+    induction h as [t u d h].
+    now exists d.
+  Qed.
+  Lemma SplitSNat_Nat : forall {Γ t u}, Split_Rel SNatRedTmEq Γ t u -> NatRedTmEq Γ t u.
+  Proof.
+    intros Γ t u h.
+    exists h.(dtree).
+    eapply h.
+  Qed.
+End Monad.
+

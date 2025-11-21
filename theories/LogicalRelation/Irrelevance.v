@@ -75,13 +75,13 @@ Section Irrelevance.
     + intros; cbn in *.
       eapply (fst (ihdom Δ ρ h _ _ a b)) in ha as ha'.
       specialize (d _ _ _ _ h ha').
-      eapply dSplit_bind; [clear d| apply d].
+      eapply dSplit_solve; [clear d| apply d].
       intros Ξ ρ' hover hover' d; cbn in *.
       eapply ihcod, d.
     + intros; cbn in *.
       eapply (snd (ihdom Δ ρ h _ _ a b)) in ha as ha'.
       specialize (d _ _ _ _ h ha').
-      eapply dSplit_bind; [clear d| apply d].
+      eapply dSplit_solve; [clear d| apply d].
       intros Ξ ρ' hover hover' d; cbn in *.
       eapply ihcod, d.
   Qed.
@@ -101,7 +101,7 @@ Section Irrelevance.
       intros; destruct ΠA, ΠA'; cbn in *; subst.
       eapply (snd (ihdom Δ ρ h _ _ a b)) in hab as hab'.
       specialize (eqApp _ _ _ _ h hab').
-      eapply dSplit_bind; [clear eqApp| apply eqApp].
+      eapply dSplit_solve; [clear eqApp| apply eqApp].
       intros Ξ ρ' hover hover' eqApp; cbn in *.
       eapply ihcod, eqApp.
     - exists (fst irrPiRedTm0 rL) (fst irrPiRedTm0 rR); cbn.
@@ -109,7 +109,7 @@ Section Irrelevance.
       intros; destruct ΠA, ΠA'; cbn in *; subst.
       eapply (fst (ihdom Δ ρ h _ _ a b)) in hab as hab'.
       specialize (eqApp _ _ _ _ h hab').
-      eapply dSplit_bind; [clear eqApp| apply eqApp].
+      eapply dSplit_solve; [clear eqApp| apply eqApp].
       intros Ξ ρ' hover hover' eqApp; cbn in *.
       eapply ihcod, eqApp.
   Qed.
@@ -134,12 +134,12 @@ Section Irrelevance.
     1,2: now unshelve (intros; now eapply ihdom).
     + intros; cbn in *.
       specialize (rsnd _ ρ h).
-      eapply dSplit_bind; [clear rsnd| apply rsnd].
+      eapply dSplit_solve; [clear rsnd| apply rsnd].
       intros Ξ ρ' hover hover' rsnd; cbn in *.
       eapply ihcod, rsnd.
     + intros; cbn in *.
       specialize (rsnd _ ρ h).
-      eapply dSplit_bind; [clear rsnd| apply rsnd].
+      eapply dSplit_solve; [clear rsnd| apply rsnd].
       intros Ξ ρ' hover hover' rsnd; cbn in *.
       eapply ihcod, rsnd.
   Qed.
@@ -158,12 +158,12 @@ Section Irrelevance.
     1,2: now unshelve (intros; eapply ihdom; eauto).
     + intros; cbn in *.
       specialize (eqSnd _ ρ h).
-      eapply dSplit_bind; [clear eqSnd| apply eqSnd].
+      eapply dSplit_solve; [clear eqSnd| apply eqSnd].
       intros Ξ ρ' hover hover' eqSnd; cbn in *.
       eapply ihcod, eqSnd.
     + intros; cbn in *.
       specialize (eqSnd _ ρ h).
-      eapply dSplit_bind; [clear eqSnd| apply eqSnd].
+      eapply dSplit_solve; [clear eqSnd| apply eqSnd].
       intros Ξ ρ' hover hover' eqSnd; cbn in *.
       eapply ihcod, eqSnd.
   Qed.

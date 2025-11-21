@@ -1,5 +1,5 @@
 From Stdlib Require Import ssrbool CRelationClasses.
-From LogRel Require Import Utils Syntax.All GenericTyping LogicalRelation.
+From LogRel Require Import Utils Syntax.All GenericTyping LogicalRelation Monad.
 From LogRel.LogicalRelation Require Import Induction Escape Irrelevance Symmetry Transitivity.
 From Equations Require Import Equations.
 
@@ -22,11 +22,11 @@ Section Weakenings.
 
   Definition wkStmt@{i j k l} l := (forall Γ A B (R : [LogRel@{i j k l} l | Γ ||- A ≅ B]), kripke R).
 
-  Lemma wkU {Γ Δ l A B} (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]) (h : [Γ ||-U<l> A ≅ B]) : [Δ ||-U<l> A⟨ρ⟩ ≅ B⟨ρ⟩].
+  Lemma wkU {Γ Δ l A B} (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]) (h : [Γ ||-SU<l> A ≅ B]) : [Δ ||-SU<l> A⟨ρ⟩ ≅ B⟨ρ⟩].
   Proof. destruct h; econstructor; tea; change U with U⟨ρ⟩; gen_typing. Defined.
 
   Lemma wkURedTerm {Γ Δ l t} (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]) :
-    URedTm l Γ t -> URedTm l Δ t⟨ρ⟩.
+    SURedTm l Γ t -> SURedTm l Δ t⟨ρ⟩.
   Proof.
     intros [te]. exists te⟨ρ⟩; change U with U⟨ρ⟩.
     - gen_typing.
@@ -35,7 +35,7 @@ Section Weakenings.
 
   Lemma wkLRU {l}
     (ih : forall l', l' << l -> wkStmt l')
-    {Γ A B} {h : [Γ ||-U<l> A ≅ B]} : kripke (LRU_ h).
+    {Γ A B} {h : [Γ ||-SU<l> A ≅ B]} : kripke (LRU_ h).
   Proof.
     unshelve econstructor.
     1: intros; now eapply LRU_, wkU.
@@ -93,10 +93,15 @@ Section Weakenings.
     intros * [A' t' wtdom convtydom Ht|]; rewrite <-?wk_lam; constructor; tea; refold.
     + now eapply wft_wk.
     + now eapply convty_wk.
-    + intros Ξ a b ρ' wfΞ *; cbn.
+    + intros Ξ a b ρΞ wfΞ *; cbn in *.
+      eassert ([_ |_||- _≅ _ : (ParamRedTy.domL ΠA)⟨ρΞ∘w ρ⟩ ≅ _]) as ha'
+        by (eapply irrLREq; [eapply wk_comp_ren_on| eapply ha]).
+      specialize (Ht _ _ _ (ρΞ∘w ρ) wfΞ ha').
+      eapply (dSplit_bind_return_over Ht).
+      intros Θ ρΘ hovera' hovert hoverwk; cbn in *.
       rewrite <-2!wk_up_ren_subst ; eapply irrLREq.
       1: now rewrite <-wk_up_ren_subst.
-      unshelve eapply Ht; tea ; eapply irrLREq; tea; cbn; now rewrite wk_comp_ren_on.
+      unshelve eapply Ht; tea.
     + cbn; rewrite wk_prod; now eapply convneu_wk.
   Qed.
 
@@ -116,9 +121,13 @@ Section Weakenings.
     - cbn ; intros * []; unshelve econstructor.
       1,2: now apply wkPiRedTerm.
       1: cbn; rewrite wk_prod; now eapply convtm_wk.
-    intros Ξ a b ρ' wfΞ hab; cbn; rewrite 2!wk_comp_ren_on.
-    eapply irrLREq; [now rewrite <-wk_up_ren_subst| unshelve eapply eqApp; tea].
-      eapply irrLREq; tea; cbn; now rewrite wk_comp_ren_on.
+      intros Ξ a b ρΞ wfΞ hab; cbn in *; rewrite 2!wk_comp_ren_on.
+      eassert ([_ |_||- _≅ _ : (ParamRedTy.domL ΠA)⟨ρΞ∘w ρ⟩ ≅ _]) as hab'
+        by (eapply irrLREq; [eapply wk_comp_ren_on| eapply hab]).
+      specialize (eqApp Ξ a b (ρΞ∘w ρ) wfΞ hab').
+      eapply (dSplit_bind_return_over eqApp).
+      intros Θ ρΘ hoverab' hovereqApp hoverwk.
+      eapply irrLREq; [now rewrite <-wk_up_ren_subst| unshelve eapply eqApp; tea].
   Qed.
 
   Lemma wk_up_subst1 {Γ Δ F} t a (ρ : Γ ≤ Δ) : t⟨wk_up F ρ⟩[(a⟨ρ⟩)..] = t[a..]⟨ρ⟩.
@@ -136,9 +145,12 @@ Section Weakenings.
     now eapply wft_wk.
   + cbn; erewrite <- (wk_up_ren_on _ _ _ A'), 2!wk_up_subst1.
     now eapply convty_wk.
-  + refold; intros Ξ ρ' wfΞ.
-    eapply irrLREq.
-    2:rewrite wk_comp_ren_on ; now unshelve apply Hsnd.
+  + refold; intros Ξ ρΞ wfΞ.
+    specialize (Hsnd Ξ (ρΞ ∘w ρ) wfΞ).
+    eapply (dSplit_bind_return_over Hsnd).
+    intros Θ ρΘ hoverfst hoversnd hover.
+    eapply irrLREq; clear hover.
+    2:rewrite (wk_comp_ren_on b); now unshelve apply Hsnd.
     cbn; now rewrite <-wk_up_ren_subst, wk_comp_ren_on.
   + cbn; rewrite wk_sig; now eapply convneu_wk.
   Qed.
@@ -161,32 +173,35 @@ Section Weakenings.
       2: cbn; rewrite wk_sig; now eapply convtm_wk.
       + intros Ξ ρ' wfΞ ; cbn; rewrite 2!wk_comp_ren_on.
         eapply irrLREq; [now rewrite wk_comp_ren_on| now unshelve eapply eqFst].
-      + intros Ξ ρ' wfΞ ; cbn.
-        eapply irrLREq.
+      + intros Ξ ρΞ wfΞ ; cbn.
+        specialize (eqSnd Ξ (ρΞ∘w ρ) wfΞ).
+        eapply (dSplit_bind_return_over eqSnd).
+        intros Θ ρΘ hoverFst hoverSnd hover; cbn in *.
+        eapply irrLREq; clear hover.
         2: rewrite 2!wk_comp_ren_on; now unshelve eapply eqSnd.
         cbn; now rewrite <-wk_up_ren_subst, wk_comp_ren_on.
   Qed.
 
-  Lemma wkNat {Γ A B Δ} (ρ : Δ ≤ Γ) (wfΔ : [|- Δ]) : [Γ ||-Nat A ≅ B] -> [Δ ||-Nat A⟨ρ⟩ ≅ B⟨ρ⟩].
+  Lemma wkNat {Γ A B Δ} (ρ : Δ ≤ Γ) (wfΔ : [|- Δ]) : [Γ ||-SNat A ≅ B] -> [Δ ||-SNat A⟨ρ⟩ ≅ B⟨ρ⟩].
   Proof.
     intros []; constructor.
     all: change tNat with tNat⟨ρ⟩; gtyping.
   Qed.
 
-  Lemma wkBool {Γ A B Δ} (ρ : Δ ≤ Γ) (wfΔ : [|- Δ]) : [Γ ||-Bool A ≅ B] -> [Δ ||-Bool A⟨ρ⟩ ≅ B⟨ρ⟩].
+  Lemma wkBool {Γ A B Δ} (ρ : Δ ≤ Γ) (wfΔ : [|- Δ]) : [Γ ||-SBool A ≅ B] -> [Δ ||-SBool A⟨ρ⟩ ≅ B⟨ρ⟩].
   Proof.
     intros []; constructor.
     all: change tBool with tBool⟨ρ⟩; gtyping.
   Qed.
 
-  Lemma wkEmpty {Γ A B Δ} (ρ : Δ ≤ Γ) (wfΔ : [|- Δ]) : [Γ ||-Empty A ≅ B] -> [Δ ||-Empty A⟨ρ⟩ ≅ B⟨ρ⟩].
+  Lemma wkEmpty {Γ A B Δ} (ρ : Δ ≤ Γ) (wfΔ : [|- Δ]) : [Γ ||-SEmpty A ≅ B] -> [Δ ||-SEmpty A⟨ρ⟩ ≅ B⟨ρ⟩].
   Proof.
     intros []; constructor; change tEmpty with tEmpty⟨ρ⟩; gtyping.
   Qed.
 
-  Lemma wkId@{i j k l} {Γ l A B} (IA : IdRedTy@{i j k l} Γ l A B)
+  Lemma wkId@{i j k l} {Γ l A B} (IA : SIdRedTy@{i j k l} Γ l A B)
     (ih : kripke@{i j k l} IA.(IdRedTy.tyRed)) {Δ} (ρ : Δ ≤ Γ) (wfΔ : [|- Δ]) :
-    IdRedTy@{i j k l} Δ l A⟨ρ⟩ B⟨ρ⟩.
+    SIdRedTy@{i j k l} Δ l A⟨ρ⟩ B⟨ρ⟩.
   Proof.
     unshelve econstructor.
     8,9: erewrite wk_Id; eapply redtywf_wk; tea; apply IA.(IdRedTy.redL) + apply IA.(IdRedTy.redR).
@@ -219,15 +234,27 @@ Section Weakenings.
     - intros; eapply wkLRΠ.
     - intros; unshelve econstructor.
       + intros; now eapply LRNat_, wkNat.
-      + intros ???; cbn.
-        set (G := _); enough (h : G × (forall t u, NatPropEq Γ t u -> NatPropEq Δ t⟨ρ⟩ u⟨ρ⟩)) by apply h.
-        subst G; apply NatRedEqInduction.
-        * intros; econstructor; tea; change tNat with tNat⟨ρ⟩; gen_typing.
+      + intros ??? t u hNat; cbn in *. revert t u hNat Δ ρ wfΔ.
+        set (G := _); enough (h : G ×
+          (forall t u, NatRedTmEq Γ t u -> forall Δ (ρ : Δ ≤ Γ), [ |-[ ta ] Δ] -> NatRedTmEq Δ t⟨ρ⟩ u⟨ρ⟩) ×
+          (forall t u, NatPropEq Γ t u -> forall Δ (ρ : Δ ≤ Γ), [ |-[ ta ] Δ] ->NatPropEq Δ t⟨ρ⟩ u⟨ρ⟩))
+          by apply h.
+        subst G; clear NA; revert Γ; apply NatRedEqInduction with 
+          (P:= fun Γ t u _ => forall Δ (ρ : Δ ≤ Γ), [ |-[ ta ] Δ] -> [Δ ||-SNat t⟨ρ⟩ ≅ u⟨ρ⟩:Nat])
+          (P1:= fun Γ t u _ => forall Δ (ρ : Δ ≤ Γ), [ |-[ ta ] Δ] -> [Δ ||-Nat t⟨ρ⟩ ≅ u⟨ρ⟩:Nat])
+          (P0:= fun Γ t u _ => forall Δ (ρ : Δ ≤ Γ), [ |-[ ta ] Δ] -> NatPropEq Δ t⟨ρ⟩ u⟨ρ⟩).
+        * intros; econstructor; tea; change tNat with tNat⟨ρ⟩; gtyping.
         * constructor.
         * now constructor.
         * intros; constructor.
           change tNat with tNat⟨ρ⟩.
           now eapply wkNeNfEq.
+        * intros ???? htu ihtu Δ ρ hΔ.
+          econstructor.
+          intros Ξ ρΞ hover.
+          rewrite 2!wk_comp_ren_on.
+          eapply htu.
+          now eapply over_DTree_PSh.
     - intros; unshelve econstructor.
       + intros; now apply LRBool_, wkBool.
       + cbn; intros ????? [ ]; econstructor; change tBool with tBool⟨ρ⟩.

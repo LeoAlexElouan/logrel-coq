@@ -66,7 +66,7 @@ Section Symmetry.
           1: etransitivity; tea; eapply ParamRedTy.eqdom.
           intros.
           specialize (Rbody Δ b a ρ h (fst (symRedTm _) ha)).
-          eapply dSplit_bind; [clear Rbody| apply Rbody].
+          eapply dSplit_solve; [clear Rbody| apply Rbody].
           intros Ξ ρ' hover hover' Rbody; cbn in *.
           eapply ihcod, Rbody.
         * constructor; eapply convneu_conv; tea; eapply ParamRedTy.eq.
@@ -75,7 +75,7 @@ Section Symmetry.
           1: etransitivity; tea; eapply ParamRedTy.eqdom.
           intros ? a b ρ h ha.
           specialize (Rbody Δ b a ρ h (snd (symRedTm _) ha)).
-          eapply dSplit_bind; [clear Rbody| apply Rbody].
+          eapply dSplit_solve; [clear Rbody| apply Rbody].
           intros Ξ ρ' hover hover' Rbody; cbn in *.
           eapply ihcod, irrLR, Rbody.
         * constructor; eapply convneu_conv; tea; eapply ParamRedTy.eq.
@@ -93,12 +93,12 @@ Section Symmetry.
       1,3: cbn; eapply convtm_conv; [now symmetry| eapply PiRedTy.eq].
       - intros Δ a b ρ h hab; cbn in *.
         specialize (eqApp Δ b a ρ h (fst (symRedTm _) hab)).
-        eapply dSplit_bind; [clear eqApp| apply eqApp].
+        eapply dSplit_solve; [clear eqApp| apply eqApp].
         intros Ξ ρ' hover hover' eqApp; cbn in *.
         eapply ihcod, eqApp.
       - intros Δ a b ρ h hab; cbn in *.
         specialize (eqApp Δ b a ρ h (snd (symRedTm _) hab)).
-        eapply dSplit_bind; [clear eqApp| apply eqApp].
+        eapply dSplit_solve; [clear eqApp| apply eqApp].
         intros Ξ ρ' hover hover' eqApp; cbn in *.
         eapply ihcod, irrLR, eqApp.
     Qed.
@@ -133,7 +133,7 @@ Section Symmetry.
     - constructor.
     - intros; now constructor.
     - intros; constructor; now eapply symNeNf.
-    - intros; now constructor.
+    - intros; now econstructor.
   Qed.
 
   Lemma symBoolPropEq {Γ} :
@@ -178,7 +178,7 @@ Section Symmetry.
             symmetry; now eapply escapeEq.
           + intros; cbn.
             specialize (r2 _ ρ h).
-            eapply dSplit_bind; [clear r2| apply r2].
+            eapply dSplit_solve; [clear r2| apply r2].
             intros Ξ ρ' hover hover' r2; cbn in *.
             eapply ihcod, irrLR, r2.
         * constructor; eapply convneu_conv; tea; eapply ParamRedTy.eq.
@@ -197,7 +197,7 @@ Section Symmetry.
             symmetry; now eapply escapeEq.
           + intros; cbn.
             specialize (r2 _ ρ h).
-            eapply dSplit_bind; [clear r2| apply r2].
+            eapply dSplit_solve; [clear r2| apply r2].
             intros Ξ ρ' hover hover' r2; cbn in *.
             eapply ihcod, irrLR, r2.
         * constructor; eapply convneu_conv; tea; eapply ParamRedTy.eq.
@@ -216,12 +216,12 @@ Section Symmetry.
       1,2: cbn; intros; now eapply ihdom.
       + intros; cbn in *.
         specialize (eqSnd _ ρ h).
-        eapply dSplit_bind; [clear eqSnd| apply eqSnd].
+        eapply dSplit_solve; [clear eqSnd| apply eqSnd].
         intros Ξ ρ' hover hover' eqSnd; cbn in *.
         eapply ihcod, irrLR, eqSnd.
       + intros; cbn in *.
         specialize (eqSnd _ ρ h).
-        eapply dSplit_bind; [clear eqSnd| apply eqSnd].
+        eapply dSplit_solve; [clear eqSnd| apply eqSnd].
         intros Ξ ρ' hover hover' eqSnd; cbn in *.
         eapply ihcod, irrLR, eqSnd.
     Qed.
