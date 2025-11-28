@@ -1,6 +1,6 @@
 (** * LogRel.LogicalRelation.Escape: the logical relation implies conversion/typing. *)
 From Stdlib Require Import CRelationClasses.
-From LogRel Require Import Utils Syntax.All LogicalRelation GenericTyping.
+From LogRel Require Import Utils Syntax.All LogicalRelation GenericTyping Monad.
 From LogRel.LogicalRelation Require Import Induction.
 
 Set Universe Polymorphism.
@@ -8,7 +8,7 @@ Set Universe Polymorphism.
 Section Escapes.
   Context `{GenericTypingProperties}.
 
-  Lemma escapeTy {l Γ A B} (lr : [Γ ||-< l > A ≅ B]) :
+  Lemma escapeTy {l Γ A B} (lr : [Γ ||-S< l > A ≅ B]) :
       [Γ |- A] × [Γ |- B] × [Γ |- A ≅ B].
   Proof.
     indLR lr.
@@ -23,20 +23,29 @@ Section Escapes.
   Qed.
 
   Lemma escape {l Γ A B} :
-      [Γ ||-< l > A ≅ B] ->
+      [Γ ||-S< l > A ≅ B] ->
       [Γ |- A].
   Proof.
     apply escapeTy.
   Qed.
 
-  Lemma escapeEq {l Γ A B} (lr : [Γ ||-< l > A ≅ B]) :
+  Lemma escapeEq {l Γ A B} (lr : [Γ ||-S< l > A ≅ B]) :
       [Γ |- A ≅ B].
   Proof.
     now eapply escapeTy.
   Qed.
 
-  Lemma escapeTm {l Γ A B t u} (lr : [Γ ||-< l > A ≅ B]) :
-    [Γ ||-< l > t ≅ u : A | lr ] ->
+  Lemma escapeSplitTy {l Γ A B} (lr : [Γ ||-<l> A ≅ B]) (hΓ : [|-Γ]):
+    [Γ |- A] × [Γ |- B] × [Γ |- A ≅ B].
+  Proof.
+    prod_splitter.
+    all: first [eapply (Split_bind_wft hΓ lr) | eapply (Split_bind_convty hΓ lr)];
+      intros;
+      now first [eapply escape,lr| eapply escapeTy,lr].
+  Qed.
+
+  Lemma escapeTm {l Γ A B t u} (lr : [Γ ||-S< l > A ≅ B]) :
+    [Γ ||-S< l > t ≅ u : A | lr ] ->
     [Γ |- t : A] × [Γ |- u : A] × [Γ |- t ≅ u : A].
   Proof.
     generalize (whredL_conv lr); caseLR lr.
@@ -89,35 +98,62 @@ Section Escapes.
       tea.
   Qed.
 
-
-  Definition escapeTerm {l Γ t u A} (lr : [Γ ||-< l > A ]) :
-    [Γ ||-< l > t ≅ u : A | lr ] ->
+  Definition escapeTerm {l Γ t u A} (lr : [Γ ||-S< l > A ]) :
+    [Γ ||-S< l > t ≅ u : A | lr ] ->
     [Γ |- t : A].
   Proof. apply escapeTm. Qed.
 
-  Definition escapeEqTerm {l Γ t u A} (lr : [Γ ||-< l > A ]) :
-    [Γ ||-< l > t ≅ u : A | lr ] ->
+  Definition escapeEqTerm {l Γ t u A} (lr : [Γ ||-S< l > A ]) :
+    [Γ ||-S< l > t ≅ u : A | lr ] ->
     [Γ |- t ≅ u : A].
   Proof. apply escapeTm. Qed.
 
-  Lemma escapeConv {l Γ A B} (RA : [Γ ||-<l> A ≅ B]) :
-    [Γ ||-<l> A ≅ B] ->
+  Lemma escapeSplitTm {l Γ A B t u} (lr : [Γ ||-< l > A ≅ B]) :
+    [Γ ||-< l > t ≅ u : A | lr ] -> [|-Γ] ->
+    [Γ |- t : A] × [Γ |- u : A] × [Γ |- t ≅ u : A].
+  Proof.
+    intros htu hΓ.
+    prod_splitter.
+    all: first [eapply (dSplit_bind_ty hΓ htu) | eapply (dSplit_bind_convtm hΓ htu)];
+      intros;
+      now unshelve first [refine (fst (escapeTm _ _)); eapply htu|eapply escapeTm, htu].
+  Qed.
+
+  Lemma escapeConv {l Γ A B} :
+    [Γ ||-S<l> A ≅ B] ->
     [Γ |- B].
   Proof. apply escapeTy. Qed.
 
 End Escapes.
 
-
-Ltac escape :=
+Ltac escapeSplit hΓ :=
   repeat lazymatch goal with
   | [H : [_ ||-< _ > _] |-  _ ] =>
     try
      (let Xl := fresh "EscL" H in
       let Xr := fresh "EscR" H in
       let X := fresh "Esc" H in
-      pose proof (escapeTy H) as (Xl & Xr & X) );
+      pose proof (escapeSplitTy H hΓ) as (Xl & Xr & X) );
     block H
   | [H : [_ ||-<_> _ ≅ _  : _ | ?RA ] |- _] =>
+    try
+     (let Xl := fresh "EscL" H in
+      let Xr := fresh "EscR" H in
+      let X := fresh "Esc" H in
+      pose proof (escapeSplitTm RA H hΓ) as (Xl & Xr & X) );
+      block H
+  end; unblock.
+
+Ltac escape :=
+  repeat lazymatch goal with
+  | [H : [_ ||-S< _ > _] |-  _ ] =>
+    try
+     (let Xl := fresh "EscL" H in
+      let Xr := fresh "EscR" H in
+      let X := fresh "Esc" H in
+      pose proof (escapeTy H) as (Xl & Xr & X) );
+    block H
+  | [H : [_ ||-S<_> _ ≅ _  : _ | ?RA ] |- _] =>
     try
      (let Xl := fresh "EscL" H in
       let Xr := fresh "EscR" H in

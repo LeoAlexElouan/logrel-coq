@@ -13,15 +13,16 @@ Section UniverseReducibility.
     intros ; econstructor; [easy| gen_typing|eapply redtywf_refl; gen_typing].
   Defined.
 
-  Lemma redUOne {Γ l A} : [Γ ||-<l> A] -> [Γ ||-U<one> U ≅ U].
+(*   Lemma redUOne {Γ l A} : [|- Γ] -> [Γ ||-<l> A] -> [Γ ||-U<one> U ≅ U].
   Proof.
-    intros ?%escape; eapply redUOneCtx; gen_typing.
+    intros wfΓ hA; (escapeSplit wfΓ); eapply redUOneCtx.
   Defined.
-
+ *)
   Lemma UnivEq'@{i j k l} {Γ A B l} (rU : [ LogRel@{i j k l} l | Γ ||- U ≅ U ]) (rA : [ LogRel@{i j k l} l | Γ ||- A ≅ B : U | rU])
     : [ LogRel@{i j k l} zero | Γ ||- A ≅ B].
   Proof.
-    now assert [ LogRel@{i j k l} one | Γ ||- A ≅ B : U | LRU_@{i j k l} (redUOne rU)]
+    escape; assert ([|-Γ]) as wfΓ by gtyping.
+    now assert [ LogRel@{i j k l} one | Γ ||- A ≅ B : U | LRU_@{i j k l} (redUOneCtx wfΓ)]
       as [??? hA%redTyRecFwd%cumLR]
     by (eapply irrLREqCum; tea; reflexivity).
   Qed.

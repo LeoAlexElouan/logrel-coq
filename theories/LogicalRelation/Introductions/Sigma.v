@@ -17,7 +17,7 @@ Qed.
 
 Lemma redΣcod {Γ F F' G G' l} : [Γ ||-<l> tSig F G ≅ tSig F' G'] -> [Γ,, F ||-<l> G ≅ G'].
 Proof.
-  intros RΣ0; unshelve eapply (instKripkeFam _ (normRedΣ RΣ0).(PolyRed.posRed)).
+  intros RΣ0; unshelve eapply (instKripkeSplitFam _ (normRedΣ RΣ0).(PolyRed.posRed)).
   escape; gtyping.
 Qed.
 

@@ -67,10 +67,10 @@ Solve All Obligations with
     constructor; tea; eapply redtywf_refl; gtyping).
 
 
-Definition normRedΠ {Γ F F' G G' l} (h : [Γ ||-<l> tProd F G ≅ tProd F' G']) : [Γ ||-Π<l> tProd F G ≅ tProd F' G'] :=
+Definition normRedΠ {Γ F F' G G' l} (h : [Γ ||-S<l> tProd F G ≅ tProd F' G']) : [Γ ||-Π<l> tProd F G ≅ tProd F' G'] :=
   normRedΠr (normRedΠl (invLRΠ h)).
 
-Definition normRedΣ {Γ F F' G G' l} (h : [Γ ||-<l> tSig F G ≅ tSig F' G']) : [Γ ||-Σ<l> tSig F G ≅ tSig F' G'] :=
+Definition normRedΣ {Γ F F' G G' l} (h : [Γ ||-S<l> tSig F G ≅ tSig F' G']) : [Γ ||-Σ<l> tSig F G ≅ tSig F' G'] :=
   normRedΣr (normRedΣl (invLRΣ h)).
 
 
@@ -81,7 +81,7 @@ Definition normRedIdl {Γ A x y B l} (h : [Γ ||-Id<l> tId A x y ≅ B])
      IdRedTy.tyR := h.(IdRedTy.tyR) ; IdRedTy.lhsR := h.(IdRedTy.lhsR) ; IdRedTy.rhsR := h.(IdRedTy.rhsR) ; |}.
 Solve All Obligations with
   intros ; destruct h ; tea; cbn; redSubst (tId A x y);
-  tea; first [now eapply irrLR | eapply redtywf_refl; gtyping].
+  tea; first [now eapply SirrLR | eapply redtywf_refl; gtyping].
 
 #[program]
 Definition normRedIdr {Γ A x y B l} (h : [Γ ||-Id<l> B ≅ tId A x y])
@@ -90,10 +90,10 @@ Definition normRedIdr {Γ A x y B l} (h : [Γ ||-Id<l> B ≅ tId A x y])
      IdRedTy.tyL := h.(IdRedTy.tyL) ; IdRedTy.lhsL := h.(IdRedTy.lhsL) ; IdRedTy.rhsL := h.(IdRedTy.rhsL) ; |}.
 Solve All Obligations with
   intros ; destruct h ; tea; cbn; redSubst (tId A x y);
-  tea; first [now eapply irrLR | eapply redtywf_refl; gtyping].
+  tea; first [now eapply SirrLR | eapply redtywf_refl; gtyping].
 
 
-Definition normRedId {Γ A A' x x' y y' l} (h : [Γ ||-<l> tId A x y ≅ tId A' x' y']) : [Γ ||-Id<l> tId A x y ≅ tId A' x' y'] :=
+Definition normRedId {Γ A A' x x' y y' l} (h : [Γ ||-S<l> tId A x y ≅ tId A' x' y']) : [Γ ||-Id<l> tId A x y ≅ tId A' x' y'] :=
   normRedIdr (normRedIdl (invLRId h)).
 
 End Normalization.

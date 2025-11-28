@@ -11,7 +11,7 @@ Set Polymorphic Inductive Cumulativity.
 (** ** Reducibility of natural number type *)
 Module NatRedTy.
 
-  Record SNatRedTy `{ta : tag} `{WfType ta} `{RedType ta}
+  Record NatRedTy `{ta : tag} `{WfType ta} `{RedType ta}
     {Γ : context} {A B : term}
   : Set :=
   {
@@ -19,85 +19,81 @@ Module NatRedTy.
     redR : [Γ |- B :⤳*: tNat]
   }.
 
-  Arguments SNatRedTy {_ _ _}.
+  Arguments NatRedTy {_ _ _}.
 
-  Definition NatRedTy `{ta : tag} `{WfType ta} `{RedType ta} Γ A B : Type :=
-    Split (fun Δ (ρ : Δ ≤ Γ) => SNatRedTy Δ A⟨ρ⟩  B⟨ρ⟩).
+  Definition shfNatRedTy `{ta : tag} `{WfType ta} `{RedType ta} Γ A B : Type :=
+    Split (fun Δ (ρ : Δ ≤ Γ) => NatRedTy Δ A⟨ρ⟩  B⟨ρ⟩).
 
   Section NatRedTy.
   Context `{ta : tag} `{WfType ta} `{RedType ta}.
 
-  Definition whredL {Γ A B} : SNatRedTy Γ A B -> [Γ |- A ↘].
+  Definition whredL {Γ A B} : NatRedTy Γ A B -> [Γ |- A ↘].
   Proof. intros []; econstructor; tea; constructor. Defined.
 
-  Definition whredR {Γ A B} : SNatRedTy Γ A B -> [Γ |- B ↘].
+  Definition whredR {Γ A B} : NatRedTy Γ A B -> [Γ |- B ↘].
   Proof. intros []; econstructor; tea; constructor. Defined.
 
   End NatRedTy.
 
 End NatRedTy.
 
-Export NatRedTy(SNatRedTy, Build_SNatRedTy, NatRedTy).
-Notation "[ Γ ||-SNat A ≅ B ]" := (SNatRedTy Γ A B) (at level 0, Γ, A at level 50).
+Export NatRedTy(NatRedTy, Build_NatRedTy, shfNatRedTy).
 Notation "[ Γ ||-Nat A ≅ B ]" := (NatRedTy Γ A B) (at level 0, Γ, A at level 50).
+Notation "[ Γ ||-shfNat A ≅ B ]" := (shfNatRedTy Γ A B) (at level 0, Γ, A at level 50).
 
 
 #[program]
-Instance WhRedTyNatRedTy `{GenericTypingProperties} {Γ} : WhRedTyRel Γ (SNatRedTy Γ) :=
+Instance WhRedTyNatRedTy `{GenericTypingProperties} {Γ} : WhRedTyRel Γ (NatRedTy Γ) :=
   {|
     whredtyL := fun A B RAB => NatRedTy.whredL RAB ;
     whredtyR := fun A B RAB => NatRedTy.whredR RAB ;
   |}.
 Next Obligation. destruct h; gtyping. Qed.
 
-
 Module NatRedTmEq.
 Section NatRedTmEq.
   Context `{ta : tag} `{WfContext ta} `{WfType ta} `{ConvType ta}
     `{RedType ta} `{Typing ta} `{ConvNeuConv ta} `{ConvTerm ta}
-    `{RedTerm ta}.
+    `{RedTerm ta} {Γ : context}.
 
-  Inductive SNatRedTmEq (Γ : context) : term -> term -> Set :=
-  | Build_SNatRedTmEq {t u}
+  Inductive NatRedTmEq : term -> term -> Set :=
+  | Build_NatRedTmEq {t u}
     (nfL nfR : term)
     (redL : [Γ |- t :⤳*: nfL : tNat])
     (redR : [Γ |- u :⤳*: nfR : tNat ])
     (eq : [Γ |- nfL ≅ nfR : tNat])
-    (prop : NatPropEq Γ nfL nfR) : SNatRedTmEq Γ t u
+    (prop : NatPropEq nfL nfR) : NatRedTmEq t u
 
-  with NatPropEq (Γ : context): term -> term -> Set :=
+  with NatPropEq : term -> term -> Set :=
   | zeroReq :
-    NatPropEq Γ tZero tZero
+    NatPropEq tZero tZero
   | succReq {n n'} :
-    NatRedTmEq Γ n n' ->
-    NatPropEq Γ(tSucc n) (tSucc n')
-  | neReq {ne ne'} : [Γ ||-NeNf ne ≅ ne' : tNat] -> NatPropEq Γ ne ne'
-
-  with NatRedTmEq (Γ : context) : term -> term -> Set :=
-  | Build_NatRedTmEq t u (d : DTree Γ): (forall Δ (ρ : Δ ≤ Γ), overtree d Δ -> SNatRedTmEq Δ t⟨ρ⟩ u⟨ρ⟩) -> NatRedTmEq Γ t u.
+    NatRedTmEq n n' ->
+    NatPropEq (tSucc n) (tSucc n')
+  | neReq {ne ne'} : [Γ ||-NeNf ne ≅ ne' : tNat] -> NatPropEq ne ne'.
 
   Section Def.
     Context `{!GenericTypingProperties _ _ _ _ _ _ _ _ _}.
 
-    Lemma NatPropEq_isNat Γ {t t' : term} :
-      NatPropEq Γ t t' -> isNat t × isNat t'.
+    Lemma NatPropEq_isNat {t t' : term} :
+      NatPropEq t t' -> isNat t × isNat t'.
     Proof.
       intros [| |?? []]; split; constructor.
       all: eapply convneu_whne; eassumption + now symmetry.
     Defined.
 
-    Definition whnfL {Γ t u} : NatPropEq Γ t u -> whnf t.
+    Definition whnfL {t u} : NatPropEq t u -> whnf t.
     Proof. intros []%NatPropEq_isNat; now eapply isNat_whnf. Qed.
 
-    Definition whnfR {Γ t u} : NatPropEq Γ t u -> whnf u.
+    Definition whnfR {t u} : NatPropEq t u -> whnf u.
     Proof. intros []%NatPropEq_isNat; now eapply isNat_whnf. Qed.
 
-    Definition whredL {Γ t u} : SNatRedTmEq Γ t u -> [Γ |- t ↘ tNat].
+    Definition whredL {t u} : NatRedTmEq t u -> [Γ |- t ↘ tNat].
     Proof.
       intros []; econstructor; tea; now eapply whnfL.
     Defined.
 
-    Definition whredR {Γ t u} : SNatRedTmEq Γ t u -> [Γ |- u ↘ tNat].
+    Definition whredR {t u} : NatRedTmEq t u -> [Γ |- u ↘ tNat].
     Proof.
       intros []; econstructor; tea; now eapply whnfR.
     Defined.
@@ -105,17 +101,14 @@ Section NatRedTmEq.
   End Def.
 
 
-Scheme SNatRedTmEq_mut_rect := Induction for SNatRedTmEq Sort Type with
-    NatPropEq_mut_rect := Induction for NatPropEq Sort Type with
-    NatRedTmEq_mut_rect := Induction for NatRedTmEq Sort Type.
+Scheme NatRedTmEq_mut_rect := Induction for NatRedTmEq Sort Type with
+    NatPropEq_mut_rect := Induction for NatPropEq Sort Type.
 
 Combined Scheme _NatRedInduction from
-  SNatRedTmEq_mut_rect,
   NatRedTmEq_mut_rect,
   NatPropEq_mut_rect.
 
 Combined Scheme _NatRedEqInduction from
-  SNatRedTmEq_mut_rect,
   NatRedTmEq_mut_rect,
   NatPropEq_mut_rect.
 
@@ -134,29 +127,28 @@ Let NatRedEqInductionType :=
 (* KM: looks like there is a bunch of polymorphic universes appearing there... *)
 Lemma NatRedEqInduction : NatRedEqInductionType.
 Proof.
-  intros PSRedEq PPropEq PRedEq **; split; [|split]; now apply (_NatRedEqInduction PSRedEq PPropEq PRedEq).
+  intros PRedEq PPropEq **; split; now apply (_NatRedEqInduction PRedEq PPropEq).
 Defined.
 
 End NatRedTmEq.
-Arguments SNatRedTmEq {_ _ _ _ _}.
-Arguments NatPropEq {_ _ _ _ _}.
 Arguments NatRedTmEq {_ _ _ _ _}.
+Arguments NatPropEq {_ _ _ _ _}.
 End NatRedTmEq.
 
-Export NatRedTmEq(NatRedTmEq,Build_NatRedTmEq,SNatRedTmEq,Build_SNatRedTmEq, NatPropEq, NatRedEqInduction, NatPropEq_isNat).
+Export NatRedTmEq(NatRedTmEq,Build_NatRedTmEq, NatPropEq, NatRedEqInduction, NatPropEq_isNat).
 
-Notation "[ Γ ||-SNat t ≅ u :Nat]" := (@SNatRedTmEq _ _ _ _ _ Γ t u).  (* (at level 0, Γ, t, u, A, RA at level 50). *)
+(* Notation "[ Γ ||-SNat t ≅ u :Nat]" := (@SNatRedTmEq _ _ _ _ _ Γ t u).  (* (at level 0, Γ, t, u, A, RA at level 50). *) *)
 Notation "[ Γ ||-Nat t ≅ u :Nat]" := (@NatRedTmEq _ _ _ _ _ Γ t u).  (* (at level 0, Γ, t, u, A, RA at level 50). *)
 
 #[program]
-Instance NatRedTmEqWhRed `{GenericTypingProperties} {Γ} : WhRedTmRel Γ tNat (SNatRedTmEq Γ) :=
+Instance NatRedTmEqWhRed `{GenericTypingProperties} {Γ} : WhRedTmRel Γ tNat (NatRedTmEq Γ) :=
   {| whredtmL := fun t u Rtu => NatRedTmEq.whredL Rtu ;
     whredtmR := fun t u Rtu => NatRedTmEq.whredR Rtu |}.
 Next Obligation.
   now destruct h.
 Qed.
 
-Section Monad.
+(* Section Monad.
   Context `{ta : tag} `{WfContext ta} `{WfType ta} `{ConvType ta}
     `{RedType ta} `{Typing ta} `{ConvNeuConv ta} `{ConvTerm ta}
     `{RedTerm ta}.
@@ -172,5 +164,5 @@ Section Monad.
     exists h.(dtree).
     eapply h.
   Qed.
-End Monad.
+End Monad. *)
 

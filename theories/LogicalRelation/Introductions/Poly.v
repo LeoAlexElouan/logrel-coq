@@ -19,6 +19,9 @@ Section PolyValidity.
     pose proof (instKripkeFam wfΓ PA.(PolyRed.posRed)).
     pose proof (instKripkeFamConv wfΓ PA.(PolyRed.posRed)).
     escape.
+    assert ([|-Γ,,A]) as wfΓA by gtyping.
+    assert ([|-Γ,,A']) as wfΓA' by gtyping.
+    escapeSplit wfΓA. escapeSplit wfΓA'.
     exists A A' B B'; tea.
     1,2: econstructor; tea; eapply redtywf_refl; eauto.
     eauto.

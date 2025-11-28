@@ -258,6 +258,15 @@ Reserved Notation "[ Γ ||-< l >  t : A | R ]" (at level 0, Γ, l, t, A, R at le
 (** The terms t and u are reducibly convertible at type A and level l in Γ, given the proof R that A is reducible *)
 Reserved Notation "[ Γ ||-< l > t ≅ u : A | R ]" (at level 0, Γ, l, t, u, A, R at level 50).
 
+(** The type A is reducible in Γ at level l *)
+Reserved Notation "[ Γ ||-S< l >  A ]" (at level 0, Γ, l, A at level 50).
+(** The types A and B are reducibly convertible in Γ at level l, given the proof R that A is reducible *)
+Reserved Notation "[ Γ ||-S< l >  A ≅ B | R ]" (at level 0, Γ, l, A, B, R at level 50).
+(** The term t is reducible at type A  and level l in Γ, given the proof R that A is reducible *)
+Reserved Notation "[ Γ ||-S< l >  t : A | R ]" (at level 0, Γ, l, t, A, R at level 50).
+(** The terms t and u are reducibly convertible at type A and level l in Γ, given the proof R that A is reducible *)
+Reserved Notation "[ Γ ||-S< l > t ≅ u : A | R ]" (at level 0, Γ, l, t, u, A, R at level 50).
+
 (** The type A is reducible in Γ at level 0*)
 Reserved Notation "[ Γ ||-<0>  A ]" (at level 0, Γ, A at level 50).
 (** The types A and B are reducibly convertible in Γ at level 0, given the proof R that A is reducible *)

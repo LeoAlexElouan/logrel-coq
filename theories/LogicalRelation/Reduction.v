@@ -1,4 +1,4 @@
-From LogRel Require Import Utils Syntax.All GenericTyping LogicalRelation.
+From LogRel Require Import Utils Syntax.All GenericTyping LogicalRelation Monad.
 From LogRel.LogicalRelation Require Import Induction Escape Irrelevance Transitivity.
 
 Set Universe Polymorphism.
@@ -18,10 +18,10 @@ Proof.
   intros ?? []; constructor; tea; etransitivity; tea; now eapply redtm_conv.
 Qed.
 
-Lemma redSubst {Γ A B B' l} :
-  [Γ ||-<l> B ≅ B'] ->
+Lemma SredSubst {Γ A B B' l} :
+  [Γ ||-S<l> B ≅ B'] ->
   [Γ |- A ⤳* B] ->
-  [Γ ||-<l> A ≅ B'].
+  [Γ ||-S<l> A ≅ B'].
 Proof.
   intros lr; revert A; indLR lr.
   - intros [] **; apply LRU_.
@@ -41,6 +41,18 @@ Proof.
   - intros [] **; cbn in *; apply LRId'.
     econstructor; tea; now eapply red_redtywf_trans.
 Qed.
+
+Lemma redSubst {Γ A B B' l} :
+  [Γ ||-<l> B ≅ B'] ->
+  [Γ |- A ⤳* B] ->
+  [Γ ||-<l> A ≅ B'].
+Proof.
+  intros lr hAB.
+  eapply (Split_bind_return_over lr).
+  intros Δ ρ hover hΔ.
+  eapply SredSubst, redty_wk, hAB; tea.
+  now unshelve eapply lr.
+Defined.
 
 Lemma redwfSubst {Γ A B B' l} :
   [Γ ||-<l> B ≅ B'] ->
@@ -82,10 +94,10 @@ Proof.
   now eapply red_redtmwf_trans.
 Defined.
 
-Lemma redSubstLeftTmEq {Γ A B t u v l} (RA : [Γ ||-<l> A ≅ B]) :
-  [Γ ||-<l> u ≅ v : A | RA] ->
+Lemma SredSubstLeftTmEq {Γ A B t u v l} (RA : [Γ ||-S<l> A ≅ B]) :
+  [Γ ||-S<l> u ≅ v : A | RA] ->
   [Γ |- t ⤳* u : A ] ->
-  [Γ ||-<l> t ≅ v : A | RA].
+  [Γ ||-S<l> t ≅ v : A | RA].
 Proof.
   intros Ruv redtu.
   pose proof (conv:= whredL_conv RA).
@@ -94,7 +106,7 @@ Proof.
     1: (unshelve now eapply redURedTm); [| |tea].
     1: tea.
     assert (redtytu : [Γ |-[ ta ] t ⤳* u]) by (eapply redty_term; cbn in *; gtyping).
-    eapply redTyRecBwd, redSubst; tea; now eapply redTyRecFwd.
+    eapply redTyRecBwd, SredSubst; tea; now eapply redTyRecFwd.
   - intros * [] **; econstructor; tea.
     now eapply red_redtmwf_trans.
   - intros * ?? * [] **; unshelve econstructor; tea.
@@ -115,7 +127,17 @@ Proof.
     all: cbn; eauto.
 Qed.
 
-
+Lemma redSubstLeftTmEq {Γ A B t u v l} (RA : [Γ ||-<l> A ≅ B]) :
+  [Γ ||-<l> u ≅ v : A | RA] ->
+  [Γ |- t ⤳* u : A ] ->
+  [Γ ||-<l> t ≅ v : A | RA].
+Proof.
+  intros huv hRtu.
+  eapply (dSplit_bind_return_over huv).
+  intros Δ ρ _ ohuv oRA hΔ.
+  eapply SredSubstLeftTmEq, redtm_wk, hRtu; tea.
+  now eapply huv.
+Qed.
 
 Lemma redSubstTmEq {Γ A A' tl tr ul ur l} (RA : [Γ ||-<l> A ≅ A']) :
   [Γ ||-<l> ul ≅ ur : A | RA] ->
@@ -124,8 +146,9 @@ Lemma redSubstTmEq {Γ A A' tl tr ul ur l} (RA : [Γ ||-<l> A ≅ A']) :
   [Γ ||-<l> tl ≅ tr : A | RA].
 Proof.
   intros.
+  assert ([|-Γ]) as hΓ by gtyping.
   assert [Γ |- tr ⤳* ur : A ].
-  1: eapply redtm_conv; tea; escape; now symmetry.
+  1: eapply redtm_conv; tea; escapeSplit hΓ; now symmetry.
   eapply redSubstLeftTmEq; tea; symmetry.
   eapply redSubstLeftTmEq; tea; now symmetry.
 Qed.
@@ -136,9 +159,9 @@ Lemma redSubstTmEq' {Γ A A' tl tr ul ur l} (RA : [Γ ||-<l> A ≅ A']) :
   [Γ |- tr ⤳* ur : A' ] ->
   [Γ ||-<l> tl ≅ tr : A | RA] × [Γ ||-<l> tl ≅ ul : _ | lrefl RA] × [Γ ||-<l> tr ≅ ur : _ | urefl RA].
 Proof.
-  intros; split; [|split].
+  intros; prod_splitter.
   + now eapply redSubstTmEq.
-  + eapply redSubstLeftTmEq; tea; now eapply lrefl, irrLR.
+  + eapply redSubstLeftTmEq; tea. now eapply lrefl, irrLR.
   + eapply redSubstLeftTmEq; tea; now eapply urefl, irrLRConv.
 Qed.
 
@@ -150,8 +173,8 @@ Proof.
   intros ? []; now eapply redSubstLeftTmEq.
 Qed.
 
-Lemma redFwd {Γ l A B} (lr : [Γ ||-<l> A ≅ B]) :
-  [Γ ||-<l> (whredtyL lr).(tyred_whnf) ≅ (whredtyR lr).(tyred_whnf)].
+Lemma redFwd {Γ l A B} (lr : [Γ ||-S<l> A ≅ B]) :
+  [Γ ||-S<l> (whredtyL lr).(tyred_whnf) ≅ (whredtyR lr).(tyred_whnf)].
 Proof.
   indLR lr.
   - intros []; cbn in *; apply LRU_; econstructor; tea; gtyping.
@@ -172,12 +195,15 @@ Proof.
     all: tea.
 Qed.
 
-Lemma redFwd' {Γ l A B} (lr : [Γ ||-<l> A ≅ B]) :
-  [Γ ||-<l> A ≅ (whredtyL lr).(tyred_whnf)] × [Γ ||-<l> B ≅ (whredtyR lr).(tyred_whnf)].
+(* Lemma redFwd {Γ l A B} (lr : [Γ ||-<l> A ≅ B]) :
+  dSplit_wfc (fun Δ ρ lr => [Δ ||-<l> (whredtyL lr).(tyred_whnf)⟨ρ⟩ ≅ (whredtyR lr).(tyred_whnf)⟨ρ⟩]) lr.
+ *)
+Lemma redFwd' {Γ l A B} (lr : [Γ ||-S<l> A ≅ B]) :
+  [Γ ||-S<l> A ≅ (whredtyL lr).(tyred_whnf)] × [Γ ||-S<l> B ≅ (whredtyR lr).(tyred_whnf)].
 Proof.
   split.
-  - eapply redSubst; [eapply lrefl, redFwd|]; gtyping.
-  - eapply redSubst; [eapply urefl, redFwd|]; gtyping.
+  - eapply SredSubst; [eapply lrefl, redFwd|]; gtyping.
+  - eapply SredSubst; [eapply urefl, redFwd|]; gtyping.
 Qed.
 
 Arguments IdRedTy.outTy {_ _ _ _ _ _ _ _ _ _ _ _ _ _} _ /.
@@ -203,9 +229,9 @@ Proof.
   cbn in *; eapply redtmwf_refl; gtyping.
 Defined.
 
-Lemma redTmFwd {Γ l A B t u} {RA : [Γ ||-<l> A ≅ B]}
-  (Rtu : [Γ ||-<l> t ≅ u : A | RA]) :
-  [Γ ||-<l> (whredtmL Rtu).(tmred_whnf) ≅ (whredtmR Rtu).(tmred_whnf) : _  | RA].
+Lemma redTmFwd {Γ l A B t u} {RA : [Γ ||-S<l> A ≅ B]}
+  (Rtu : [Γ ||-S<l> t ≅ u : A | RA]) :
+  [Γ ||-S<l> (whredtmL Rtu).(tmred_whnf) ≅ (whredtmR Rtu).(tmred_whnf) : _  | RA].
 Proof.
   revert Rtu; caseLR RA; intros h []; cbn in *; unshelve econstructor.
   all: try match goal with
@@ -221,20 +247,20 @@ Proof.
   eapply redTyRecBwd, redFwd.
 Qed.
 
-Lemma redTmFwd' {Γ l A B t u} {RA : [Γ ||-<l> A ≅ B]}
-  (Rtu : [Γ ||-<l> t ≅ u : A | RA]) :
-  [× [Γ ||-<l> t ≅ (whredtmL Rtu).(tmred_whnf) : _| RA],
-    [Γ ||-<l> (whredtmL Rtu).(tmred_whnf) ≅ (whredtmR Rtu).(tmred_whnf) : _  | RA],
-    [Γ ||-<l> (whredtmR Rtu).(tmred_whnf) ≅ u : _ | RA],
-    [Γ ||-<l> A ≅ (whredtyL RA).(tyred_whnf)] &
-    [Γ ||-<l> A ≅ (whredtyR RA).(tyred_whnf)] ].
+Lemma redTmFwd' {Γ l A B t u} {RA : [Γ ||-S<l> A ≅ B]}
+  (Rtu : [Γ ||-S<l> t ≅ u : A | RA]) :
+  [× [Γ ||-S<l> t ≅ (whredtmL Rtu).(tmred_whnf) : _| RA],
+    [Γ ||-S<l> (whredtmL Rtu).(tmred_whnf) ≅ (whredtmR Rtu).(tmred_whnf) : _  | RA],
+    [Γ ||-S<l> (whredtmR Rtu).(tmred_whnf) ≅ u : _ | RA],
+    [Γ ||-S<l> A ≅ (whredtyL RA).(tyred_whnf)] &
+    [Γ ||-S<l> A ≅ (whredtyR RA).(tyred_whnf)] ].
 Proof.
   pose proof (redTmFwd Rtu); pose proof (redFwd' RA) as [RAwh RBwh].
   split; tea.
-  + eapply redSubstLeftTmEq; [now eapply lrefl|].
+  + eapply SredSubstLeftTmEq; [now eapply lrefl|].
     eapply redtm_conv; [|symmetry; now eapply escapeEq ].
     eapply tmred_whnf_red.
-  + symmetry; eapply redSubstLeftTmEq; [now eapply urefl|].
+  + symmetry; eapply SredSubstLeftTmEq; [now eapply urefl|].
     eapply redtm_conv; [|symmetry; now eapply escapeEq ].
     eapply tmred_whnf_red.
   + etransitivity;[|tea]; tea.

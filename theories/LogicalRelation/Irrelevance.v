@@ -24,14 +24,14 @@ Section Irrelevance.
   Definition cumImpl l := forall Γ A B, [LogRel@{i j k l} l | Γ ||- A ≅ B] -> [LogRel@{i' j' k' l'} l | Γ ||- A ≅ B].
   Definition cum l := forall Γ A B, [LogRel@{i j k l} l | Γ ||- A ≅ B] <≈> [LogRel@{i' j' k' l'} l | Γ ||- A ≅ B].
 
-  Definition irr {Γ l1 l2 A B1 B2} (RA1 : [Γ ||-<l1> A ≅ B1]) (RA2 : [Γ ||-<l2> A ≅ B2]) :=
+  Definition Sirr {Γ l1 l2 A B1 B2} (RA1 : [Γ ||-S<l1> A ≅ B1]) (RA2 : [Γ ||-S<l2> A ≅ B2]) :=
     forall t u, [LogRel@{i j k l} l1 | Γ ||- t ≅ u : _ | RA1] <≈> [LogRel@{i' j' k' l'} l2 | Γ ||- t ≅ u : _ | RA2].
 
   End Defs.
 
   Lemma irrImplU@{h i j k l h' i' j' k' l' } {l1 l2}
     (ih : forall l, l << l1 -> l << l2 -> cumImpl@{h i j k h' i' j' k'} l)
-    {Γ A B1 B2} (h : [Γ ||-SU<l1> A ≅ B1]) (h' : [Γ ||-SU<l2> A ≅ B2]) {t u} :
+    {Γ A B1 B2} (h : [Γ ||-U<l1> A ≅ B1]) (h' : [Γ ||-U<l2> A ≅ B2]) {t u} :
     [LogRel@{i j k l} l1 | _ ||- t ≅ u : _ | LRU_ h] -> [LogRel@{i' j' k' l'} l2 | _ ||- t ≅ u : _| LRU_ h'].
   Proof.
     assert (eq : h.(URedTy.level) = h'.(URedTy.level)) by now destruct h.(URedTy.lt), h'.(URedTy.lt).
@@ -47,12 +47,12 @@ Section Irrelevance.
 
   Universe i j k l i' j' k' l'.
 
-  Let irr {Γ l1 l2 A B1 B2} (RA1 : [Γ ||-<l1> A ≅ B1]) (RA2 : [Γ ||-<l2> A ≅ B2]) :=
-    Eval unfold irr in irr@{i j k l i' j' k' l'} RA1 RA2.
+  Let Sirr {Γ l1 l2 A B1 B2} (RA1 : [Γ ||-S<l1> A ≅ B1]) (RA2 : [Γ ||-S<l2> A ≅ B2]) :=
+    Eval unfold Sirr in Sirr@{i j k l i' j' k' l'} RA1 RA2.
 
   Lemma irrU@{h h'} {l1 l2}
     (ih : forall l, l << l1 -> l << l2 -> cum@{h i j k h' i' j' k'} l)
-    {Γ A B1 B2} (h : [Γ ||-SU<l1> A ≅ B1]) (h' : [Γ ||-SU<l2> A ≅ B2]) : irr (LRU_ h) (LRU_ h').
+    {Γ A B1 B2} (h : [Γ ||-U<l1> A ≅ B1]) (h' : [Γ ||-U<l2> A ≅ B2]) : Sirr (LRU_ h) (LRU_ h').
   Proof.
     intros ??; split; eapply irrImplU;
     intros ? lt1 lt2 ???; [apply (fst (ih _ lt1 lt2 _ _ _) ) | apply (snd (ih _ lt2 lt1 _ _ _) )].
@@ -60,11 +60,11 @@ Section Irrelevance.
 
   Section IrrΠ.
   Context {l1 l2 Γ A B1 B2} (ΠA: [Γ ||-Π< l1 > A ≅ B1]) (ΠA': [Γ ||-Π< l2 > A ≅ B2])
-    (ihdom: forall Δ (ρ : Δ ≤ Γ) (h : [|- Δ]) B2 (R2 : [Δ ||-< l2 > (ParamRedTy.domL ΠA)⟨ρ⟩ ≅ B2]),
-      irr (PolyRed.shpRed ΠA ρ h) R2)
+    (ihdom: forall Δ (ρ : Δ ≤ Γ) (h : [|- Δ]) B2 (R2 : [Δ ||-S< l2 > (ParamRedTy.domL ΠA)⟨ρ⟩ ≅ B2]),
+      Sirr (PolyRed.shpRed ΠA ρ h) R2)
     (ihcod: forall Δ a b (ρ : Δ ≤ Γ) (h : [|- Δ]) (ha : [PolyRed.shpRed ΠA ρ h | Δ ||- a ≅ b : _ ]),
     dover (PolyRed.posRed ΠA ρ h ha)
-      (fun Ξ ρ' hSplit => forall B2 (R2 : [Ξ ||-< l2 > _ ≅ B2]), irr hSplit R2))
+      (fun Ξ ρ' hSplit => forall B2 (R2 : [Ξ ||-S< l2 > _ ≅ B2]), forall hΞ, Sirr (hSplit hΞ) R2))
     (eqdom: ParamRedTy.domL ΠA' = ParamRedTy.domL ΠA)
     (eqcod: ParamRedTy.codL ΠA' = ParamRedTy.codL ΠA).
 
@@ -76,14 +76,14 @@ Section Irrelevance.
       eapply (fst (ihdom Δ ρ h _ _ a b)) in ha as ha'.
       specialize (d _ _ _ _ h ha').
       eapply dSplit_solve; [clear d| apply d].
-      intros Ξ ρ' hover hover' d; cbn in *.
-      eapply ihcod, d.
+      intros Ξ ρ' hover hover' d hΞ; cbn in *.
+      now unshelve eapply ihcod, d.
     + intros; cbn in *.
       eapply (snd (ihdom Δ ρ h _ _ a b)) in ha as ha'.
       specialize (d _ _ _ _ h ha').
       eapply dSplit_solve; [clear d| apply d].
-      intros Ξ ρ' hover hover' d; cbn in *.
-      eapply ihcod, d.
+      intros Ξ ρ' hover hover' d hΞ; cbn in *.
+      now unshelve eapply ihcod, d.
   Qed.
 
   Lemma irrPiRedTm0 {t} : PiRedTm ΠA' t <≈> PiRedTm ΠA t.
@@ -93,7 +93,7 @@ Section Irrelevance.
     all: revert red; cbn; now rewrite eqdom, eqcod.
   Defined.
 
-  Lemma irrΠ : irr (LRPi' ΠA) (LRPi' ΠA').
+  Lemma irrΠ : Sirr (LRPi' ΠA) (LRPi' ΠA').
   Proof.
     intros ?? ; split ; intros [rL rR].
     - exists (snd irrPiRedTm0 rL) (snd irrPiRedTm0 rR); cbn.
@@ -102,26 +102,26 @@ Section Irrelevance.
       eapply (snd (ihdom Δ ρ h _ _ a b)) in hab as hab'.
       specialize (eqApp _ _ _ _ h hab').
       eapply dSplit_solve; [clear eqApp| apply eqApp].
-      intros Ξ ρ' hover hover' eqApp; cbn in *.
-      eapply ihcod, eqApp.
+      intros Ξ ρ' hover hover' eqApp hΞ; cbn in *.
+      now unshelve eapply ihcod, eqApp.
     - exists (fst irrPiRedTm0 rL) (fst irrPiRedTm0 rR); cbn.
       1: now rewrite <-eqdom, <-eqcod.
       intros; destruct ΠA, ΠA'; cbn in *; subst.
       eapply (fst (ihdom Δ ρ h _ _ a b)) in hab as hab'.
       specialize (eqApp _ _ _ _ h hab').
       eapply dSplit_solve; [clear eqApp| apply eqApp].
-      intros Ξ ρ' hover hover' eqApp; cbn in *.
-      eapply ihcod, eqApp.
+      intros Ξ ρ' hover hover' eqApp hΞ; cbn in *.
+      now unshelve eapply ihcod, eqApp.
   Qed.
 
   End IrrΠ.
 
   Section IrrΣ.
   Context {l1 l2 Γ A B1 B2} (ΣA: [Γ ||-Σ< l1 > A ≅ B1]) (ΣA': [Γ ||-Σ< l2 > A ≅ B2])
-    (ihdom: forall Δ (ρ : Δ ≤ Γ) (h : [|- Δ]) B2 (R2 : [Δ ||-< l2 > (ParamRedTy.domL ΣA)⟨ρ⟩ ≅ B2]), irr (PolyRed.shpRed ΣA ρ h) R2)
+    (ihdom: forall Δ (ρ : Δ ≤ Γ) (h : [|- Δ]) B2 (R2 : [Δ ||-S< l2 > (ParamRedTy.domL ΣA)⟨ρ⟩ ≅ B2]), Sirr (PolyRed.shpRed ΣA ρ h) R2)
     (ihcod: forall Δ a b (ρ : Δ ≤ Γ) (h : [|- Δ]) (ha : [PolyRed.shpRed ΣA ρ h | Δ ||- a ≅ b : _ ]),
     dover (PolyRed.posRed ΣA ρ h ha)
-    (fun Ξ ρ' hSplit => forall B2 (R2 : [Ξ ||-< l2 > (ParamRedTy.codL ΣA)[a .: ρ >> tRel]⟨ρ'⟩ ≅ B2]), irr hSplit R2))
+    (fun Ξ ρ' hSplit => forall hΞ B2 (R2 : [Ξ ||-S< l2 > (ParamRedTy.codL ΣA)[a .: ρ >> tRel]⟨ρ'⟩ ≅ B2]), Sirr (hSplit hΞ) R2))
     (eqdom: ParamRedTy.domL ΣA' = ParamRedTy.domL ΣA)
     (eqcod: ParamRedTy.codL ΣA' = ParamRedTy.codL ΣA).
 
@@ -135,13 +135,13 @@ Section Irrelevance.
     + intros; cbn in *.
       specialize (rsnd _ ρ h).
       eapply dSplit_solve; [clear rsnd| apply rsnd].
-      intros Ξ ρ' hover hover' rsnd; cbn in *.
-      eapply ihcod, rsnd.
+      intros Ξ ρ' hover hover' rsnd hΞ; cbn in *.
+      now unshelve eapply ihcod, rsnd.
     + intros; cbn in *.
       specialize (rsnd _ ρ h).
       eapply dSplit_solve; [clear rsnd| apply rsnd].
-      intros Ξ ρ' hover hover' rsnd; cbn in *.
-      eapply ihcod, rsnd.
+      intros Ξ ρ' hover hover' rsnd hΞ; cbn in *.
+      now unshelve eapply ihcod, rsnd.
   Qed.
 
   Lemma irrRedSigTm0 : forall t, SigRedTm ΣA' t <≈> SigRedTm ΣA t.
@@ -150,7 +150,7 @@ Section Irrelevance.
     all: revert red; cbn; now rewrite eqdom, eqcod.
   Defined.
 
-  Lemma irrΣ : irr (LRSig' ΣA) (LRSig' ΣA').
+  Lemma irrΣ : Sirr (LRSig' ΣA) (LRSig' ΣA').
   Proof.
     intros ??; split; intros []; unshelve econstructor.
     1,2,4,5: now eapply irrRedSigTm0.
@@ -159,25 +159,25 @@ Section Irrelevance.
     + intros; cbn in *.
       specialize (eqSnd _ ρ h).
       eapply dSplit_solve; [clear eqSnd| apply eqSnd].
-      intros Ξ ρ' hover hover' eqSnd; cbn in *.
-      eapply ihcod, eqSnd.
+      intros Ξ ρ' hover hover' eqSnd hΞ; cbn in *.
+      now unshelve eapply ihcod, eqSnd.
     + intros; cbn in *.
       specialize (eqSnd _ ρ h).
       eapply dSplit_solve; [clear eqSnd| apply eqSnd].
-      intros Ξ ρ' hover hover' eqSnd; cbn in *.
-      eapply ihcod, eqSnd.
+      intros Ξ ρ' hover hover' eqSnd hΞ; cbn in *.
+      now unshelve eapply ihcod, eqSnd.
   Qed.
 
   End IrrΣ.
 
   Section IrrId.
-  Context {l1 l2 Γ A B1 B2} (IA: [Γ ||-SId< l1 > A ≅ B1]) (IA': [Γ ||-SId< l2 > A ≅ B2])
-    (ih: forall B2 (R2 : [Γ ||-< l2 > IdRedTy.tyL IA ≅ B2]), irr (IdRedTy.tyRed IA) R2)
+  Context {l1 l2 Γ A B1 B2} (IA: [Γ ||-Id< l1 > A ≅ B1]) (IA': [Γ ||-Id< l2 > A ≅ B2])
+    (ih: forall B2 (R2 : [Γ ||-S< l2 > IdRedTy.tyL IA ≅ B2]), Sirr (IdRedTy.tyRed IA) R2)
     (eqty: IdRedTy.tyL IA' = IdRedTy.tyL IA)
     (eqlhs: IdRedTy.lhsL IA' = IdRedTy.lhsL IA)
     (eqrhs: IdRedTy.rhsL IA' = IdRedTy.rhsL IA).
 
-  Lemma irrId : irr (LRId' IA) (LRId' IA').
+  Lemma irrId : Sirr (LRId' IA) (LRId' IA').
   Proof.
     intros ??; split.
     + intros [????? prop]; unshelve econstructor; cbn.
@@ -198,7 +198,7 @@ Section Irrelevance.
   Lemma irrLR_rec@{h h'}
     {l1 l2}
     (ih : forall l, l << l1 -> l << l2 -> cum@{h i j k h' i' j' k'} l)
-    {Γ A B1 B2} (R1 : [Γ ||-<l1> A ≅ B1]) (R2 : [Γ ||-<l2> A ≅ B2]) : irr R1 R2.
+    {Γ A B1 B2} (R1 : [Γ ||-S<l1> A ≅ B1]) (R2 : [Γ ||-S<l2> A ≅ B2]) : Sirr R1 R2.
   Proof.
     pose (i := invLREqL_whred R1 R2).
     revert B2 R2 i ih; indLR R1.
@@ -233,7 +233,7 @@ Lemma cumPolyRed@{h h'} {lA}
     [LogRel@{i' j' k' l'} lA | Δ ||- shp⟨ρ⟩ ≅ shp'⟨ρ⟩])
   (IHpos : forall (Δ : context) (a b : term) (ρ : Δ ≤ Γ) (h : [ |-[ ta ] Δ]),
           [ PolyRed.shpRed PA ρ h | Δ ||- a ≅ b : shp⟨ρ⟩] ->
-          Split_Rel@{l'} (fun Ξ A B => [ LogRel@{i' j' k' l'} lA | Ξ ||- A ≅ B]) Δ pos[a .: (ρ >> tRel)] pos'[b .: (ρ >> tRel)]) :
+          Split_Rel@{l'} (fun Ξ A B => [|-Ξ] -> [ LogRel@{i' j' k' l'} lA | Ξ ||- A ≅ B]) Δ pos[a .: (ρ >> tRel)] pos'[b .: (ρ >> tRel)]) :
   PolyRed@{i' j' k' l'} Γ lA shp shp' pos pos'.
 Proof.
   unshelve econstructor.
@@ -288,9 +288,9 @@ Qed.
 
 
 
-Theorem irrLR@{i j k l i' j' k' l' v} `{GenericTypingProperties} {l1 l2}
-  {Γ A B1 B2} (R1 : [Γ ||-<l1> A ≅ B1]) (R2 : [Γ ||-<l2> A ≅ B2]) :
-    irr@{v i j k l i' j' k' l'} R1 R2.
+Theorem SirrLR@{i j k l i' j' k' l' v} `{GenericTypingProperties} {l1 l2}
+  {Γ A B1 B2} (R1 : [Γ ||-S<l1> A ≅ B1]) (R2 : [Γ ||-S<l2> A ≅ B2]) :
+    Sirr@{v i j k l i' j' k' l'} R1 R2.
 Proof.
   split; eapply irrLR_rec; intros l [] ?; exact cumLR0.
 Qed.
@@ -301,3 +301,21 @@ Theorem cumLR@{i j k l i' j' k' l'} `{GenericTypingProperties} {lA}
 Proof.
   eapply cumLR_rec; tea; intros ? []; exact cumLR0.
 Qed.
+
+
+
+Definition irr@{v i j k l i' j' k' l'} `{GenericTypingProperties} {Γ l1 l2 A B1 B2} (RA1 : WLRAdequate@{i j k l} Γ l1 A B1) (RA2 : WLRAdequate@{i j k l} Γ l2 A B2) : Type@{v}:=
+  forall t u, [Γ ||-< l1 > t ≅ u : _ | RA1] -> [ Γ ||-< l2 > t ≅ u : _ | RA2].
+
+Theorem irrLR@{i j k l i' j' k' l' v} `{GenericTypingProperties} {l1 l2}
+  {Γ A B1 B2} (R1 : [Γ ||-<l1> A ≅ B1]) (R2 : [Γ ||-<l2> A ≅ B2]) :
+    irr@{v i j k l i' j' k' l'} R1 R2.
+Proof.
+  intros t u Rtu.
+  eapply (dSplit_bind_return_over Rtu).
+  intros Δ ρ oR1 oRtu oR2 hΔ.
+  eapply SirrLR.
+  now unshelve eapply Rtu.
+Qed.
+
+

@@ -1,6 +1,6 @@
 (** * LogRel.GenericTyping: the generic interface of typing used to build the logical relation. *)
 From Stdlib Require Import CRelationClasses ssrbool.
-From LogRel Require Import Utils Syntax.All.
+From LogRel Require Import Utils Syntax.All Monad.
 
 (** In order to factor the work, the logical relation is defined over a generic
 notion of typing (and conversion),
@@ -1473,6 +1473,8 @@ Section GenericConsequences.
   Proof.
   intros * []; constructor; now eapply convneu_whne.
   Qed.
+
+
 
 End GenericConsequences.
 

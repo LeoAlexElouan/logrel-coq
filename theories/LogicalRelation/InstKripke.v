@@ -10,30 +10,47 @@ Section InstKripke.
 Context `{GenericTypingProperties}.
 
 Lemma instKripkeTm {Γ A A' t u l} (wfΓ : [|-Γ])
-  {h : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), [Δ ||-<l> A⟨ρ⟩ ≅ A'⟨ρ⟩]}
+  {h : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), [Δ ||-S<l> A⟨ρ⟩ ≅ A'⟨ρ⟩]}
   (eq : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), [h Δ ρ wfΔ | Δ ||- t⟨ρ⟩ ≅ u⟨ρ⟩ : _])
   : [instKripke wfΓ h | Γ ||- t ≅ u : _].
 Proof.
-  specialize (eq Γ wk_id wfΓ); rewrite !wk_id_ren_on in eq.
-  eapply irrLREq; tea; now rewrite wk_id_ren_on.
+  specialize (eq Γ wk_id wfΓ).
+  eapply SirrLREq in eq; [|eapply wk_id_ren_on].
+  erewrite 2!wk_id_ren_on in eq.
+  eapply eq.
 Qed.
 
 Lemma instKripkeFam {Γ A A' B B' l} (wfΓ : [|-Γ])
-  {hA : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), [Δ ||-<l> A⟨ρ⟩ ≅ A'⟨ρ⟩]}
+  {hA : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), [Δ ||-S<l> A⟨ρ⟩ ≅ A'⟨ρ⟩]}
   (hB : forall Δ a b (ρ : Δ ≤ Γ) (wfΔ : [|-Δ])
     (hab : [hA Δ ρ wfΔ | Δ ||- a ≅ b : _]),
     [Δ ||-<l> B[a .: ρ >> tRel] ≅ B'[b .: ρ >> tRel]])
   : [ Γ ,, A ||-<l> B ≅ B'].
 Proof.
   pose proof (instKripke wfΓ hA).
-  escape. assert (wfΓA : [|- Γ ,, A]) by gen_typing.
+  escape. assert (wfΓA : [|- Γ ,, A]) by gtyping.
   unshelve epose proof (hinst := hB (Γ ,, A) (tRel 0) (tRel 0) (@wk1 Γ A) wfΓA _).
-  1: eapply var0; tea; now bsimpl.
+  1: eapply Svar0; tea; now bsimpl.
   now rewrite 2!var0_wk1_id in hinst.
 Qed.
 
-Lemma instKripkeFamTm {Γ A A' B B' t u l} (wfΓ : [|-Γ])
+(* Lemma instKripkeSplitFam {Γ A A' B B' l} (wfΓ : [|-Γ])
   {hA : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), [Δ ||-<l> A⟨ρ⟩ ≅ A'⟨ρ⟩]}
+  (hB : forall Δ a b (ρ : Δ ≤ Γ) (wfΔ : [|-Δ])
+    (hab : [hA Δ ρ wfΔ | Δ ||- a ≅ b : _]),
+       Split_Rel (fun (Ξ : context) (A B : term) => [Ξ ||-< l > A ≅ B]) Δ B
+         [a .: ρ >> tRel] B'[b .: ρ >> tRel]) :
+  Split_Rel (fun (Ξ : context) (A B : term) => [Ξ ||-< l > A ≅ B]) (Γ,,A) B B'.
+Proof.
+  pose proof (instKripke wfΓ hA).
+  escape. assert (wfΓA : [|- Γ,,A]) by gtyping.
+  unshelve epose proof (hinst := hB (Γ,,A) (tRel 0) (tRel 0) (@wk1 Γ A) wfΓA _).
+  1: eapply var0; tea; now bsimpl.
+  now rewrite 2!var0_wk1_id in hinst.
+Qed. *)
+
+Lemma instKripkeFamTm {Γ A A' B B' t u l} (wfΓ : [|-Γ])
+  {hA : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), [Δ ||-S<l> A⟨ρ⟩ ≅ A'⟨ρ⟩]}
   {hB : forall Δ a b (ρ : Δ ≤ Γ) (wfΔ : [|-Δ])
     (hab : [hA Δ ρ wfΔ | Δ ||- a ≅ b : _]),
     [Δ ||-<l> B[a .: ρ >> tRel] ≅ B'[b .: ρ >> tRel]]}
@@ -45,13 +62,14 @@ Proof.
   pose proof (instKripke wfΓ hA).
   escape. assert (wfΓA : [|- Γ ,, A]) by gen_typing.
   unshelve epose proof (hinst := eq (Γ ,, A) (tRel 0) (tRel 0) (@wk1 Γ A) wfΓA _).
-  1: eapply var0; tea; now bsimpl.
-  rewrite 2!var0_wk1_id in hinst.
-  eapply irrLREq; tea; now rewrite var0_wk1_id.
+  1: eapply Svar0; tea; now bsimpl.
+  eapply irrLREq in hinst.
+  rewrite 2!var0_wk1_id in hinst; tea.
+  eapply var0_wk1_id.
 Qed.
 
 Lemma instKripkeFamConv {Γ A A' B B' l} (wfΓ : [|-Γ])
-  {hA : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), [Δ ||-<l> A⟨ρ⟩ ≅ A'⟨ρ⟩]}
+  {hA : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), [Δ ||-S<l> A⟨ρ⟩ ≅ A'⟨ρ⟩]}
   (hB : forall Δ a b (ρ : Δ ≤ Γ) (wfΔ : [|-Δ])
     (hab : [hA Δ ρ wfΔ | Δ ||- a ≅ b : _]),
     [Δ ||-<l> B[a .: ρ >> tRel] ≅ B'[b .: ρ >> tRel]])
@@ -60,12 +78,14 @@ Proof.
   unshelve eapply instKripkeFam.
   2: intros; symmetry; eauto.
   1: tea.
-  unshelve (intros; eapply hB; now eapply irrLRSym); tea.
+  unshelve (intros; eapply hB; now eapply SirrLRSym); tea.
 Qed.
 
 
+
+
 Lemma instKripkeFamConvTm {Γ A A' B B' t u l} (wfΓ : [|-Γ])
-  {hA : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), [Δ ||-<l> A⟨ρ⟩ ≅ A'⟨ρ⟩]}
+  {hA : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), [Δ ||-S<l> A⟨ρ⟩ ≅ A'⟨ρ⟩]}
   {hB : forall Δ a b (ρ : Δ ≤ Γ) (wfΔ : [|-Δ])
     (hab : [hA Δ ρ wfΔ | Δ ||- a ≅ b : _]),
     [Δ ||-<l> B[a .: ρ >> tRel] ≅ B'[b .: ρ >> tRel]]}
@@ -78,43 +98,41 @@ Proof.
   unshelve eapply instKripkeFamTm.
   2: tea.
   2: intros; symmetry; eauto.
-  1: unshelve (intros; eapply hB; now eapply irrLRSym); tea.
-  intros; unshelve eapply irrLR, eq; tea; now eapply irrLRSym.
+  1: unshelve (intros; eapply hB; now eapply SirrLRSym); tea.
+  intros; unshelve eapply irrLR, eq; tea; now eapply SirrLRSym.
 Qed.
 
-Lemma instKripkeSubst {Γ A A' B B' l}
-  {hA : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), [Δ ||-<l> A⟨ρ⟩ ≅ A'⟨ρ⟩]}
+Lemma instKripkeSubst {Γ A A' B B' l} (wfΓ : [|-Γ])
+  {hA : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), [Δ ||-S<l> A⟨ρ⟩ ≅ A'⟨ρ⟩]}
   (hB : forall Δ a b (ρ : Δ ≤ Γ) (wfΔ : [|-Δ])
     (hab : [hA Δ ρ wfΔ | Δ ||- a ≅ b : _]),
     [Δ ||-<l> B[a .: ρ >> tRel] ≅ B'[b .: ρ >> tRel]])
-  (RA : [Γ ||-<l> A ≅ A'])
+  (RA : [Γ ||-S<l> A ≅ A'])
   [t t']
-  (ht : [_ ||-<l> t ≅ t' : _ | RA])
+  (ht : [_ ||-S<l> t ≅ t' : _ | RA])
   : [ Γ ||-<l> B[t..] ≅ B'[t'..]].
 Proof.
-  erewrite 2!eq_subst_scons; unshelve eapply hB.
-  2:rewrite 2! wk_id_ren_on; eapply irrLREq; tea; now rewrite wk_id_ren_on.
-  escape; gtyping.
+  erewrite 2!eq_subst_scons; unshelve eapply hB; tea.
+  eapply SirrLREq; [eapply eq_sym, wk_id_ren_on|]; rewrite 2! wk_id_ren_on; eapply ht.
 Qed.
 
-Lemma instKripkeSubstTm {Γ A A' B B' u u' l}
-  {hA : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), [Δ ||-<l> A⟨ρ⟩ ≅ A'⟨ρ⟩]}
+Lemma instKripkeSubstTm {Γ A A' B B' u u' l} (wfΓ : [|-Γ])
+  {hA : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), [Δ ||-S<l> A⟨ρ⟩ ≅ A'⟨ρ⟩]}
   {hB : forall Δ a b (ρ : Δ ≤ Γ) (wfΔ : [|-Δ])
     (hab : [hA Δ ρ wfΔ | Δ ||- a ≅ b : _]),
     [Δ ||-<l> B[a .: ρ >> tRel] ≅ B'[b .: ρ >> tRel]]}
   (eq : forall Δ a b (ρ : Δ ≤ Γ) (wfΔ : [|-Δ])
     (hab : [hA Δ ρ wfΔ | Δ ||- a ≅ b : _]),
     [hB Δ a b ρ wfΔ hab | Δ ||- u[a .: ρ >> tRel] ≅ u'[b .: ρ >> tRel] : _])
-  (RA : [Γ ||-<l> A ≅ A'])
+  (RA : [Γ ||-S<l> A ≅ A'])
   [t t' ]
-  (ht : [_ ||-<l> t ≅ t' : _ | RA])
-  : [ _ ||-<l> u[t..] ≅ u'[t'..] : _ | instKripkeSubst hB RA ht].
+  (ht : [_ ||-S<l> t ≅ t' : _ | RA])
+  : [ _ ||-<l> u[t..] ≅ u'[t'..] : _ | instKripkeSubst wfΓ hB RA ht].
 Proof.
-  erewrite 2!eq_subst_scons; eapply irrLREq.
-  2: unshelve eapply eq.
-  1: now rewrite <-eq_subst_scons.
-  2: rewrite 2!wk_id_ren_on; eapply irrLREq; tea; now rewrite wk_id_ren_on.
-  escape; gtyping.
+  eapply irrLREq; [eapply eq_sym, eq_subst_scons|].
+  erewrite 2!eq_subst_scons.
+  unshelve eapply eq; tea.
+  eapply SirrLREq; [eapply eq_sym, wk_id_ren_on|]; now rewrite 2!wk_id_ren_on.
 Qed.
 
 End InstKripke.

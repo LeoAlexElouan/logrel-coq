@@ -8,7 +8,7 @@ Set Universe Polymorphism.
 Set Polymorphic Inductive Cumulativity.
 
 Lemma instKripke `{GenericTypingProperties} {Γ A B l} (wfΓ : [|-Γ])
-  (h : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), [Δ ||-<l> A⟨ρ⟩ ≅ B⟨ρ⟩]) : [Γ ||-<l> A ≅ B].
+  (h : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), [Δ ||-S<l> A⟨ρ⟩ ≅ B⟨ρ⟩]) : [Γ ||-S<l> A ≅ B].
 Proof.
   specialize (h Γ wk_id wfΓ); now rewrite 2!wk_id_ren_on in h.
 Qed.
@@ -33,7 +33,7 @@ Section PolyRed.
       shpRed [Δ] (ρ : Δ ≤ Γ) : [ |- Δ ] -> [ LogRel@{i j k l} l | Δ ||- shp⟨ρ⟩ ≅ shp'⟨ρ⟩ ] ;
       posRed [Δ a b] (ρ : Δ ≤ Γ) (h : [ |- Δ ]) :
           [ shpRed ρ h | Δ ||- a ≅ b : shp⟨ρ⟩] ->
-          Split_Rel (fun Ξ A B => [ LogRel@{i j k l} l | Ξ ||- A ≅ B]) Δ pos[a .: (ρ >> tRel)] pos'[b .: (ρ >> tRel)];
+          Split (fun Ξ (ρΞ : Ξ ≤ Δ) => [|-Ξ] -> [ LogRel@{i j k l} l | Ξ ||- pos[a .: (ρ >> tRel)]⟨ρΞ⟩ ≅ pos'[b .: (ρ >> tRel)]⟨ρΞ⟩]);
     }.
 
   Definition from@{i j k l} {PA : PolyRedPack@{k l} Γ shp shp' pos pos'}
@@ -61,7 +61,7 @@ Section PolyRed.
   Proof.
     unshelve econstructor; intros.
     - eapply LRAd.adequate.
-    - intros Ξ ρ' hover.
+    - intros Ξ ρ' hover hΞ.
       eapply LRAd.adequate.
   Defined.
 
@@ -258,7 +258,7 @@ Section IdRedTy.
     `{!ConvType ta} `{!ConvTerm ta} `{!ConvNeuConv ta}
     `{!RedType ta} `{!RedTerm ta}.
 
-  Record SIdRedTy@{i j k l} {Γ : context} {l} {A B : term}
+  Record IdRedTy@{i j k l} {Γ : context} {l} {A B : term}
   : Type :=
   {
     tyL : term ;
@@ -277,10 +277,10 @@ Section IdRedTy.
     tyPER : PER tyRed.(LRPack.eqTm) ;
   }.
 
-  Definition IdRedTy Γ l A B := Split (fun Δ (ρ : Δ ≤ Γ) => @SIdRedTy Γ l A B).
+  Definition shfIdRedTy Γ l A B := Split (fun Δ (ρ : Δ ≤ Γ) => @IdRedTy Γ l A B).
 
   Definition from@{i j k l} {Γ l A B} {IA : IdRedTyPack@{k} Γ A B} (IAad : IdRedTyAdequate@{k l} (LogRel@{i j k l} l) IA)
-    : @SIdRedTy@{i j k l} Γ l A B.
+    : @IdRedTy@{i j k l} Γ l A B.
   Proof.
     unshelve econstructor; try (exact IA.(IdRedTyPack.redL) + exact IA.(IdRedTyPack.redR)).
     - econstructor; apply IAad.
@@ -290,7 +290,7 @@ Section IdRedTy.
     - exact IA.(IdRedTyPack.tyPER).
   Defined.
 
-  Definition toPack@{i j k l} {Γ l A B} (IA : @SIdRedTy@{i j k l} Γ l A B) : IdRedTyPack@{k} Γ A B.
+  Definition toPack@{i j k l} {Γ l A B} (IA : @IdRedTy@{i j k l} Γ l A B) : IdRedTyPack@{k} Γ A B.
   Proof.
     unshelve econstructor; try (exact IA.(IdRedTy.redL) + exact IA.(IdRedTy.redR)).
     - apply IA.(tyRed).
@@ -300,7 +300,7 @@ Section IdRedTy.
     - exact IA.(IdRedTy.tyPER).
   Defined.
 
-  Definition to@{i j k l} {Γ l A B} (IA : @SIdRedTy@{i j k l} Γ l A B) : IdRedTyAdequate@{k l} (LogRel@{i j k l} l) (toPack IA).
+  Definition to@{i j k l} {Γ l A B} (IA : @IdRedTy@{i j k l} Γ l A B) : IdRedTyAdequate@{k l} (LogRel@{i j k l} l) (toPack IA).
   Proof.
     econstructor; apply IA.(tyRed).
   Defined.
@@ -313,14 +313,14 @@ Section IdRedTy.
     to (from IAad) = IAad.
   Proof. reflexivity. Qed.
 
-  Lemma eta@{i j k l} {Γ l A B} (IA : @SIdRedTy@{i j k l} Γ l A B) : from  (to IA) = IA.
+  Lemma eta@{i j k l} {Γ l A B} (IA : @IdRedTy@{i j k l} Γ l A B) : from  (to IA) = IA.
   Proof. reflexivity. Qed.
 
-  Definition IdRedTmEq {Γ l A B} (IA : forall Δ (ρ : Δ ≤ Γ), [|-Δ] -> @SIdRedTy Δ l A⟨ρ⟩ B⟨ρ⟩) := IdRedTmEq (fun Δ ρ hΔ => toPack (IA Δ ρ hΔ)).
-  Definition IdPropEq {Γ l A B} (IA : @SIdRedTy Γ l A B) := IdPropEq (toPack IA).
-  Definition SIdRedTmEq {Γ l A B} (IA : @SIdRedTy Γ l A B) := SIdRedTmEq (toPack IA).
+  Definition shfIdRedTmEq {Γ l A B} (IA : forall Δ (ρ : Δ ≤ Γ), [|-Δ] -> @IdRedTy Δ l A⟨ρ⟩ B⟨ρ⟩) := shfIdRedTmEq (fun Δ ρ hΔ => toPack (IA Δ ρ hΔ)).
+  Definition IdPropEq {Γ l A B} (IA : @IdRedTy Γ l A B) := IdPropEq (toPack IA).
+  Definition IdRedTmEq {Γ l A B} (IA : @IdRedTy Γ l A B) := IdRedTmEq (toPack IA).
 
-  Definition LRId'@{i j k l} {l Γ A B} (IA : @SIdRedTy@{i j k l} Γ l A B)
+  Definition LRId'@{i j k l} {l Γ A B} (IA : @IdRedTy@{i j k l} Γ l A B)
     : [ LogRel@{i j k l} l | Γ ||- A ≅ B] :=
     LRbuild (LRId (LogRelRec l) _ (to IA)).
 (*   Definition LRId'@{i j k l} {l Γ A B} hΓ (IA : forall Δ (ρ : Δ ≤ Γ), [|-Δ] -> @SIdRedTy Δ l A⟨ρ⟩ B⟨ρ⟩)
@@ -328,44 +328,44 @@ Section IdRedTy.
     LRbuild (LRId (LogRelRec l) hΓ _ (fun Δ ρ hΔ => to (IA Δ ρ hΔ))). *)
 End IdRedTy.
 
-Arguments SIdRedTy {_ _ _ _ _ _ _ _ _}.
+Arguments IdRedTy {_ _ _ _ _ _ _ _ _}.
 
-  Definition whredL `{GenericTypingProperties} {l Γ A B} : SIdRedTy Γ l A B -> [Γ |- A ↘ ].
+  Definition whredL `{GenericTypingProperties} {l Γ A B} : IdRedTy Γ l A B -> [Γ |- A ↘ ].
   Proof. intros []; econstructor; tea; constructor. Defined.
 
-  Definition whredR `{GenericTypingProperties} {l Γ A B} : SIdRedTy Γ l A B -> [Γ |- B ↘ ].
+  Definition whredR `{GenericTypingProperties} {l Γ A B} : IdRedTy Γ l A B -> [Γ |- B ↘ ].
   Proof. intros []; econstructor; tea; constructor. Defined.
 
-  Definition outTy `{GenericTypingProperties} {l Γ A B} (IA : SIdRedTy Γ l A B) := IdRedTyPack.outTy (toPack IA).
+  Definition outTy `{GenericTypingProperties} {l Γ A B} (IA : IdRedTy Γ l A B) := IdRedTyPack.outTy (toPack IA).
 
 End IdRedTy.
 
-Export IdRedTy(IdRedTy, SIdRedTy, Build_SIdRedTy, SIdRedTmEq, IdRedTmEq, IdPropEq, LRId').
+Export IdRedTy(IdRedTy, shfIdRedTy, Build_IdRedTy, IdRedTmEq, shfIdRedTmEq, IdPropEq, LRId').
 Arguments IdRedTy.outTy _ /.
 
-Notation "[ Γ ||-SId< l > A ≅ B ]" := (SIdRedTy Γ l A B) (at level 0, Γ, l,  A, B at level 50).
+Notation "[ Γ ||-shfId< l > A ≅ B ]" := (shfIdRedTy Γ l A B) (at level 0, Γ, l,  A, B at level 50).
 Notation "[ Γ ||-Id< l > A ≅ B ]" := (IdRedTy Γ l A B) (at level 0, Γ, l,  A, B at level 50).
 Notation "[ Γ ||-Id< l > t : A | RA ]" := (IdRedTmEq (Γ:=Γ) (l:=l) (A:=A) RA t t) (at level 0, Γ, l, t, A, RA at level 50).
 Notation "[ Γ ||-Id< l > t ≅ u : A | RA ]" := (IdRedTmEq (Γ:=Γ) (l:=l) (A:=A) RA t u) (at level 0, Γ, l, t, u, A, RA at level 50).
-Notation "[ Γ ||-SId< l > t : A | RA ]" := (SIdRedTmEq (Γ:=Γ) (l:=l) (A:=A) RA t t) (at level 0, Γ, l, t, A, RA at level 50).
-Notation "[ Γ ||-SId< l > t ≅ u : A | RA ]" := (SIdRedTmEq (Γ:=Γ) (l:=l) (A:=A) RA t u) (at level 0, Γ, l, t, u, A, RA at level 50).
+Notation "[ Γ ||-shfId< l > t : A | RA ]" := (shfIdRedTmEq (Γ:=Γ) (l:=l) (A:=A) RA t t) (at level 0, Γ, l, t, A, RA at level 50).
+Notation "[ Γ ||-shfId< l > t ≅ u : A | RA ]" := (shfIdRedTmEq (Γ:=Γ) (l:=l) (A:=A) RA t u) (at level 0, Γ, l, t, u, A, RA at level 50).
 
 #[program]
-Instance IdRedTyWhRed `{GenericTypingProperties} {Γ l} : WhRedTyRel Γ (SIdRedTy Γ l) :=
+Instance IdRedTyWhRed `{GenericTypingProperties} {Γ l} : WhRedTyRel Γ (IdRedTy Γ l) :=
   {| whredtyL := fun A B RAB => IdRedTy.whredL RAB ;
      whredtyR := fun A B RAB => IdRedTy.whredR RAB ; |}.
 Next Obligation. now destruct h. Qed.
 
 #[program]
-Instance IdRedTmWhRedRel `{GenericTypingProperties} {Γ l A B} (IA : [Γ ||-SId<l> A ≅ B])
-  : WhRedTmRel Γ (IdRedTy.outTy IA) (SIdRedTmEq IA) :=
+Instance IdRedTmWhRedRel `{GenericTypingProperties} {Γ l A B} (IA : [Γ ||-Id<l> A ≅ B])
+  : WhRedTmRel Γ (IdRedTy.outTy IA) (IdRedTmEq IA) :=
   {| whredtmL := fun t u Rtu => IdRedTmEq.whredL Rtu ;
      whredtmR := fun t u Rtu => IdRedTmEq.whredR Rtu ; |}.
 Next Obligation. now destruct h. Qed.
 
 #[program]
-Instance URedTmEqWhRedRel  `{GenericTypingProperties} {Γ l A B} (UA : [Γ ||-SU<l> A ≅ B])
-  : WhRedTmRel Γ U (SURedTmEq (LogRelRec l) Γ _ _ UA) :=
+Instance URedTmEqWhRedRel  `{GenericTypingProperties} {Γ l A B} (UA : [Γ ||-U<l> A ≅ B])
+  : WhRedTmRel Γ U (URedTmEq (LogRelRec l) Γ _ _ UA) :=
   {| whredtmL := fun t u Rtu => URedTm.whredL Rtu ;
      whredtmR := fun t u Rtu => URedTm.whredR Rtu ; |}.
 Next Obligation. now destruct h. Qed.

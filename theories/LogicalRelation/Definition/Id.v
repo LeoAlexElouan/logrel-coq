@@ -74,8 +74,8 @@ Section IdRedTmEq.
   | neReq {ne ne'} : [Γ ||-NeNf ne ≅ ne' : IdRedTyPack.outTy IA] -> IdPropEq ne ne'.
 
 
-  Record SIdRedTmEq  {t u : term} : Type :=
-    Build_SIdRedTmEq {
+  Record IdRedTmEq  {t u : term} : Type :=
+    Build_IdRedTmEq {
       nfL : term ;
       nfR : term ;
       redL : [Γ |- t :⤳*: nfL : IdRedTyPack.outTy IA ] ;
@@ -100,23 +100,23 @@ Section IdRedTmEq.
     Definition whnfR {t u} : IdPropEq t u -> whnf u.
     Proof. intros []%IdPropEq_isId ; now eapply isId_whnf. Qed.
 
-    Definition whredL {t u} : @SIdRedTmEq t u -> [Γ |- t ↘ IdRedTyPack.outTy IA].
+    Definition whredL {t u} : @IdRedTmEq t u -> [Γ |- t ↘ IdRedTyPack.outTy IA].
     Proof. intros []; econstructor; tea; now eapply whnfL. Defined.
 
-    Definition whredR {t u} : @SIdRedTmEq t u -> [Γ |- u ↘ IdRedTyPack.outTy IA].
+    Definition whredR {t u} : @IdRedTmEq t u -> [Γ |- u ↘ IdRedTyPack.outTy IA].
     Proof. intros []; econstructor; tea; now eapply whnfR. Defined.
   End Def.
 
 
 End IdRedTmEq.
-Arguments SIdRedTmEq {_ _ _ _ _ _ _ _ _ _ _ _}.
+Arguments IdRedTmEq {_ _ _ _ _ _ _ _ _ _ _ _}.
 Arguments IdPropEq {_ _ _ _ _ _ _ _ _ _}.
 
-Definition IdRedTmEq@{i} `{ta : tag} `{WfContext ta} `{WfType ta} `{ConvType ta}
+Definition shfIdRedTmEq@{i} `{ta : tag} `{WfContext ta} `{WfType ta} `{ConvType ta}
   `{RedType ta} `{Typing ta} `{ConvNeuConv ta} `{ConvTerm ta}
   `{RedTerm ta} {Γ : context} {A B: term} (IA : forall Δ (ρ : Δ ≤ Γ), [|-Δ] -> IdRedTyPack@{i} Δ A⟨ρ⟩ B⟨ρ⟩) t u : Type@{i} :=
-  Split@{i} (fun Δ (ρ : Δ ≤ Γ) => forall (hΔ : [|-Δ]), SIdRedTmEq@{i} (Γ:=Δ) (A:=A⟨ρ⟩) (B:=B⟨ρ⟩) (IA Δ ρ hΔ) t⟨ρ⟩ u⟨ρ⟩).
+  Split@{i} (fun Δ (ρ : Δ ≤ Γ) => forall (hΔ : [|-Δ]), IdRedTmEq@{i} (Γ:=Δ) (A:=A⟨ρ⟩) (B:=B⟨ρ⟩) (IA Δ ρ hΔ) t⟨ρ⟩ u⟨ρ⟩).
 
 End IdRedTmEq.
 
-Export IdRedTmEq(IdRedTmEq, SIdRedTmEq, Build_SIdRedTmEq, IdPropEq, IdPropEq_isId).
+Export IdRedTmEq(IdRedTmEq, shfIdRedTmEq, Build_IdRedTmEq, IdPropEq, IdPropEq_isId).
