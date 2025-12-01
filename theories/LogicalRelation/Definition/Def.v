@@ -133,19 +133,14 @@ Section Weak_LogRel.
     `{!ConvType ta} `{!ConvTerm ta} `{!ConvNeuConv ta}
     `{!RedType ta} `{!RedTerm ta}.
 
-  Record WLRAdequate@{i j k l | i < j, j < k, k < l} Γ l A B : Type@{l} := {
-    WLRAd_wfc : [|-Γ];
-    WLRAd_R :> Split@{l} (fun Δ (ρ: Δ ≤ Γ) => [|-Δ] -> LRAdequate@{k l} Δ (LogRel@{i j k l} l) A⟨ρ⟩ B⟨ρ⟩)
-    }.
-
+  Definition WLRAdequate@{i j k l | i < j, j < k, k < l} Γ l A B : Type@{l} :=
+    Split@{l} (fun Δ (ρ: Δ ≤ Γ) => [|-Δ] -> LRAdequate@{k l} Δ (LogRel@{i j k l} l) A⟨ρ⟩ B⟨ρ⟩).
 
   Definition Wpack@{i j k l | i < j, j < k, k < l} Γ l A B (RA : WLRAdequate@{i j k l} Γ l A B) : LRPack@{k} Γ A B :=
     Build_LRPack@{k} Γ A B (fun t u =>
       dSplit (fun Δ (ρ: Δ ≤ Γ) hSplit => forall (hΔ : [|-Δ]), [LogRel@{i j k l} l | Δ ||- t⟨ρ⟩ ≅ u⟨ρ⟩ : A⟨ρ⟩ | hSplit hΔ ]) RA).
   Coercion Wpack : WLRAdequate >-> LRPack.
 End Weak_LogRel.
-
-Arguments WLRAd_R {_ _ _ _ _ _ _ _ _ _ _ _ _}.
 
 Notation "[ Γ ||-< l > A ≅ B ]" := (WLRAdequate Γ l A B).
 Notation "[ Γ ||-< l > A ]" := [ Γ ||-<l> A ≅ A].
@@ -161,21 +156,22 @@ Proof.
   eapply (Split_bind_return_over RAB).
   intros Ξ ρΞ oRAB hΞ.
   rewrite <-2!wk_comp_ren_on.
-  now eapply RAB.(WLRAd_R).
+  now eapply RAB.
 Qed.
 
-Lemma WLRAd_bind `{ta : tag} `{!WfContext ta} `{!WfType ta} `{!Typing ta}
+Lemma SplitWAd `{ta : tag} `{!WfContext ta} `{!WfType ta} `{!Typing ta}
     `{!ConvType ta} `{!ConvTerm ta} `{!ConvNeuConv ta} `{!RedType ta} `{!RedTerm ta} :
     forall Γ l l' A B A' B', [Γ ||-< l > A ≅ B] ->
-      (forall Δ (ρ : Δ≤ Γ), [Δ ||-S< l > A⟨ρ⟩ ≅ B⟨ρ⟩] -> [Δ ||-< l' > A'⟨ρ⟩ ≅ B'⟨ρ⟩]) -> 
+      (forall Δ (ρ : Δ ≤ Γ), [Δ ||-S< l > A⟨ρ⟩ ≅ B⟨ρ⟩] -> [Δ ||-< l' > A'⟨ρ⟩ ≅ B'⟨ρ⟩]) -> 
       [Γ ||-< l' > A' ≅ B'].
-Proof.
+Proof. 
   intros ??????? RAB H.
-  split.
-  eapply RAB.
   eapply (Split_bind_over RAB).
   intros Δ ρ oRAB.
   eapply WrePack.
+  eapply H.
+  eapply RAB.
+  eapply oRAB.
 
 (** ** Folding and unfolding lemmas of the logical relation wrt levels *)
 
