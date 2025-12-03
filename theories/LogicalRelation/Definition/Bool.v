@@ -21,8 +21,6 @@ Module BoolRedTy.
 
   Arguments BoolRedTy {_ _ _}.
 
-  Definition shfBoolRedTy `{ta : tag} `{WfType ta} `{RedType ta} : forall Γ A B, Type :=
-    Split_Rel BoolRedTy.
 
   Section BoolRedTy.
   Context `{ta : tag} `{WfType ta} `{RedType ta}.
@@ -37,8 +35,7 @@ Module BoolRedTy.
 
 End BoolRedTy.
 
-Export BoolRedTy(BoolRedTy, shfBoolRedTy, Build_BoolRedTy).
-Notation "[ Γ ||-shfBool A ≅ B ]" := (shfBoolRedTy Γ A B) (at level 0, Γ, A at level 50).
+Export BoolRedTy(BoolRedTy, Build_BoolRedTy).
 Notation "[ Γ ||-Bool A ≅ B ]" := (BoolRedTy Γ A B) (at level 0, Γ, A at level 50).
 
 #[program]
@@ -75,9 +72,6 @@ Section BoolRedTmEq.
   }.
   Arguments BoolRedTmEq : clear implicits.
 
-  Definition shfBoolRedTmEq : forall Γ t u, Set :=
-    Split_Rel BoolRedTmEq.
-
   Section Def.
     Context `{!GenericTypingProperties _ _ _ _ _ _ _ _ _}.
 
@@ -109,13 +103,11 @@ Section BoolRedTmEq.
 
 End BoolRedTmEq.
 Arguments BoolPropEq {_ _ _}.
-Arguments shfBoolRedTmEq {_ _ _ _ _}.
 Arguments BoolRedTmEq {_ _ _ _ _}.
 End BoolRedTmEq.
 
-Export BoolRedTmEq(BoolRedTmEq,shfBoolRedTmEq,Build_BoolRedTmEq,BoolPropEq,BoolPropEq_isBool).
+Export BoolRedTmEq(BoolRedTmEq, Build_BoolRedTmEq, BoolPropEq, BoolPropEq_isBool).
 
-Notation "[ Γ ||-shfBool t ≅ u :Bool]" := (@shfBoolRedTmEq _ _ _ _ _ _ _ Γ t u).
 Notation "[ Γ ||-Bool t ≅ u :Bool]" := (@BoolRedTmEq _ _ _ _ _ _ _ Γ t u).  (* (at level 0, Γ, t, u at level 50). *)
 
 #[program]

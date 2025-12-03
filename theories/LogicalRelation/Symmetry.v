@@ -26,22 +26,22 @@ Section Symmetry.
   Arguments sym {_ _ _ _}.
 
   Definition symPoly {Γ l A A' B B'} (ΠA : PolyRed Γ l A A' B B')
-    (ihdom: forall (Δ : context) (ρ : Δ ≤ Γ) (h : [ |-[ ta ] Δ]), sym (PolyRed.shpRed ΠA ρ h))
-    (ihcod: forall (Δ : context) (a b : term) (ρ : Δ ≤ Γ) (h : [ |-[ ta ] Δ])
-      (ha : [PolyRed.shpRed ΠA ρ h | Δ ||- a ≅ b : _]), dover (PolyRed.posRed ΠA ρ h ha) (fun _ _ hSplit => forall hΞ, sym (hSplit hΞ)))
+    (ihdom: forall (Δ : context) (ρ : Δ ≤ Γ) (wfΔ : [ |-[ ta ] Δ]), sym (PolyRed.shpRed ΠA ρ wfΔ))
+    (ihcod: forall (Δ : context) (a b : term) (ρ : Δ ≤ Γ) (wfΔ : [ |-[ ta ] Δ])
+      (ha : [PolyRed.shpRed ΠA ρ wfΔ | Δ ||- a ≅ b : _]), dover (PolyRed.posRed ΠA ρ wfΔ ha) (fun _ _ _ => sym))
       : PolyRed Γ l A' A B' B.
   Proof.
     unshelve econstructor.
     * intros; now unshelve eapply symRed, ihdom.
     * intros * ha; cbn in *.
-      exists (PolyRed.posRed ΠA ρ h (fst (symRedTm (ihdom Δ ρ h)) ha)).(dtree).
+      exists (PolyRed.posRed ΠA ρ wfΔ (fst (symRedTm (ihdom Δ ρ wfΔ)) ha)).(dtree).
       intros; now eapply ihcod.
   Defined.
 
   Definition symParamRedTy {T Γ l A A'} (ΠA : ParamRedTy T Γ l A A')
-    (ihdom: forall (Δ : context) (ρ : Δ ≤ Γ) (h : [ |-[ ta ] Δ]), sym (PolyRed.shpRed ΠA ρ h))
-    (ihcod: forall (Δ : context) (a b : term) (ρ : Δ ≤ Γ) (h : [ |-[ ta ] Δ])
-      (ha : [PolyRed.shpRed ΠA ρ h | Δ ||- a ≅ b : _]), dover (PolyRed.posRed ΠA ρ h ha) (fun _ _ hSplit => forall hΞ, sym (hSplit hΞ)))
+    (ihdom: forall (Δ : context) (ρ : Δ ≤ Γ) (wfΔ : [ |-[ ta ] Δ]), sym (PolyRed.shpRed ΠA ρ wfΔ))
+    (ihcod: forall (Δ : context) (a b : term) (ρ : Δ ≤ Γ) (wfΔ : [ |-[ ta ] Δ])
+      (ha : [PolyRed.shpRed ΠA ρ wfΔ | Δ ||- a ≅ b : _]), dover (PolyRed.posRed ΠA ρ wfΔ ha) (fun _ _ _ => sym))
       : ParamRedTy T Γ l A' A.
   Proof.
     destruct ΠA; cbn in *; unshelve econstructor.
@@ -52,9 +52,9 @@ Section Symmetry.
 
   Section SymΠ.
     Context {Γ l A A'} (ΠA : [Γ ||-Π<l> A ≅ A'])
-      (ihdom: forall (Δ : context) (ρ : Δ ≤ Γ) (h : [ |-[ ta ] Δ]), sym (PolyRed.shpRed ΠA ρ h))
-      (ihcod: forall (Δ : context) (a b : term) (ρ : Δ ≤ Γ) (h : [ |-[ ta ] Δ])
-        (ha : [PolyRed.shpRed ΠA ρ h | Δ ||- a ≅ b : _]), dover (PolyRed.posRed ΠA ρ h ha) (fun _ _ hSplit => forall hΞ, sym (hSplit hΞ))).
+      (ihdom: forall (Δ : context) (ρ : Δ ≤ Γ) (wfΔ : [ |-[ ta ] Δ]), sym (PolyRed.shpRed ΠA ρ wfΔ))
+      (ihcod: forall (Δ : context) (a b : term) (ρ : Δ ≤ Γ) (wfΔ : [ |-[ ta ] Δ])
+        (ha : [PolyRed.shpRed ΠA ρ wfΔ | Δ ||- a ≅ b : _]), dover (PolyRed.posRed ΠA ρ wfΔ ha) (fun _ _ _ => sym)).
 
     Let symΠ := symParamRedTy ΠA ihdom ihcod.
 
@@ -65,18 +65,18 @@ Section Symmetry.
         * constructor; tea.
           1: etransitivity; tea; eapply ParamRedTy.eqdom.
           intros.
-          specialize (Rbody Δ b a ρ h (fst (symRedTm _) ha)).
-          eapply dSplit_solve; [clear Rbody| apply Rbody].
-          intros Ξ ρ' hover hover' Rbody hΞ; cbn in *.
-          eapply ihcod, Rbody.
+          specialize (Rbody Δ b a ρ wfΔ (fst (symRedTm _) ha)).
+          eapply (dSplit_bind_return Rbody).
+          intros Ξ wfΞ ρΞ oha' oRbody ohA; cbn in *.
+          now unshelve eapply ihcod, Rbody.
         * constructor; eapply convneu_conv; tea; eapply ParamRedTy.eq.
       - intros [???? Rbody|].
         * constructor; tea.
           1: etransitivity; tea; eapply ParamRedTy.eqdom.
-          intros ? a b ρ h ha.
-          specialize (Rbody Δ b a ρ h (snd (symRedTm _) ha)).
-          eapply dSplit_solve; [clear Rbody| apply Rbody].
-          intros Ξ ρ' hover hover' Rbody hΞ; cbn in *.
+          intros ??????.
+          specialize (Rbody Δ b a ρ wfΔ (snd (symRedTm _) ha)).
+          eapply (dSplit_bind_return Rbody).
+          intros Ξ wfΞ ρΞ oha' oRbody ohA; cbn in *.
           now unshelve eapply ihcod, SirrLR, Rbody.
         * constructor; eapply convneu_conv; tea; eapply ParamRedTy.eq.
     Qed.
@@ -91,15 +91,15 @@ Section Symmetry.
     Proof.
       split; intros []; unshelve econstructor; try now eapply symPiRedTm.
       1,3: cbn; eapply convtm_conv; [now symmetry| eapply PiRedTy.eq].
-      - intros Δ a b ρ h hab; cbn in *.
-        specialize (eqApp Δ b a ρ h (fst (symRedTm _) hab)).
-        eapply dSplit_solve; [clear eqApp| apply eqApp].
-        intros Ξ ρ' hover hover' eqApp hΞ; cbn in *.
+      - intros Δ a b ρ wfΔ hab; cbn in *.
+        specialize (eqApp Δ b a ρ wfΔ (fst (symRedTm _) hab)).
+        eapply (dSplit_bind_return eqApp).
+        intros Ξ wfΞ ρΞ oha' oeqApp ohA; cbn in *.
         now eapply ihcod, eqApp.
-      - intros Δ a b ρ h hab; cbn in *.
-        specialize (eqApp Δ b a ρ h (snd (symRedTm _) hab)).
-        eapply dSplit_solve; [clear eqApp| apply eqApp].
-        intros Ξ ρ' hover hover' eqApp hΞ; cbn in *.
+      - intros Δ a b ρ wfΔ hab; cbn in *.
+        specialize (eqApp Δ b a ρ wfΔ (snd (symRedTm _) hab)).
+        eapply (dSplit_bind_return eqApp).
+        intros Ξ wfΞ ρΞ oha' oeqApp ohA; cbn in *.
         now unshelve eapply ihcod, SirrLR, eqApp.
     Qed.
 
@@ -145,13 +145,13 @@ Section Symmetry.
     2: now eapply symBoolPropEq.
     now symmetry.
   Qed.
-
+ 
 
   Section SymΣ.
     Context {Γ l A A'} (ΣA : [Γ ||-Σ<l> A ≅ A'])
-      (ihdom: forall (Δ : context) (ρ : Δ ≤ Γ) (h : [ |-[ ta ] Δ]), sym (PolyRed.shpRed ΣA ρ h))
-      (ihcod: forall (Δ : context) (a b : term) (ρ : Δ ≤ Γ) (h : [ |-[ ta ] Δ])
-        (ha : [PolyRed.shpRed ΣA ρ h | Δ ||- a ≅ b : _]), dover (PolyRed.posRed ΣA ρ h ha) (fun _ _ hSplit => forall hΞ, sym (hSplit hΞ))).
+      (ihdom: forall (Δ : context) (ρ : Δ ≤ Γ) (wfΔ : [ |-[ ta ] Δ]), sym (PolyRed.shpRed ΣA ρ wfΔ))
+      (ihcod: forall (Δ : context) (a b : term) (ρ : Δ ≤ Γ) (wfΔ : [ |-[ ta ] Δ])
+        (ha : [PolyRed.shpRed ΣA ρ wfΔ | Δ ||- a ≅ b : _]), dover (PolyRed.posRed ΣA ρ wfΔ ha) (fun _ _ _ => sym)).
 
     Let symΣ := symParamRedTy ΣA ihdom ihcod.
 
@@ -163,16 +163,16 @@ Section Symmetry.
           2: etransitivity; tea; eapply ParamRedTy.eqdom.
           + intros; now eapply ihdom.
           + etransitivity; tea.
-            assert [|-Γ] as hΓ by gtyping.
-            set (hSplit := PolyRed.posRed ΣA wk_id hΓ (r1 _ wk_id _)).
-            unshelve eapply (Split_bind_convty hΓ hSplit).
-            intros Δ ρ hover hΔ.
+            assert [|-Γ] as wfΓ by gtyping.
+            set (hΣA := PolyRed.posRed ΣA wk_id wfΓ (r1 _ wk_id _)).
+            unshelve eapply (Split_bind_convty hΣA).
+            intros Δ wfΔ ρ ohΣA.
             erewrite 2!eq_subst_scons.
-            symmetry; now eapply escapeEq, hSplit.
+            symmetry; now eapply escapeEq, hΣA.
           + intros; cbn.
             specialize (r2 _ ρ h).
-            eapply dSplit_solve; [clear r2| apply r2].
-            intros Ξ ρ' hover hover' r2 hΞ; cbn in *.
+            eapply (dSplit_bind_return r2).
+            intros Ξ wfΞ ρΞ oha' or2 ohA; cbn in *.
             now unshelve eapply ihcod, SirrLR, r2.
         * constructor; eapply convneu_conv; tea; eapply ParamRedTy.eq.
       - intros [???????? r1 r2|].
@@ -180,16 +180,16 @@ Section Symmetry.
           2: etransitivity; tea; eapply ParamRedTy.eqdom.
           + intros; now eapply ihdom.
           + etransitivity; tea.
-            assert [|-Γ] as hΓ by gtyping.
-            set (hSplit := PolyRed.posRed symΣ wk_id hΓ (r1 _ wk_id _)).
-            unshelve eapply (Split_bind_convty hΓ hSplit).
-            intros Δ ρ hover hΔ.
+            assert [|-Γ] as wfΓ by gtyping.
+            set (hsymΣ := PolyRed.posRed symΣ wk_id wfΓ (r1 _ wk_id _)).
+            unshelve eapply (Split_bind_convty hsymΣ).
+            intros Δ wfΔ ρ ohsymΣ.
             erewrite 2!eq_subst_scons.
-            symmetry; now eapply escapeEq, hSplit.
+            symmetry; now eapply escapeEq, hsymΣ.
           + intros; cbn.
             specialize (r2 _ ρ h).
-            eapply dSplit_solve; [clear r2| apply r2].
-            intros Ξ ρ' hover hover' r2 hΞ; cbn in *.
+            eapply (dSplit_bind_return r2).
+            intros Ξ wfΞ ρΞ oha' or2 ohA; cbn in *.
             now unshelve eapply ihcod, SirrLR, r2.
         * constructor; eapply convneu_conv; tea; eapply ParamRedTy.eq.
     Qed.
@@ -207,13 +207,13 @@ Section Symmetry.
       1,2: cbn; intros; now eapply ihdom.
       + intros; cbn in *.
         specialize (eqSnd _ ρ h).
-        eapply dSplit_solve; [clear eqSnd| apply eqSnd].
-        intros Ξ ρ' hover hover' eqSnd hΞ; cbn in *.
+        eapply (dSplit_bind_return eqSnd).
+        intros Ξ wfΞ ρΞ oha' oeqSnd ohA; cbn in *.
         now unshelve eapply ihcod, SirrLR, eqSnd.
       + intros; cbn in *.
         specialize (eqSnd _ ρ h).
-        eapply dSplit_solve; [clear eqSnd| apply eqSnd].
-        intros Ξ ρ' hover hover' eqSnd hΞ; cbn in *.
+        eapply (dSplit_bind_return eqSnd).
+        intros Ξ wfΞ ρΞ oha' oeqSnd ohA; cbn in *.
         now unshelve eapply ihcod, SirrLR, eqSnd.
     Qed.
 

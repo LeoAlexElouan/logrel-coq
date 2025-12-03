@@ -20,9 +20,6 @@ Module EmptyRedTy.
 
   Arguments EmptyRedTy {_ _ _}.
 
-  Definition shfEmptyRedTy `{ta : tag} `{WfType ta} `{RedType ta} Γ A B : Set :=
-    Split (fun Δ (ρ : Δ ≤ Γ) => EmptyRedTy Δ A⟨ρ⟩ B⟨ρ⟩).
-
   Section EmptyRedTy.
   Context `{ta : tag} `{WfType ta} `{RedType ta}.
 
@@ -35,9 +32,8 @@ Module EmptyRedTy.
   End EmptyRedTy.
 End EmptyRedTy.
 
-Export EmptyRedTy(EmptyRedTy, shfEmptyRedTy, Build_EmptyRedTy).
+Export EmptyRedTy(EmptyRedTy, Build_EmptyRedTy).
 Notation "[ Γ ||-Empty A ≅ B ]" := (EmptyRedTy Γ A B) (at level 0, Γ, A at level 50).
-Notation "[ Γ ||-shfEmpty A ≅ B ]" := (shfEmptyRedTy Γ A B) (at level 0, Γ, A at level 50).
 
 #[program]
 Instance WhRedTyEmptyRedTy `{GenericTypingProperties} {Γ} : WhRedTyRel Γ (EmptyRedTy Γ) :=
@@ -64,8 +60,6 @@ Section EmptyRedTmEq.
   }.
   Arguments  EmptyRedTmEq : clear implicits.
 
-  Definition shfEmptyRedTmEq Γ t u : Set :=
-    Split (fun Δ (ρ : Δ ≤ Γ) => EmptyRedTmEq Δ t⟨ρ⟩ u⟨ρ⟩).
 
   Section Def.
     Context `{!GenericTypingProperties _ _ _ _ _ _ _ _ _}.
@@ -82,14 +76,12 @@ Section EmptyRedTmEq.
   End  Def.
 
 End EmptyRedTmEq.
-Arguments shfEmptyRedTmEq {_ _ _ _}.
 Arguments EmptyRedTmEq {_ _ _ _}.
 End EmptyRedTmEq.
 
-Export EmptyRedTmEq(EmptyRedTmEq, shfEmptyRedTmEq, Build_EmptyRedTmEq).
+Export EmptyRedTmEq(EmptyRedTmEq, Build_EmptyRedTmEq).
 
-Notation "[ Γ ||-Empty t ≅ u :Empty]" := (@EmptyRedTmEq _ _ _ _ _ _ _ Γ t u).
-Notation "[ Γ ||-shfEmpty t ≅ u :Empty]" := (@shfEmptyRedTmEq _ _ _ _ _ _ _ Γ t u).  (* (at level 0, Γ, t, u at level 50). *)
+Notation "[ Γ ||-Empty t ≅ u :Empty]" := (@EmptyRedTmEq _ _ _ _ _ _ _ Γ t u). (* (at level 0, Γ, t, u at level 50). *)
 
 #[program]
 Instance EmptyRedTmEqWhRed `{GenericTypingProperties} {Γ} : WhRedTmRel Γ tEmpty (EmptyRedTmEq Γ) :=

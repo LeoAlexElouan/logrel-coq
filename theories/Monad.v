@@ -1,4 +1,4 @@
-From LogRel Require Import Utils Syntax.All.
+From LogRel Require Import Utils Syntax.All GenericTyping.
 
 Inductive DTree (L : Fcontext) : Set :=
   | leaf : DTree L
@@ -105,167 +105,171 @@ Proof.
 Qed.
 
 Local Set Universe Polymorphism.
+Section Sheaves.
+  Context `{ta : tag}
+    `{!WfContext ta} `{!WfType ta} `{!Typing ta}
+    `{!ConvType ta} `{!ConvTerm ta} `{!ConvNeuConv ta}
+    `{!RedType ta} `{!RedTerm ta} `{!WfContextProperties}.
 
 
-Definition PSh@{i} Γ : Type@{i+1} := forall (Δ : context), Δ ≤ Γ -> Type@{i}.
+  Definition PSh@{i} Γ (wfΓ : [|-Γ]): Type@{i+1} := forall (Δ : context) (wfΔ : [|-Δ]), Δ ≤ Γ -> Type@{i}.
 
-Definition PSh_PSh {Γ Δ} (ρ : Γ ≤ Δ): PSh Δ -> PSh Γ :=
-  fun A Ξ σ => A Ξ (σ ∘w ρ).
+  Definition PSh_PSh {Γ Δ wfΓ} wfΔ (ρ : Δ ≤ Γ): PSh Γ wfΓ -> PSh Δ wfΔ :=
+    fun A Ξ wfΞ ρΞ => A Ξ wfΞ (ρΞ ∘w ρ).
 
-Lemma PSh_rew {Γ} (A : PSh Γ) : forall {Δ} (ρ ρ' : Δ ≤ Γ), ρ =1 ρ' -> A Δ ρ -> A Δ ρ'.
+  Lemma PSh_rew {Γ wfΓ} (A : PSh Γ wfΓ) : forall {Δ wfΔ} (ρ ρ' : Δ ≤ Γ), ρ =1 ρ' -> A Δ wfΔ ρ -> A Δ wfΔ ρ'.
+  Proof.
+    intros ???? heq1 hA.
+    apply wk_to_ren_inj in heq1.
+    now destruct heq1.
+  Qed.
+
+  Lemma PSh_root {Γ Δ wfΓ wfΔ ρ} {A : PSh Γ wfΓ}: (forall Ξ wfΞ (ρΞ : Ξ ≤ Δ), A Ξ wfΞ (ρΞ∘w ρ))
+    -> A Δ wfΔ ρ.
+  Proof.
+    intros hA.
+    rewrite <- wk_comp_lunit.
+    eapply hA.
+  Qed.
+
+  Definition hom {Γ wfΓ} (A B : PSh Γ wfΓ) := forall Δ wfΔ ρ, A Δ wfΔ ρ -> B Δ wfΔ ρ.
+
+  Lemma hom_PSh {Γ wfΓ} {A B : PSh Γ wfΓ} : hom A B -> forall {Δ wfΔ} {ρ : Δ ≤ Γ}, hom (PSh_PSh wfΔ ρ A) (PSh_PSh wfΔ ρ B).
+  Proof.
+    intros hhom ??? Ξ wfΞ ρΞ hA.
+    apply hhom.
+    apply hA.
+  Qed.
+
+  #[projections(primitive)] Record Split@{i} {Γ} {wfΓ} (A : PSh@{i} Γ wfΓ) : Type@{i} := {
+    dtree :> DTree Γ;
+    cover : forall (Δ : context) wfΔ ρ, overtree dtree Δ -> A Δ wfΔ ρ
+  }.
+
+  Arguments dtree {_ _ _}.
+  Arguments cover {_ _ _}.
+
+  (* Definition Split_PSh {Γ} : PSh Γ -> PSh Γ:=
+   fun A Δ ρ => Split (PSh_PSh ρ A). *)
+
+  Lemma split_hom_PSh {Γ wfΓ} {A B : PSh Γ wfΓ} : hom A B -> Split A -> Split B.
+  Proof.
+    intros hhom hA.
+    destruct hA as [dA hA].
+    exists dA.
+    intros Δ wfΔ ρ odA.
+    apply hhom.
+    now apply hA.
+  Qed.
+
+  Lemma Split_wkn {Γ wfΓ} {A : PSh Γ wfΓ} : Split A ->
+    forall {Δ wfΔ} ρ, Split (wfΓ := wfΔ) (fun Ξ wfΞ (ρ' : Ξ ≤ Δ) => A Ξ wfΞ (ρ'∘w ρ)).
+  Proof.
+    intros hA Δ wfΔ ρ.
+    exists (DTree_PSh Δ hA.(dtree)).
+    intros Ξ wfΞ σ Hover.
+    apply hA.
+    now eapply over_DTree_PSh.
+  Defined.
+
+  Lemma Split_wkn_inv {Γ wfΓ A} : (forall Δ wfΔ (ρ : Δ ≤ Γ), Split (wfΓ:=wfΔ) (fun Ξ wfΞ ρ' => A Ξ wfΞ (ρ'∘w ρ))) ->
+    Split (wfΓ:=wfΓ) A.
+  Proof.
+    intros hA.
+    specialize (hA Γ wfΓ wk_id).
+    eapply split_hom_PSh.
+    2: apply hA.
+    intros Δ wfΔ ρ a.
+    refine (PSh_rew A _ _ _ a).
+    apply wfΓ.
+    bsimpl.
+    reflexivity.
+  Qed.
+
+  Definition shf {Γ} wfΓ (A : PSh Γ wfΓ) := forall Δ wfΔ (ρ : Δ ≤ Γ) new,
+      A (Δ,,new↦true) (wfc_consF wfΔ) (wk_Fstep _ _ ρ) ->
+      A (Δ,,new↦false) (wfc_consF wfΔ) (wk_Fstep _ _ ρ) ->
+      A Δ wfΔ ρ.
+
+  Lemma shf_PSh {Γ wfΓ A} : shf wfΓ A -> forall {Δ wfΔ} {ρ : Δ ≤ Γ}, shf wfΔ (PSh_PSh wfΔ ρ A).
+  Proof.
+    intros hAshf ??? Ξ wfΞ ρΞ new hAt hAf.
+    unfold PSh_PSh, shf in *.
+    now eapply hAshf.
+  Qed.
+
+  Lemma Split_shf {Γ wfΓ} {A : PSh Γ wfΓ} : shf wfΓ (fun Δ wfΔ ρ => Split (wfΓ:=wfΔ) (fun Ξ wfΞ ρ' => A Ξ wfΞ (ρ'∘w ρ))).
+  Proof.
+    intros Δ wfΔ ρ new [dAt hAt] [dAf hAf].
+    exists (node dAt dAf).
+    intros Ξ wfΞ ρΞ hover.
+    cbn in hover.
+    destruct (decide_in Ξ new) as [[] hin|hnotin].
+    - specialize (hAt Ξ wfΞ (wk_new new true ρΞ hin) hover).
+      refine (PSh_rew A _ _ _ hAt).
+      bsimpl. reflexivity.
+    - specialize (hAf Ξ wfΞ (wk_new new false ρΞ hin) hover).
+      refine (PSh_rew A _ _ _ hAf).
+      bsimpl. reflexivity.
+    - destruct hover.
+  Qed.
+
+Definition over {Γ : context} {wfΓ} (d : DTree Γ) (A: PSh Γ wfΓ) := forall Δ wfΔ (ρ : Δ ≤ Γ), overtree d Δ -> A Δ wfΔ ρ.
+
+
+Lemma over_PSh {Γ: context} {wfΓ} {d : DTree Γ} {A: PSh Γ wfΓ} : over d A ->
+  forall Δ wfΔ (ρ : Δ ≤ Γ) (d' : DTree Δ), (forall Ξ (wfΞ : [|-Ξ]) (ρ' : Ξ ≤ Δ), overtree d' Ξ -> overtree d Ξ) -> over d' (PSh_PSh wfΔ ρ A).
 Proof.
-  intros Δ ρ ρ' heq1 hA.
-  apply wk_to_ren_inj in heq1.
-  now destruct heq1.
+  intros od ???? hdd' Ξ wfΞ ρΞ od'.
+  now apply od.
 Qed.
 
-Lemma PSh_root {Γ Δ ρ} {A : PSh Γ}: (forall Ξ (ρΞ : Ξ ≤ Δ), A Ξ (ρΞ∘w ρ)) -> A Δ ρ.
-Proof.
-  intros hA.
-  rewrite <- wk_comp_lunit.
-  eapply hA.
-Qed.
-
-Definition hom {Γ} (A B : PSh Γ) := forall Δ ρ, A Δ ρ -> B Δ ρ.
-
-Lemma hom_PSh {Γ} {A B : PSh Γ} : hom A B -> forall {Δ} {ρ : Δ ≤ Γ}, hom (PSh_PSh ρ A) (PSh_PSh ρ B).
-Proof.
-  intros hhom Δ ρ Ξ σ hA.
-  apply hhom.
-  apply hA.
-Qed.
-
-#[projections(primitive)] Record Split@{i} {Γ} (A : PSh@{i} Γ) : Type@{i} := {
-  dtree :> DTree Γ;
-  cover : forall (Δ : context) ρ, overtree dtree Δ -> A Δ ρ
-}.
-
-Arguments dtree {_ _}.
-Arguments cover {_ _}.
-
-Definition Split_PSh {Γ} : PSh Γ -> PSh Γ:=
- fun A Δ ρ => Split (PSh_PSh ρ A).
-
-Lemma split_hom_PSh {Γ} {A B : PSh Γ} : hom A B -> Split A -> Split B.
-Proof.
-  intros hhom hA.
-  destruct hA as [dA hA].
-  exists dA.
-  intros Δ ρ hover.
-  apply hhom.
-  now apply hA.
-Qed.
-
-Lemma Split_wkn {Γ} {A : PSh Γ} : Split A -> forall {Δ} ρ, Split (fun Ξ (ρ' : Ξ ≤ Δ) => A Ξ (ρ'∘w ρ)).
-Proof.
-  intros hA Δ ρ.
-  exists (DTree_PSh Δ hA.(dtree)).
-  intros Ξ σ Hover.
-  apply hA.
-  now eapply over_DTree_PSh.
-Defined.
-
-Lemma Split_wkn_inv Γ A : (forall Δ (ρ : Δ ≤ Γ), Split (fun Ξ ρ' => A Ξ (ρ'∘w ρ))) -> Split A.
-Proof.
-  intros.
-  eapply split_hom_PSh.
-  2: apply (X Γ wk_id).
-  intros Δ ρ hA.
-  refine (PSh_rew A _ _ _ hA).
-  bsimpl.
-  reflexivity.
-Qed.
-
-Definition shf {Γ} (A : PSh Γ) := forall Δ (ρ : Δ ≤ Γ) new,
-    A (Δ,,new↦true) (wk_Fstep _ _ ρ) ->
-    A (Δ,,new↦false) (wk_Fstep _ _ ρ) ->
-    A Δ ρ.
-
-Lemma shf_PSh {Γ A} : shf A -> forall {Δ} {ρ : Δ ≤ Γ}, shf (PSh_PSh ρ A).
-Proof.
-  intros hAshf Δ ρ Ξ σ new hAt hAf.
-  unfold PSh_PSh, shf in *.
-  now eapply hAshf.
-Qed.
-
-Lemma Split_shf {Γ} {A : PSh Γ} : shf (fun Δ ρ => Split (fun Ξ ρ' => A Ξ (ρ'∘w ρ))).
-Proof.
-  intros Δ ρ new [dAt hAt] [dAf hAf].
-  exists (node dAt dAf).
-  intros Ξ σ hover.
-  cbn in hover.
-  destruct (decide_in Ξ new) as [[] hin|hnotin].
-  - specialize (hAt Ξ (wk_new new true σ hin) hover).
-    refine (PSh_rew A _ _ _ hAt).
-    bsimpl. reflexivity.
-  - specialize (hAf Ξ (wk_new new false σ hin) hover).
-    refine (PSh_rew A _ _ _ hAf).
-    bsimpl. reflexivity.
-  - destruct hover.
-Qed.
-
-Definition over {Γ : context} (d : DTree Γ) (A: PSh Γ) := forall Δ (ρ : Δ ≤ Γ), overtree d Δ -> A Δ ρ.
-(* Lemma over_PSh {Γ : context} {d : DTree Γ} {A: PSh Γ} : over d A ->
-  forall Δ (ρ : Δ ≤ Γ), over (DTree_PSh Δ d) (PSh_PSh ρ A).
-Proof.
-  intros hA Δ ρ Ξ ρ' hover.
-  apply hA.
-  now eapply over_DTree_PSh.
-Qed. *)
-
-Lemma over_PSh {Γ: context} {d : DTree Γ} {A: PSh Γ} : over d A ->
-  forall Δ (ρ : Δ ≤ Γ) (d' : DTree Δ), (forall Ξ (ρ' : Ξ ≤ Δ), overtree d' Ξ -> overtree d Ξ) ->over d' (PSh_PSh ρ A).
-Proof.
-  intros hA Δ ρ d' hdd' Ξ ρ' hover.
-  now apply hA.
-Qed.
-
-Lemma over_new : forall {Γ} A {new} (b:bool) {dt df}, over (node dt df) A ->
-  over (Γ:=Γ,,new↦b) (if b return _ then dt else df) (PSh_PSh  (wk_Fstep new b wk_id) A).
+Lemma over_new : forall {Γ wfΓ} (A : PSh Γ wfΓ) {new} (b:bool) {dt df}, over (node dt df) A ->
+  over (Γ:=Γ,,new↦b) (if b return _ then dt else df) (PSh_PSh (wfc_consF wfΓ) (wk_Fstep new b wk_id) A).
 Proof.
   intros * hA.
   eapply over_PSh; [apply hA|].
-  intros Δ ρ hover.
+  intros Δ wfΔ ρ hover.
   cbn.
   rewrite (decide_in_in _  new b (Fwk ρ new b (in_hereF _ new b))).
   now destruct b.
 Qed.
 
-Lemma Split_bind_alg_over@{i j} : forall {Γ} {A B: PSh Γ},
-  shf@{j} B -> forall (hA : Split@{i} A),
-  (forall Δ (ρ : Δ ≤ Γ), overtree hA.(dtree) Δ -> B Δ ρ)->
-  forall Δ (ρ : Δ ≤ Γ), B Δ ρ.
+Lemma Split_bind_alg@{i j} : forall {Γ wfΓ} {A B: PSh Γ wfΓ},
+  shf@{j} wfΓ B -> forall (hA : Split@{i} A),
+  (forall Δ wfΔ (ρ : Δ ≤ Γ), overtree hA.(dtree) Δ -> B Δ wfΔ ρ)->
+  forall Δ wfΔ (ρ : Δ ≤ Γ), B Δ wfΔ ρ.
 Proof.
-  intros [Γ L] A B hBshf [dA hA] hB; cbn in *.
+  intros [Γ L] wfΓ A B hBshf [dA hA] hB; cbn in *.
   induction dA as [L |L new dt ihAt df ihAf].
-  - intros Δ ρ; cbn in *.
+  - intros Δ wfΔ ρ; cbn in *.
     apply hB, ρ.
   - change L with (Fctx (Build_context Γ L)) in new.
-    specialize (ihAt (PSh_PSh (wk_Fstep new true wk_id) A)
-      (PSh_PSh (wk_Fstep new true wk_id) B) (shf_PSh hBshf)
+    specialize (ihAt (wfc_consF wfΓ) (PSh_PSh (wfc_consF wfΓ) (wk_Fstep new true wk_id) A)
+      (PSh_PSh (wfc_consF wfΓ) (wk_Fstep new true wk_id) B) (shf_PSh hBshf)
       (over_new A true hA) (over_new B true hB)).
-    specialize (ihAf (PSh_PSh (wk_Fstep new false wk_id) A)
-      (PSh_PSh (wk_Fstep new false wk_id) B) (shf_PSh hBshf)
+    specialize (ihAf (wfc_consF wfΓ) (PSh_PSh (wfc_consF wfΓ) (wk_Fstep new false wk_id) A)
+      (PSh_PSh (wfc_consF wfΓ) (wk_Fstep new false wk_id) B) (shf_PSh hBshf)
       (over_new A false hA) (over_new B false hB)).
-    intros Δ ρ.
+    intros Δ wfΔ ρ.
     destruct (decide_in Δ new) as [[] hin|hnotin].
-    + specialize (ihAt Δ (wk_new new true ρ hin)).
+    + specialize (ihAt Δ wfΔ (wk_new new true ρ hin)).
       refine (PSh_rew B _ ρ _ ihAt).
       bsimpl; reflexivity.
-    + specialize (ihAf Δ (wk_new new false ρ hin)).
+    + specialize (ihAf Δ wfΔ (wk_new new false ρ hin)).
       refine (PSh_rew B _ ρ _ ihAf).
       bsimpl; reflexivity.
     + set (new' := Build_newnat Δ new hnotin).
       eapply hBshf.
-      * specialize (ihAt (Δ,, new' ↦ true) (wk_Fup true new ρ new new')).
+      * specialize (ihAt (Δ,, new' ↦ true) (wfc_consF wfΔ) (wk_Fup true new ρ new new')).
         refine (PSh_rew B _ _ _ ihAt).
         bsimpl. reflexivity.
-      * specialize (ihAf (Δ,, new' ↦ false) (wk_Fup false new ρ new new')).
+      * specialize (ihAf (Δ,, new' ↦ false) (wfc_consF wfΔ) (wk_Fup false new ρ new new')).
         refine (PSh_rew B _ _ _ ihAf).
         bsimpl. reflexivity.
 Qed.
 
-Lemma Split_bind_alg : forall {Γ} {A B: PSh Γ},
+(* Lemma Split_bind_alg : forall {Γ} {A B: PSh Γ},
   shf B ->
   hom A B ->
   Split A -> (forall Δ (ρ : Δ ≤ Γ), B Δ ρ).
@@ -275,7 +279,7 @@ Proof.
   intros ?? hoverA.
   eapply hhom.
   now eapply hA.
-Qed.
+Qed. *)
 
 (* 
 Lemma Split_bind : forall {Γ} {A B : PSh Γ},
@@ -289,141 +293,126 @@ Proof.
   apply Split_shf.
 Qed. *)
 
-Lemma Split_return : forall {Γ} {A: PSh Γ}, (forall Δ ρ, A Δ ρ) -> Split A.
+Lemma Split_return : forall {Γ wfΓ} {A: PSh Γ wfΓ}, (forall Δ wfΔ ρ, A Δ wfΔ ρ) -> Split A.
 Proof.
-  intros Γ A hA.
+  intros Γ wfΓ A hA.
   exists (leaf Γ).
   easy.
 Qed.
 
 
-Lemma Split_Splitfree {Γ} {A : PSh Γ} : Split A -> Split (fun Δ ρ => forall Ξ ρ', A Ξ (ρ'∘w ρ)).
+Lemma Split_Splitfree {Γ wfΓ} {A : PSh Γ wfΓ} : Split A -> Split (wfΓ := wfΓ) (fun Δ wfΔ ρ => forall Ξ wfΞ ρ', A Ξ wfΞ (ρ'∘w ρ)).
 Proof.
   intros * hA.
   exists hA.(dtree).
-  intros * hover *.
+  intros ? wfΔ ? hover *.
   apply hA.(cover).
   now apply overtree_PSh. Show Proof.
 Defined.
 
-Lemma Split_Splitfree_inv {Γ} {A : PSh Γ} : Split (fun Δ ρ => forall Ξ ρ', A Ξ (ρ'∘w ρ)) -> Split A.
+Lemma Split_Splitfree_inv {Γ wfΓ} {A : PSh Γ wfΓ} : Split (wfΓ:=wfΓ) (fun Δ wfΔ ρ => forall Ξ wfΞ ρ', A Ξ wfΞ (ρ'∘w ρ)) -> Split A.
 Proof.
   intros hA.
   exists hA.(dtree).
-  intros * hover *.
+  intros * ohA *.
   rewrite <- wk_comp_lunit.
   now apply hA.
 Defined.
 
-Lemma Split_bind_over: forall {Γ} {A B : PSh Γ} (hA :Split A),
-  (forall Δ (ρ : Δ ≤ Γ), overtree hA.(dtree) Δ -> Split (fun Ξ ρ' => B Ξ (ρ' ∘w ρ))) ->
+Lemma Split_bind: forall {Γ wfΓ} {A B : PSh Γ wfΓ} (hA :Split A),
+  (forall Δ wfΔ (ρ : Δ ≤ Γ), overtree hA.(dtree) Δ -> Split (wfΓ:=wfΔ) (fun Ξ wfΞ ρ' => B Ξ wfΞ (ρ' ∘w ρ))) ->
   Split B.
 Proof.
-  intros Γ A B hA f.
+  intros ????? hB.
   apply Split_wkn_inv.
-  unshelve eapply Split_bind_alg_over.
+  unshelve eapply (Split_bind_alg Split_shf).
   2: apply (Split_Splitfree hA).
-  1: apply Split_shf.
-  intros ?? hover.
-  now apply f.
+  intros ??? ohA.
+  now apply hB.
 Qed.
 
-Lemma Split_wk_bind_over : forall {Γ} {A : PSh Γ} (hA : Split A),
-  forall {Δ} (ρ : Δ ≤ Γ) {B : PSh Δ}, (forall Ξ (ρ' : Ξ ≤ Δ), overtree hA.(dtree) Ξ -> Split (fun Θ (ρ'' : Θ ≤ Ξ) => B Θ (ρ''∘w ρ'))) -> Split B.
+Lemma Split_wk_bind : forall {Γ wfΓ} {A : PSh Γ wfΓ} (hA : Split A),
+  forall {Δ wfΔ} (ρ : Δ ≤ Γ) {B : PSh Δ wfΔ},
+    (forall Ξ wfΞ (ρ' : Ξ ≤ Δ), overtree hA.(dtree) Ξ -> Split (wfΓ := wfΞ) (fun Θ wfΘ (ρ'' : Θ ≤ Ξ) => B Θ wfΘ (ρ''∘w ρ'))) ->
+    Split B.
 Proof.
-  intros Γ A hA Δ ρ B hB.
-  set (hA' := Split_wkn hA ρ).
-  unshelve eapply Split_bind_over.
+  intros ???????? hB.
+  set (hA' := Split_wkn (wfΔ := wfΔ) hA ρ).
+  unshelve eapply Split_bind.
   2: apply hA'.
-  intros Ξ ρ' hover.
+  intros Ξ wfΞ ρ' ohA'.
   apply hB.
-  cbn in hover.
   now eapply over_DTree_PSh.
 Qed.
 
-Lemma Split_wk_bind_return_over : forall {Γ} {A : PSh Γ} (hA : Split A),
-  forall {Δ} (ρ : Δ ≤ Γ) {B : PSh Δ}, (forall Ξ (ρ' : Ξ ≤ Δ), overtree hA.(dtree) Ξ -> B Ξ ρ') -> Split B.
+Lemma Split_wk_bind_return : forall {Γ wfΓ} {A : PSh Γ wfΓ} (hA : Split A),
+  forall {Δ wfΔ} (ρ : Δ ≤ Γ) {B : PSh Δ wfΔ}, (forall Ξ wfΞ (ρ' : Ξ ≤ Δ), overtree hA.(dtree) Ξ -> B Ξ wfΞ ρ') -> Split B.
 Proof.
-  intros Γ A hA Δ ρ B hB.
-  set (hA' := Split_wkn hA ρ).
-  unshelve eapply Split_bind_over.
-  2: apply hA'.
-  intros Ξ ρ' hover.
+  intros ???????? hB.
+  eapply (Split_wk_bind hA ρ).
+  intros ??? ohA.
   eapply Split_return.
-  intros Θ ρΘ.
-  apply hB.
-  cbn in hover.
-  eapply over_DTree_PSh.
+  intros Θ wfΘ ρΘ.
+  eapply hB.
   now eapply overtree_PSh.
 Qed.
 
-Lemma Split_bind_return_over: forall {Γ} {A B : PSh Γ} (hA :Split A),
-  (forall Δ (ρ : Δ ≤ Γ), overtree hA.(dtree) Δ ->  B Δ ρ) ->
+Lemma Split_bind_return: forall {Γ wfΓ} {A B : PSh Γ wfΓ} (hA :Split A),
+  (forall Δ wfΔ (ρ : Δ ≤ Γ), overtree hA.(dtree) Δ ->  B Δ wfΔ ρ) ->
   Split B.
 Proof.
-  intros Γ A B hA f.
-  unshelve eapply Split_bind_over.
-  2: apply hA.
-  intros ?? hover.
+  intros ????? hB.
+  eapply (Split_bind hA).
+  intros ??? ohA.
   apply Split_return.
-  intros Ξ ρΞ.
-  apply f.
+  intros Ξ wfΞ ρΞ.
+  apply hB.
   now eapply overtree_PSh.
 Qed.
 
-(* Lemma Split_bind_free : forall {Γ} {A B : PSh Γ} (hA :Split A),
-  (forall Δ (ρ : Δ ≤ Γ), (forall Ξ ρ', A Ξ (ρ'∘w ρ)) -> Split (fun Ξ ρ' => B Ξ (ρ' ∘w ρ))) ->
-  Split B.
+
+Definition dover {Γ wfΓ} {A : PSh Γ wfΓ} (hA : Split A) (P : forall Δ wfΔ ρ, A Δ wfΔ ρ -> Type)
+  := forall Δ wfΔ (ρ : Δ ≤ Γ) (ohA : overtree hA Δ),
+  P Δ wfΔ ρ (cover hA Δ wfΔ ρ ohA).
+
+Definition dover_PSh {Γ wfΓ} {A : PSh Γ wfΓ} {P} {hA : Split A}: dover hA P -> forall {Δ} {wfΔ} {ρ : Δ ≤ Γ},
+  dover (wfΓ := wfΔ) (Split_wkn hA ρ) (fun Ξ wfΞ ρ' => P Ξ wfΞ (ρ'∘w ρ)).
 Proof.
-  intros Γ A B hA f.
-  apply Split_wkn_inv.
-  unshelve eapply split_bind_alg_over.
-  2: apply (Split_Splitfree hA).
-  1: apply Split_shf.
-  intros; now eapply f.
-Qed. *)
-
-
-Definition dover {Γ} {A : PSh Γ} (hA : Split A) (P : forall Δ ρ, A Δ ρ -> Type)
-  := forall Δ (ρ : Δ ≤ Γ) (hover : overtree hA.(dtree) Δ),
-  P Δ ρ (hA.(cover) Δ ρ hover).
-
-Definition dover_PSh {Γ} {A : PSh Γ} {P} {hA : Split A}: dover hA P -> forall {Δ} {ρ : Δ ≤ Γ},
-  dover (Split_wkn hA ρ) (fun Ξ ρ' => P Ξ (ρ'∘w ρ)).
-Proof.
-  intros d Δ ρ Ξ ρ' hover.
-  apply d.
+  intros hP ??? Ξ wfΞ ρΞ ohA.
+  apply hP.
 Qed.
 
-Definition dover_apply {Γ} {A : PSh Γ} {P Q: forall Δ ρ, A Δ ρ -> Type} {hA : Split A} :
-  (forall {Δ ρ a}, P Δ ρ a -> Q Δ ρ a) -> dover hA P-> dover hA Q:=
- (fun f hdover Δ ρ hover => f Δ ρ _ (hdover _ _ _)).
+Definition dover_apply {Γ wfΓ} {A : PSh Γ wfΓ} {P Q: forall Δ wfΔ ρ, A Δ wfΔ ρ -> Type} {hA : Split A} :
+  (forall Δ wfΔ ρ a, P Δ wfΔ ρ a -> Q Δ wfΔ ρ a) -> dover hA P-> dover hA Q:=
+ (fun f hP Δ wfΔ ρ ohA => f Δ wfΔ ρ _ (hP _ _ _ _)).
+(* 
+Definition ddover@{i j k} {Γ wfΓ} {A : PSh@{i} Γ wfΓ} 
+  {P: forall Δ wfΔ ρ, A Δ wfΔ ρ -> Type@{j}} (Q : forall Δ wfΔ ρ a, P Δ wfΔ ρ a -> Type@{k}) {hA : Split A} :
+  dover hA P -> Type@{k} :=
+ (fun hP => forall Δ wfΔ ρ ohA, Q Δ wfΔ ρ _ (hP _ _ _ ohA)). *)
 
-Definition ddover@{i j k} {Γ} {A : PSh@{i} Γ} {P: forall Δ ρ, A Δ ρ -> Type@{j}} (Q : forall Δ ρ a, P Δ ρ a -> Type@{k}) {hA : Split A} :
-  dover hA P-> Type@{k} :=
- (fun hdover => forall Δ ρ hover, Q Δ ρ _ (hdover _ _ hover)).
-
-Definition dSplit {Γ} {A : PSh Γ} (P : forall Δ ρ, A Δ ρ -> Type) (hA : Split A) :=
-  Split (fun Δ (ρ : Δ ≤ Γ) => forall (hover : overtree hA.(dtree) Δ), P Δ ρ (hA.(cover) Δ ρ hover)).
+Definition dSplit {Γ wfΓ} {A : PSh Γ wfΓ} (P : forall Δ wfΔ ρ, A Δ wfΔ ρ -> Type) (hA : Split A) :=
+  Split (wfΓ := wfΓ) (fun Δ wfΔ (ρ : Δ ≤ Γ) => forall (ohA : overtree hA Δ), P Δ wfΔ ρ (hA.(cover) Δ wfΔ ρ ohA)).
 
 
-Lemma dSplit_bind_alg_over : forall {Γ} {A B: PSh Γ} {P},
-  shf B -> forall {hA : Split A} (hP : dSplit P hA),
-  (forall Δ (ρ : Δ ≤ Γ), overtree hA.(dtree) Δ -> overtree hP.(dtree) Δ -> B Δ ρ)->
-  forall Δ (ρ : Δ ≤ Γ), B Δ ρ.
+Lemma dSplit_bind_alg : forall {Γ wfΓ} {A B: PSh Γ wfΓ} {P},
+  shf wfΓ B -> forall {hA : Split A} (hP : dSplit P hA),
+  (forall Δ wfΔ (ρ : Δ ≤ Γ), overtree hA Δ -> overtree hP Δ -> B Δ wfΔ ρ)->
+  forall Δ wfΔ (ρ : Δ ≤ Γ), B Δ wfΔ ρ.
 Proof.
-  intros Γ A B P hB hA hP hBover.
-  eapply (Split_bind_alg_over hB hA).
-  intros Δ ρ hoverA.
+  intros ????? hshf ?? hB.
+  eapply (Split_bind_alg hshf hA).
+  intros Δ wfΔ ρ ohA.
   eapply PSh_root.
-  eapply (Split_bind_alg_over (shf_PSh hB) (Split_wkn hP ρ)).
-  intros Ξ ρΞ hoverP.
-  eapply hBover.
+  eapply (Split_bind_alg (shf_PSh hshf) (Split_wkn hP ρ)).
+  intros Ξ wfΞ ρΞ hoverP.
+  eapply hB.
   now eapply overtree_PSh.
   now eapply over_DTree_PSh.
+  Unshelve. tea.
 Qed.
 
-Lemma dSplit_solve : forall Γ (A B : PSh Γ)
+(* Lemma dSplit_solve : forall Γ wfΓ (A B : PSh Γ)
   (P : forall Δ (ρ : Δ ≤ Γ), A Δ ρ -> Type) (Q : forall Δ (ρ : Δ ≤ Γ), B Δ ρ -> Type) (hA : Split A) (hB : Split B),
   (forall Δ (ρ : Δ ≤ Γ) (hoverA : overtree hA.(dtree) Δ) (hoverB : overtree hB.(dtree) Δ), P Δ ρ (hA.(cover) Δ ρ hoverA) -> Q Δ ρ (hB.(cover) Δ ρ hoverB)) ->
   dSplit P hA -> dSplit Q hB.
@@ -437,132 +426,89 @@ Proof.
   now eapply over_DTree_PSh.
   unshelve eapply d.
   now eapply overtree_PSh.
-Qed.
+Qed. *)
 
-Lemma Split_assoc {Γ Δ Ξ} {ρ : Δ ≤ Γ} {ρ' : Ξ ≤ Δ} {A} :
-  Split (fun Θ ρ'' => A Θ (ρ'' ∘w (ρ'∘w ρ))) ->
-  Split (fun Θ ρ'' => A Θ ((ρ'' ∘w ρ')∘w ρ)).
+Lemma Split_assoc {Γ Δ Ξ wfΓ wfΞ} {ρ : Δ ≤ Γ} {ρ' : Ξ ≤ Δ} {A : PSh Γ wfΓ} :
+  Split (wfΓ:= wfΞ) (fun Θ wfΘ ρ'' => A Θ wfΘ (ρ'' ∘w (ρ'∘w ρ))) ->
+  Split (wfΓ := wfΞ) (fun Θ wfΘ ρ'' => A Θ wfΘ ((ρ'' ∘w ρ')∘w ρ)).
 Proof.
   intros hA.
   exists hA.(dtree).
-  intros Ω ρ'' hover.
+  intros Ω wfΩ ρΩ ohA.
   rewrite wk_comp_assoc.
   now apply hA.(cover).
 Qed.
 
-Lemma dSplit_bind_over {Γ} {A B : PSh Γ} {P : forall Δ (ρ : Δ ≤ Γ), A Δ ρ -> Type}
+Lemma dSplit_bind {Γ wfΓ} {A B : PSh Γ wfΓ} {P : forall Δ wfΔ (ρ : Δ ≤ Γ), A Δ wfΔ ρ -> Type}
   {hA : Split A} (hP : dSplit P hA) :
-  (forall Δ (ρ : Δ ≤ Γ), overtree hA.(dtree) Δ -> overtree hP.(dtree) Δ -> Split (fun Ξ ρ' => B Ξ (ρ' ∘w ρ))) ->
+  (forall Δ wfΔ (ρ : Δ ≤ Γ), overtree hA Δ -> overtree hP Δ -> Split (wfΓ := wfΔ) (fun Ξ wfΞ ρ' => B Ξ wfΞ (ρ' ∘w ρ))) ->
   Split B.
 Proof.
   intros hB.
-  eapply (Split_bind_over hA).
-  intros Δ ρ hoverA.
-  apply (Split_wk_bind_over hP ρ).
-  intros Ξ ρ' hoverP.
+  eapply (Split_bind hA).
+  intros ??? ohA.
+  apply (Split_wk_bind hP ρ).
+  intros Ξ wfΞ ρ' ohP.
   eapply Split_assoc.
   eapply hB; tea.
   now eapply overtree_PSh.
 Qed.
 
-Lemma dSplit_bind_return_over {Γ} {A B : PSh Γ} {P : forall Δ (ρ : Δ ≤ Γ), A Δ ρ -> Type}
+Lemma dSplit_bind_return {Γ wfΓ} {A B : PSh Γ wfΓ} {P : forall Δ wfΔ (ρ : Δ ≤ Γ), A Δ wfΔ ρ -> Type}
   {hA : Split A} (hP : dSplit P hA) :
-  (forall Δ (ρ : Δ ≤ Γ), overtree hA.(dtree) Δ -> overtree hP.(dtree) Δ -> B Δ ρ) ->
+  (forall Δ wfΔ (ρ : Δ ≤ Γ), overtree hA Δ -> overtree hP Δ -> B Δ wfΔ ρ) ->
   Split B.
 Proof.
   intros hB.
-  eapply (Split_bind_over hA).
-  intros Δ ρ hoverA.
-  apply (Split_wk_bind_return_over hP ρ).
-  intros Ξ ρ' hoverP.
-  eapply hB; tea.
-  now eapply overtree_PSh.
+  eapply (dSplit_bind hP).
+  intros ??? ohA ohP.
+  eapply Split_return.
+  intros Ξ wfΞ ρΞ.
+  eapply hB.
+  all: now eapply overtree_PSh.
 Qed.
 
-Lemma dSplit_wk_bind_over {Γ} {A : PSh Γ} {P : forall Δ (ρ : Δ ≤ Γ), A Δ ρ -> Type}
-  {hA : Split A} (hP : dSplit P hA) :
-  forall {Δ} (ρ : Δ ≤ Γ) B, (forall Ξ (ρ' : Ξ ≤ Δ), overtree hA.(dtree) Ξ -> overtree hP.(dtree) Ξ -> Split (fun Θ (ρ'' : Θ ≤ Ξ) => B Θ (ρ'' ∘w ρ'))) ->
-  Split B.
+Lemma dSplit_wkn : forall {Γ wfΓ} {A : PSh Γ wfΓ} {P : forall Δ wfΔ (ρ : Δ ≤ Γ), A Δ wfΔ ρ -> Type} {hA : Split A}, dSplit P hA ->
+  forall {Δ wfΔ} (ρ : Δ ≤ Γ), dSplit (wfΓ := wfΔ) (fun Ξ wfΞ ρ' a=> P Ξ wfΞ (ρ'∘w ρ) a) (Split_wkn hA ρ).
 Proof.
-  intros Δ ρ B hB.
-  eapply (Split_wk_bind_over hA ρ).
-  intros Ξ ρ' hoverA.
-  apply (Split_wk_bind_over hP (ρ'∘w ρ)).
-  intros Θ ρ'' hoverP.
-  eapply Split_assoc.
-  eapply hB; tea.
-  now eapply overtree_PSh.
-Qed.
-
-Lemma dSplit_wk_bind_return_over {Γ} {A : PSh Γ} {P : forall Δ (ρ : Δ ≤ Γ), A Δ ρ -> Type}
-  {hA : Split A} (hP : dSplit P hA) :
-  forall {Δ} (ρ : Δ ≤ Γ) B, (forall Ξ (ρ' : Ξ ≤ Δ), overtree hA.(dtree) Ξ -> overtree hP.(dtree) Ξ -> B Ξ ρ') ->
-  Split B.
-Proof.
-  intros Δ ρ B hB.
-  eapply (Split_wk_bind_over hA ρ).
-  intros Ξ ρ' hoverA.
-  apply (Split_wk_bind_return_over hP (ρ'∘w ρ)).
-  intros Θ ρ'' hoverP.
-  eapply hB; tea.
-  now eapply overtree_PSh.
-Qed.
-
-(* Lemma dSplit_bind_over: forall {Γ} {A B : PSh Γ} (Q : forall Δ (ρ : Δ ≤ Γ), B Δ ρ -> Type) (hA :Split A) (hB : Split B),
-  (forall Δ (ρ : Δ ≤ Γ), overtree hA.(dtree) Δ -> dSplit (fun Ξ ρ' hSplit=> Q Ξ (ρ' ∘w ρ) hSplit ) (Split_wkn hB ρ)) ->
-  dSplit Q hB.
-Proof.
-  intros Γ A B Q hA hB f.
-  apply Split_wkn_inv.
-  unshelve eapply split_bind_alg_over.
-  2: apply (Split_Splitfree hA).
-  1: apply (Split_shf (A:= fun Δ ρ => forall hover, Q Δ ρ (cover hB Δ ρ hover))).
-  intros Δ ρ hover _.
-  specialize (f Δ ρ hover); cbn in *.
-  eapply Split_bind_free; [apply f| clear f].
-  intros Ξ ρ' f; cbn in *.
-  exists (Split_wkn hB (ρ'∘w ρ)).(dtree).
-  intros Θ ρ'' hover' hover''; cbn in *.
-  assert (overtree (DTree_PSh Δ (dtree hB)) Θ).
-  + eapply over_DTree_PSh_inv; tea.
-    eapply (Fwk_compose ρ'' ρ').
-  + specialize (f Θ ρ'' H).
-    eapply f.
-Qed. *)
-
-Lemma dSplit_wkn : forall {Γ} {A : PSh Γ} (P : forall Δ (ρ : Δ ≤ Γ), A Δ ρ -> Type) (hA : Split A), dSplit P hA ->
-  forall Δ (ρ : Δ ≤ Γ), dSplit (fun Ξ ρ' a=> P Ξ (ρ'∘w ρ) a) (Split_wkn hA ρ).
-Proof.
-  intros Γ A P hA hP Δ ρ.
+  intros ????? hP ???.
   exists (DTree_PSh Δ hP.(dtree)).
-  intros Ξ ρ' hover hover'.
+  intros Ξ wfΞ ρΞ ohP ohA.
   eapply hP.(cover).
   now eapply over_DTree_PSh.
+Defined.
+
+Lemma dSplit_wk_bind {Γ wfΓ} {A : PSh Γ wfΓ} {P : forall Δ wfΔ (ρ : Δ ≤ Γ), A Δ wfΔ ρ -> Type}
+  {hA : Split A} (hP : dSplit P hA) :
+  forall {Δ wfΔ} (ρ : Δ ≤ Γ) (B : PSh Δ wfΔ),
+    (forall Ξ wfΞ (ρ' : Ξ ≤ Δ), overtree hA Ξ -> overtree hP Ξ -> Split (wfΓ:= wfΞ) (fun Θ wfΘ (ρ'' : Θ ≤ Ξ) => B Θ wfΘ (ρ'' ∘w ρ'))) ->
+    Split B.
+Proof.
+  intros ???? hB.
+  eapply (dSplit_bind (dSplit_wkn hP ρ)).
+  intros Ξ wfΞ ρΞ ohA ohP.
+  eapply hB.
+  all: now eapply over_DTree_PSh.
 Qed.
 
-
-
-(* 
-Definition dover_to_split : forall {Γ} {A B : PSh Γ} P (hA : Split A), (forall Δ ρ, dover (fun Ξ ρ' => P Ξ (ρ'∘w ρ)) (Split_wkn hA ρ) -> B Δ ρ) ->
-  dover P hA -> Split B.
+Lemma dSplit_wk_bind_return {Γ wfΓ} {A : PSh Γ wfΓ} {P : forall Δ wfΔ (ρ : Δ ≤ Γ), A Δ wfΔ ρ -> Type}
+  {hA : Split A} (hP : dSplit P hA) :
+  forall {Δ wfΔ} (ρ : Δ ≤ Γ) (B : PSh Δ wfΔ),
+  (forall Ξ wfΞ (ρ' : Ξ ≤ Δ), overtree hA Ξ -> overtree hP Ξ -> B Ξ wfΞ ρ') ->
+  Split B.
 Proof.
-  intros * d d'.
-  exists hA.(dtree).
-  intros * hover.
-  unshelve eapply d.
-  now apply dover_PSh.
+  intros ???? hB.
+  eapply (dSplit_wk_bind hP ρ).
+  intros ??? ohA ohP.
+  eapply Split_return.
+  intros Θ wfΘ ρΘ.
+  eapply hB.
+  all: now eapply overtree_PSh.
 Qed.
- *)
-(* 
-Goal forall {Γ} {A B : PSh Γ} P (Q : forall Δ ρ, B Δ ρ -> Type) (hA : Split A) (hB : Split B),
-  dover P hA -> Split (fun Δ (ρ : Δ ≤ Γ) => dover (fun Ξ ρ' hSplit => Q Ξ (ρ'∘w ρ) hSplit) (Split_wkn hB)).
-Proof.
-  intros * d.
-  exists hA.(dtree).
-  intros Δ ρ hover Ξ ρ' hover'.
 
- *)
+End Sheaves.
 
-
+Arguments dtree {_ _ _ _ _}.
+Arguments cover {_ _ _ _ _}.
 
 

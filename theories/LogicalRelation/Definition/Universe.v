@@ -62,13 +62,10 @@ Module URedTy.
     URedTy l Γ A B -> [Γ |- B ↘ ].
   Proof. intros []; timeout 1 gen_typing. Defined.
 
-  Definition shfURedTy `{ta : tag} `{!WfType ta} `{!RedType ta} l (Γ : context) (A B : term) :
-    Set :=
-    Split (fun Δ (ρ : Δ ≤ Γ) => URedTy l Δ A⟨ρ⟩ B⟨ρ⟩).
 
 End URedTy.
 
-Export URedTy(shfURedTy, URedTy, Build_URedTy).
+Export URedTy(URedTy, Build_URedTy).
 
 #[program]
 Instance URedTyWhRedTy `{GenericTypingProperties} {Γ l} : WhRedTyRel Γ (URedTy l Γ) :=
@@ -78,7 +75,7 @@ Instance URedTyWhRedTy `{GenericTypingProperties} {Γ l} : WhRedTyRel Γ (URedTy
 Next Obligation. destruct h; gtyping. Qed.
 
 Notation "[ Γ ||-U< l > A ≅ B ]" := (URedTy l Γ A B) (at level 0, Γ, l, A, B at level 50).
-Notation "[ Γ ||-shfU< l > A ≅ B ]" := (shfURedTy l Γ A B) (at level 0, Γ, l, A, B at level 50).
+
 
 Import EqNotations.
 
@@ -122,11 +119,6 @@ Module URedTm.
 
   Arguments URedTm {_ _ _}.
 
-  Definition shfURedTm `{ta : tag} `{Typing ta} `{RedTerm ta} `{WfContext ta}
-    (level : TypeLevel) (Γ : context) (t : term) :
-      Set :=
-      Split (fun Δ (ρ : Δ ≤ Γ) => [|-Δ] -> URedTm level Δ t⟨ρ⟩).
-
   Definition whred `{ta : tag} `{Typing ta} `{RedTerm ta}
     {l} {Γ : context} {t: term} :
     URedTm l Γ t -> [Γ |- t ↘  U].
@@ -145,11 +137,6 @@ Module URedTm.
 
   Arguments URedTmEq {_ _ _ _ _ _ _ } rec.
 
-  Definition shfURedTmEq@{i j} `{ta : tag} `{WfType ta}
-    `{Typing ta} `{ConvTerm ta} `{RedType ta} `{RedTerm ta} `{WfContext ta}
-    {l} (rec : forall l', l' << l -> RedRel@{i j}) (Γ : context) (A B : term) (R :forall Δ (ρ : Δ ≤ Γ), [|-Δ] -> [Δ ||-U<l> A⟨ρ⟩ ≅ B⟨ρ⟩]) t u:
-      Type@{j} :=
-      Split (fun Δ (ρ : Δ ≤ Γ) => forall (hΔ : [|-Δ]), URedTmEq rec Δ A⟨ρ⟩ B⟨ρ⟩ (R Δ ρ hΔ) t⟨ρ⟩ u⟨ρ⟩).
 
   Definition whredL `{ta : tag} `{WfContext ta} `{WfType ta}
     `{Typing ta} `{ConvTerm ta} `{RedType ta} `{RedTerm ta}
@@ -168,9 +155,7 @@ Module URedTm.
 
 End URedTm.
 
-Export URedTm(URedTm, shfURedTm, Build_URedTm,URedTmEq, shfURedTmEq, Build_URedTmEq).
-Notation "[ rec | Γ ||-shfU t ≅ u : A | R ]" := (shfURedTmEq rec Γ A _ R t u) (at level 0, R, Γ, t, u, A, rec at level 50).
-Notation "[ rec | Γ ||-shfU t ≅ u : A ≅ B | R ]" := (shfURedTmEq rec Γ A B R t u) (at level 0, R, Γ, t, u, A, B, rec at level 50).
+Export URedTm(URedTm, Build_URedTm,URedTmEq, Build_URedTmEq).
 Notation "[ rec | Γ ||-U t ≅ u : A | R ]" := (URedTmEq rec Γ A _ R t u) (at level 0, R, Γ, t, u, A, rec at level 50).
 Notation "[ rec | Γ ||-U t ≅ u : A ≅ B | R ]" := (URedTmEq rec Γ A B R t u) (at level 0, R, Γ, t, u, A, B, rec at level 50).
 

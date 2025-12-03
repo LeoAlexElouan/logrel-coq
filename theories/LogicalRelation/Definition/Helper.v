@@ -7,8 +7,14 @@ Set Primitive Projections.
 Set Universe Polymorphism.
 Set Polymorphic Inductive Cumulativity.
 
-Lemma instKripke `{GenericTypingProperties} {Γ A B l} (wfΓ : [|-Γ])
+Lemma SinstKripke `{GenericTypingProperties} {Γ A B l} (wfΓ : [|-Γ])
   (h : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), [Δ ||-S<l> A⟨ρ⟩ ≅ B⟨ρ⟩]) : [Γ ||-S<l> A ≅ B].
+Proof.
+  specialize (h Γ wk_id wfΓ); now rewrite 2!wk_id_ren_on in h.
+Qed.
+
+Lemma instKripke `{GenericTypingProperties} {Γ A B l} (wfΓ : [|-Γ])
+  (h : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), [wfΔ ||-<l> A⟨ρ⟩ ≅ B⟨ρ⟩]) : [wfΓ ||-<l> A ≅ B].
 Proof.
   specialize (h Γ wk_id wfΓ); now rewrite 2!wk_id_ren_on in h.
 Qed.
@@ -31,9 +37,9 @@ Section PolyRed.
   Record PolyRed@{i j k l} : Type@{l} :=
     {
       shpRed [Δ] (ρ : Δ ≤ Γ) : [ |- Δ ] -> [ LogRel@{i j k l} l | Δ ||- shp⟨ρ⟩ ≅ shp'⟨ρ⟩ ] ;
-      posRed [Δ a b] (ρ : Δ ≤ Γ) (h : [ |- Δ ]) :
-          [ shpRed ρ h | Δ ||- a ≅ b : shp⟨ρ⟩] ->
-          Split (fun Ξ (ρΞ : Ξ ≤ Δ) => [|-Ξ] -> [ LogRel@{i j k l} l | Ξ ||- pos[a .: (ρ >> tRel)]⟨ρΞ⟩ ≅ pos'[b .: (ρ >> tRel)]⟨ρΞ⟩]);
+      posRed [Δ a b] (ρ : Δ ≤ Γ) (wfΔ : [ |- Δ ]) :
+          [ shpRed ρ wfΔ | Δ ||- a ≅ b : shp⟨ρ⟩] ->
+          Split (wfΓ := wfΔ)(fun Ξ wfΞ (ρΞ : Ξ ≤ Δ) => [ LogRel@{i j k l} l | Ξ ||- pos[a .: (ρ >> tRel)]⟨ρΞ⟩ ≅ pos'[b .: (ρ >> tRel)]⟨ρΞ⟩]);
     }.
 
   Definition from@{i j k l} {PA : PolyRedPack@{k l} Γ shp shp' pos pos'}
@@ -42,9 +48,9 @@ Section PolyRed.
   Proof.
     unshelve econstructor; intros.
     - econstructor; unshelve eapply PolyRedPack.shpAd; cycle 2; tea.
-    - exists (PA.(PolyRedPack.posRed) ρ h X).(dtree); intros.
+    - exists (PA.(PolyRedPack.posRed) ρ wfΔ X); intros Ξ wfΞ ρΞ.
       unshelve econstructor.
-      + now eapply (PA.(PolyRedPack.posRed) ρ h X).(cover).
+      + now eapply (PA.(PolyRedPack.posRed) ρ wfΔ X).(cover).
       + now eapply PAad.
   Defined.
 
@@ -53,7 +59,8 @@ Section PolyRed.
     unshelve econstructor.
     - now eapply shpRed.
     - intros * hshp; cbn in hshp.
-      exists (PA.(posRed) ρ h hshp).(dtree). intros Ξ ρ' hover.
+      exists (PA.(posRed) ρ wfΔ hshp).
+      intros Ξ ρ' hover.
       now eapply posRed.
   Defined.
 
@@ -277,7 +284,6 @@ Section IdRedTy.
     tyPER : PER tyRed.(LRPack.eqTm) ;
   }.
 
-  Definition shfIdRedTy Γ l A B := Split (fun Δ (ρ : Δ ≤ Γ) => @IdRedTy Γ l A B).
 
   Definition from@{i j k l} {Γ l A B} {IA : IdRedTyPack@{k} Γ A B} (IAad : IdRedTyAdequate@{k l} (LogRel@{i j k l} l) IA)
     : @IdRedTy@{i j k l} Γ l A B.
@@ -316,7 +322,6 @@ Section IdRedTy.
   Lemma eta@{i j k l} {Γ l A B} (IA : @IdRedTy@{i j k l} Γ l A B) : from  (to IA) = IA.
   Proof. reflexivity. Qed.
 
-  Definition shfIdRedTmEq {Γ l A B} (IA : forall Δ (ρ : Δ ≤ Γ), [|-Δ] -> @IdRedTy Δ l A⟨ρ⟩ B⟨ρ⟩) := shfIdRedTmEq (fun Δ ρ hΔ => toPack (IA Δ ρ hΔ)).
   Definition IdPropEq {Γ l A B} (IA : @IdRedTy Γ l A B) := IdPropEq (toPack IA).
   Definition IdRedTmEq {Γ l A B} (IA : @IdRedTy Γ l A B) := IdRedTmEq (toPack IA).
 
@@ -340,15 +345,12 @@ Arguments IdRedTy {_ _ _ _ _ _ _ _ _}.
 
 End IdRedTy.
 
-Export IdRedTy(IdRedTy, shfIdRedTy, Build_IdRedTy, IdRedTmEq, shfIdRedTmEq, IdPropEq, LRId').
+Export IdRedTy(IdRedTy, Build_IdRedTy, IdRedTmEq, IdPropEq, LRId').
 Arguments IdRedTy.outTy _ /.
 
-Notation "[ Γ ||-shfId< l > A ≅ B ]" := (shfIdRedTy Γ l A B) (at level 0, Γ, l,  A, B at level 50).
 Notation "[ Γ ||-Id< l > A ≅ B ]" := (IdRedTy Γ l A B) (at level 0, Γ, l,  A, B at level 50).
 Notation "[ Γ ||-Id< l > t : A | RA ]" := (IdRedTmEq (Γ:=Γ) (l:=l) (A:=A) RA t t) (at level 0, Γ, l, t, A, RA at level 50).
 Notation "[ Γ ||-Id< l > t ≅ u : A | RA ]" := (IdRedTmEq (Γ:=Γ) (l:=l) (A:=A) RA t u) (at level 0, Γ, l, t, u, A, RA at level 50).
-Notation "[ Γ ||-shfId< l > t : A | RA ]" := (shfIdRedTmEq (Γ:=Γ) (l:=l) (A:=A) RA t t) (at level 0, Γ, l, t, A, RA at level 50).
-Notation "[ Γ ||-shfId< l > t ≅ u : A | RA ]" := (shfIdRedTmEq (Γ:=Γ) (l:=l) (A:=A) RA t u) (at level 0, Γ, l, t, u, A, RA at level 50).
 
 #[program]
 Instance IdRedTyWhRed `{GenericTypingProperties} {Γ l} : WhRedTyRel Γ (IdRedTy Γ l) :=

@@ -64,8 +64,8 @@ Section Transitivity.
       trans (PolyRed.shpRed PAB ρ h) RBC)
     (ihcod : forall Δ a b (ρ : Δ ≤ Γ) (h : [|- Δ])
       (ha : [PolyRed.shpRed PAB ρ h | Δ ||- a ≅ b: _]) l2 C,
-      dover (PolyRed.posRed PAB ρ h ha) (fun Ξ ρ' hSplit => forall hΞ (RBC : [Ξ ||-S< l2 > B2[b .: ρ >> tRel]⟨ρ'⟩ ≅ C⟨ρ'⟩]),
-          trans (hSplit hΞ) RBC)) :
+      dover (PolyRed.posRed PAB ρ h ha) (fun Ξ wfΞ ρ' hSplit => forall (RBC : [Ξ ||-S< l2 > B2[b .: ρ >> tRel]⟨ρ'⟩ ≅ C⟨ρ'⟩]),
+          trans hSplit RBC)) :
     PolyRed@{i j k l} Γ l1 A1 C1 A2 C2.
   Proof.
     unshelve econstructor.
@@ -76,18 +76,15 @@ Section Transitivity.
       pose proof (factor _ hab) as [haa hab'].
       pose proof (PBC.(PolyRed.posRed)) as hBC.
       specialize (hBC _ _ _ _ _ hab').
-      eapply (Split_bind_over hBC).
-      intros Ξ ρ' hoverBC.
-      eapply (Split_wk_bind_over (PolyRed.posRed PAB ρ h haa) ρ').
-      intros Θ ρ'' hoveraa.
-      apply Split_return.
-      intros Ω ρ''' hΩ.
+      eapply (Split_bind hBC).
+      intros Ξ wfΞ ρΞ ohBC.
+      eapply (Split_wk_bind_return (PolyRed.posRed PAB ρ wfΔ haa) ρΞ).
+      intros Θ wfΘ ρΘ ohaa.
       unshelve eapply transRed, ihcod.
-      2: apply hBC.
+      2:apply hBC.
       4: apply haa.
-      2,4: eapply hΩ.
-      now do 2 eapply overtree_PSh.
-      now eapply overtree_PSh.
+      2:now eapply overtree_PSh.
+      all: easy.
   Qed.
 
 
@@ -119,8 +116,8 @@ Section Transitivity.
         trans (PolyRed.shpRed ΠAB ρ h) RBC)
       (ihcod : forall Δ a b (ρ : Δ ≤ Γ) (h : [|- Δ])
         (ha : [PolyRed.shpRed ΠAB ρ h | Δ ||- a ≅ b: _]) l2 C, dover (PolyRed.posRed ΠAB ρ h ha)
-          (fun Ξ ρ' hSplit => forall hΞ (RBC : [Ξ ||-S< l2 > (ParamRedTy.codR ΠAB)[b .: ρ >> tRel]⟨ρ'⟩ ≅ C⟨ρ'⟩]),
-            trans (hSplit hΞ) RBC))
+          (fun Ξ wfΞ ρ' hSplit => forall (RBC : [Ξ ||-S< l2 > (ParamRedTy.codR ΠAB)[b .: ρ >> tRel]⟨ρ'⟩ ≅ C⟨ρ'⟩]),
+            trans hSplit RBC))
       (eqdom : ParamRedTy.domL ΠBC = ParamRedTy.domR ΠAB)
       (eqcod : ParamRedTy.codL ΠBC = ParamRedTy.codR ΠAB).
 
@@ -141,9 +138,9 @@ Section Transitivity.
       destruct isfun as [???? eqbody|]; constructor; tea.
       intros *.
       eapply SirrLR in ha as ha'.
-      specialize (eqbody Δ a b ρ h ha').
-      eapply dSplit_solve; [clear eqbody | apply eqbody].
-      intros Ξ ρ' hover hover' eqbody hΞ; cbn in *.
+      specialize (eqbody Δ a b ρ wfΔ ha').
+      eapply (dSplit_bind_return eqbody).
+      intros Ξ wfΞ ρΞ oha' oeqbody ohA; cbn in *.
       now unshelve eapply SirrLR, eqbody.
     Defined.
 
@@ -164,12 +161,12 @@ Section Transitivity.
         specialize (eqbody Δ a b ρ h hab') as eqab; cbn in *.
         specialize (eqbody Δ a a ρ h haa') as eqaa; cbn in *.
         clear eqbody.
-        unshelve eapply (dSplit_bind_over eqab).
-        intros Ξ ρ' hoverab' hovereqab.
-        unshelve eapply (dSplit_wk_bind_over eqaa ρ').
-        intros Θ ρ'' hoveraa' hovereqaa.
-        unshelve eapply (Split_wk_bind_return_over (PolyRed.posRed polyRedAB ρ h haa) (ρ'' ∘w ρ')).
-        intros Ω ρ''' hoveraa hover hΩ; cbn in *.
+        unshelve eapply (dSplit_bind eqab).
+        intros Ξ wfΞ ρ' hoverab' hovereqab.
+        unshelve eapply (dSplit_wk_bind eqaa ρ').
+        intros Θ wfΘ ρ'' hoveraa' hovereqaa.
+        unshelve eapply (Split_wk_bind_return (PolyRed.posRed polyRedAB ρ h haa) (ρ'' ∘w ρ')).
+        intros Ω wfΩ ρ''' hoveraa hover; cbn in *.
         eapply SirrLR, ihcod, eqab; clear hover.
         eapply (symLR _).(symRedTm), SirrLR.
         eapply eqaa.
@@ -197,11 +194,11 @@ Section Transitivity.
         destruct ΠBC as [domB domC codB codC redBr redC eqdomBC eqBC polyRedBC]; cbn in *.
         specialize (appl Δ a a ρ h haa).
         specialize (appr Δ a b ρ h hab').
-        unshelve eapply (dSplit_bind_over appl).
-        intros Ξ ρΞ hoveraa hoverl.
-        unshelve eapply (dSplit_wk_bind_return_over appr ρΞ).
-        intros Θ ρΘ hoverab hoverr hover hΘ.
-        eapply SirrLR, ihcod, appr; clear hover.
+        unshelve eapply (dSplit_bind appl).
+        intros Ξ wfΞ ρΞ ohaa oappl.
+        unshelve eapply (dSplit_wk_bind_return appr ρΞ).
+        intros Θ wfΘ ρΘ ohab oappr otrash.
+        eapply SirrLR, ihcod, appr; clear otrash.
         replace (PiRedTmEq.nf ru') with (PiRedTmEq.nf ru).
         eapply appl.
         Unshelve. all: tea; cbn in *.
@@ -216,8 +213,8 @@ Section Transitivity.
         trans (PolyRed.shpRed ΣAB ρ h) RBC)
       (ihcod : forall Δ a b (ρ : Δ ≤ Γ) (h : [|- Δ])
         (ha : [PolyRed.shpRed ΣAB ρ h | Δ ||- a ≅ b: _]) l2 C, dover (PolyRed.posRed ΣAB ρ h ha)
-        (fun Ξ ρ' hSplit => forall hΞ (RBC : [Ξ ||-S< l2 > (ParamRedTy.codR ΣAB)[b .: ρ >> tRel]⟨ρ'⟩ ≅ C⟨ρ'⟩]),
-        trans (hSplit hΞ) RBC))
+        (fun Ξ wfΞ ρΞ hSplit => forall (RBC : [Ξ ||-S< l2 > (ParamRedTy.codR ΣAB)[b .: ρ >> tRel]⟨ρΞ⟩ ≅ C⟨ρΞ⟩]),
+        trans hSplit RBC))
       (eqdom : ParamRedTy.domL ΣBC = ParamRedTy.domR ΣAB)
       (eqcod : ParamRedTy.codL ΣBC = ParamRedTy.codR ΣAB).
 
@@ -241,8 +238,8 @@ Section Transitivity.
       - intros ; now unshelve eapply SirrLR, rfst.
       - intros.
         specialize (rsnd Δ ρ h).
-        eapply dSplit_solve; [clear rsnd| apply rsnd].
-        intros Ξ ρΞ hoverAB hover rsnd hΞ.
+        eapply (dSplit_bind_return rsnd).
+        intros Ξ wfΞ ρΞ oha' orsnd ohA; cbn in *.
         now unshelve eapply SirrLR, rsnd.
     Defined.
 
@@ -258,17 +255,17 @@ Section Transitivity.
       1: etransitivity; tea; cbn; rewrite eqdom; apply ParamRedTy.eqdom.
       etransitivity; tea; cbn; destruct ΣAB as [???????? PAB]; cbn in *; subst.
       + erewrite 2!eq_subst_scons.
-        assert ([|-Γ]) as hΓ by gtyping.
-        eassert (Split _) as hSplit
+        assert ([|-Γ]) as wfΓ by gtyping.
+        unshelve eassert (Split _) as hSplit
           by (unshelve eapply PAB.(PolyRed.posRed), (symLR _).(symRedTm), SirrLR, rfst;
-          try eapply hΓ; eapply wk_id).
-        unshelve eapply (Split_bind_convty hΓ hSplit).
-        intros Δ ρ hoverSplit hΔ.
+          try eapply wfΓ; eapply wk_id); tea.
+        eapply (Split_bind_convty hSplit).
+        intros Δ wfΔ ρ ohSplit.
         now eapply escapeTy, hSplit.
       + intros; cbn in *.
         specialize (rsnd Δ ρ h).
-        eapply dSplit_solve; [clear rsnd| apply rsnd].
-        intros Ξ ρΞ hoverAB hover rsnd hΞ.
+        eapply (dSplit_bind_return rsnd).
+        intros Ξ wfΞ ρΞ oha' orsnd ohA; cbn in *.
         now unshelve eapply symLR, SirrLR, symLR,rsnd.
     Defined.
 
@@ -296,13 +293,13 @@ Section Transitivity.
           by (replace (SigRedTmEq.nf ru') with (SigRedTmEq.nf ru); apply fsttu).
         specialize (sndtu Δ ρ h).
         specialize (snduv Δ ρ h).
-        eapply (dSplit_bind_over sndtu).
-        intros Ξ ρΞ hoverfsttu hoversndtu.
-        eapply (dSplit_wk_bind_over snduv ρΞ).
-        intros Θ ρΘ hoverfstuv hoversnduv.
-        eapply (Split_wk_bind_return_over (PolyRed.posRed polyRedAB ρ h fsttu') (ρΘ∘w ρΞ)).
-        intros Ω ρΩ hoverfsttu' hover hΩ; cbn in *.
-        eapply SirrLR, ihcod, snduv; clear hover.
+        eapply (dSplit_bind sndtu).
+        intros Ξ wfΞ ρΞ ofsttu osndtu.
+        eapply (dSplit_wk_bind snduv ρΞ).
+        intros Θ wfΘ ρΘ ofstuv osnduv.
+        eapply (Split_wk_bind_return (PolyRed.posRed polyRedAB ρ h fsttu') (ρΘ∘w ρΞ)).
+        intros Ω wfΩ ρΩ ofsttu' oirr; cbn in *.
+        eapply SirrLR, ihcod, snduv; clear oirr.
         eapply SirrLR.
         replace (SigRedTmEq.nf ru') with (SigRedTmEq.nf ru).
         eapply sndtu.
@@ -501,21 +498,21 @@ Proof.
   - intros A B C RAB RBC; exact (transLR RAB RBC).(transRed).
 Defined.
 
-Instance perLRTy `{GenericTypingProperties} {Γ l} : PER (WLRAdequate Γ l).
+Instance perLRTy `{GenericTypingProperties} {Γ} {wfΓ : [|-Γ]} {l} : PER (WLRAdequate Γ wfΓ l).
 Proof.
   constructor.
   - intros A B RAB.
-    eapply (Split_bind_return_over RAB).
+    eapply (Split_bind_return RAB).
     intros Δ ρ oRAB hΔ.
     symmetry.
     now eapply RAB.
   - intros A B C RAB RBC.
-    eapply (Split_bind_over RAB).
-    intros Δ ρ oRAB.
-    eapply (Split_wk_bind_return_over RBC ρ).
-    intros Ξ ρΞ oBC hΞ.
+    eapply (Split_bind RAB).
+    intros Δ wfΔ ρ oRAB.
+    eapply (Split_wk_bind_return RBC ρ).
+    intros Ξ wfΞ ρΞ oBC.
     etransitivity.
-    + eapply RAB, hΞ; now eapply overtree_PSh.
+    + eapply RAB, overtree_PSh, oRAB. easy.
     + now eapply RBC.
 Defined.
 
@@ -541,22 +538,30 @@ Proof.
   intros Rtu%(SirrLR _ RAB)%((symLR _).(symRedTm))%symRedTm'; now eapply SirrLR.
 Qed.
 
-Lemma irrLRConv {Γ l A A' B B'} (RAB : [Γ ||-<l> A ≅ B]) (RA : [Γ ||-<l> A ≅ A']) (RB : [Γ ||-<l> B ≅ B']) {t u} :
-  [Γ ||-<l> t ≅ u : _ | RA ] -> [Γ ||-<l> t ≅ u : _ | RB ].
+Lemma irrLRConv {Γ} {wfΓ : [|-Γ]} {l A A' B B'} (RAB : [wfΓ ||-<l> A ≅ B]) (RA : [wfΓ ||-<l> A ≅ A']) (RB : [wfΓ ||-<l> B ≅ B']) {t u} :
+  [wfΓ ||-<l> t ≅ u : _ | RA ] -> [wfΓ ||-<l> t ≅ u : _ | RB ].
 Proof.
   intros Rtu.
-  eapply (dSplit_bind_over Rtu).
-  intros Δ ρ oRA oRtu.
-  eapply (Split_wk_bind_return_over RAB ρ).
-  intros Ξ ρΞ oRAB oRB hΔ.
+  eapply (dSplit_bind Rtu).
+  intros Δ wfΔ ρ oRA oRtu.
+  eapply (Split_wk_bind_return RAB ρ).
+  intros Ξ wfΞ ρΞ oRAB oRB.
   eapply SirrLRConv, Rtu, overtree_PSh, oRtu.
   now eapply RAB.
-  Unshelve.
+  Unshelve. easy.
   now eapply overtree_PSh.
-  tea.
 Qed.
 
-Lemma irrLRCum@{i j k l i' j' k' l' i0 j0 k0 l0} {Γ l0 l l' A A' B B'}
+
+Lemma SirrLRSym {Γ l A B} (RAB : [Γ ||-S<l> A ≅ B]) (RBA : [Γ ||-S<l> B ≅ A]) {t u} :
+  [Γ ||-S<l> t ≅ u : _ | RAB] -> [Γ ||-S<l> t ≅ u : _ | RBA].
+Proof. intros; now eapply SirrLRConv. Qed.
+
+Lemma irrLRSym {Γ} {wfΓ : [|-Γ]} {l A B} (RAB : [wfΓ ||-<l> A ≅ B]) (RBA : [wfΓ ||-<l> B ≅ A]) {t u} :
+  [wfΓ ||-<l> t ≅ u : _ | RAB] -> [wfΓ ||-<l> t ≅ u : _ | RBA].
+Proof. intros; now eapply irrLRConv. Qed.
+
+Lemma SirrLRCum@{i j k l i' j' k' l' i0 j0 k0 l0} {Γ l0 l l' A A' B B'}
   (RAB : [LogRel@{i0 j0 k0 l0} l0 | Γ ||- A ≅ B])
   (RA : [LogRel@{i j k l} l | Γ ||- A ≅ A'])
   (RB : [LogRel@{i' j' k' l'} l' | Γ ||- B ≅ B']) {t u} :
@@ -565,28 +570,39 @@ Proof.
   intros Rtu%(SirrLR _ RAB)%((symLR _).(symRedTm))%symRedTm'; now eapply SirrLR.
 Qed.
 
-
-Lemma SirrLRSym {Γ l A B} (RAB : [Γ ||-S<l> A ≅ B]) (RBA : [Γ ||-S<l> B ≅ A]) {t u} :
-  [Γ ||-S<l> t ≅ u : _ | RAB] -> [Γ ||-S<l> t ≅ u : _ | RBA].
-Proof. intros; now eapply SirrLRConv. Qed.
-
-Lemma irrLRSym {Γ l A B} (RAB : [Γ ||-<l> A ≅ B]) (RBA : [Γ ||-<l> B ≅ A]) {t u} :
-  [Γ ||-<l> t ≅ u : _ | RAB] -> [Γ ||-<l> t ≅ u : _ | RBA].
-Proof. intros; now eapply irrLRConv. Qed.
+Lemma irrLRCum@{i j k l i' j' k' l' i0 j0 k0 l0} {Γ wfΓ l0 l l' A A' B B'}
+  (RAB : WLRAdequate@{i0 j0 k0 l0} Γ wfΓ l0 A B)
+  (RA : WLRAdequate@{i j k l} Γ wfΓ l A A')
+  (RB : WLRAdequate@{i' j' k' l'} Γ wfΓ l' B B') {t u} :
+  [wfΓ ||-<l> t ≅ u : _ | RA ] -> [wfΓ ||-<l'> t ≅ u : _ | RB ].
+Proof.
+  intros Rtu.
+  eapply irrLR, irrLRSym, irrLR, Rtu.
+  Unshelve.
+  2: symmetry.
+  2,3 : eapply RAB.
+Qed.
 
 Lemma SirrLREq {Γ l A A' B B'} (RAB : [Γ ||-S<l> A ≅ B]) (RAB' : [Γ ||-S<l> A' ≅ B']) (eqA : A = A') {t u}
   : [Γ ||-S<l> t ≅ u : _ | RAB] -> [Γ ||-S<l> t ≅ u : _ | RAB'].
 Proof. eapply SirrLRConv; subst; now eapply lrefl. Qed.
 
-Lemma irrLREq {Γ l A A' B B'} (RAB : [Γ ||-<l> A ≅ B]) (RAB' : [Γ ||-<l> A' ≅ B']) (eqA : A = A') {t u}
-  : [Γ ||-<l> t ≅ u : _ | RAB] -> [Γ ||-<l> t ≅ u : _ | RAB'].
+Lemma irrLREq {Γ} {wfΓ : [|-Γ]} {l A A' B B'} (RAB : [wfΓ ||-<l> A ≅ B]) (RAB' : [wfΓ ||-<l> A' ≅ B']) (eqA : A = A') {t u}
+  : [wfΓ ||-<l> t ≅ u : _ | RAB] -> [wfΓ ||-<l> t ≅ u : _ | RAB'].
 Proof. eapply irrLRConv; subst; now eapply lrefl. Qed.
 
-Lemma irrLREqCum@{i j k l i' j' k' l'} {Γ l l' A A' B B'}
+Lemma SirrLREqCum@{i j k l i' j' k' l'} {Γ l l' A A' B B'}
   (RAB : [LogRel@{i j k l} l | Γ ||- A ≅ B])
   (RAB' : [LogRel@{i' j' k' l'} l' | Γ ||- A' ≅ B'])
    (eqA : A = A') {t u}
   : [Γ ||-S<l> t ≅ u : _ | RAB] -> [Γ ||-S<l'> t ≅ u : _ | RAB'].
+Proof. eapply SirrLRCum; subst; now eapply lrefl. Qed.
+
+Lemma irrLREqCum@{i j k l i' j' k' l'} {Γ wfΓ l l' A A' B B'}
+  (RAB : WLRAdequate@{i j k l} Γ wfΓ l A B)
+  (RAB' : WLRAdequate@{i' j' k' l'} Γ wfΓ l' A' B')
+   (eqA : A = A') {t u}
+  : [wfΓ ||-<l> t ≅ u : _ | RAB] -> [wfΓ ||-<l'> t ≅ u : _ | RAB'].
 Proof. eapply irrLRCum; subst; now eapply lrefl. Qed.
 
 End Consequences.
@@ -601,20 +617,20 @@ Proof.
     Unshelve. 2: now symmetry.
 Qed.
 
-Instance perLRTm `{GenericTypingProperties} {Γ l A B} (RAB : [Γ ||-<l> A ≅ B]) :
+Instance perLRTm `{GenericTypingProperties} {Γ} {wfΓ : [|-Γ]} {l A B} (RAB : [wfΓ ||-<l> A ≅ B]) :
   PER (RAB.(LRPack.eqTm)).
 Proof.
   constructor.
   - intros ?? Rtu.
-    eapply (Split_bind_return_over Rtu).
+    eapply (Split_bind_return Rtu).
     intros Δ ρ oRtu oRAB hΔ.
     symmetry.
     now eapply Rtu.
   - intros ??? Rtu Ruv.
-    eapply (Split_bind_over Rtu).
-    intros Δ ρ oRtu.
-    eapply (Split_wk_bind_return_over Ruv ρ).
-    intros Ξ ρ' oRuv oRAB hΞ.
+    eapply (Split_bind Rtu).
+    intros Δ wfΔ ρ oRtu.
+    eapply (Split_wk_bind_return Ruv ρ).
+    intros Ξ wfΞ ρ' oRuv oRAB.
     etransitivity.
     + now eapply Rtu, overtree_PSh.
     + now eapply Ruv.
@@ -630,8 +646,8 @@ Proof.
 Qed.
 
 
-Instance iperLRTm `{GenericTypingProperties} {Γ l} :
-  IPER (WLRAdequate Γ l) (fun _ => term) (fun _ _ RA => RA.(LRPack.eqTm)).
+Instance iperLRTm `{GenericTypingProperties} {Γ} {wfΓ : [|-Γ]} {l} :
+  IPER (WLRAdequate Γ wfΓ l) (fun _ => term) (fun _ _ RA => RA.(LRPack.eqTm)).
 Proof.
   constructor.
   - intros A B RAB t u Rtu.
@@ -646,37 +662,53 @@ Proof.
       * now symmetry.
 Qed.
 
-Lemma kripkeLRlrefl `{GenericTypingProperties} {Γ l A A' B B'}
+
+
+Lemma SkripkeLRlrefl `{GenericTypingProperties} {Γ} {wfΓ : [|-Γ]} {l A A' B B'}
   {hA : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), [Δ ||-S<l> A⟨ρ⟩ ≅ A'⟨ρ⟩]}
   (hB : forall Δ a b (ρ : Δ ≤ Γ) (wfΔ : [|-Δ])
-    (hab : [hA Δ ρ wfΔ | Δ ||- a ≅ b : _]), [Δ ||-<l> B[a .: ρ >> tRel] ≅ B'[b .: ρ >> tRel]])
+    (hab : [hA Δ ρ wfΔ | Δ ||- a ≅ b : _]), [wfΔ ||-<l> B[a .: ρ >> tRel] ≅ B'[b .: ρ >> tRel]])
   [Δ a b] (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]) (hab : [hA Δ ρ wfΔ | Δ ||- a ≅ b : _]) :
-  [Δ ||-<l> B[a .: ρ >> tRel] ≅ B[b .: ρ >> tRel]].
+  [wfΔ ||-<l> B[a .: ρ >> tRel] ≅ B[b .: ρ >> tRel]].
 Proof.
-  eapply (Split_bind_over (hB _ _ _ _ _ hab)).
-  intros Ξ ρΞ hoverab.
-  eapply (Split_wk_bind_return_over (hB _ _ _ _ _ (urefl hab)) ρΞ).
-  intros Θ ρΘ hoverbb hΘ.
+  eapply (Split_bind (hB _ _ _ _ _ hab)).
+  intros Ξ wfΞ ρΞ ohab.
+  eapply (Split_wk_bind_return (hB _ _ _ _ _ (urefl hab)) ρΞ).
+  intros Θ ρΘ ohbb hΘ.
   etransitivity.
-  + eapply hB.
-    now eapply overtree_PSh.
-    eapply hΘ.
+  + eapply hB, overtree_PSh, ohab; tea.
   + symmetry; unshelve eapply hB.
     2: eapply urefl.
     2: apply hab.
-    eapply hoverbb.
-    eapply hΘ.
+    all: easy.
 Qed.
 
-Lemma kripkeLRurefl `{GenericTypingProperties} {Γ l A A' B B'}
+
+(* Lemma LRlrefl `{GenericTypingProperties} {Γ} {wfΓ : [|-Γ]} {l A A' B B'}
+  {hA : [wfΓ ||-<l> A ≅ A']}
+  (hB : forall Δ wfΔ ρ ohA a b (hab : [cover hA Δ wfΔ ρ ohA | Γ||- a ≅ b : _]), [wfΔ ||-<l> B[a..] ≅ B'[b..]])
+  forall Δ wfΔ ρ ohA [a b] (hab : [hA | Γ ||- a ≅ b : _]) :
+  [wfΓ ||-<l> B[a ..] ≅ B[b ..]].
+Proof.
+  eapply (Split_bind (hB _ _ hab)).
+  intros ??? ohab.
+  eapply (Split_wk_bind_return (hB _ _ (urefl hab)) ρ).
+  intros ??? ohbb.
+  etransitivity.
+  + eapply hB, overtree_PSh, ohab; tea.
+  + symmetry; now unshelve eapply hB, ohbb.
+Qed. *)
+
+
+Lemma SkripkeLRurefl `{GenericTypingProperties} {Γ} {wfΓ : [|-Γ]} {l A A' B B'}
   {hA : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), [Δ ||-S<l> A⟨ρ⟩ ≅ A'⟨ρ⟩]}
   (hB : forall Δ a b (ρ : Δ ≤ Γ) (wfΔ : [|-Δ])
     (hab : [hA Δ ρ wfΔ | Δ ||- a ≅ b : _]),
-    [Δ ||-<l> B[a .: ρ >> tRel] ≅ B'[b .: ρ >> tRel]])
+    [wfΔ ||-<l> B[a .: ρ >> tRel] ≅ B'[b .: ρ >> tRel]])
   [Δ a b] (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]) (hab : [hA Δ ρ wfΔ | Δ ||- a ≅ b : _]) :
-  [Δ ||-<l> B'[a .: ρ >> tRel] ≅ B'[b .: ρ >> tRel]].
+  [wfΔ ||-<l> B'[a .: ρ >> tRel] ≅ B'[b .: ρ >> tRel]].
 Proof.
-  eapply kripkeLRlrefl.
+  eapply SkripkeLRlrefl.
   2: eapply hab.
   clear Δ a b ρ wfΔ hab.
   intros Δ a b ρ wfΔ hab.
@@ -684,10 +716,10 @@ Proof.
   specialize (hB Δ b a ρ wfΔ hab).
   eapply split_hom_PSh.
   2: apply hB.
-  intros Ξ ρΞ hB'.
+  intros Ξ wfΞ ρΞ hB'.
   symmetry.
   now eapply hB'.
-  Unshelve.
+  Unshelve. easy.
   etransitivity.
   eapply hA; tea.
   eapply symmetry, hA; tea.

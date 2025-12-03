@@ -14,7 +14,7 @@ Section PolyRedPi.
   Defined.
 
   Definition LRPiPoly {Γ l A A' B B'} (wfΓ : [|- Γ]) (PAB : PolyRed Γ l A A' B B') :
-    [Γ ||-<l> tProd A B ≅ tProd A' B'] :=
+    [Γ ||-S<l> tProd A B ≅ tProd A' B'] :=
     LRPi' (LRPiPoly0 wfΓ PAB).
 
 End PolyRedPi.

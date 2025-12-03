@@ -21,9 +21,6 @@ Module NatRedTy.
 
   Arguments NatRedTy {_ _ _}.
 
-  Definition shfNatRedTy `{ta : tag} `{WfType ta} `{RedType ta} Γ A B : Type :=
-    Split (fun Δ (ρ : Δ ≤ Γ) => NatRedTy Δ A⟨ρ⟩  B⟨ρ⟩).
-
   Section NatRedTy.
   Context `{ta : tag} `{WfType ta} `{RedType ta}.
 
@@ -37,9 +34,8 @@ Module NatRedTy.
 
 End NatRedTy.
 
-Export NatRedTy(NatRedTy, Build_NatRedTy, shfNatRedTy).
+Export NatRedTy(NatRedTy, Build_NatRedTy).
 Notation "[ Γ ||-Nat A ≅ B ]" := (NatRedTy Γ A B) (at level 0, Γ, A at level 50).
-Notation "[ Γ ||-shfNat A ≅ B ]" := (shfNatRedTy Γ A B) (at level 0, Γ, A at level 50).
 
 
 #[program]
@@ -148,21 +144,4 @@ Next Obligation.
   now destruct h.
 Qed.
 
-(* Section Monad.
-  Context `{ta : tag} `{WfContext ta} `{WfType ta} `{ConvType ta}
-    `{RedType ta} `{Typing ta} `{ConvNeuConv ta} `{ConvTerm ta}
-    `{RedTerm ta}.
-  Lemma Nat_SplitSNat : forall {Γ t u}, NatRedTmEq Γ t u -> Split_Rel SNatRedTmEq Γ t u.
-  Proof.
-    intros Γ t u h.
-    induction h as [t u d h].
-    now exists d.
-  Qed.
-  Lemma SplitSNat_Nat : forall {Γ t u}, Split_Rel SNatRedTmEq Γ t u -> NatRedTmEq Γ t u.
-  Proof.
-    intros Γ t u h.
-    exists h.(dtree).
-    eapply h.
-  Qed.
-End Monad. *)
 

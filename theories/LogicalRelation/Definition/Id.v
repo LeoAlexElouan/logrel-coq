@@ -112,11 +112,6 @@ End IdRedTmEq.
 Arguments IdRedTmEq {_ _ _ _ _ _ _ _ _ _ _ _}.
 Arguments IdPropEq {_ _ _ _ _ _ _ _ _ _}.
 
-Definition shfIdRedTmEq@{i} `{ta : tag} `{WfContext ta} `{WfType ta} `{ConvType ta}
-  `{RedType ta} `{Typing ta} `{ConvNeuConv ta} `{ConvTerm ta}
-  `{RedTerm ta} {Γ : context} {A B: term} (IA : forall Δ (ρ : Δ ≤ Γ), [|-Δ] -> IdRedTyPack@{i} Δ A⟨ρ⟩ B⟨ρ⟩) t u : Type@{i} :=
-  Split@{i} (fun Δ (ρ : Δ ≤ Γ) => forall (hΔ : [|-Δ]), IdRedTmEq@{i} (Γ:=Δ) (A:=A⟨ρ⟩) (B:=B⟨ρ⟩) (IA Δ ρ hΔ) t⟨ρ⟩ u⟨ρ⟩).
-
 End IdRedTmEq.
 
-Export IdRedTmEq(IdRedTmEq, shfIdRedTmEq, Build_IdRedTmEq, IdPropEq, IdPropEq_isId).
+Export IdRedTmEq(IdRedTmEq, Build_IdRedTmEq, IdPropEq, IdPropEq_isId).

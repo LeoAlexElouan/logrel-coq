@@ -30,11 +30,11 @@ same. Both need to be proven simultaneously, because of contravariance in the pr
     : (LogRel@{i j k l} l' Γ A B tmeq) :=
     let embedPolyAd {Γ A A' B B'} {PA : PolyRedPack Γ A A' B B'} (PAad : PolyRedPackAdequate _ PA) :=
         {|
-          PolyRedPack.shpAd (Δ : context) (ρ : Δ ≤ _) (h : [  |- Δ]) :=
-            LR_embedding l_ (PAad.(PolyRedPack.shpAd) ρ h) ;
-          PolyRedPack.posAd (Δ : context) (a b : term) (ρ : Δ ≤ _) (h : [  |- Δ])
-              (ha : [PolyRedPack.shpRed PA ρ h | Δ ||- a ≅ b : _]) :=
-            dover_apply (fun Ξ ρΞ hshp hpos hΞ => LR_embedding l_ (hpos hΞ)) (PAad.(PolyRedPack.posAd) ρ h ha)
+          PolyRedPack.shpAd (Δ : context) (ρ : Δ ≤ _) (wfΔ : [  |- Δ]) :=
+            LR_embedding l_ (PAad.(PolyRedPack.shpAd) ρ wfΔ) ;
+          PolyRedPack.posAd (Δ : context) (a b : term) (ρ : Δ ≤ _) (wfΔ : [  |- Δ])
+              (ha : [PolyRedPack.shpRed PA ρ wfΔ | Δ ||- a ≅ b : _]) :=
+            dover_apply (fun Ξ wfΞ ρΞ hshp hpos => LR_embedding l_ hpos) (PAad.(PolyRedPack.posAd) ρ wfΔ ha)
         |}
     in
     match lr with
@@ -56,11 +56,11 @@ same. Both need to be proven simultaneously, because of contravariance in the pr
 (*   Section PolyHyp.
   Universes i j k o. *)
   Notation PolyHyp P Γ ΠA HAad G :=
-    ((forall {Δ} (ρ : Δ ≤ Γ) (h : [ |- Δ]), P (HAad.(PolyRedPack.shpAd) ρ h)) ->
-      (forall {Δ a b} (ρ : Δ ≤ Γ) (h : [ |- Δ ])
-        (ha : [ ΠA.(PolyRedPack.shpRed) ρ h | Δ ||- a ≅ b: _ ])
-         Ξ (ρΞ : Ξ ≤ Δ) (hover : overtree (ΠA.(PolyRedPack.posRed) ρ h ha).(dtree) Ξ) hΞ, 
-          P (HAad.(PolyRedPack.posAd) ρ h ha Ξ ρΞ hover hΞ)) -> G).
+    ((forall {Δ} (ρ : Δ ≤ Γ) (wfΔ : [ |- Δ]), P (HAad.(PolyRedPack.shpAd) ρ wfΔ)) ->
+      (forall {Δ a b} (ρ : Δ ≤ Γ) (wfΔ : [ |- Δ ])
+        (ha : [ ΠA.(PolyRedPack.shpRed) ρ wfΔ | Δ ||- a ≅ b: _ ])
+         Ξ wfΞ (ρΞ : Ξ ≤ Δ) (oΠA : overtree (ΠA.(PolyRedPack.posRed) ρ wfΔ ha) Ξ), 
+          P (HAad.(PolyRedPack.posAd) ρ wfΔ ha Ξ wfΞ ρΞ oΠA)) -> G).
 
   Theorem LR_rect@{i j k o}
     (l : TypeLevel)
@@ -113,11 +113,11 @@ same. Both need to be proven simultaneously, because of contravariance in the pr
   Definition LR_rec@{i j k} := LR_rect@{i j k Set}.
 
   Notation PolyHypLogRel P Γ ΠA G :=
-    ((forall {Δ} (ρ : Δ ≤ Γ) (h : [ |- Δ]), P (ΠA.(PolyRed.shpRed) ρ h).(LRAd.adequate)) ->
-    (forall {Δ a b} (ρ : Δ ≤ Γ) (h : [ |- Δ ])
-      (ha : [ Δ ||-S< _ > a ≅ b : _ |  ΠA.(PolyRed.shpRed) ρ h ])
-      Ξ (ρΞ : Ξ ≤ Δ) (hover : overtree (ΠA.(PolyRed.posRed) ρ h ha).(dtree) Ξ) hΞ,
-      P (LRAd.adequate (cover (ΠA.(PolyRed.posRed) ρ h ha) Ξ ρΞ hover hΞ))) -> G).
+    ((forall {Δ} (ρ : Δ ≤ Γ) (wfΔ : [ |- Δ]), P (ΠA.(PolyRed.shpRed) ρ wfΔ).(LRAd.adequate)) ->
+    (forall {Δ a b} (ρ : Δ ≤ Γ) (wfΔ : [ |- Δ ])
+      (ha : [ Δ ||-S< _ > a ≅ b : _ |  ΠA.(PolyRed.shpRed) ρ wfΔ ])
+      Ξ wfΞ (ρΞ : Ξ ≤ Δ) (oΠA : overtree (ΠA.(PolyRed.posRed) ρ wfΔ ha) Ξ),
+      P (LRAd.adequate (cover (ΠA.(PolyRed.posRed) ρ wfΔ ha) Ξ wfΞ ρΞ oΠA))) -> G).
 
 
 
@@ -160,11 +160,11 @@ same. Both need to be proven simultaneously, because of contravariance in the pr
   Defined.
 
   Notation PolyHypTyUr P Γ ΠA G :=
-    ((forall {Δ} (ρ : Δ ≤ Γ) (h : [ |- Δ]), P (ΠA.(PolyRed.shpRed) ρ h)) ->
-    (forall {Δ a b} (ρ : Δ ≤ Γ) (h : [ |- Δ ])
-      (ha : [ ΠA.(PolyRed.shpRed) ρ h | Δ ||- a ≅ b : _ ])
-      Ξ (ρΞ : Ξ ≤ Δ) (hover : overtree (ΠA.(PolyRed.posRed) ρ h ha).(dtree) Ξ) hΞ,
-      P (cover (ΠA.(PolyRed.posRed) ρ h ha) Ξ ρΞ hover hΞ)) -> G).
+    ((forall {Δ} (ρ : Δ ≤ Γ) (wfΔ : [ |- Δ]), P (ΠA.(PolyRed.shpRed) ρ wfΔ)) ->
+    (forall {Δ a b} (ρ : Δ ≤ Γ) (wfΔ : [ |- Δ ])
+      (ha : [ ΠA.(PolyRed.shpRed) ρ wfΔ | Δ ||- a ≅ b : _ ])
+      Ξ wfΞ (ρΞ : Ξ ≤ Δ) (oΠA : overtree (ΠA.(PolyRed.posRed) ρ wfΔ ha) Ξ),
+      P (cover (ΠA.(PolyRed.posRed) ρ wfΔ ha) Ξ wfΞ ρΞ oΠA)) -> G).
 
   Theorem LR_rect_TyUr@{i j k l o}
     (P : forall {l Γ A B}, [LogRel@{i j k l} l | Γ ||- A ≅ B] -> Type@{o}) :

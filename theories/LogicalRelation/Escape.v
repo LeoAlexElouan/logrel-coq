@@ -35,11 +35,11 @@ Section Escapes.
     now eapply escapeTy.
   Qed.
 
-  Lemma escapeSplitTy {l Γ A B} (lr : [Γ ||-<l> A ≅ B]) (hΓ : [|-Γ]):
+  Lemma escapeSplitTy {l Γ} {wfΓ : [|-Γ]} {A B} (lr : [wfΓ ||-<l> A ≅ B]) :
     [Γ |- A] × [Γ |- B] × [Γ |- A ≅ B].
   Proof.
     prod_splitter.
-    all: first [eapply (Split_bind_wft hΓ lr) | eapply (Split_bind_convty hΓ lr)];
+    all: first [eapply (Split_bind_wft lr) | eapply (Split_bind_convty lr)];
       intros;
       now first [eapply escape,lr| eapply escapeTy,lr].
   Qed.
@@ -108,13 +108,13 @@ Section Escapes.
     [Γ |- t ≅ u : A].
   Proof. apply escapeTm. Qed.
 
-  Lemma escapeSplitTm {l Γ A B t u} (lr : [Γ ||-< l > A ≅ B]) :
-    [Γ ||-< l > t ≅ u : A | lr ] -> [|-Γ] ->
+  Lemma escapeSplitTm {l Γ} {wfΓ : [|-Γ]} {A B t u} (lr : [wfΓ ||-< l > A ≅ B]) :
+    [wfΓ ||-< l > t ≅ u : A | lr ] ->
     [Γ |- t : A] × [Γ |- u : A] × [Γ |- t ≅ u : A].
   Proof.
-    intros htu hΓ.
+    intros htu.
     prod_splitter.
-    all: first [eapply (dSplit_bind_ty hΓ htu) | eapply (dSplit_bind_convtm hΓ htu)];
+    all: first [eapply (dSplit_bind_ty htu) | eapply (dSplit_bind_convtm htu)];
       intros;
       now unshelve first [refine (fst (escapeTm _ _)); eapply htu|eapply escapeTm, htu].
   Qed.
@@ -126,21 +126,21 @@ Section Escapes.
 
 End Escapes.
 
-Ltac escapeSplit hΓ :=
+Ltac escapeSplit :=
   repeat lazymatch goal with
   | [H : [_ ||-< _ > _] |-  _ ] =>
     try
      (let Xl := fresh "EscL" H in
       let Xr := fresh "EscR" H in
       let X := fresh "Esc" H in
-      pose proof (escapeSplitTy H hΓ) as (Xl & Xr & X) );
+      pose proof (escapeSplitTy H) as (Xl & Xr & X) );
     block H
   | [H : [_ ||-<_> _ ≅ _  : _ | ?RA ] |- _] =>
     try
      (let Xl := fresh "EscL" H in
       let Xr := fresh "EscR" H in
       let X := fresh "Esc" H in
-      pose proof (escapeSplitTm RA H hΓ) as (Xl & Xr & X) );
+      pose proof (escapeSplitTm RA H) as (Xl & Xr & X) );
       block H
   end; unblock.
 

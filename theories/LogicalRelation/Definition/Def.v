@@ -133,45 +133,70 @@ Section Weak_LogRel.
     `{!ConvType ta} `{!ConvTerm ta} `{!ConvNeuConv ta}
     `{!RedType ta} `{!RedTerm ta}.
 
-  Definition WLRAdequate@{i j k l | i < j, j < k, k < l} Γ l A B : Type@{l} :=
-    Split@{l} (fun Δ (ρ: Δ ≤ Γ) => [|-Δ] -> LRAdequate@{k l} Δ (LogRel@{i j k l} l) A⟨ρ⟩ B⟨ρ⟩).
+  Definition WLRAdequate@{i j k l | i < j, j < k, k < l} Γ wfΓ l A B : Type@{l} :=
+    Split@{l} (wfΓ := wfΓ) (fun Δ wfΔ (ρ: Δ ≤ Γ) => LRAdequate@{k l} Δ (LogRel@{i j k l} l) A⟨ρ⟩ B⟨ρ⟩).
 
-  Definition Wpack@{i j k l | i < j, j < k, k < l} Γ l A B (RA : WLRAdequate@{i j k l} Γ l A B) : LRPack@{k} Γ A B :=
+  Definition Wpack@{i j k l | i < j, j < k, k < l} Γ wfΓ l A B (RA : WLRAdequate@{i j k l} Γ wfΓ l A B) : LRPack@{k} Γ A B :=
     Build_LRPack@{k} Γ A B (fun t u =>
-      dSplit (fun Δ (ρ: Δ ≤ Γ) hSplit => forall (hΔ : [|-Δ]), [LogRel@{i j k l} l | Δ ||- t⟨ρ⟩ ≅ u⟨ρ⟩ : A⟨ρ⟩ | hSplit hΔ ]) RA).
+      dSplit (fun Δ wfΔ (ρ: Δ ≤ Γ) hSplit => [LogRel@{i j k l} l | Δ ||- t⟨ρ⟩ ≅ u⟨ρ⟩ : A⟨ρ⟩ | hSplit]) RA).
   Coercion Wpack : WLRAdequate >-> LRPack.
 End Weak_LogRel.
 
-Notation "[ Γ ||-< l > A ≅ B ]" := (WLRAdequate Γ l A B).
-Notation "[ Γ ||-< l > A ]" := [ Γ ||-<l> A ≅ A].
-Notation "[ Γ ||-< l > t ≅ u : A | RA ]" := (RA.(LRPack.eqTm) t u).
-Notation "[ Γ ||-< l > t : A | RA ]" := [ Γ ||-< l > t ≅ t : A | RA].
+Notation "[ wfΓ ||-< l > A ≅ B ]" := (WLRAdequate _ wfΓ l A B).
+Notation "[ wfΓ ||-< l > A ]" := [ wfΓ ||-<l> A ≅ A].
+Notation "[ wfΓ ||-< l > t ≅ u : A | RA ]" := (RA.(LRPack.eqTm) t u).
+Notation "[ wfΓ ||-< l > t : A | RA ]" := [ Γ ||-< l > t ≅ t : A | RA].
 
-Lemma WrePack `{ta : tag} `{!WfContext ta} `{!WfType ta} `{!Typing ta}
-    `{!ConvType ta} `{!ConvTerm ta} `{!ConvNeuConv ta} `{!RedType ta} `{!RedTerm ta} :
-    forall Γ l A B Δ (ρ : Δ≤ Γ), [Δ ||-<l> A⟨ρ⟩ ≅ B⟨ρ⟩] ->
-     Split_wfc (fun Ξ (ρΞ : Ξ ≤ Δ) => [Ξ ||-S<l> A⟨ρΞ ∘w ρ⟩ ≅ B⟨ρΞ ∘w ρ⟩]).
+Lemma WAdrefold `{GenericTypingProperties} :
+    forall Γ l A B Δ wfΔ (ρ : Δ≤ Γ), [wfΔ ||-<l> A⟨ρ⟩ ≅ B⟨ρ⟩] ->
+     Split (wfΓ:= wfΔ) (fun Ξ wfΞ (ρΞ : Ξ ≤ Δ) => [Ξ ||-S<l> A⟨ρΞ ∘w ρ⟩ ≅ B⟨ρΞ ∘w ρ⟩]).
 Proof.
-  intros ?????? RAB.
-  eapply (Split_bind_return_over RAB).
-  intros Ξ ρΞ oRAB hΞ.
+  intros ??????? RAB.
+  eapply (Split_bind_return RAB).
+  intros Ξ wfΞ ρΞ oRAB.
   rewrite <-2!wk_comp_ren_on.
   now eapply RAB.
 Qed.
 
-Lemma SplitWAd `{ta : tag} `{!WfContext ta} `{!WfType ta} `{!Typing ta}
-    `{!ConvType ta} `{!ConvTerm ta} `{!ConvNeuConv ta} `{!RedType ta} `{!RedTerm ta} :
-    forall Γ l l' A B A' B', [Γ ||-< l > A ≅ B] ->
-      (forall Δ (ρ : Δ ≤ Γ), [Δ ||-S< l > A⟨ρ⟩ ≅ B⟨ρ⟩] -> [Δ ||-< l' > A'⟨ρ⟩ ≅ B'⟨ρ⟩]) -> 
-      [Γ ||-< l' > A' ≅ B'].
+(* Lemma Wpackrefold `{GenericTypingProperties} :
+    forall Γ l t u A B Δ wfΔ (ρ : Δ≤ Γ), [wfΔ ||-<l> A⟨ρ⟩ ≅ B⟨ρ⟩] ->
+     dSplit (wfΓ:= wfΔ) (fun Ξ wfΞ (ρΞ : Ξ ≤ Δ) => [Ξ ||-S<l> A⟨ρΞ ∘w ρ⟩ ≅ B⟨ρΞ ∘w ρ⟩]).
+Proof.
+  intros ??????? RAB.
+  eapply (Split_bind_return RAB).
+  intros Ξ wfΞ ρΞ oRAB.
+  rewrite <-2!wk_comp_ren_on.
+  now eapply RAB.
+Qed.
+ *)
+
+
+(* Lemma WAd_bind `{GenericTypingProperties} :
+    forall Γ (wfΓ : [|-Γ]) l l' A B A' B',
+      (forall Δ (wfΔ : [|-Δ]) (ρ : Δ ≤ Γ), [Δ ||-S< l > A⟨ρ⟩ ≅ B⟨ρ⟩] -> [wfΔ ||-< l' > A'⟨ρ⟩ ≅ B'⟨ρ⟩]) -> 
+       [wfΓ ||-< l > A ≅ B] ->[wfΓ ||-< l' > A' ≅ B'].
 Proof. 
-  intros ??????? RAB H.
-  eapply (Split_bind_over RAB).
-  intros Δ ρ oRAB.
-  eapply WrePack.
-  eapply H.
-  eapply RAB.
-  eapply oRAB.
+  intros ???????? RA'B' RAB.
+  eapply (Split_bind RAB).
+  intros Δ wfΔ ρ oRAB.
+  now eapply WrePack, RA'B', RAB.
+Qed. 
+
+Lemma Wpack_bind `{GenericTypingProperties} :
+    forall {Γ} {wfΓ : [|-Γ]} {l l' t u A B A' B'} (RA : [wfΓ ||-< l > A ≅ B]),
+      (forall Δ (wfΔ : [|-Δ]) (ρ : Δ ≤ Γ) (RAρ : [Δ ||-S< l > A⟨ρ⟩ ≅ B⟨ρ⟩]),
+        [Δ ||-S< l > t⟨ρ⟩ ≅ u⟨ρ⟩ : A⟨ρ⟩ | RAρ] -> [wfΔ ||-< l' > A'⟨ρ⟩ ≅ B'⟨ρ⟩]) -> 
+      [wfΓ ||-< l > t ≅ u : A | RA] ->[wfΓ ||-< l' > A' ≅ B'].
+Proof. 
+  intros ??????????? RA' Rtu.
+  eapply (dSplit_bind Rtu).
+  intros Δ wfΔ ρ oRA oRtu.
+  now unshelve eapply WrePack, RA', Rtu.
+Qed.
+*)
+
+
+
 
 (** ** Folding and unfolding lemmas of the logical relation wrt levels *)
 

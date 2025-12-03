@@ -97,8 +97,8 @@ Section Weakenings.
       eassert ([_ |_||- _≅ _ : (ParamRedTy.domL ΠA)⟨ρΞ∘w ρ⟩ ≅ _]) as ha'
         by (eapply SirrLREq; [eapply wk_comp_ren_on| eapply ha]).
       specialize (Ht _ _ _ (ρΞ∘w ρ) wfΞ ha').
-      eapply (dSplit_bind_return_over Ht).
-      intros Θ ρΘ hovera' hovert hoverwk hΘ; cbn in *.
+      eapply (dSplit_bind_return Ht).
+      intros Θ wfΘ ρΘ oha' oHt owk; cbn in *.
       rewrite <-2!wk_up_ren_subst ; eapply SirrLREq.
       1: now rewrite <-wk_up_ren_subst.
       unshelve eapply Ht; tea.
@@ -125,8 +125,8 @@ Section Weakenings.
       eassert ([_ |_||- _≅ _ : (ParamRedTy.domL ΠA)⟨ρΞ∘w ρ⟩ ≅ _]) as hab'
         by (eapply SirrLREq; [eapply wk_comp_ren_on| eapply hab]).
       specialize (eqApp Ξ a b (ρΞ∘w ρ) wfΞ hab').
-      eapply (dSplit_bind_return_over eqApp).
-      intros Θ ρΘ hoverab' hovereqApp hoverwk hΘ.
+      eapply (dSplit_bind_return eqApp).
+      intros Θ wfΘ ρΘ ohab' oeqApp owk.
       eapply SirrLREq; [now rewrite <-wk_up_ren_subst| unshelve eapply eqApp; tea].
   Qed.
 
@@ -147,9 +147,9 @@ Section Weakenings.
     now eapply convty_wk.
   + refold; intros Ξ ρΞ wfΞ.
     specialize (Hsnd Ξ (ρΞ ∘w ρ) wfΞ).
-    eapply (dSplit_bind_return_over Hsnd).
-    intros Θ ρΘ hoverfst hoversnd hover hΘ.
-    eapply SirrLREq; clear hover.
+    eapply (dSplit_bind_return Hsnd).
+    intros Θ wfΘ ρΘ ofst osnd oirr.
+    eapply SirrLREq; clear oirr.
     2:rewrite (wk_comp_ren_on b); now unshelve apply Hsnd.
     cbn; now rewrite <-wk_up_ren_subst, wk_comp_ren_on.
   + cbn; rewrite wk_sig; now eapply convneu_wk.
@@ -175,9 +175,9 @@ Section Weakenings.
         eapply SirrLREq; [now rewrite wk_comp_ren_on| now unshelve eapply eqFst].
       + intros Ξ ρΞ wfΞ ; cbn.
         specialize (eqSnd Ξ (ρΞ∘w ρ) wfΞ).
-        eapply (dSplit_bind_return_over eqSnd).
-        intros Θ ρΘ hoverFst hoverSnd hover hΘ; cbn in *.
-        eapply SirrLREq; clear hover.
+        eapply (dSplit_bind_return eqSnd).
+        intros Θ wfΘ ρΘ oeqFst oeqSnd oirr; cbn in *.
+        eapply SirrLREq; clear oirr.
         2: rewrite 2!wk_comp_ren_on; now unshelve eapply eqSnd.
         cbn; now rewrite <-wk_up_ren_subst, wk_comp_ren_on.
   Qed.
@@ -276,7 +276,7 @@ Section Weakenings.
     eapply wkLR_rec; intros ? h; inversion h.
   Qed.
 
-  Theorem wkLR@{h i j k l} {l}: wkStmt@{i j k l} l.
+  Theorem SwkLR@{h i j k l} {l}: wkStmt@{i j k l} l.
   Proof.
     intros; eapply wkLR_rec.
     intros ? h; inversion h. eapply wkLR0.
@@ -284,3 +284,45 @@ Section Weakenings.
 
 
 End Weakenings.
+
+Section WeakWeakenings.
+  Context `{GenericTypingProperties}.
+
+  Record Wkripke@{i j k l} {Γ wfΓ l A B} {RAB : WLRAdequate@{i j k l} Γ wfΓ l A B} := {
+    WwkRed : forall {Δ} (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), WLRAdequate@{i j k l} Δ wfΔ l A⟨ρ⟩ B⟨ρ⟩;
+    WwkRedTm : forall {Δ} (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]) {t u},
+      [wfΓ ||-<l> t ≅ u : _ | RAB] -> [wfΔ ||-<l> t⟨ρ⟩ ≅ u⟨ρ⟩ : _ | WwkRed ρ wfΔ] ;
+  }.
+  Arguments Wkripke {_ _ _ _ _} _.
+
+  Definition WwkStmt@{i j k l} l := (forall Γ wfΓ A B (R : WLRAdequate@{i j k l} Γ wfΓ l A B), Wkripke R).
+
+  Theorem wkLR@{h i j k l} {l}: WwkStmt@{i j k l} l.
+  Proof.
+    intros ?????.
+    unshelve econstructor.
+    + intros ???.
+      eapply (Split_wk_bind_return R ρ).
+      intros ????.
+      rewrite 2wk_comp_ren_on.
+      now eapply R.
+    + intros ????? Rtu.
+      eapply (dSplit_wk_bind_return Rtu ρ).
+      intros ??? oR oRtu oirr.
+      eapply SirrLREq; clear oirr.
+      symmetry; apply wk_comp_ren_on.
+      rewrite 2!wk_comp_ren_on.
+      now unshelve eapply Rtu.
+  Qed.
+End WeakWeakenings.
+
+Lemma WAd_return `{GenericTypingProperties} 
+  {Γ} {wfΓ : [|-Γ]} {l A B} :
+  [Γ ||-S< l > A ≅ B] -> [wfΓ ||-< l > A ≅ B].
+Proof.
+  intros RAB.
+  eapply Split_return.
+  intros ???.
+  now eapply SwkLR.
+Qed.
+

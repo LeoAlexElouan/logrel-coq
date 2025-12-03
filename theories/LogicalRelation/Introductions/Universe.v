@@ -24,7 +24,7 @@ Section UniverseReducibility.
     escape; assert ([|-Γ]) as wfΓ by gtyping.
     now assert [ LogRel@{i j k l} one | Γ ||- A ≅ B : U | LRU_@{i j k l} (redUOneCtx wfΓ)]
       as [??? hA%redTyRecFwd%cumLR]
-    by (eapply irrLREqCum; tea; reflexivity).
+    by (eapply SirrLREqCum; tea; reflexivity).
   Qed.
 
   Lemma UnivEq@{i j k l} {Γ A B l} l' (rU : [ LogRel@{i j k l} l | Γ ||- U ≅ U]) (rA : [ LogRel@{i j k l} l | Γ ||- A ≅ B : U | rU])

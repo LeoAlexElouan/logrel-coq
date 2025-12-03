@@ -32,14 +32,9 @@ Module neRedTy.
     neRedTy Γ A B -> [Γ |- B ↘ ].
   Proof. intros []; econstructor; tea; constructor; eapply convneu_whne; now symmetry. Defined.
 
-  Definition shfneRedTy `{ta : tag}
-    `{WfType ta} `{ConvNeuConv ta} `{RedType ta} : forall Γ A B, Set :=
-    Split_Rel neRedTy.
-
 End neRedTy.
 
-Export neRedTy(neRedTy, shfneRedTy, Build_neRedTy).
-Notation "[ Γ ||-shfne A ≅ B ]" := (shfneRedTy Γ A B).
+Export neRedTy(neRedTy, Build_neRedTy).
 Notation "[ Γ ||-ne A ≅ B ]" := (neRedTy Γ A B).
 
 #[program]
@@ -77,16 +72,10 @@ Module neRedTmEq.
     neRedTmEq R t u -> [Γ |- u ↘  R.(neRedTy.tyL)].
   Proof. intros []; econstructor; tea; constructor; eapply convneu_whne; now symmetry. Defined.
 
-  Definition shfneRedTmEq `{ta : tag}
-    `{WfType ta} `{RedType ta}
-    `{Typing ta} `{ConvType ta} `{ConvTerm ta} `{ConvNeuConv ta} `{RedTerm ta} `{WfContext ta}
-    {Γ A B} (R : forall Δ (ρ : Δ ≤ Γ),[|-Δ] -> [ Δ ||-ne A⟨ρ⟩ ≅ B⟨ρ⟩]) t u : Set :=
-      Split (fun Δ ρ => forall (hΔ : [|-Δ]), neRedTmEq (R Δ ρ hΔ) t⟨ρ⟩ u⟨ρ⟩).
 
 End neRedTmEq.
 
-Export neRedTmEq(neRedTmEq, shfneRedTmEq, Build_neRedTmEq).
-Notation "[ Γ ||-shfne t ≅ u : A | R ] " := (shfneRedTmEq (Γ:=Γ) (A:=A) R t u).
+Export neRedTmEq(neRedTmEq, Build_neRedTmEq).
 Notation "[ Γ ||-ne t ≅ u : A | R ] " := (neRedTmEq (Γ:=Γ) (A:=A) R t u).
 
 #[program]

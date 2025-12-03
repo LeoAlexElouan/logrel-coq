@@ -97,121 +97,138 @@ Class WhRedTmRel `{ta : tag} `{Typing ta} `{RedTerm ta} `{ConvTerm ta} Γ A (P :
 }.
 
 (** Monad **)
+Section Monad.
+  Context `{GenericTypingProperties}.
+
+Definition Rel_PSh
+    (R : forall Γ wfΓ A B, Type) Γ wfΓ A B : PSh Γ wfΓ:=
+  fun Δ wfΔ (ρ : Δ ≤ Γ) => R Δ wfΔ A⟨ρ⟩ B⟨ρ⟩.
+
+Definition Split_Rel@{i} :
+    (forall Γ wfΓ A B, Type@{i}) -> (forall Γ wfΓ A B, Type@{i}) :=
+  fun R Γ wfΓ A B => Split@{i} (wfΓ:= wfΓ) (fun Δ wfΔ (ρ : Δ ≤ Γ) => R Δ wfΔ A⟨ρ⟩ B⟨ρ⟩).
+
+Definition Rel_PSh_root (R : forall Γ (wfΓ : [|-Γ]) A B, Type) Γ wfΓ A B : (forall Δ wfΔ (ρ : Δ ≤ Γ), R Δ wfΔ A⟨ρ⟩ B⟨ρ⟩) -> R Γ wfΓ A B.
+Proof. intros hPSh; specialize (hPSh Γ wfΓ wk_id); erewrite 2!wk_id_ren_on in hPSh; tea. Qed.
 
 
-Definition Rel_PSh (R : forall Γ A B, Type) Γ A B : PSh Γ :=
-  fun Δ (ρ : Δ ≤ Γ) => R Δ A⟨ρ⟩ B⟨ρ⟩.
-
-Definition Split_Rel@{i} : (forall Γ A B, Type@{i}) -> (forall Γ A B, Type@{i}) :=
-  fun R Γ A B => Split@{i} (fun Δ (ρ : Δ ≤ Γ) => R Δ A⟨ρ⟩ B⟨ρ⟩).
-
-Definition Rel_PSh_root (R : forall Γ A B, Type) Γ A B : (forall Δ (ρ : Δ ≤ Γ), R Δ A⟨ρ⟩ B⟨ρ⟩) -> R Γ A B.
-Proof. intros hPSh; specialize (hPSh Γ wk_id); erewrite 2!wk_id_ren_on in hPSh; tea. Qed.
-
-
-Notation Split_wfc A := (Split (fun Δ ρ => [|-Δ] -> A Δ ρ)).
-Notation dSplit_wfc P hA := (dSplit (fun Δ ρ hA => forall (hΔ : [|-Δ]), P Δ ρ (hA hΔ)) hA).
-
-Lemma wft_wk_inv `{GenericTypingProperties}: forall {Γ A}, [|-Γ] -> (forall Δ (ρ : Δ ≤ Γ),[|-Δ] ->  [Δ |- A⟨ρ⟩]) -> [Γ |- A].
+Lemma wft_wk_inv : forall {Γ} {wfΓ : [|-Γ]} {A},(forall Δ (wfΔ : [|-Δ]) (ρ : Δ ≤ Γ), [Δ |- A⟨ρ⟩]) -> [Γ |- A].
 Proof.
-  intros ?? hΓ hA.
-  specialize (hA Γ wk_id hΓ).
+  intros ??? hA.
+  specialize (hA Γ wfΓ wk_id).
   now rewrite !wk_id_ren_on in hA.
 Qed.
 
-Lemma wft_shf `{GenericTypingProperties} {Γ A} : shf (fun Δ (ρ : Δ ≤ Γ) =>[|-Δ] -> [Δ |- A⟨ρ⟩]).
+Lemma wft_shf {Γ wfΓ A} : shf wfΓ (fun Δ wfΔ (ρ : Δ ≤ Γ) => [Δ |- A⟨ρ⟩]).
 Proof.
-  intros ??? ht hf hΔ.
+  intros ???? ht hf.
   eapply wft_split; [eapply ht| eapply hf]; now eapply wfc_consF.
 Qed.
 
-Lemma Split_bind_wft `{GenericTypingProperties} {Γ A} {C : PSh Γ} (hΓ : [|-Γ]) (hC : Split C) :
-  (forall Δ (ρ : Δ ≤ Γ), overtree hC.(dtree) Δ -> [|-Δ] -> [Δ |- A⟨ρ⟩]) -> [Γ |- A].
+Lemma Split_bind_wft {Γ wfΓ A} {C : PSh Γ wfΓ} (hC : Split C) :
+  (forall Δ (wfΔ : [|-Δ]) (ρ : Δ ≤ Γ), overtree hC Δ -> [Δ |- A⟨ρ⟩]) -> [Γ |- A].
 Proof.
-  intros h.
-  eapply (wft_wk_inv hΓ).
-  eapply (Split_bind_alg_over wft_shf hC h).
+  intros hA.
+  now unshelve eapply wft_wk_inv, (Split_bind_alg wft_shf hC hA).
 Qed.
 
-Lemma convty_wk_inv `{GenericTypingProperties}: forall {Γ A B}, [|-Γ] -> (forall Δ (ρ : Δ ≤ Γ),[|-Δ] ->  [Δ |- A⟨ρ⟩ ≅ B⟨ρ⟩]) -> [Γ |- A ≅ B].
+Lemma dSplit_bind_wft {Γ wfΓ A} {C : PSh Γ wfΓ} {P}
+  {hC : Split C} (hP : dSplit P hC): 
+  (forall Δ (wfΔ : [|-Δ]) (ρ : Δ ≤ Γ), overtree hC Δ -> overtree hP Δ -> [Δ |- A⟨ρ⟩])
+  -> [Γ |- A ].
 Proof.
-  intros ??? hΓ hAB.
-  specialize (hAB Γ wk_id hΓ).
+  intros ht.
+  now unshelve eapply wft_wk_inv, (dSplit_bind_alg wft_shf hP).
+Qed.
+
+Lemma convty_wk_inv : forall {Γ} {wfΓ : [|-Γ]} {A B},(forall Δ (wfΔ : [|-Δ]) (ρ : Δ ≤ Γ), [Δ |- A⟨ρ⟩ ≅ B⟨ρ⟩]) -> [Γ |- A ≅ B].
+Proof.
+  intros ???? hAB.
+  specialize (hAB Γ wfΓ wk_id).
   now rewrite 2!wk_id_ren_on in hAB.
 Qed.
 
-Lemma convty_shf `{GenericTypingProperties} {Γ A B} : shf (fun Δ (ρ : Δ ≤ Γ) =>[|-Δ] -> [Δ |- A⟨ρ⟩ ≅ B⟨ρ⟩]).
+Lemma convty_shf {Γ wfΓ A B} : shf wfΓ (fun Δ wfΔ (ρ : Δ ≤ Γ) => [Δ |- A⟨ρ⟩ ≅ B⟨ρ⟩]).
 Proof.
-  intros ??? ht hf hΔ.
+  intros ???? ht hf.
   eapply convty_split; [eapply ht| eapply hf]; now eapply wfc_consF.
 Qed.
 
-Lemma Split_bind_convty `{GenericTypingProperties} {Γ A B} {C : PSh Γ} (hΓ : [|-Γ]) (hC : Split C) :
-  (forall Δ (ρ : Δ ≤ Γ), overtree hC.(dtree) Δ -> [|-Δ] -> [Δ |- A⟨ρ⟩ ≅ B⟨ρ⟩]) -> [Γ |- A ≅ B ].
+Lemma Split_bind_convty {Γ wfΓ A B} {C : PSh Γ wfΓ} (hC : Split C) :
+  (forall Δ (wfΔ : [|-Δ]) (ρ : Δ ≤ Γ), overtree hC Δ -> [Δ |- A⟨ρ⟩ ≅ B⟨ρ⟩]) -> [Γ |- A ≅ B].
 Proof.
-  intros h.
-  eapply (convty_wk_inv hΓ).
-  eapply (Split_bind_alg_over convty_shf hC h).
+  intros hAB.
+  now unshelve eapply convty_wk_inv, (Split_bind_alg convty_shf hC hAB).
 Qed.
 
-Lemma ty_wk_inv `{GenericTypingProperties}: forall {Γ t A}, [|-Γ] -> (forall Δ (ρ : Δ ≤ Γ), [|-Δ] -> [Δ |- t⟨ρ⟩ : A⟨ρ⟩ ]) -> [Γ |- t : A].
+Lemma dSplit_bind_convty {Γ wfΓ A B} {C : PSh Γ wfΓ} {P}
+  {hC : Split C} (hP : dSplit P hC): 
+  (forall Δ (wfΔ : [|-Δ]) (ρ : Δ ≤ Γ), overtree hC Δ -> overtree hP Δ -> [Δ |- A⟨ρ⟩ ≅ B⟨ρ⟩])
+  -> [Γ |- A ≅ B ].
 Proof.
-  intros ??? hΓ ht.
-  specialize (ht Γ wk_id hΓ).
+  intros ht.
+  now unshelve eapply convty_wk_inv, (dSplit_bind_alg convty_shf hP).
+Qed.
+
+Lemma ty_wk_inv : forall {Γ} {wfΓ : [|-Γ]} {t A},
+  (forall Δ (wfΔ : [|-Δ]) (ρ : Δ ≤ Γ), [Δ |- t⟨ρ⟩ : A⟨ρ⟩]) -> [Γ |- t : A].
+Proof.
+  intros ???? ht.
+  specialize (ht Γ wfΓ wk_id).
   now rewrite 2!wk_id_ren_on in ht.
 Qed.
 
-Lemma ty_shf `{GenericTypingProperties} {Γ t A} : shf (fun Δ (ρ : Δ ≤ Γ) => [|-Δ] -> [Δ |- t⟨ρ⟩ : A⟨ρ⟩]).
+Lemma ty_shf {Γ wfΓ t A} : shf wfΓ (fun Δ wfΔ (ρ : Δ ≤ Γ) => [Δ |- t⟨ρ⟩ : A⟨ρ⟩]).
 Proof.
-  intros ??? ht hf hΔ.
+  intros ???? ht hf.
   eapply ty_split; [eapply ht| eapply hf]; now eapply wfc_consF.
 Qed.
 
-Lemma Split_bind_ty `{GenericTypingProperties} {Γ t A} {C : PSh Γ} (hΓ : [|-Γ]) (hC : Split C) :
-  (forall Δ (ρ : Δ ≤ Γ), overtree hC.(dtree) Δ -> [|-Δ] -> [Δ |- t⟨ρ⟩ : A⟨ρ⟩]) -> [Γ |- t : A ].
+Lemma Split_bind_ty {Γ wfΓ t A} {C : PSh Γ wfΓ} (hC : Split C) :
+  (forall Δ (wfΔ : [|-Δ]) (ρ : Δ ≤ Γ), overtree hC Δ -> [Δ |- t⟨ρ⟩ : A⟨ρ⟩]) -> [Γ |- t : A].
 Proof.
-  intros h.
-  eapply (ty_wk_inv hΓ).
-  eapply (Split_bind_alg_over ty_shf hC h).
+  intros ht.
+  now unshelve eapply ty_wk_inv, (Split_bind_alg ty_shf hC ht).
 Qed.
 
-Lemma dSplit_bind_ty `{GenericTypingProperties} {Γ t A} {C : PSh Γ} {P} (hΓ : [|-Γ])
-  {hC : Split C} (hP : dSplit P hC):
-  (forall Δ (ρ : Δ ≤ Γ), overtree hC.(dtree) Δ -> overtree hP.(dtree) Δ-> [|-Δ] -> [Δ |- t⟨ρ⟩ : A⟨ρ⟩]) -> [Γ |- t : A ].
+Lemma dSplit_bind_ty {Γ wfΓ t A} {C : PSh Γ wfΓ} {P}
+  {hC : Split C} (hP : dSplit P hC): 
+  (forall Δ (wfΔ : [|-Δ]) (ρ : Δ ≤ Γ), overtree hC Δ -> overtree hP Δ -> [Δ |- t⟨ρ⟩ : A⟨ρ⟩])
+  -> [Γ |- t : A ].
 Proof.
-  intros h.
-  eapply (ty_wk_inv hΓ).
-  now eapply (dSplit_bind_alg_over ty_shf hP).
+  intros ht.
+  now unshelve eapply ty_wk_inv, (dSplit_bind_alg ty_shf hP).
 Qed.
 
-Lemma convtm_wk_inv `{GenericTypingProperties}: forall {Γ t u A}, [|-Γ] -> (forall Δ (ρ : Δ ≤ Γ), [|-Δ] -> [Δ |- t⟨ρ⟩ ≅ u⟨ρ⟩ : A⟨ρ⟩ ]) -> [Γ |- t ≅ u : A].
+Lemma convtm_wk_inv : forall {Γ} {wfΓ : [|-Γ]} {t u A},
+  (forall Δ (wfΔ : [|-Δ]) (ρ : Δ ≤ Γ), [Δ |- t⟨ρ⟩ ≅ u⟨ρ⟩ : A⟨ρ⟩]) -> [Γ |- t ≅ u : A].
 Proof.
-  intros ???? hΓ htu.
-  specialize (htu Γ wk_id hΓ).
+  intros ????? htu.
+  specialize (htu Γ wfΓ wk_id).
   now rewrite 3!wk_id_ren_on in htu.
 Qed.
 
-Lemma convtm_shf `{GenericTypingProperties} {Γ t u A} : shf (fun Δ (ρ : Δ ≤ Γ) => [|-Δ] -> [Δ |- t⟨ρ⟩ ≅ u⟨ρ⟩ : A⟨ρ⟩]).
+Lemma convtm_shf {Γ wfΓ t u A} : shf wfΓ (fun Δ wfΔ (ρ : Δ ≤ Γ) => [Δ |- t⟨ρ⟩ ≅ u⟨ρ⟩ : A⟨ρ⟩]).
 Proof.
-  intros ??? ht hf hΔ.
+  intros ???? ht hf.
   eapply convtm_split; [eapply ht| eapply hf]; now eapply wfc_consF.
 Qed.
 
-Lemma Split_bind_convtm `{GenericTypingProperties} {Γ t u A} {C : PSh Γ} (hΓ : [|-Γ]) (hC : Split C) :
-  (forall Δ (ρ : Δ ≤ Γ), overtree hC.(dtree) Δ -> [|-Δ] -> [Δ |- t⟨ρ⟩ ≅ u⟨ρ⟩ : A⟨ρ⟩]) -> [Γ |- t ≅ u : A ].
+Lemma Split_bind_convtm {Γ wfΓ t u A} {C : PSh Γ wfΓ} (hC : Split C) :
+  (forall Δ (wfΔ : [|-Δ]) (ρ : Δ ≤ Γ), overtree hC Δ -> [Δ |- t⟨ρ⟩ ≅ u⟨ρ⟩ : A⟨ρ⟩]) -> [Γ |- t ≅ u : A].
 Proof.
-  intros h.
-  eapply (convtm_wk_inv hΓ).
-  eapply (Split_bind_alg_over convtm_shf hC h).
+  intros htu.
+  now unshelve eapply convtm_wk_inv, (Split_bind_alg convtm_shf hC htu).
 Qed.
 
-Lemma dSplit_bind_convtm `{GenericTypingProperties} {Γ t u A} {C : PSh Γ} {P} (hΓ : [|-Γ])
-  {hC : Split C} (hP : dSplit P hC):
-  (forall Δ (ρ : Δ ≤ Γ), overtree hC.(dtree) Δ -> overtree hP.(dtree) Δ-> [|-Δ] -> [Δ |- t⟨ρ⟩ ≅ u⟨ρ⟩ : A⟨ρ⟩]) -> [Γ |- t ≅ u : A ].
+Lemma dSplit_bind_convtm {Γ wfΓ t u A} {C : PSh Γ wfΓ} {P}
+  {hC : Split C} (hP : dSplit P hC): 
+  (forall Δ (wfΔ : [|-Δ]) (ρ : Δ ≤ Γ), overtree hC Δ -> overtree hP Δ -> [Δ |- t⟨ρ⟩ ≅ u⟨ρ⟩ : A⟨ρ⟩])
+  -> [Γ |- t ≅ u : A ].
 Proof.
-  intros h.
-  eapply (convtm_wk_inv hΓ).
-  eapply (dSplit_bind_alg_over convtm_shf hP h).
+  intros htu.
+  now unshelve eapply convtm_wk_inv, (dSplit_bind_alg convtm_shf hP).
 Qed.
 
+End Monad.
 

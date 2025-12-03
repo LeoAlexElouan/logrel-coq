@@ -21,9 +21,9 @@ Module PolyRedPack.
     {Γ : context} {shp shp' pos pos' : term}
   : Type@{j} (* @ max(Set, i+1) *) := {
     shpRed {Δ} (ρ : Δ ≤ Γ) : [ |- Δ ] -> LRPack@{i} Δ shp⟨ρ⟩ shp'⟨ρ⟩ ;
-    posRed {Δ} (ρ : Δ ≤ Γ) {a b} (h : [ |- Δ ]) :
-        [ shpRed ρ h | Δ ||- a ≅ b : shp⟨ρ⟩ ≅ shp'⟨ρ⟩] ->
-        Split@{j} (fun Ξ (ρ' : Ξ ≤ Δ) => [|-Ξ] -> LRPack@{i} Ξ pos[a .: (ρ >> tRel)]⟨ρ'⟩ pos'[b .: (ρ >> tRel)]⟨ρ'⟩);
+    posRed {Δ} (ρ : Δ ≤ Γ) {a b} (wfΔ : [ |- Δ ]) :
+        [ shpRed ρ wfΔ | Δ ||- a ≅ b : shp⟨ρ⟩ ≅ shp'⟨ρ⟩] ->
+        Split@{j} (wfΓ := wfΔ) (fun Ξ wfΞ (ρ' : Ξ ≤ Δ) => LRPack@{i} Ξ pos[a .: (ρ >> tRel)]⟨ρ'⟩ pos'[b .: (ρ >> tRel)]⟨ρ'⟩);
   }.
 
   Arguments PolyRedPack {_ _ _ _}.
@@ -41,7 +41,7 @@ Module PolyRedPack.
     shpAd {Δ} (ρ : Δ ≤ Γ) (h : [ |- Δ ]) : LRPackAdequate@{i j} R (PA.(shpRed) ρ h);
     posAd {Δ a b} (ρ : Δ ≤ Γ) (h : [ |- Δ ])
       (ha :[ PA.(shpRed) ρ h | Δ ||- a ≅ b : shp⟨ρ⟩ ≅ shp'⟨ρ⟩]) :
-      dover (PA.(posRed) ρ h ha) (fun Ξ ρ' hSplit => forall (hΞ : [|-Ξ]), LRPackAdequate@{i j} R (hSplit hΞ));
+      dover (PA.(posRed) ρ h ha) (fun Ξ wfΞ ρ' hSplit => LRPackAdequate@{i j} R hSplit);
   }.
 
   Arguments PolyRedPackAdequate {_ _ _ _ _ _ _ _ _}.

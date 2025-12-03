@@ -15,13 +15,11 @@ Section PolyValidity.
     {Γ l A A' B B'} (wfΓ : [|-Γ]) (PA : PolyRed Γ l A A' B B') :
     ParamRedTy T Γ l (T A B) (T A' B').
   Proof.
-    pose proof (instKripke wfΓ PA.(PolyRed.shpRed)).
-    pose proof (instKripkeFam wfΓ PA.(PolyRed.posRed)).
-    pose proof (instKripkeFamConv wfΓ PA.(PolyRed.posRed)).
+    pose proof (SinstKripke wfΓ PA.(PolyRed.shpRed)).
     escape.
-    assert ([|-Γ,,A]) as wfΓA by gtyping.
-    assert ([|-Γ,,A']) as wfΓA' by gtyping.
-    escapeSplit wfΓA. escapeSplit wfΓA'.
+    pose proof (instKripkeFam wfΓ EscLX PA.(PolyRed.posRed)).
+    pose proof (instKripkeFamConv wfΓ EscRX PA.(PolyRed.posRed)).
+    escapeSplit.
     exists A A' B B'; tea.
     1,2: econstructor; tea; eapply redtywf_refl; eauto.
     eauto.
