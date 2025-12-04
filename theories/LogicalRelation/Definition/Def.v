@@ -148,7 +148,7 @@ Notation "[ wfΓ ||-< l > t ≅ u : A | RA ]" := (RA.(LRPack.eqTm) t u).
 Notation "[ wfΓ ||-< l > t : A | RA ]" := [ Γ ||-< l > t ≅ t : A | RA].
 
 Lemma WAdrefold `{GenericTypingProperties} :
-    forall Γ l A B Δ wfΔ (ρ : Δ≤ Γ), [wfΔ ||-<l> A⟨ρ⟩ ≅ B⟨ρ⟩] ->
+    forall {Γ l A B Δ wfΔ} {ρ : Δ≤ Γ}, [wfΔ ||-<l> A⟨ρ⟩ ≅ B⟨ρ⟩] ->
      Split (wfΓ:= wfΔ) (fun Ξ wfΞ (ρΞ : Ξ ≤ Δ) => [Ξ ||-S<l> A⟨ρΞ ∘w ρ⟩ ≅ B⟨ρΞ ∘w ρ⟩]).
 Proof.
   intros ??????? RAB.
@@ -158,17 +158,6 @@ Proof.
   now eapply RAB.
 Qed.
 
-(* Lemma Wpackrefold `{GenericTypingProperties} :
-    forall Γ l t u A B Δ wfΔ (ρ : Δ≤ Γ), [wfΔ ||-<l> A⟨ρ⟩ ≅ B⟨ρ⟩] ->
-     dSplit (wfΓ:= wfΔ) (fun Ξ wfΞ (ρΞ : Ξ ≤ Δ) => [Ξ ||-S<l> A⟨ρΞ ∘w ρ⟩ ≅ B⟨ρΞ ∘w ρ⟩]).
-Proof.
-  intros ??????? RAB.
-  eapply (Split_bind_return RAB).
-  intros Ξ wfΞ ρΞ oRAB.
-  rewrite <-2!wk_comp_ren_on.
-  now eapply RAB.
-Qed.
- *)
 
 
 (* Lemma WAd_bind `{GenericTypingProperties} :

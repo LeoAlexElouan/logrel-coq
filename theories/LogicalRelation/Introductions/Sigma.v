@@ -113,7 +113,70 @@ Proof.
   now eapply escape.
 Qed.
 
-Lemma fstRed {l Δ} {wfΔ :[|-Δ]} {F F' G G' p p'}
+Lemma fstRed {l Γ} {wfΓ : [|-Γ]} {F F' G G' p p'}
+  (RΣ : [Γ ||-S<l> tSig F G ≅ tSig F' G'])
+  (RF : [wfΓ ||-<l> F ≅ F'])
+  (Rp : [Γ ||-S<l> p ≅ p' : _ | RΣ]) :
+  [wfΓ ||-<l> tFst p ≅ tFst p' : _ | RF].
+Proof.
+  eapply (SirrLR (LRSig' (normRedΣ RΣ))) in Rp.
+  eapply redSubstTmEq; cycle 1.
+  + eapply redtm_fst, tmr_wf_red. exact (SigRedTmEq.red (SigRedTmEq.redL Rp)).
+  + eapply redtm_fst, tmr_wf_red.
+    eapply redtmwf_conv.
+    1:exact (SigRedTmEq.red (SigRedTmEq.redR Rp)).
+    now escape.
+  + eapply Split_return; intros ??? oRF.
+    now unshelve eapply SirrLR, (SigRedTmEq.eqFst Rp).
+Qed.
+
+(* Lemma fstRed {l Γ} {wfΓ : [|-Γ]} {F F' G G' p p'}
+  (RΣ : [wfΓ ||-<l> tSig F G ≅ tSig F' G'])
+  (RF : [wfΓ ||-<l> F ≅ F'])
+  (Rp : [wfΓ ||-<l> p ≅ p' : _ | RΣ]) :
+  [wfΓ ||-<l> tFst p ≅ tFst p' : _ | RF].
+Proof.
+  eapply (dSplit_bind Rp).
+  intros ??? oRΣ oRp.
+  eapply Wpackrefold.
+  rewrite <- 2!wk_fst.
+  now unshelve eapply SfstRed, Rp.
+Qed. *)
+
+
+Lemma sndRed {l Γ} {wfΓ :[|-Γ]} {F F' G G'} {p p'}
+  (RΣ : [Γ ||-S<l> tSig F G ≅ tSig F' G'])
+  (Rp : [Γ ||-S<l> p ≅ p' : _ | RΣ])
+  (RGfstp : [wfΓ ||-<l> G[(tFst p)..] ≅ G'[(tFst p')..]]) :
+  [wfΓ ||-<l> tSnd p ≅ tSnd p' : _ | RGfstp].
+Proof.
+  set (RΣ' := (LRSig' (normRedΣ RΣ))).
+  eapply (SirrLR RΣ') in Rp.
+  eapply redSubstTmEq; cycle 1.
+  + eapply redtm_snd, tmr_wf_red; exact (SigRedTmEq.red (SigRedTmEq.redL Rp)).
+  + eapply redtm_snd, tmr_wf_red, redtmwf_conv.
+    1: exact (SigRedTmEq.red (SigRedTmEq.redR Rp)).
+    now escape.
+  + erewrite <-wk_id_ren_on, <-(wk_id_ren_on _ (tSnd (nf (redL _)))).
+    eapply irrLRConv, (SigRedTmEq.eqSnd Rp wk_id wfΓ).
+    erewrite wk_fst, <- eq_subst_scons.
+    eassert (RF : [wfΓ ||-< l> F ≅ F'])
+      by (eapply Split_return; intros;
+      now eapply (normRedΣ RΣ).(PolyRed.shpRed)).
+    epose proof (redTmFwd' Rp) as [Rp' _ _ _ _].
+    epose proof (fstRed := fstRed RΣ' RF Rp').
+    eapply (dSplit_bind fstRed).
+    intros ??? oRF ofstRed.
+    eapply WAdrefold.
+    rewrite 2!subst_ren_subst_mixed.
+    eapply kripkeLRlrefl.
+    - clear dependent Δ. intros ????? RAA'.
+      now eapply (normRedΣ RΣ).(PolyRed.posRed).
+    - symmetry; now unshelve eapply SirrLR, fstRed.
+    Unshelve. easy.
+Qed.
+
+(* Lemma fstRed {l Δ} {wfΔ :[|-Δ]} {F F' G G' p p'}
   (RΣ : [Δ ||-S<l> tSig F G ≅ tSig F' G'])
   (RF : [wfΔ ||-<l> F ≅ F'])
   (Rp : [Δ ||-S<l> p ≅ p' : _ | LRSig' (normRedΣ RΣ)]) :
@@ -144,80 +207,144 @@ Proof.
   + erewrite <-wk_id_ren_on, <-(wk_id_ren_on _ (tSnd (nf (redL _)))).
     eapply irrLRConv, (SigRedTmEq.eqSnd Rp wk_id wfΔ).
     eassert (RF : [wfΔ ||-< l> F ≅ F'])
-     by (eapply Split_return; intros;
-     now eapply (normRedΣ RΣ).(PolyRed.shpRed)).
-    erewrite wk_fst, <- eq_subst_scons; eapply LRlrefl.
-    1: intros; erewrite 2! eq_subst_scons; eapply (normRedΣ RΣ).(PolyRed.posRed). eapply SirrLR,SwkLR. hab. tea.
-    symmetry; rewrite wk_fst, 2!wk_id_ren_on.
-    eapply SirrLREq; [now rewrite wk_id_ren_on|].
-    eapply fstRed; now pose proof (redTmFwd' Rp) as [].
-    Unshelve. 1: tea. now eapply redΣdom.
-Qed.
+      by (eapply Split_return; intros;
+      now eapply (normRedΣ RΣ).(PolyRed.shpRed)).
+    erewrite wk_fst, <- eq_subst_scons.
+    epose proof (redTmFwd' Rp) as [Rp' _ _ _ _].
+    epose proof (fstRed := fstRed RΣ RF Rp').
+    symmetry.
+    eapply (dSplit_bind fstRed).
+    intros Ξ wfΞ ρΞ oRF ofstRed.
+    eapply WAdrefold.
+    rewrite 2!subst_ren_subst_mixed.
+    eapply kripkeLRlrefl.
+    - clear dependent Ξ; intros Ξ a b ρΞ wfΞ RAA'.
+      now eapply (normRedΣ RΣ).(PolyRed.posRed).
+    - now unshelve eapply SirrLR, fstRed.
+    Unshelve. easy.
+Qed. *)
 
-Lemma pairFstRed {Γ A A' B B' a a' b b' l}
-  (RA : [Γ ||-<l> A ≅ A'])
-  (RB : [Γ ,, A ||-<l> B ≅ B'])
+Lemma pairFstRed {Γ} {wfΓ :[|-Γ]} {A} {wfA : [Γ |- A]} {A' B B' a a' b b' l}
+  (RA : [wfΓ ||-<l> A ≅ A'])
+  (RB : [wfc_cons wfΓ wfA ||-<l> B ≅ B'])
   (WtB' : [Γ ,, A' |- B'])
-  (RBa : [Γ ||-<l> B[a..] ≅ B'[a'..] ])
-  (Ra : [Γ ||-<l> a ≅ a' : A | RA])
-  (Rb : [Γ ||-<l> b ≅ b' : _ | RBa ]) :
-  [Γ ||-<l> tFst (tPair A B a b) ≅ tFst (tPair A' B' a' b') : _ | RA].
+  (RBa : [wfΓ ||-<l> B[a..] ≅ B'[a'..] ])
+  (Ra : [wfΓ ||-<l> a ≅ a' : A | RA])
+  (Rb : [wfΓ ||-<l> b ≅ b' : _ | RBa ]) :
+  [wfΓ ||-<l> tFst (tPair A B a b) ≅ tFst (tPair A' B' a' b') : _ | RA].
 Proof.
-  escape.
+  escapeSplit.
+  destruct (escapeSplitTm _ Ra) as (EscLRa & EscRRa & EscRa).
+  destruct (escapeSplitTm _ Rb) as (EscLRb & EscRRb & EscRb).
   eapply redSubstTmEq; tea.
   1,2: eapply redtm_fst_beta; tea; now eapply ty_conv.
 Qed.
 
-Lemma pairFstRed' {Γ A A' B B' a a' b b' l}
-  (RA : [Γ ||-<l> A ≅ A'])
-  (RB : [Γ ,, A ||-<l> B ≅ B'])
+Lemma pairFstRed' {Γ} {wfΓ :[|-Γ]} {A} {wfA : [Γ |- A]} {A' B B' a a' b b' l}
+  (RA : [wfΓ ||-<l> A ≅ A'])
+  (RB : [wfc_cons wfΓ wfA ||-<l> B ≅ B'])
   (WtB' : [Γ ,, A' |- B'])
-  (RBa : [Γ ||-<l> B[a..] ≅ B'[a'..] ])
-  (Ra : [Γ ||-<l> a ≅ a' : A | RA])
-  (Rb : [Γ ||-<l> b ≅ b' : _ | RBa ]) :
-  [Γ ||-<l> tFst (tPair A B a b) ≅ tFst (tPair A' B' a' b') : _ | RA]
-  × [Γ ||-<l> tFst (tPair A B a b) ≅ a : _ | lrefl RA]
-  × [Γ ||-<l> tFst (tPair A' B' a' b') ≅ a' : _ | urefl RA ].
+  (RBa : [wfΓ ||-<l> B[a..] ≅ B'[a'..] ])
+  (Ra : [wfΓ ||-<l> a ≅ a' : A | RA])
+  (Rb : [wfΓ ||-<l> b ≅ b' : _ | RBa ]) :
+  [wfΓ ||-<l> tFst (tPair A B a b) ≅ tFst (tPair A' B' a' b') : _ | RA]
+  × [wfΓ ||-<l> tFst (tPair A B a b) ≅ a : _ | lrefl RA]
+  × [wfΓ ||-<l> tFst (tPair A' B' a' b') ≅ a' : _ | urefl RA ].
 Proof.
-  escape.
+  escapeSplit.
+  destruct (escapeSplitTm _ Ra) as (EscLRa & EscRRa & EscRa).
+  destruct (escapeSplitTm _ Rb) as (EscLRb & EscRRb & EscRb).
   eapply redSubstTmEq'; tea.
   1,2: eapply redtm_fst_beta; tea; now eapply ty_conv.
 Qed.
 
-Lemma pairSndRed {Γ A A' B B' a a' b b' l}
-  (RA : [Γ ||-<l> A ≅ A'])
-  (RB : [Γ ,, A ||-<l> B ≅ B'])
+Lemma pairSndRed {Γ} {wfΓ :[|-Γ]} {A} {wfA : [Γ |- A]} {A' B B' a a' b b' l}
+  (RA : [wfΓ ||-<l> A ≅ A'])
+  (RB : [wfc_cons wfΓ wfA ||-<l> B ≅ B'])
   (WtB' : [Γ ,, A' |- B'])
-  (RBa : [Γ ||-<l> B[a..] ≅ B'[a'..] ])
-  (RBfst : [Γ ||-<l> B[(tFst (tPair A B a b))..] ≅ B'[(tFst (tPair A' B' a' b'))..]])
-  (RBfsta : [Γ ||-<l> B[a..] ≅ B[(tFst (tPair A B a b))..]])
-  (Ra : [Γ ||-<l> a ≅ a' : A | RA])
-  (Rb : [Γ ||-<l> b ≅ b' : _ | RBa ]) :
-  [Γ ||-<l> tSnd (tPair A B a b) ≅ tSnd (tPair A' B' a' b') : _ | RBfst ].
+  (RBa : [wfΓ ||-<l> B[a..] ≅ B'[a'..] ])
+  (RBfst : [wfΓ ||-<l> B[(tFst (tPair A B a b))..] ≅ B'[(tFst (tPair A' B' a' b'))..]])
+  (RBfsta : [wfΓ ||-<l> B[a..] ≅ B[(tFst (tPair A B a b))..]])
+  (Ra : [wfΓ ||-<l> a ≅ a' : A | RA])
+  (Rb : [wfΓ ||-<l> b ≅ b' : _ | RBa ]) :
+  [wfΓ ||-<l> tSnd (tPair A B a b) ≅ tSnd (tPair A' B' a' b') : _ | RBfst ].
 Proof.
-  escape.
+  escapeSplit.
+  destruct (escapeSplitTm _ Ra) as (EscLRa & EscRRa & EscRa).
+  destruct (escapeSplitTm _ Rb) as (EscLRb & EscRRb & EscRb).
   eapply redSubstTmEq; tea.
   1: now eapply irrLRConv.
   1,2: eapply redtm_snd_beta; tea; now eapply ty_conv.
 Qed.
 
+Lemma canonSig {Γ A A' B B' l p p'}
+  {RΣ : [Γ ||-S< l > tSig A B ≅ tSig A' B']} :
+  [ Γ ||-S< l > p ≅ p' : tSig A B | RΣ] ->
+  [ Γ ||-S< l > p ≅ p' : tSig A B | LRSig' (normRedΣ RΣ)].
+Proof.
+  intro. now eapply SirrLR.
+Qed.
 
-Lemma sigEtaRed {Γ A A' B B' l p p'}
-  (RΣ0 : [Γ ||-<l> tSig A B ≅ tSig A' B'])
+Lemma sigEtaRed {Γ} {wfΓ :[|-Γ]} {A A' B B' l p p'}
+  (RΣ : [wfΓ ||-<l> tSig A B ≅ tSig A' B'])
+  (RA : [wfΓ ||-<l> A ≅ A'])
+  (RBfst : [wfΓ ||-<l> B[(tFst p)..] ≅ B'[(tFst p')..]])
+  (Rp : [wfΓ ||-<l> p : _ | RΣ])
+  (Rp' : [wfΓ ||-<l> p' : _ | RΣ])
+  (Rfstpp' : [wfΓ ||-<l> tFst p ≅ tFst p' : _ | RA])
+  (Rsndpp' : [wfΓ ||-<l> tSnd p ≅ tSnd p' : _ | RBfst]) :
+  [wfΓ ||-<l> p ≅ p' : _ | RΣ].
+Proof.
+  eapply (dSplit_bind Rp).
+  intros ??? _ oRp.
+  eapply Wpackrefold.
+  eapply (dSplit_wk_bind Rp' ρ).
+  intros ?? ρΞ oRΣ oRp'.
+  eapply Wpackrefold.
+  pose proof (Rp0 := cover Rp Ξ wfΞ (ρΞ∘w ρ) (overtree_PSh Rp oRp) oRΣ); cbn in Rp0.
+  pose proof (Rp'0 := cover Rp' Ξ wfΞ (ρΞ∘w ρ) oRp' oRΣ); cbn in Rp'0.
+  set (RΣ0 := cover RΣ Ξ wfΞ (ρΞ ∘w ρ) oRΣ) in *; clearbody RΣ0. cbn in RΣ0.
+  pose proof (RA' := WwkRed (wkLR _ _ _ _ RA) (ρΞ∘w ρ) wfΞ).
+  pose proof (redTmFwd' (canonSig Rp0)) as [Rpnf _ _ _ _]; pose proof (Rpnf1 := fstRed _ RA' Rpnf).
+  pose proof (redTmFwd' (canonSig Rp'0)) as [Rpnf' _ _ _ _]; pose proof (Rpnf1' := fstRed _ RA' Rpnf').
+  eapply (irrLREq (A:= tSig A⟨ρΞ∘w ρ⟩ B ⟨wk_up A (ρΞ∘w ρ)⟩)).
+  1: symmetry; eapply wk_comp_ren_on.
+  rewrite 2!wk_comp_ren_on.
+  eapply Wpack_return.
+  unshelve eapply (build_sigRedTmEq' _ (canonSig Rp0).(redL) (canonSig Rp'0).(redL)).
+  easy.
+  + 
+
+Lemma sigEtaRed {Γ} {wfΓ :[|-Γ]} {A A' B B' l p p'}
+  (RΣ0 : [Γ ||-S<l> tSig A B ≅ tSig A' B'])
   (RΣn := normRedΣ RΣ0)
-  (RΣ := LRSig' RΣn)
-  (RA : [Γ ||-<l> A ≅ A'])
-  (RBfst : [Γ ||-<l> B[(tFst p)..] ≅ B'[(tFst p')..]])
+  (RΣ := (LRSig' RΣn))
+  (RA : [wfΓ ||-<l> A ≅ A'])
+  (RBfst : [wfΓ ||-<l> B[(tFst p)..] ≅ B'[(tFst p')..]])
   (Rp : [Γ ||-<l> p : _ | RΣ])
   (Rp' : [Γ ||-<l> p' : _ | RΣ])
-  (Rfstpp' : [Γ ||-<l> tFst p ≅ tFst p' : _ | RA])
-  (Rsndpp' : [Γ ||-<l> tSnd p ≅ tSnd p' : _ | RBfst]) :
-  [Γ ||-<l> p ≅ p' : _ | RΣ].
+  (Rfstpp' : [wfΓ ||-<l> tFst p ≅ tFst p' : _ | RA])
+  (Rsndpp' : [wfΓ ||-<l> tSnd p ≅ tSnd p' : _ | RBfst]) :
+  [wfΓ ||-<l> p ≅ p' : _ | WAd_return (wfΓ := wfΓ) RΣ].
 Proof.
   pose proof (redTmFwd' Rp) as [Rpnf _ _ _ _]; pose proof (Rpnf1 := fstRed _ RA Rpnf).
   pose proof (redTmFwd' Rp') as [Rpnf' _ _ _ _]; pose proof (Rpnf1' := fstRed _ RA Rpnf').
-  unshelve eapply (build_sigRedTmEq' _ Rp.(redL) Rp'.(redL)).
-  - transitivity (tFst p); [symmetry|transitivity (tFst p')]; now eapply irrLR.
+  eapply (dSplit_bind Rpnf1).
+  intros ??? oRA oRpnf1.
+  unshelve eapply Wpackrefold.
+  1: now eapply WAd_return, SwkLR.
+  eapply (dSplit_wk_bind_return Rpnf1' ρ).
+  intros ?? ρΞ oRA' oRpnf1' oirr.
+  unshelve eapply SirrLREq; clear oirr.
+  4: symmetry; eapply wk_comp_ren_on.
+  2: now eapply SwkLR.
+  eapply SirrLR.
+  eapply (build_sigRedTmEq'); fold ren_term.
+  change (tSig A B)⟨ρ' ∘w ρ⟩ with (tSig A⟨ρ' ∘w ρ⟩ B⟨ρ' ∘w ρ⟩)
+  rewrite 
+  unshelve eapply Wpack_return, SwkLR, (build_sigRedTmEq' _ Rp.(redL) Rp'.(redL)); tea.
+  - transitivity (tFst p); [symmetry|transitivity (tFst p')]; eapply SirrLR.
+    eapply Rpnf1.
   - pose proof (RBB' := instKripkeSubst RΣn.(PolyRed.posRed)).
     pose proof (RB := instKripkeSubst (kripkeLRlrefl RΣn.(PolyRed.posRed))).
     pose proof (RB' := instKripkeSubst (kripkeLRurefl RΣn.(PolyRed.posRed))).

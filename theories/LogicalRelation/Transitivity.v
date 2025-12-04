@@ -1,6 +1,6 @@
 From Stdlib Require Import CRelationClasses.
 From LogRel Require Import Utils Syntax.All GenericTyping LogicalRelation Monad.
-From LogRel.LogicalRelation Require Import Induction Escape Irrelevance Symmetry.
+From LogRel.LogicalRelation Require Import Def Induction Escape Irrelevance Symmetry.
 From Equations Require Import Equations.
 
 Set Universe Polymorphism.
@@ -663,8 +663,7 @@ Proof.
 Qed.
 
 
-
-Lemma SkripkeLRlrefl `{GenericTypingProperties} {Γ} {wfΓ : [|-Γ]} {l A A' B B'}
+Lemma kripkeLRlrefl `{GenericTypingProperties} {Γ} {wfΓ : [|-Γ]} {l A A' B B'}
   {hA : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), [Δ ||-S<l> A⟨ρ⟩ ≅ A'⟨ρ⟩]}
   (hB : forall Δ a b (ρ : Δ ≤ Γ) (wfΔ : [|-Δ])
     (hab : [hA Δ ρ wfΔ | Δ ||- a ≅ b : _]), [wfΔ ||-<l> B[a .: ρ >> tRel] ≅ B'[b .: ρ >> tRel]])
@@ -686,21 +685,22 @@ Qed.
 
 (* Lemma LRlrefl `{GenericTypingProperties} {Γ} {wfΓ : [|-Γ]} {l A A' B B'}
   {hA : [wfΓ ||-<l> A ≅ A']}
-  (hB : forall Δ wfΔ ρ ohA a b (hab : [cover hA Δ wfΔ ρ ohA | Γ||- a ≅ b : _]), [wfΔ ||-<l> B[a..] ≅ B'[b..]])
-  forall Δ wfΔ ρ ohA [a b] (hab : [hA | Γ ||- a ≅ b : _]) :
-  [wfΓ ||-<l> B[a ..] ≅ B[b ..]].
+  (hB : forall Δ wfΔ ρ ohA a b (hab : [cover hA Δ wfΔ ρ ohA | Δ ||- a ≅ b : _]),
+    [wfΔ ||-<l> B[a .: ρ >> tRel] ≅ B'[b .: ρ >> tRel]])
+  Δ wfΔ ρ ohA [a b] (hab : [cover hA Δ wfΔ ρ ohA | Δ ||- a ≅ b : _]) :
+  [wfΔ ||-<l> B[a .: ρ >> tRel] ≅ B[b .: ρ >> tRel]].
 Proof.
-  eapply (Split_bind (hB _ _ hab)).
-  intros ??? ohab.
-  eapply (Split_wk_bind_return (hB _ _ (urefl hab)) ρ).
-  intros ??? ohbb.
+  eapply (Split_bind (hB _ _ _ ohA _ _ hab)).
+  intros Ξ wfΞ ρΞ ohab.
+  eapply (Split_wk_bind_return (hB _ _ _ ohA _ _ (urefl hab)) ρΞ).
+  intros Θ wfΘ ρΘ ohbb.
   etransitivity.
   + eapply hB, overtree_PSh, ohab; tea.
   + symmetry; now unshelve eapply hB, ohbb.
 Qed. *)
 
 
-Lemma SkripkeLRurefl `{GenericTypingProperties} {Γ} {wfΓ : [|-Γ]} {l A A' B B'}
+Lemma kripkeLRurefl `{GenericTypingProperties} {Γ} {wfΓ : [|-Γ]} {l A A' B B'}
   {hA : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), [Δ ||-S<l> A⟨ρ⟩ ≅ A'⟨ρ⟩]}
   (hB : forall Δ a b (ρ : Δ ≤ Γ) (wfΔ : [|-Δ])
     (hab : [hA Δ ρ wfΔ | Δ ||- a ≅ b : _]),
@@ -708,7 +708,7 @@ Lemma SkripkeLRurefl `{GenericTypingProperties} {Γ} {wfΓ : [|-Γ]} {l A A' B B
   [Δ a b] (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]) (hab : [hA Δ ρ wfΔ | Δ ||- a ≅ b : _]) :
   [wfΔ ||-<l> B'[a .: ρ >> tRel] ≅ B'[b .: ρ >> tRel]].
 Proof.
-  eapply SkripkeLRlrefl.
+  eapply kripkeLRlrefl.
   2: eapply hab.
   clear Δ a b ρ wfΔ hab.
   intros Δ a b ρ wfΔ hab.

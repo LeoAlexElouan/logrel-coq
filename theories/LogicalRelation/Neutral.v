@@ -140,7 +140,7 @@ Proof.
     + now eapply ty_wk, ty_app_ren.
     + eapply (ty_wk _ wfΞ), ty_conv; clear Ξ wfΞ ρΞ ohab.
       now eapply ty_app_ren.
-      unshelve epose proof (SkripkeLRlrefl (PolyRed.posRed RA) ρ hΔ hab) as hcod.
+      unshelve epose proof (kripkeLRlrefl (PolyRed.posRed RA) ρ hΔ hab) as hcod.
       1: gtyping.
       symmetry.
       now escapeSplit.
@@ -197,7 +197,7 @@ Proof.
     1: now eapply ty_snd, ty_conv.
     assert (wfΓ : [|-Γ]) by gtyping.
     pose (hfst' := hconv_fst ihdom wk_id wfΓ tyn tyn' convnn').
-    unshelve epose proof (kr := SkripkeLRlrefl (PolyRed.posRed RA) wk_id wfΓ hfst'); tea.
+    unshelve epose proof (kr := kripkeLRlrefl (PolyRed.posRed RA) wk_id wfΓ hfst'); tea.
     rewrite 2!wk_fst,<-2!eq_subst_scons in kr; symmetry.
     eapply Split_bind_convty; tea.
     intros Δ ρ hover hΔ.
