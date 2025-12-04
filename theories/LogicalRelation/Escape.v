@@ -125,7 +125,7 @@ Section Escapes.
   Proof. apply escapeTy. Qed.
 
 End Escapes.
-
+(* 
 Ltac escapeSplit :=
   repeat lazymatch goal with
   | [H : [_ ||-< _ > _] |-  _ ] =>
@@ -140,9 +140,9 @@ Ltac escapeSplit :=
      (let Xl := fresh "EscL" H in
       let Xr := fresh "EscR" H in
       let X := fresh "Esc" H in
-      pose proof (escapeSplitTm RA H) as (Xl & Xr & X) );
+      pose proof (escapeSplitTm _ H) as (Xl & Xr & X) );
       block H
-  end; unblock.
+  end; unblock. *)
 
 Ltac escape :=
   repeat lazymatch goal with
@@ -159,5 +159,19 @@ Ltac escape :=
       let Xr := fresh "EscR" H in
       let X := fresh "Esc" H in
       pose proof (escapeTm RA H) as (Xl & Xr & X) );
+      block H
+  | [H : [_ ||-< _ > _] |-  _ ] =>
+    try
+     (let Xl := fresh "EscL" H in
+      let Xr := fresh "EscR" H in
+      let X := fresh "Esc" H in
+      pose proof (escapeSplitTy H) as (Xl & Xr & X) );
+    block H
+  | [H : [_ ||-<_> _ ≅ _  : _ | ?RA ] |- _] =>
+    try
+     (let Xl := fresh "EscL" H in
+      let Xr := fresh "EscR" H in
+      let X := fresh "Esc" H in
+      pose proof (escapeSplitTm _ H) as (Xl & Xr & X) );
       block H
   end; unblock.

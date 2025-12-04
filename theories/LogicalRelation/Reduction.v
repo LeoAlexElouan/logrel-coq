@@ -147,7 +147,7 @@ Lemma redSubstTmEq {Γ} {wfΓ : [|-Γ]} {A A' tl tr ul ur l} (RA : [wfΓ ||-<l> 
 Proof.
   intros.
   assert [Γ |- tr ⤳* ur : A ].
-  1: eapply redtm_conv; tea; escapeSplit; now symmetry.
+  1: eapply redtm_conv; tea; escape; now symmetry.
   eapply redSubstLeftTmEq; tea; symmetry.
   eapply redSubstLeftTmEq; tea; now symmetry.
 Qed.

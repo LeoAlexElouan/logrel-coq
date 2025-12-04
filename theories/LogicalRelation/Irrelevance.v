@@ -125,26 +125,26 @@ Section Irrelevance.
     (eqdom: ParamRedTy.domL ΣA' = ParamRedTy.domL ΣA)
     (eqcod: ParamRedTy.codL ΣA' = ParamRedTy.codL ΣA).
 
-  Lemma irrIsLRPair : forall t, isLRPair ΣA' t <≈> isLRPair ΣA t.
+  Lemma irrIsLRPair : forall t, isLRPair' ΣA' t <≈> isLRPair' ΣA t.
   Proof.
     destruct ΣA, ΣA'; cbn in *; subst.
     intros ? ; split ; intros [|].
     2,4: constructor; tea; cbn in *.
-    1,2: unshelve eapply PairLRPair; tea; cbn in *.
+    1,2: unshelve eapply PairLRPair'; tea; cbn -[Wpack] in *.
     1,2: now unshelve (intros; now eapply ihdom).
-    + intros; cbn in *.
-      specialize (rsnd _ ρ h).
+    + intros; cbn -[Wpack] in *.
+      specialize (rsnd _ ρ wfΔ).
       eapply (dSplit_bind_return rsnd).
-      intros Ξ wfΞ ρΞ oha' orsnd ohA; cbn in *.
+      intros Ξ wfΞ ρΞ orfst orsnd ohA; cbn -[Wpack] in *.
       now unshelve eapply ihcod, rsnd.
     + intros; cbn in *.
-      specialize (rsnd _ ρ h).
+      specialize (rsnd _ ρ wfΔ).
       eapply (dSplit_bind_return rsnd).
-      intros Ξ wfΞ ρΞ oha' orsnd ohA; cbn in *.
+      intros Ξ wfΞ ρΞ oha' orsnd ohA; cbn -[Wpack] in *.
       now unshelve eapply ihcod, rsnd.
   Qed.
 
-  Lemma irrRedSigTm0 : forall t, SigRedTm ΣA' t <≈> SigRedTm ΣA t.
+  Lemma irrRedSigTm0 : forall t, SigRedTm' ΣA' t <≈> SigRedTm' ΣA t.
   Proof.
     intros; split; intros [? red ?%irrIsLRPair]; econstructor; tea.
     all: revert red; cbn; now rewrite eqdom, eqcod.
@@ -152,19 +152,19 @@ Section Irrelevance.
 
   Lemma irrΣ : Sirr (LRSig' ΣA) (LRSig' ΣA').
   Proof.
-    intros ??; split; intros []; unshelve econstructor.
+    intros ??; split; intros Rtu%SigRedTmEq_from; destruct Rtu; eapply SigRedTmEq_to; unshelve econstructor.
     1,2,4,5: now eapply irrRedSigTm0.
-    all: cbn in *; destruct ΣA, ΣA'; cbn in *; subst; tea.
+    all: cbn -[Wpack]  in *; destruct ΣA, ΣA'; cbn -[Wpack] in *; subst; tea.
     1,2: now unshelve (intros; eapply ihdom; eauto).
-    + intros; cbn in *.
-      specialize (eqSnd _ ρ h).
+    + intros; cbn -[Wpack] in *.
+      specialize (eqSnd _ ρ wfΔ).
       eapply (dSplit_bind_return eqSnd).
-      intros Ξ wfΞ ρΞ oha' oeqSnd ohA; cbn in *.
+      intros Ξ wfΞ ρΞ oha' oeqSnd ohA; cbn -[Wpack] in *.
       now unshelve eapply ihcod, eqSnd.
-    + intros; cbn in *.
-      specialize (eqSnd _ ρ h).
+    + intros; cbn -[Wpack] in *.
+      specialize (eqSnd _ ρ wfΔ).
       eapply (dSplit_bind_return eqSnd).
-      intros Ξ wfΞ ρΞ oha' oeqSnd ohA; cbn in *.
+      intros Ξ wfΞ ρΞ oha' oeqSnd ohA; cbn -[Wpack] in *.
       now unshelve eapply ihcod, eqSnd.
   Qed.
 

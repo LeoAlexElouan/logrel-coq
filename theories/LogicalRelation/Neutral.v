@@ -91,6 +91,39 @@ Proof.
   - constructor; now eapply convneu_conv.
 Defined.
 
+Ltac escape :=
+  repeat lazymatch goal with
+  | [H : [_ ||-S< _ > _] |-  _ ] =>
+    try
+     (let Xl := fresh "EscL" H in
+      let Xr := fresh "EscR" H in
+      let X := fresh "Esc" H in
+      pose proof (escapeTy H) as (Xl & Xr & X) );
+    block H
+  | [H : [_ ||-S<_> _ ≅ _  : _ | ?RA ] |- _] =>
+    idtac H;
+    
+     (let Xl := fresh "EscL" H in
+      let Xr := fresh "EscR" H in
+      let X := fresh "Esc" H in
+      pose proof (escapeTm _ H) as (Xl & Xr & X) );
+      block H
+  | [H : [_ ||-< _ > _] |-  _ ] =>
+    try
+     (let Xl := fresh "EscL" H in
+      let Xr := fresh "EscR" H in
+      let X := fresh "Esc" H in
+      pose proof (escapeSplitTy H) as (Xl & Xr & X) );
+    block H
+  | [H : [_ ||-<_> _ ≅ _  : _ | ?RA ] |- _] =>
+    try
+     (let Xl := fresh "EscL" H in
+      let Xr := fresh "EscR" H in
+      let X := fresh "Esc" H in
+      pose proof (escapeSplitTm _ H) as (Xl & Xr & X) );
+      block H
+  end; unblock.
+
 Lemma reflect_Pi
   (ihdom : forall (Δ : context) (ρ : Δ ≤ Γ) (h : [ |-[ ta ] Δ]),
         reflect (PolyRed.shpRed RA ρ h))
@@ -134,8 +167,8 @@ Proof.
       Unshelve. gtyping.
   * intros Δ a b ρ hΔ hab.
     eapply Split_return.
-    intros Ξ wfΞ ρΞ ohab; cbn in ohab.
-    eapply escapeTm in hab as hab'; destruct hab' as (ha&hb&hab').
+    intros Ξ wfΞ ρΞ ohab; cbn in ohab, hab.
+    escape.
     apply ihcod.
     + now eapply ty_wk, ty_app_ren.
     + eapply (ty_wk _ wfΞ), ty_conv; clear Ξ wfΞ ρΞ ohab.
@@ -143,7 +176,7 @@ Proof.
       unshelve epose proof (kripkeLRlrefl (PolyRed.posRed RA) ρ hΔ hab) as hcod.
       1: gtyping.
       symmetry.
-      now escapeSplit.
+      now escape.
     + eapply convneu_wk; tea.
       eapply convneu_app_ren.
       1,2: eassumption.
@@ -347,7 +380,7 @@ Lemma var0 {l Γ} {wfΓ : [|-Γ]} {A} {wfA : [Γ |- A]} {A' B'} (RA : [ wfc_cons
   [Γ ,, A ||-<l> tRel 0 : A' | RA].
 Proof.
   intros <-; apply var0conv; tea.
-  eapply lrefl; now escapeSplit.
+  eapply lrefl; now escape.
 Qed.
 
 End Neutral.

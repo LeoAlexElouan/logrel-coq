@@ -19,7 +19,7 @@ Section PolyValidity.
     escape.
     pose proof (instKripkeFam wfΓ EscLX PA.(PolyRed.posRed)).
     pose proof (instKripkeFamConv wfΓ EscRX PA.(PolyRed.posRed)).
-    escapeSplit.
+    escape.
     exists A A' B B'; tea.
     1,2: econstructor; tea; eapply redtywf_refl; eauto.
     eauto.

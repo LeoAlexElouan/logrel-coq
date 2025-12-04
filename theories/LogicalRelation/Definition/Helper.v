@@ -190,16 +190,15 @@ Section EvenMoreDefs.
     : [ LogRel@{i j k l} l | Γ ||- A ≅ B ] :=
     LRbuild (LRPi (LogRelRec l) _ (ParamRedTy.toAd ΠA)).
 
-  Definition LRSig' @{i j k l} {l Γ A B} (ΠA : SigRedTy@{i j k l} Γ l A B)
+  Definition LRSig' @{i j k l} {l Γ A B} (ΣA : SigRedTy@{i j k l} Γ l A B)
     : [ LogRel@{i j k l} l | Γ ||- A ≅ B] :=
-    LRbuild (LRSig (LogRelRec l) _ (ParamRedTy.toAd ΠA)).
+    LRbuild (LRSig (LogRelRec l) _ (ParamRedTy.toAd ΣA)).
 
 End EvenMoreDefs.
 
 Notation "[ Γ ||-Π< l > A ≅ B ]" := (PiRedTy Γ l A B) (at level 0, Γ, l, A, B at level 50).
 Notation "[ Γ ||-Σ< l > A ≅ B ]" := (SigRedTy Γ l A B) (at level 0, Γ, l, A, B at level 50).
 Notation "[ Γ ||-Π t ≅ u : A | ΠA ]" := (PiRedTmEq (Γ:=Γ) (A:=A) t u (ParamRedTy.toPack ΠA)).
-Notation "[ Γ ||-Σ t ≅ u : A | ΣA ]" := (SigRedTmEq (Γ:=Γ) (A:=A) t u (ParamRedTy.toPack ΣA)).
 
 Module PiRedTy.
   Include ParamRedTyPack.
@@ -229,6 +228,8 @@ Instance PiRedTmWhRedRel `{GenericTypingProperties} {Γ l A B} (ΠA : [Γ ||-Π<
      whredtmR := fun t u Rtu => PiRedTmEq.whredR Rtu ; |}.
 Next Obligation. now destruct h. Qed.
 
+
+
 Module SigRedTy.
   Include ParamRedTyPack.
 
@@ -241,18 +242,130 @@ Module SigRedTy.
   End SigRedTy.
 End SigRedTy.
 
+
+Inductive isLRPair' `{GenericTypingProperties}
+  {l Γ A B} (ΣA : [ Γ ||-Σ< l > A ≅ B ]) : term -> Type :=
+| PairLRPair' : forall (A' B' a b : term)
+      (wtydom : [Γ |- A'])
+      (convtydom : [Γ |- SigRedTy.domL ΣA ≅ A'])
+      (wtycod : [Γ |- B'[a..]])
+      (convtycod : [Γ |- (SigRedTy.codL ΣA)[a..] ≅ B'[a..]])
+  (rfst : forall {Δ} (ρ : Δ ≤ Γ) (wfΔ : [ |- Δ ]),
+      [ Δ ||-S< l > a⟨ρ⟩ ≅ a⟨ρ⟩ : (SigRedTy.domL ΣA)⟨ρ⟩ | ΣA.(PolyRed.shpRed) ρ wfΔ])
+  (rsnd : forall {Δ} (ρ : Δ ≤ Γ) (wfΔ : [ |- Δ ]),
+      [ wfΔ ||-< l > b⟨ρ⟩ ≅ b⟨ρ⟩ : (SigRedTy.codL ΣA)[a⟨ρ⟩ .: (ρ >> tRel)] | ΣA.(PolyRed.posRed) ρ wfΔ (rfst ρ wfΔ)]),
+
+  isLRPair' ΣA (tPair A' B' a b)
+
+| NeLRPair' : forall p : term, [Γ |- p ~ p : SigRedTy.outTy ΣA] -> isLRPair' ΣA p.
+
+
+Module SigRedTmEq'.
+
+  Record SigRedTm' `{GenericTypingProperties} {Γ l A B}
+    (ΣA :  [ Γ ||-Σ< l > A ≅ B ]) (t : term) : Type := Build_SigRedTm'
+      { nf : term;
+        red : [Γ |-[ ta ] t :⤳*: nf : SigRedTy.outTy ΣA];
+        ispair : isLRPair' ΣA nf }.
+  Arguments nf { _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _}.
+
+  Record SigRedTmEq' `{GenericTypingProperties} {Γ l A B}
+    (ΣA :  [ Γ ||-Σ< l > A ≅ B ]) (t u : term) : Type := Build_SigRedTmEq'
+    { redL : SigRedTm' ΣA t;
+      redR : SigRedTm' ΣA u;
+      eq : [Γ |- redL.(nf) ≅ redR.(nf) : SigRedTy.outTy ΣA];
+      eqFst : forall (Δ : context) (ρ : Δ ≤ Γ) (wfΔ : [ |- Δ]),
+        [ _ ||-S< l > tFst redL.(nf)⟨ρ⟩ ≅ tFst redR.(nf)⟨ρ⟩ : _ | PolyRed.shpRed ΣA ρ wfΔ ];
+      eqSnd : forall (Δ : context) (ρ : Δ ≤ Γ) (wfΔ : [ |- Δ]),
+        [ _ ||-< l > tSnd redL.(nf)⟨ρ⟩ ≅ tSnd redR.(nf)⟨ρ⟩ : _ | PolyRed.posRed ΣA ρ wfΔ (eqFst Δ ρ wfΔ)]
+    }.
+
+  Definition whred `{GenericTypingProperties} {Γ l A B} {ΣA : [ Γ ||-Σ< l > A ≅ B ]} {t} :
+    SigRedTm' ΣA t -> [Γ |- t ↘  SigRedTy.outTy ΣA].
+  Proof.
+    intros [?? ispair]; econstructor; tea.
+    destruct ispair; constructor; now eapply convneu_whne.
+  Defined.
+
+  Definition whredL `{GenericTypingProperties} {Γ l A B} {ΣA : [ Γ ||-Σ< l > A ≅ B ]} {t u} :
+    SigRedTmEq' ΣA t u -> [Γ |- t ↘  SigRedTy.outTy ΣA ].
+  Proof. intros []; now eapply whred. Defined.
+
+  Definition whredR `{GenericTypingProperties} {Γ l A B} {ΣA : [ Γ ||-Σ< l > A ≅ B ]} {t u} :
+    SigRedTmEq' ΣA t u -> [Γ |- u ↘  SigRedTy.outTy ΣA ].
+  Proof. intros []; now eapply whred. Defined.
+
+End SigRedTmEq'.
+
+Export SigRedTmEq'(SigRedTm', Build_SigRedTm', SigRedTmEq', Build_SigRedTmEq').
+
+Lemma isLRPair_to `{GenericTypingProperties} {Γ l A B p} (ΣA : [ Γ ||-Σ< l > A ≅ B ]) : isLRPair' ΣA p -> isLRPair ΣA p.
+Proof.
+  intros.
+  induction X.
+  2: now econstructor.
+  now unshelve eapply PairLRPair.
+Defined.
+Lemma isLRPair_from `{GenericTypingProperties} {Γ l A B p} (ΣA : [ Γ ||-Σ< l > A ≅ B ]) : isLRPair ΣA p -> isLRPair' ΣA p.
+Proof.
+  intros.
+  induction X.
+  2: now econstructor.
+  now unshelve eapply PairLRPair'.
+Defined.
+
+Definition SigRedTm_to `{GenericTypingProperties} {Γ l A B}
+  (ΣA :  [ Γ ||-Σ< l > A ≅ B ]) (t : term) :
+  SigRedTm' ΣA t -> SigRedTm ΣA t.
+Proof.
+  intros [].
+  eapply isLRPair_to in ispair.
+  unshelve econstructor; tea.
+Defined.
+
+Definition SigRedTm_from `{GenericTypingProperties} {Γ l A B}
+  (ΣA :  [ Γ ||-Σ< l > A ≅ B ]) (t : term) :
+  SigRedTm ΣA t -> SigRedTm' ΣA t.
+Proof.
+  intros [].
+  eapply isLRPair_from in ispair.
+  unshelve econstructor; tea.
+Defined.
+
+Definition SigRedTmEq_to `{GenericTypingProperties} {Γ l A B}
+  (ΣA :  [ Γ ||-Σ< l > A ≅ B ]) (t u : term) :
+  SigRedTmEq' ΣA t u -> SigRedTmEq ΣA t u.
+Proof.
+  intros [].
+  unshelve econstructor; tea.
+  1,2: eapply SigRedTm_to; tea.
+  all: tea.
+Defined.
+
+Definition SigRedTmEq_from `{GenericTypingProperties} {Γ l A B}
+  (ΣA :  [ Γ ||-Σ< l > A ≅ B ]) (t u : term) :
+  SigRedTmEq ΣA t u -> SigRedTmEq' ΣA t u.
+Proof.
+  intros [].
+  unshelve econstructor; tea.
+  1,2: eapply SigRedTm_from; tea.
+  all: tea.
+Defined.
+
+Notation "[ Γ ||-Σ t ≅ u : A | ΣA ]" := (SigRedTmEq' (Γ:=Γ) (A:=A) ΣA t u).
+
 #[program]
 Instance SigRedTyWhRed `{GenericTypingProperties} {Γ l} : WhRedTyRel Γ (SigRedTy Γ l) :=
   {| whredtyL := fun A B RAB => SigRedTy.whredL RAB ;
      whredtyR := fun A B RAB => SigRedTy.whredR RAB ; |}.
 Next Obligation. now destruct h. Qed.
 
-Instance SigRedTmWhRed `{GenericTypingProperties} {Γ l A B} (ΠA : [Γ ||-Σ<l> A ≅ B])
-  : WhRedTm Γ (outTyL ΠA) (SigRedTm ΠA) := fun t Rt => SigRedTmEq.whred Rt.
+Instance SigRedTmWhRed `{GenericTypingProperties} {Γ l A B} (ΣA : [Γ ||-Σ<l> A ≅ B])
+  : WhRedTm Γ (outTyL ΣA) (SigRedTm ΣA) := fun t Rt => SigRedTmEq.whred Rt.
 
 #[program]
-Instance SigRedTmWhRedRel `{GenericTypingProperties} {Γ l A B} (ΠA : [Γ ||-Σ<l> A ≅ B])
-  : WhRedTmRel Γ (outTyL ΠA) (SigRedTmEq ΠA) :=
+Instance SigRedTmWhRedRel `{GenericTypingProperties} {Γ l A B} (ΣA : [Γ ||-Σ<l> A ≅ B])
+  : WhRedTmRel Γ (outTyL ΣA) (SigRedTmEq ΣA) :=
   {| whredtmL := fun t u Rtu => SigRedTmEq.whredL Rtu ;
      whredtmR := fun t u Rtu => SigRedTmEq.whredR Rtu ; |}.
 Next Obligation. now destruct h. Qed.
