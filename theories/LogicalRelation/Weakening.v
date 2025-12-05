@@ -342,13 +342,21 @@ Proof.
   now eapply SwkLR.
 Qed.
 
-Lemma Wpack_return `{GenericTypingProperties}
-  {Γ} {wfΓ : [|-Γ]} {l A B t u} {RAB : [Γ ||-S< l > A ≅ B]}
-  (Rtu : [Γ ||-S< l > t ≅ u : A | RAB] ) : [wfΓ ||-< l > t ≅ u : A | WAd_return (wfΓ := wfΓ) RAB].
+Lemma Wpack_return' `{GenericTypingProperties}
+  {Γ} {wfΓ : [|-Γ]} {l A B t u} {RAB : [Γ ||-S< l > A ≅ B]}  {RAB' : [wfΓ ||-< l > A ≅ B]}
+  (Rtu : [Γ ||-S< l > t ≅ u : A | RAB] ) : [wfΓ ||-< l > t ≅ u : A |  RAB'].
 Proof.
   eapply Split_return.
   intros ????.
   now unshelve eapply SirrLR, SwkLR, Rtu.
+Qed.
+
+Lemma Wpack_return `{GenericTypingProperties}
+  {Γ} {wfΓ : [|-Γ]} {l A B t u} {RAB : [Γ ||-S< l > A ≅ B]}
+  (Rtu : [Γ ||-S< l > t ≅ u : A | RAB] ) : [wfΓ ||-< l > t ≅ u : A | WAd_return (wfΓ := wfΓ) RAB].
+Proof.
+  unshelve eapply irrLR, Wpack_return', Rtu.
+  now eapply WAd_return.
 Qed.
 
 

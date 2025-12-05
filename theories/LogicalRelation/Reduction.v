@@ -139,6 +139,19 @@ Proof.
   now eapply huv.
 Qed.
 
+Lemma SredSubstTmEq {Γ A A' tl tr ul ur l} (RA : [Γ ||-S<l> A ≅ A']) :
+  [Γ ||-S<l> ul ≅ ur : A | RA] ->
+  [Γ |- tl ⤳* ul : A ] ->
+  [Γ |- tr ⤳* ur : A' ] ->
+  [Γ ||-S<l> tl ≅ tr : A | RA].
+Proof.
+  intros.
+  assert [Γ |- tr ⤳* ur : A ].
+  1: eapply redtm_conv; tea; escape; now symmetry.
+  eapply SredSubstLeftTmEq; tea; symmetry.
+  eapply SredSubstLeftTmEq; tea; now symmetry.
+Qed.
+
 Lemma redSubstTmEq {Γ} {wfΓ : [|-Γ]} {A A' tl tr ul ur l} (RA : [wfΓ ||-<l> A ≅ A']) :
   [wfΓ ||-<l> ul ≅ ur : A | RA] ->
   [Γ |- tl ⤳* ul : A ] ->
@@ -150,6 +163,18 @@ Proof.
   1: eapply redtm_conv; tea; escape; now symmetry.
   eapply redSubstLeftTmEq; tea; symmetry.
   eapply redSubstLeftTmEq; tea; now symmetry.
+Qed.
+
+Lemma SredSubstTmEq' {Γ A A' tl tr ul ur l} (RA : [Γ ||-S<l> A ≅ A']) :
+  [Γ ||-S<l> ul ≅ ur : A | RA] ->
+  [Γ |- tl ⤳* ul : A ] ->
+  [Γ |- tr ⤳* ur : A' ] ->
+  [Γ ||-S<l> tl ≅ tr : A | RA] × [Γ ||-S<l> tl ≅ ul : _ | lrefl RA] × [Γ ||-S<l> tr ≅ ur : _ | urefl RA].
+Proof.
+  intros; prod_splitter.
+  + now eapply SredSubstTmEq.
+  + eapply SredSubstLeftTmEq; tea. now eapply lrefl, SirrLR.
+  + eapply SredSubstLeftTmEq; tea; now eapply urefl, SirrLRConv.
 Qed.
 
 Lemma redSubstTmEq' {Γ} {wfΓ : [|-Γ]} {A A' tl tr ul ur l} (RA : [wfΓ ||-<l> A ≅ A']) :

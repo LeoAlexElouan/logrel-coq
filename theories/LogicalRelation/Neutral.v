@@ -91,38 +91,6 @@ Proof.
   - constructor; now eapply convneu_conv.
 Defined.
 
-Ltac escape :=
-  repeat lazymatch goal with
-  | [H : [_ ||-S< _ > _] |-  _ ] =>
-    try
-     (let Xl := fresh "EscL" H in
-      let Xr := fresh "EscR" H in
-      let X := fresh "Esc" H in
-      pose proof (escapeTy H) as (Xl & Xr & X) );
-    block H
-  | [H : [_ ||-S<_> _ ≅ _  : _ | ?RA ] |- _] =>
-    idtac H;
-    
-     (let Xl := fresh "EscL" H in
-      let Xr := fresh "EscR" H in
-      let X := fresh "Esc" H in
-      pose proof (escapeTm _ H) as (Xl & Xr & X) );
-      block H
-  | [H : [_ ||-< _ > _] |-  _ ] =>
-    try
-     (let Xl := fresh "EscL" H in
-      let Xr := fresh "EscR" H in
-      let X := fresh "Esc" H in
-      pose proof (escapeSplitTy H) as (Xl & Xr & X) );
-    block H
-  | [H : [_ ||-<_> _ ≅ _  : _ | ?RA ] |- _] =>
-    try
-     (let Xl := fresh "EscL" H in
-      let Xr := fresh "EscR" H in
-      let X := fresh "Esc" H in
-      pose proof (escapeSplitTm _ H) as (Xl & Xr & X) );
-      block H
-  end; unblock.
 
 Lemma reflect_Pi
   (ihdom : forall (Δ : context) (ρ : Δ ≤ Γ) (h : [ |-[ ta ] Δ]),

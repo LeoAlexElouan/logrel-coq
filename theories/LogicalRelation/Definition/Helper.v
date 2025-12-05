@@ -243,7 +243,7 @@ Module SigRedTy.
 End SigRedTy.
 
 
-Inductive isLRPair' `{GenericTypingProperties}
+(* Inductive isLRPair' `{GenericTypingProperties}
   {l Γ A B} (ΣA : [ Γ ||-Σ< l > A ≅ B ]) : term -> Type :=
 | PairLRPair' : forall (A' B' a b : term)
       (wtydom : [Γ |- A'])
@@ -351,8 +351,8 @@ Proof.
   1,2: eapply SigRedTm_from; tea.
   all: tea.
 Defined.
-
-Notation "[ Γ ||-Σ t ≅ u : A | ΣA ]" := (SigRedTmEq' (Γ:=Γ) (A:=A) ΣA t u).
+ *)
+Notation "[ Γ ||-Σ t ≅ u : A | ΣA ]" := (SigRedTmEq (Γ:=Γ) (A:=A) ΣA t u).
 
 #[program]
 Instance SigRedTyWhRed `{GenericTypingProperties} {Γ l} : WhRedTyRel Γ (SigRedTy Γ l) :=

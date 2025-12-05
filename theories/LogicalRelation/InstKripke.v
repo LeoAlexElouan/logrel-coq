@@ -1,6 +1,6 @@
 (** * LogRel.LogicalRelation.InstKripke: combinators to instantiate Kripke-style quantifications *)
 From Stdlib Require Import CRelationClasses.
-From LogRel Require Import Utils Syntax.All GenericTyping LogicalRelation.
+From LogRel Require Import Utils Syntax.All GenericTyping LogicalRelation Monad.
 From LogRel.LogicalRelation Require Import Induction Escape Irrelevance Symmetry Transitivity Weakening Neutral.
 
 Set Universe Polymorphism.
@@ -111,6 +111,23 @@ Lemma instKripkeSubst {Γ A A' B B' l} (wfΓ : [|-Γ])
 Proof.
   erewrite 2!eq_subst_scons; unshelve eapply hB; tea.
   eapply SirrLREq; [eapply eq_sym, wk_id_ren_on|]; rewrite 2! wk_id_ren_on; eapply ht.
+Qed.
+
+Lemma instKripkeSubst' {Γ A A' B B' l} (wfΓ : [|-Γ])
+  {hA : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), [Δ ||-S<l> A⟨ρ⟩ ≅ A'⟨ρ⟩]}
+  (hB : forall Δ a b (ρ : Δ ≤ Γ) (wfΔ : [|-Δ])
+    (hab : [hA Δ ρ wfΔ | Δ ||- a ≅ b : _]),
+    [wfΔ ||-<l> B[a .: ρ >> tRel] ≅ B'[b .: ρ >> tRel]])
+  (RA : [wfΓ ||-<l> A ≅ A'])
+  [t t']
+  (ht : [_ ||-<l> t ≅ t' : _ | RA])
+  : [ wfΓ ||-<l> B[t..] ≅ B'[t'..]].
+Proof.
+  eapply (dSplit_bind ht).
+  intros ??? oRA oht.
+  eapply WAdrefold.
+  rewrite 2!subst_ren_subst_mixed.
+  now unshelve eapply hB, SirrLR, ht.
 Qed.
 
 Lemma instKripkeSubstTm {Γ A A' B B' u u' l} (wfΓ : [|-Γ])
