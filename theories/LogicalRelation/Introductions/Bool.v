@@ -17,7 +17,7 @@ Proof.
   constructor; eapply redtywf_refl; gen_typing.
 Qed.
 
-Definition boolRed {Γ l} (wfΓ : [|- Γ]) : [Γ ||-<l> tBool] :=
+Definition boolRed {Γ l} (wfΓ : [|- Γ]) : [Γ ||-S<l> tBool] :=
   LRBool_ l (boolRedTy wfΓ).
 
 
@@ -61,33 +61,33 @@ Section BoolElimRedEq.
     (WtP : [Γ ,, tBool |- P])
     (WtQ : [Γ ,, tBool |- Q])
     (eqPQ : [Γ,, tBool |- P ≅ Q])
-    (RPQext : forall n n' (Rn : [Γ ||-<l> n ≅ n' : _ | RN]),
-      [Γ ||-<l> P[n..] ≅ Q[n'..]])
+    (RPQext : forall n n' (Rn : [Γ ||-S<l> n ≅ n' : _ | RN]),
+      [Γ ||-S<l> P[n..] ≅ Q[n'..]])
     (RPQt := RPQext _ _ trueRed)
     (RPQf := RPQext _ _ falseRed)
-    (Rht : [Γ ||-<l> ht ≅ ht' : _ | RPQt])
-    (Rhf : [Γ ||-<l> hf ≅ hf' : _ | RPQf]).
+    (Rht : [Γ ||-S<l> ht ≅ ht' : _ | RPQt])
+    (Rhf : [Γ ||-S<l> hf ≅ hf' : _ | RPQf]).
 
   #[local]
-  Lemma RPext : forall n n' (Rn : [Γ ||-<l> n ≅ n' : _ | RN]),
-      [Γ ||-<l> P[n..] ≅ P[n'..]].
+  Lemma RPext : forall n n' (Rn : [Γ ||-S<l> n ≅ n' : _ | RN]),
+      [Γ ||-S<l> P[n..] ≅ P[n'..]].
   Proof.
     intros; etransitivity; [|symmetry];  eapply RPQext; tea; now eapply urefl.
   Qed.
 
   Lemma boolElimRedEqAux :
-    forall n n' (Rnn' : BoolPropEq Γ n n') (RP : [Γ ||-<l> P[n..] ≅ Q[n'..]]),
-      [Γ ||-<l> tBoolElim P ht hf n ≅ tBoolElim Q ht' hf' n' : _ | RP ].
+    forall n n' (Rnn' : BoolPropEq Γ n n') (RP : [Γ ||-S<l> P[n..] ≅ Q[n'..]]),
+      [Γ ||-S<l> tBoolElim P ht hf n ≅ tBoolElim Q ht' hf' n' : _ | RP ].
   Proof.
     intros ???.
     destruct Rnn'.
-    - intros; eapply redSubstTmEq.
-      + eapply irrLR, Rht.
+    - intros; eapply SredSubstTmEq.
+      + eapply SirrLR, Rht.
       + escape; eapply redtm_boolElimTrue; tea.
       + escape; eapply redtm_boolElimTrue; tea.
         1,2: now eapply ty_conv.
-    - intros; eapply redSubstTmEq.
-      + eapply irrLR, Rhf.
+    - intros; eapply SredSubstTmEq.
+      + eapply SirrLR, Rhf.
       + escape; eapply redtm_boolElimFalse; tea.
       + escape; eapply redtm_boolElimFalse; tea.
         1,2: now eapply ty_conv.
@@ -102,15 +102,15 @@ Section BoolElimRedEq.
   Qed.
 
   Lemma boolElimRedEq :
-    (forall n n' (Rnn' : [Γ ||-<l> n ≅ n' : _ | RN]),
-      [Γ ||-<l> tBoolElim P ht hf n ≅ tBoolElim Q ht' hf' n' : _  | RPQext _ _ Rnn' ]).
+    (forall n n' (Rnn' : [Γ ||-S<l> n ≅ n' : _ | RN]),
+      [Γ ||-S<l> tBoolElim P ht hf n ≅ tBoolElim Q ht' hf' n' : _  | RPQext _ _ Rnn' ]).
   Proof.
     intros ???.
     pose proof (redTmFwd' Rnn') as [].
-    depelim Rnn'; eapply redSubstTmEq; cycle 1.
+    depelim Rnn'; eapply SredSubstTmEq; cycle 1.
     + escape; eapply redtm_boolelim; tea; gen_typing.
     + escape; eapply redtm_boolelim; tea; gen_typing.
-    + unshelve eapply irrLRConv, boolElimRedEqAux, prop;
+    + unshelve eapply SirrLRConv, boolElimRedEqAux, prop;
         first [eapply RPQext| eapply RPext]; tea; now symmetry.
   Qed.
 

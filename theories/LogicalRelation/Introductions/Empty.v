@@ -13,7 +13,7 @@ Context `{GenericTypingProperties}.
 Lemma emptyRedTy {Γ} : [|- Γ] -> [Γ ||-Empty tEmpty ≅ tEmpty].
 Proof. intros; constructor; eapply redtywf_refl; gen_typing. Defined.
 
-Lemma emptyRed {Γ l} : [|- Γ] -> [Γ ||-<l> tEmpty].
+Lemma emptyRed {Γ l} : [|- Γ] -> [Γ ||-S<l> tEmpty].
 Proof. intros; now apply LREmpty_, emptyRedTy. Defined.
 
 Lemma emptyURedTm {Δ l} (wfΔ : [|-Δ]) : URedTm l Δ tEmpty.
@@ -37,11 +37,11 @@ Section EmptyElimRedEq.
     (WtP : [Γ,, tEmpty |- P])
     (WtQ : [Γ,, tEmpty |- Q])
     (eqPQ : [Γ,, tEmpty |- P ≅ Q])
-    (RPQext : forall n n', [Γ ||-<l> n ≅ n' : _ | RN] -> [Γ ||-<l> P[n..] ≅ Q[n'..]]).
+    (RPQext : forall n n', [Γ ||-S<l> n ≅ n' : _ | RN] -> [Γ ||-S<l> P[n..] ≅ Q[n'..]]).
 
   #[local]
   Lemma RPext : forall n n' (Rn : [Γ ||-<l> n ≅ n' : _ | RN]),
-      [Γ ||-<l> P[n..] ≅ P[n'..] ].
+      [Γ ||-S<l> P[n..] ≅ P[n'..] ].
   Proof.
     intros; etransitivity; [|symmetry];  eapply RPQext; tea; now eapply urefl.
   Qed.
@@ -50,10 +50,10 @@ Section EmptyElimRedEq.
     [Γ ||-<l> tEmptyElim P n ≅ tEmptyElim Q n' : _ | RPQext _ _ Rnn' ].
   Proof.
     pose proof (redTmFwd' Rnn') as [].
-    depelim Rnn' ; eapply redSubstTmEq; cycle 1.
+    depelim Rnn' ; eapply SredSubstTmEq; cycle 1.
     + eapply redtm_emptyelim; tea; gen_typing.
     + eapply redtm_emptyelim; tea; gen_typing.
-    + destruct eq; eapply irrLRConv.
+    + destruct eq; eapply SirrLRConv.
       (* gtyping/gen_typing not working well here... *)
       2: eapply neNfTermEq; constructor; [now eapply ty_emptyElim |..].
       - eapply RPext; now symmetry.
