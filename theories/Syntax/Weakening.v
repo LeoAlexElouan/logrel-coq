@@ -436,31 +436,31 @@ Proof.
 Qed.
 
 Lemma wk_prod {A B Γ Δ} (ρ : Δ ≤ Γ) : tProd A⟨ρ⟩ B⟨wk_up A ρ⟩ = (tProd A B)⟨ρ⟩.
-Proof. now bsimpl. Qed.
+Proof. reflexivity. Qed.
 
 Lemma wk_lam {A t Γ Δ} (ρ : Δ ≤ Γ) : tLambda A⟨ρ⟩ t⟨wk_up A ρ⟩ = (tLambda A t)⟨ρ⟩.
-Proof. now bsimpl. Qed.
+Proof. reflexivity. Qed.
 
 Lemma wk_sig {A B Γ Δ} (ρ : Δ ≤ Γ) : tSig A⟨ρ⟩ B⟨wk_up A ρ⟩ = (tSig A B)⟨ρ⟩.
-Proof. now bsimpl. Qed.
+Proof. reflexivity. Qed.
 
 Lemma wk_pair {A B a b Γ Δ} (ρ : Δ ≤ Γ) : tPair A⟨ρ⟩ B⟨wk_up A ρ⟩ a⟨ρ⟩ b⟨ρ⟩ = (tPair A B a b)⟨ρ⟩.
-Proof. now bsimpl. Qed.
+Proof. reflexivity. Qed.
 
 Lemma wk_fst {p Γ Δ} (ρ : Δ ≤ Γ) : tFst p⟨ρ⟩ = (tFst p)⟨ρ⟩.
-Proof. now cbn. Qed.
+Proof. reflexivity. Qed.
 
 Lemma wk_snd {p Γ Δ} (ρ : Δ ≤ Γ) : tSnd p⟨ρ⟩ = (tSnd p)⟨ρ⟩.
-Proof. now cbn. Qed.
+Proof. reflexivity. Qed.
 
 Lemma wk_comp {Γ Δ A f g} (ρ : Δ ≤ Γ) : (comp A f g)⟨ρ⟩ = comp A⟨ρ⟩ f⟨ρ⟩ g⟨ρ⟩.
 Proof. now bsimpl. Qed.
 
 Lemma wk_Id {A x y Γ Δ} (ρ : Δ ≤ Γ) : tId A⟨ρ⟩ x⟨ρ⟩ y⟨ρ⟩ = (tId A x y)⟨ρ⟩.
-Proof. now cbn. Qed.
+Proof. reflexivity. Qed.
 
 Lemma wk_refl {A x Γ Δ} (ρ : Δ ≤ Γ) : tRefl A⟨ρ⟩ x⟨ρ⟩ = (tRefl A x)⟨ρ⟩.
-Proof. now cbn. Qed.
+Proof. reflexivity. Qed.
 
 
 Lemma wk_step_wk1 {A t Γ Δ} (ρ : Δ ≤ Γ) :  t⟨ρ⟩⟨@wk1 Δ A⟩ = t⟨wk_step A ρ⟩.
@@ -472,7 +472,7 @@ Proof. now bsimpl. Qed.
 
 Lemma wk_idElim {A x P hr y e Δ Γ} (ρ : Δ ≤ Γ) :
   tIdElim A⟨ρ⟩ x⟨ρ⟩ P⟨wk_up (tId A⟨@wk1 Γ A⟩ x⟨@wk1 Γ A⟩ (tRel 0)) (wk_up A ρ)⟩ hr⟨ρ⟩ y⟨ρ⟩ e⟨ρ⟩ = (tIdElim A x P hr y e)⟨ρ⟩.
-Proof.  now cbn. Qed.
+Proof. reflexivity. Qed.
 
 Lemma wk_to_ren_inj : forall Γ Δ (ρ1 ρ2 : Γ ≤ Δ), wk_to_ren ρ1 =1 wk_to_ren ρ2 -> ρ1 = ρ2.
 Proof.
@@ -582,3 +582,8 @@ Definition Fwk_Fstep {L L':Fcontext} (new : newnat L') b :  L' ≤ε L ->  (Fcon
 
 Definition wk_Fstep {Γ Δ} new b (ρ : Γ ≤ Δ) : (Γ,,new ↦ b) ≤ Δ :=
   Build_wk_well_wk (Γ,,new ↦ b) Δ ρ ρ (Fwk_Fstep _ _ ρ).
+
+
+
+
+

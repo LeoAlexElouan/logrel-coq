@@ -23,7 +23,7 @@ Ltac substitution := eauto with substitution.
   forall
     (Γ Γ' : context)
     (* (validSubst : forall (Δ : context) (σ : nat -> term) (wfΔ : [|- Δ]), Type@{i}) *)
-    (eqSubst : forall (Δ : context) (wfΔ : [|- Δ ]) (ρF : Fweakening Δ Γ) (ρF' : Fweakening Δ Γ') (σ σ' : nat -> term) , Type@{i})
+    (eqSubst : forall (Δ : context) (wfΔ : [|- Δ ]) (ρF : Γ ≤ε Δ) (ρF' : Γ' ≤ε Δ ) (σ σ' : nat -> term) , Type@{i})
     , Type@{j}.
 
 (* A VPack contains the data corresponding to the codomain of VRel seen as a functional relation *)
@@ -33,7 +33,7 @@ Module VPack.
   Record VPack@{i} `{ta : tag} `{!WfContext ta} {Γ Γ' : context} :=
   {
     (* validSubst : forall (Δ : context) (σ : nat -> term) (wfΔ : [|- Δ]), Type@{i} ; *)
-    eqSubst : forall (Δ : context) (wfΔ : [|- Δ ]) (ρF : Fweakening Δ Γ) (ρF' : Fweakening Δ Γ') (σ σ' : nat -> term) , Type@{i} ;
+    eqSubst : forall (Δ : context) (wfΔ : [|- Δ ]) (ρF : Γ ≤ε Δ) (ρF' : Γ' ≤ε Δ ) (σ σ' : nat -> term) , Type@{i} ;
   }.
 
   Arguments VPack : clear implicits.
@@ -86,7 +86,7 @@ Record typeValidity@{u i j k l} `{ta : tag} `{!WfContext ta}
   {Γ Γ' : context} {VΓ : VPack@{u} Γ Γ'}
   {l : TypeLevel} {A A' : term} :=
   {
-    validTyExt : forall {Δ : context}(wfΔ : [|- Δ ]) {ρF : Fweakening Δ Γ} {ρF' : Fweakening Δ Γ'}
+    validTyExt : forall {Δ : context} (wfΔ : [|- Δ ]) {ρF : Γ ≤ε Δ} {ρF' : Γ' ≤ε Δ}
       {σ σ' : nat -> term}
       (vσσ' : [ VΓ | Δ ||-v σ ≅ σ' : Γ | wfΔ ])
       , [LogRel@{i j k l} l | Δ ||- A [ σ ] ≅ A' [ σ' ] ]
@@ -97,7 +97,8 @@ Arguments typeValidity {_ _ _ _ _ _ _ _ _}.
 
 Notation "[ P | Γ ||-v< l > A ≅ B ]" := (typeValidity Γ _ P l A B) (at level 0, P, Γ, l, A, B at level 50).
 
-Definition emptyEqSubst@{u} `{ta : tag} `{!WfContext ta} {L L'}: forall (Δ : context) (wfΔ : [|- Δ]) (ρF : Fweakening Δ L) (ρF':  Fweakening Δ L') (σ σ' : nat -> term), Type@{u} := fun _ _ _ _ _ _ => unit.
+Definition emptyEqSubst@{u} `{ta : tag} `{!WfContext ta} {L L'}:
+  forall (Δ : context) (wfΔ : [|- Δ]) (ρF : L ≤ε Δ) (ρF': L' ≤ε Δ) (σ σ' : nat -> term), Type@{u} := fun _ _ _ _ _ _ => unit.
 Definition emptyVPack `{ta : tag} `{!WfContext ta} {L L'}: VPack (fromFctx L) (fromFctx L') :=
   Build_VPack _ _ emptyEqSubst.
 
@@ -111,7 +112,7 @@ Section snocValid.
 
 
 
-  Record snocEqSubst {Δ : context} {wfΔ : [|- Δ]} (ρF : Fweakening Δ (Γ,,A)) (ρF : Fweakening Δ (Γ',,A')) {σ σ' : nat -> term} : Type :=
+  Record snocEqSubst {Δ : context} {wfΔ : [|- Δ]} (ρF : (Γ,,A) ≤ε Δ) (ρF : (Γ',,A') ≤ε Δ) {σ σ' : nat -> term} : Type :=
     {
       eqTail : [ VΓ | Δ ||-v ↑ >> σ ≅ ↑ >> σ' : Γ | wfΔ ] ;
       eqHead : [ Δ ||-< l > σ var_zero ≅ σ' var_zero : A[↑ >> σ] | validTyExt vA wfΔ eqTail ]
@@ -165,7 +166,7 @@ Section MoreDefs.
     {VΓ : [VR@{i j k l}| ||-v Γ ≅ Γ']}
     {VA : typeValidity@{k i j k l} Γ Γ' VΓ l A A' (*[Γ ||-v<l> A |VΓ]*)} {t u} : Type :=
     {
-      validTmExt : forall {Δ}(wfΔ : [|- Δ]) {ρF : Fweakening Δ Γ} {ρF' : Fweakening Δ Γ'} {σ σ'}
+      validTmExt : forall {Δ}(wfΔ : [|- Δ]) {ρF : Γ ≤ε Δ} {ρF' : Γ' ≤ε Δ} {σ σ'}
          (Vσσ' : [Δ ||-v σ ≅ σ' : Γ | VΓ | wfΔ]),
         [Δ ||-<l> t[σ] ≅ u[σ'] : A[σ] | validTyExt VA wfΔ Vσσ']
     }.
@@ -179,7 +180,7 @@ Section MoreDefs.
 
   Record redValidity {Γ Γ'} {t u A : term} {VΓ : [||-v Γ ≅ Γ']} : Type :=
     {
-      validRed : forall {Δ} (wfΔ : [|- Δ]) {ρF : Fweakening Δ Γ} {ρF' : Fweakening Δ Γ'} {σ σ'} (Vσσ' : [Δ ||-v σ ≅ σ' : Γ | VΓ | wfΔ]),
+      validRed : forall {Δ} (wfΔ : [|- Δ]) {ρF : Γ ≤ε Δ} {ρF' : Γ' ≤ε Δ} {σ σ'} (Vσσ' : [Δ ||-v σ ≅ σ' : Γ | VΓ | wfΔ]),
         [Δ |- t[σ] ⤳* u[σ] : A[σ]]
     }.
 End MoreDefs.
@@ -277,7 +278,7 @@ Ltac indValid VΓ :=
   valid substitions *)
 
 Definition wfCtxOfsubstS `{GenericTypingProperties}
-  {Γ Γ' Δ : context} {wfΔ : [|- Δ]} {ρF : Fweakening Δ Γ} {ρF' : Fweakening Δ Γ'} {σ σ'} {VΓ : [||-v Γ ≅ Γ']}  :
+  {Γ Γ' Δ : context} {wfΔ : [|- Δ]} {ρF : Γ ≤ε Δ} {ρF' : Γ' ≤ε Δ} {σ σ'} {VΓ : [||-v Γ ≅ Γ']}  :
   [Δ ||-v σ ≅ σ' : Γ | VΓ | wfΔ] -> [|- Δ] := fun _ => wfΔ.
 
 Ltac instValid vσ :=

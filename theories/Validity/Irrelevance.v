@@ -14,9 +14,11 @@ Section VRIrrelevant.
 Universes u1 u2 u3 u4 v1 v2 v3 v4.
 
 Set Printing Universes.
-Lemma VRirrelevant@{} (Γ Γ':context) {veqsubst : forall Δ (h :[|-Δ]) {ρF : Fweakening Δ Γ} {ρF' : Fweakening Δ Γ'} (σ σ' : nat -> term), Type@{u3}} {veqsubst' : forall Δ (h :[|-Δ]) {ρF : Fweakening Δ Γ} {ρF' : Fweakening Δ Γ'} (σ σ' : nat -> term), Type@{v3}}
+Lemma VRirrelevant@{} (Γ Γ':context) 
+  {veqsubst : forall Δ (h :[|-Δ]) {ρF : Γ ≤ε Δ} {ρF' : Γ' ≤ε Δ} (σ σ' : nat -> term), Type@{u3}}
+  {veqsubst' : forall Δ (h :[|-Δ]) {ρF : Γ ≤ε Δ} {ρF' : Γ' ≤ε Δ} (σ σ' : nat -> term), Type@{v3}}
   (vr : VR@{u1 u2 u3 u4} Γ Γ' veqsubst) (vr' : VR@{v1 v2 v3 v4} Γ Γ'  veqsubst') :
-  (forall (Δ:context) wfΔ wfΔ' {ρF : Fweakening Δ Γ} {ρF' : Fweakening Δ Γ'} σ σ', veqsubst Δ wfΔ σ σ' <~> veqsubst' Δ wfΔ' σ σ').
+  (forall (Δ:context) wfΔ wfΔ' {ρF : Γ ≤ε Δ} {ρF' : Γ' ≤ε Δ} σ σ', veqsubst Δ wfΔ σ σ' <~> veqsubst' Δ wfΔ' σ σ').
 Proof.
   revert veqsubst' vr'. pattern Γ, Γ', veqsubst, vr.
   apply VR_rect; clear Γ Γ' veqsubst vr.
@@ -36,7 +38,7 @@ Proof.
     specialize (ih _ VΓad').
     intros; split; intros []; unshelve econstructor.
     1,2: now eapply ih.
-    all: now eapply irrLR.
+    all: now eapply SirrLR.
 Qed.
 
 Succeed Constraint u1 < v1.
@@ -51,7 +53,7 @@ Succeed Constraint v4 < u4.
 End VRIrrelevant.
 
 
-Lemma irrelevanceSubst {Γ Γ'} (VΓ VΓ' : [||-v Γ ≅ Γ']) {Δ} (wfΔ wfΔ' : [|- Δ]) {ρF : Fweakening Δ Γ} {ρF' : Fweakening Δ Γ'} {σ σ'}:
+Lemma irrelevanceSubst {Γ Γ'} (VΓ VΓ' : [||-v Γ ≅ Γ']) {Δ} (wfΔ wfΔ' : [|- Δ]) {ρF : Γ ≤ε Δ} {ρF' : Γ' ≤ε Δ} {σ σ'}:
   [Δ ||-v σ ≅ σ' : Γ | VΓ | wfΔ ] -> [Δ ||-v σ ≅ σ' : Γ | VΓ' | wfΔ'].
 Proof.
   eapply VRirrelevant; eapply VAd.adequate.
@@ -62,7 +64,7 @@ Lemma symSubst@{u1 u2 u3 u4} {Γ Γ'}
                      (VΓ  : VAdequate@{u3 u4} VR@{u1 u2 u3 u4} Γ Γ')
                      (VΓ'  : VAdequate@{u3 u4} VR@{u1 u2 u3 u4} Γ' Γ) :
   (* (VΓ VΓ' : [||-v Γ]) : *)
-  forall {Δ} (wfΔ wfΔ' : [|- Δ]) {ρF : Fweakening Δ Γ} {ρF' : Fweakening Δ Γ'} {σ σ'},
+  forall {Δ} (wfΔ wfΔ' : [|- Δ]) {ρF : Γ ≤ε Δ} {ρF' : Γ' ≤ε Δ} {σ σ'},
   [Δ ||-v σ ≅ σ' : Γ | VΓ | wfΔ ] -> [Δ ||-v σ' ≅ σ : _ | VΓ' | wfΔ'].
 Proof.
   revert VΓ'; induction Γ, Γ', VΓ using validity_rect; intros VΓ'.
@@ -71,7 +73,7 @@ Proof.
     destruct x as [lA'[ VΓ'' [VA' ->]]].
     intros ??????? [tleq hdeq].
     pose (tleq' := IHVΓ VΓ'' _ wfΔ wfΔ' _ _ _ _ tleq).
-    exists tleq'; now eapply symLR, irrLR.
+    exists tleq'; now eapply symLR, SirrLR.
 Qed.
 
 Lemma symValidTy {Γ Γ' l A B} {VΓ : [||-v Γ ≅ Γ']} (VΓ' : [||-v Γ' ≅ Γ]) :
@@ -91,7 +93,7 @@ Qed.
 
 Lemma convSubst {Γ Γ' Γ''}
   (VΓ : [||-v Γ ≅ Γ']) (VΓ' : [||-v Γ ≅ Γ'']) :
-  forall {Δ} (wfΔ : [|- Δ]) {ρF : Fweakening Δ Γ} {ρF' : Fweakening Δ Γ'} {ρF'' : Fweakening Δ Γ''} {σ σ'},
+  forall {Δ} (wfΔ : [|- Δ]) {ρF : Γ ≤ε Δ} {ρF' : Γ' ≤ε Δ} {ρF' : Γ'' ≤ε Δ} {σ σ'},
   [Δ ||-v σ ≅ σ' : _ | VΓ | wfΔ ] ->
   [Δ ||-v σ ≅ σ' : _ | VΓ' | wfΔ ].
 Proof.
@@ -99,12 +101,12 @@ Proof.
   - constructor.
   - intros * ih [Γ'' L''] VΓ0 *; pose proof (invValidity VΓ0) as (?&?&?&?&?&e&eF&h); cbn in e,eF; subst; cbn in h; subst.
     intros [tl hd]; pose proof (tl' := ih _ _ _ _ _ _ _ _ _ tl).
-    exists tl'; now eapply irrLREqCum.
+    exists tl'; now eapply SirrLREqCum.
 Qed.
 
 Lemma convSubst' {Γ Γ' Γ''}
   (VΓ : [||-v Γ' ≅ Γ]) (VΓ' : [||-v Γ'' ≅ Γ]) :
-  forall {Δ} (wfΔ : [|- Δ]) {ρF : Fweakening Δ Γ} {ρF' : Fweakening Δ Γ'} {ρF'' : Fweakening Δ Γ''} {σ σ'},
+  forall {Δ} (wfΔ : [|- Δ]) {ρF : Γ ≤ε Δ} {ρF' : Γ' ≤ε Δ} {ρF' : Γ'' ≤ε Δ} {σ σ'},
   [Δ ||-v σ ≅ σ' : _ | VΓ' | wfΔ ] ->
   [Δ ||-v σ ≅ σ' : _ | VΓ | wfΔ ].
 Proof.
@@ -113,10 +115,11 @@ Proof.
 Qed.
 
 Lemma convValidTy {Γ Γ' Γ''}
-  (VΓ : [||-v Γ ≅ Γ']) (VΓ' : [||-v Γ ≅ Γ'']) {l A B} :
-  [_ ||-v<l> A ≅ B | VΓ] -> [_ ||-v<l> A ≅ B | VΓ'].
+  (VΓ' : [||-v Γ ≅ Γ']) (VΓ'' : [||-v Γ ≅ Γ'']) {l A B} :
+  [_ ||-v<l> A ≅ B | VΓ'] -> [_ ||-v<l> A ≅ B | VΓ''].
 Proof. intros VA; constructor. intros. eapply (validTyExt (Γ:=Γ) (Γ':=Γ')); tea; now eapply convSubst.
- Qed.
+  Unshelve.
+Qed.
 
 Lemma convValidTy' {Γ Γ' Γ''}
   (VΓ : [||-v Γ ≅ Γ']) (VΓ' : [||-v Γ'' ≅ Γ']) {l A B} :
