@@ -574,6 +574,7 @@ Proof.
     change (Build_context Tctx (Fcons' Fctx new true)) with (Γ,, new ↦ true) in *.
     inversion Hf; destruct Γ0; cbn in *; subst.
     change (Build_context Tctx (Fcons' Fctx new false)) with (Γ,, new ↦ false) in *.
+    change (Build_context (cons a Tctx) Fctx) with (Γ,,a) in *.
     constructor.
     * now eapply IHTctx.
     * now eapply wfTypeSplit.

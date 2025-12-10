@@ -35,8 +35,8 @@ Section TypingFWk.
       + apply ihAf.
         now apply (Fwk_new new false).
       + apply (wfTypeSplit (new:= Build_newnat (Build_context Γ L) new hnotin)).
-        * apply ihAt; cbn. apply (wk_Fup true new (wk_Fwk ρF)).
-        * apply ihAf; cbn. apply (wk_Fup false new (wk_Fwk ρF)).
+        * apply ihAt; cbn. now eapply Fwk_Fup.
+        * apply ihAf; cbn. now eapply Fwk_Fup.
     - intros Γ t A new hAt ihAt hAf ihAf L ρF.
       destruct (decide_in L new) as [[] hin|hnotin].
       + apply ihAt.
@@ -44,8 +44,8 @@ Section TypingFWk.
       + apply ihAf.
         now apply (Fwk_new new false).
       + apply (wfTermSplit (new:= Build_newnat (Build_context Γ L) new hnotin)).
-        * apply ihAt; cbn. apply (wk_Fup true new (wk_Fwk ρF)).
-        * apply ihAf; cbn. apply (wk_Fup false new (wk_Fwk ρF)).
+        * apply ihAt; cbn. now eapply Fwk_Fup.
+        * apply ihAf; cbn. now eapply Fwk_Fup.
     - intros Γ A B new hAt ihAt hAf ihAf L ρF.
       destruct (decide_in L new) as [[] hin|hnotin].
       + apply ihAt.
@@ -53,8 +53,8 @@ Section TypingFWk.
       + apply ihAf.
         now apply (Fwk_new new false).
       + apply (TypeSplit (new:= Build_newnat (Build_context Γ L) new hnotin)).
-        * apply ihAt; cbn. apply (wk_Fup true new (wk_Fwk ρF)).
-        * apply ihAf; cbn. apply (wk_Fup false new (wk_Fwk ρF)).
+        * apply ihAt; cbn. now eapply Fwk_Fup.
+        * apply ihAf; cbn. now eapply Fwk_Fup.
     - intros Γ t t' A new hAt ihAt hAf ihAf L ρF.
       destruct (decide_in L new) as [[] hin|hnotin].
       + apply ihAt.
@@ -62,8 +62,8 @@ Section TypingFWk.
       + apply ihAf.
         now apply (Fwk_new new false).
       + apply (TermSplit (new:= Build_newnat (Build_context Γ L) new hnotin)).
-        * apply ihAt; cbn. apply (wk_Fup true new (wk_Fwk ρF)).
-        * apply ihAf; cbn. apply (wk_Fup false new (wk_Fwk ρF)).
+        * apply ihAt; cbn. now eapply Fwk_Fup.
+        * apply ihAf; cbn. now eapply Fwk_Fup.
   Qed.
 
 End TypingFWk.
@@ -122,10 +122,10 @@ Section TypingWk.
         apply Ihf.
       + set (new' := Build_newnat _ new hnotin).
         apply (wfTypeSplit (new := new')).
-        * pose (wk_Fup true new ρ new new').
+        * pose (wk_Fup true ρ new new' eq_refl).
           apply (Iht _ w).
           now apply wfcon_new.
-        * pose (wk_Fup false new ρ new new').
+        * pose (wk_Fup false ρ new new' eq_refl).
           apply (Ihf _ w).
           now apply wfcon_new.
     - intros * _ IHΓ Hnth ? * ?.
@@ -230,10 +230,10 @@ Section TypingWk.
         apply Ihf.
       + set (new' := Build_newnat _ new hnotin).
         apply (wfTermSplit (new := new')).
-        * pose (wk_Fup true new ρ new new').
+        * pose (wk_Fup true ρ new new' eq_refl).
           apply (Iht _ w).
           now apply wfcon_new.
-        * pose (wk_Fup false new ρ new new').
+        * pose (wk_Fup false ρ new new' eq_refl).
           apply (Ihf _ w).
           now apply wfcon_new.
     - intros Γ A A' B B' _ IHA _ IHAA' _ IHBB' ? ρ ?.
@@ -269,10 +269,10 @@ Section TypingWk.
         apply Ihf.
       + set (new' := Build_newnat _ new hnotin).
         apply (TypeSplit (new := new')).
-        * pose (wk_Fup true new ρ new new').
+        * pose (wk_Fup true ρ new new' eq_refl).
           apply (Iht _ w).
           now apply wfcon_new.
-        * pose (wk_Fup false new ρ new new').
+        * pose (wk_Fup false ρ new new' eq_refl).
           apply (Ihf _ w).
           now apply wfcon_new.
     - intros Γ u t A B _ IHA _ IHt _ IHu ? ρ ?.
@@ -453,10 +453,10 @@ Section TypingWk.
         apply Ihf.
       + set (new' := Build_newnat _ new hnotin).
         apply (TermSplit (new := new')).
-        * pose (wk_Fup true new ρ new new').
+        * pose (wk_Fup true ρ new new' eq_refl).
           apply (Iht _ w).
           now apply wfcon_new.
-        * pose (wk_Fup false new ρ new new').
+        * pose (wk_Fup false ρ new new' eq_refl).
           apply (Ihf _ w).
           now apply wfcon_new.
 Qed.

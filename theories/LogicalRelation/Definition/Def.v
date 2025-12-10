@@ -158,6 +158,32 @@ Proof.
   now eapply RAB.
 Qed.
 
+Lemma WAd_split `{GenericTypingProperties} :
+  forall {Γ l A B new} {wfΓ : [|-Γ]} {wfΓt : [|-Γ,, new ↦ true]} {wfΓf : [|-Γ,, new ↦ false]},
+  [wfΓt ||-< l > A ≅ B] -> [wfΓf ||-< l > A ≅ B] -> [wfΓ ||-< l >A ≅ B].
+Proof.
+  intros ???????? ht hf.
+  epose proof (Split_shf (A:= fun Δ wfΔ ρ => [Δ ||-S< l > A⟨ρ⟩ ≅ B⟨ρ⟩]) Γ wfΓ wk_id new _ _) as hsplit.
+  cbn in hsplit.
+  eapply (Split_bind_return hsplit).
+  intros Δ wfΔ ρ ohsplit.
+  rewrite <- (wk_comp_runit ρ).
+  now eapply hsplit.
+  Unshelve.
+  easy.
+  + cbn.
+    eapply (Split_wk_bind_return ht).
+    eapply wk_id.
+    intros Ξ wfΞ ρΞ oht.
+    rewrite <- 2!wk_comp_ren_on, 2!wk_Fstep_ren_on, 2!wk_id_ren_on.
+    now eapply ht.
+  + cbn.
+    eapply (Split_wk_bind_return hf).
+    eapply wk_id.
+    intros Ξ wfΞ ρΞ ohf.
+    rewrite <- 2!wk_comp_ren_on, 2!wk_Fstep_ren_on, 2!wk_id_ren_on.
+    now eapply hf.
+Qed.
 
 
 (* Lemma WAd_bind `{GenericTypingProperties} :

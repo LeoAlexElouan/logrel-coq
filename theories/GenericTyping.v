@@ -76,23 +76,23 @@ Section RedDefinitions.
   (** *** Lifting of typing and conversion to contexts and substitutions *)
 
   Inductive WellSubst (Γ : context) : context -> (nat -> term) -> Type :=
-    | well_sempty (σ : nat -> term) L : L ≤ε Γ -> [Γ |-s σ : fromFctx L]
+    | well_sempty (σ : nat -> term) L : [Γ |-s σ : fromFctx L]
     | well_scons (σ : nat -> term) (Δ : context) A :
       [Γ |-s ↑ >> σ : Δ] -> [Γ |- σ var_zero : A[↑ >> σ]] ->
       [Γ |-s σ : Δ,, A]
   where "[ Γ '|-s' σ : Δ ]" := (WellSubst Γ Δ σ).
 
   Inductive ConvSubst (Γ : context) : context -> (nat -> term) -> (nat -> term) -> Type :=
-  | conv_sempty (σ τ : nat -> term) L : L ≤ε Γ -> [Γ |-s σ ≅ τ : fromFctx L ]
+  | conv_sempty (σ τ : nat -> term) L : [Γ |-s σ ≅ τ : fromFctx L ]
   | conv_scons (σ τ : nat -> term) (Δ : context) A :
     [Γ |-s ↑ >> σ ≅ ↑ >> τ : Δ] -> [Γ |- σ var_zero ≅ τ var_zero: A[↑ >> σ]] ->
     [Γ |-s σ ≅ τ : Δ,,A ]
   where "[ Γ '|-s' σ ≅ τ : Δ ]" := (ConvSubst Γ Δ σ τ).
 
-  Inductive ConvCtx (L :Fcontext) : context -> context -> Type :=
-  | conv_cempty L' L'': L' ≤ε L -> L'' ≤ε L -> [ L | fromFctx L' ≅ fromFctx L'']
-  | conv_ccons Γ A Δ B : [ L | Γ ≅ Δ ] -> [Γ |- A ≅ B] -> [L | Γ,,A ≅ Δ,,B ]
-  where "[ L | Γ ≅ Δ ]" := (ConvCtx L Γ Δ).
+  Inductive ConvCtx : context -> context -> Type :=
+  | conv_cempty L L': [ fromFctx L ≅ fromFctx L']
+  | conv_ccons Γ A Δ B : [ Γ ≅ Δ ] -> [Γ |- A ≅ B] -> [ Γ,,A ≅ Δ,,B ]
+  where "[ Γ ≅ Δ ]" := (ConvCtx Γ Δ).
 
 
   Lemma well_subst_ext Γ Δ (σ σ' : nat -> term) :
@@ -103,7 +103,6 @@ Section RedDefinitions.
     intros Heq.
     induction 1 in σ', Heq |- *.
     all: constructor.
-    - easy.
     - eapply IHWellSubst.
       now rewrite Heq.
     - rewrite <- Heq.

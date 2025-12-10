@@ -9,13 +9,13 @@ Set Printing Primitive Projection Parameters.
 Section Universe.
 Context `{GenericTypingProperties} {Γ Γ' : context}.
 
-Lemma UValid (VΓ : [||-v Γ ≅ Γ' ]) : [Γ ||-v<one> U | VΓ].
+Lemma UValid (VΓ : [||-v Γ ≅ Γ' ]) : [Γ ||-vS<one> U | VΓ].
 Proof.  unshelve econstructor; intros; now eapply LRU_, redUOneCtx. Defined.
 
 Lemma univValid {A A' l} l' {VΓ : [||-v Γ ≅ Γ']}
-  {VU : [Γ ||-v<l> U | VΓ]}
-  (VA : [Γ ||-v<l> A ≅ A' : U | VΓ | VU]) :
-  [Γ ||-v<l'> A ≅ A' | VΓ].
-Proof. constructor; intros ???? Vσ ; eapply UnivEq; exact (validTmExt VA _ Vσ). Qed.
+  {VU : [Γ ||-vS<l> U | VΓ]}
+  (VA : [Γ ||-vS<l> A ≅ A' : U | VΓ | VU]) :
+  [Γ ||-vS<l'> A ≅ A' | VΓ].
+Proof. constructor; intros ???? Vσ ; eapply UnivEq; exact (SvalidTmExt VA _ Vσ). Qed.
 
 End Universe.

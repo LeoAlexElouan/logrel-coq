@@ -329,20 +329,21 @@ Lemma in_ctx_wk (Γ Δ : context) n decl (ρ : Δ ≤ Γ) :
 in_ctx Γ n decl ->
 in_ctx Δ (ρ n) (decl⟨ρ⟩).
 Proof.
-intros Hdecl.
-destruct ρ as [ρ wfρ Fρ];  destruct Γ as [Γ L], Δ as [Δ L']; unfold in_ctx; cbn in *.
-induction wfρ in n, decl, Hdecl |- *.
-- inversion Hdecl.
-- cbn.
-  replace (decl⟨_⟩) with (decl⟨ρ⟩⟨↑⟩) by now asimpl.
-  now econstructor.
-- destruct n ; cbn.
-  + inversion Hdecl ; subst ; clear Hdecl.
-    replace (A⟨↑⟩⟨_⟩) with (A⟨ρ⟩⟨↑⟩) by now asimpl.
-    now constructor.
-  + inversion Hdecl ; subst ; cbn in * ; refold.
-    replace (d⟨_⟩⟨_⟩) with (d⟨ρ⟩⟨↑⟩) by now asimpl.
+  intros Hdecl.
+  destruct ρ as [ρ wfρ Fρ]; (* destruct Γ as [Γ L], Δ as [Δ L'] ; unfold in_ctx; *) cbn in *.
+  change Γ with (Build_context Γ Γ) in Hdecl; change Δ with (Build_context Δ Δ). unfold in_ctx, ren1 in *; cbn in *.
+  induction wfρ in n, decl, Hdecl |- *.
+  - inversion Hdecl.
+  - cbn.
+    replace (decl⟨_⟩) with (decl⟨ρ⟩⟨↑⟩) by now asimpl.
     now econstructor.
+  - destruct n ; cbn.
+    + inversion Hdecl ; subst ; clear Hdecl.
+      replace (A⟨↑⟩⟨_⟩) with (A⟨ρ⟩⟨↑⟩) by now asimpl.
+      now constructor.
+    + inversion Hdecl ; subst ; cbn in * ; refold.
+      replace (A0⟨_⟩⟨_⟩) with (A0⟨ρ⟩⟨↑⟩) by now asimpl.
+      now econstructor.
 Qed.
 
 Lemma in_ctx_str (Γ Δ : context) n decl (ρ : Δ ≤ Γ) :
@@ -375,6 +376,11 @@ Qed.
 (** Note: should be unnecessary since scons_eta' is in bsimpl now… *)
 Lemma upren_subst_rel0 t : t[(tRel 0)]⇑ = t.
 Proof. now bsimpl. Qed.
+
+Lemma subst_ren_wk {Γ Δ A σ} (ρ : Δ ≤ Γ) : A[σ]⟨ρ⟩ = A[σ⟨ρ⟩].
+Proof.
+  now bsimpl.
+Qed.
 
 Lemma subst_ren_wk_up {Γ Δ P A n} (ρ : Γ ≤ Δ): P[n..]⟨ρ⟩ = P⟨wk_up A ρ⟩[n⟨ρ⟩..].
 Proof. now bsimpl. Qed.
@@ -559,6 +565,27 @@ Proof.
   eapply Fwk_new; [apply ρ | apply hin].
 Defined.
 
+Lemma Fwk_Fup : forall {L L'} b (Fρ :  L' ≤ε L) (new : newnat L) (new' : newnat L'),
+   new = new' :> nat -> (Fcons' L' new' b) ≤ε (Fcons' L new b).
+Proof.
+  intros * ρε [n hnotin] [n' hnotin'] e n'' b'' hin'.
+  cbn in *; destruct e.
+  inversion hin'; subst; constructor.
+  now apply ρε.
+Defined.
+
+Lemma wk_Fup : forall {Γ Δ} b (ρ : Δ ≤ Γ ) (new : newnat Γ) (new' : newnat Δ),
+  new = new' :> nat -> (Δ,, new' ↦ b) ≤ (Γ,, new ↦ b).
+Proof.
+  intros * ρ new new' e.
+  apply (Build_wk_well_wk _ _ (wk ρ)).
+  apply (well_wk ρ).
+  eapply Fwk_Fup.
+  apply ρ.
+  apply e.
+Defined.
+
+(* 
 Lemma Fwk_Fup : forall {L L'} b n (Fρ :  L' ≤ε L) (newL : not_in_Fctx L n) (newL' : not_in_Fctx L' n),
    (Fcons' L' (Build_newnat _ n newL') b) ≤ε (Fcons' L (Build_newnat _ n newL) b).
 Proof.
@@ -575,7 +602,7 @@ Proof.
   apply (well_wk ρ).
   eapply Fwk_Fup.
   apply ρ.
-Defined.
+Defined. *)
 
 Definition Fwk_Fstep {L L':Fcontext} (new : newnat L') b :  L' ≤ε L ->  (Fcons' L' new b) ≤ε L:=
   fun Fρ n b hin => in_thereF _ _ _ _ _ (Fρ _ _ hin).
@@ -583,7 +610,18 @@ Definition Fwk_Fstep {L L':Fcontext} (new : newnat L') b :  L' ≤ε L ->  (Fcon
 Definition wk_Fstep {Γ Δ} new b (ρ : Γ ≤ Δ) : (Γ,,new ↦ b) ≤ Δ :=
   Build_wk_well_wk (Γ,,new ↦ b) Δ ρ ρ (Fwk_Fstep _ _ ρ).
 
+Definition wk_Fstep_ren_on {Γ Δ} new b (ρ : Γ ≤ Δ) t: t⟨wk_Fstep new b ρ⟩ = t⟨ρ⟩.
+Proof.
+  reflexivity.
+Qed.
 
-
+Lemma wk_new_notin {L L':Fcontext} (new : newnat L') : L' ≤ε L -> not_in_Fctx L new.
+Proof.
+  intros ρε.
+  eapply not_in_is_notin.
+  intros b hin.
+  eapply notin_is_not_in, ρε, hin.
+  eapply new.
+Qed.
 
 

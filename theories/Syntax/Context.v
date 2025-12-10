@@ -27,8 +27,13 @@ Record Fcontext :={
   wfF : wfFcontext preFctx;
   }.
 
-Definition Fcons' (L:Fcontext) {n} (ne : not_in_Fctx L n) b : Fcontext
-  := Build_Fcontext (cons (n,b) (preFctx L)) (wf_cons (wfF L) ne).
+Record newnat L := {
+  newnat_nat :> nat;
+  newnat_new :> not_in_Fctx L newnat_nat;
+  }.
+
+Definition Fcons' (L:Fcontext) (new : newnat L) b : Fcontext
+  := Build_Fcontext (cons (newnat_nat _ new,b) (preFctx L)) (wf_cons (wfF L) new).
 
 Definition Fnil := Build_Fcontext nil wf_nil.
 
@@ -39,12 +44,7 @@ Record context := {
   }.
 
 Definition nilctx := Build_context nil Fnil.
-Definition Tcons Γ d := Build_context (cons d (Tctx Γ)) (Fctx Γ).
-
-Record newnat L := {
-  newnat_nat :> nat;
-  newnat_new :> not_in_Fctx L newnat_nat;
-  }.
+(* Definition Tcons Γ d := Build_context (cons d (Tctx Γ)) (Fctx Γ). *)
 
 
 Definition Fcons Γ (new : newnat (Fctx Γ)) b := Build_context (Tctx Γ) (Fcons' (Fctx Γ) new b).
@@ -54,16 +54,32 @@ Definition fromFctx L := Build_context nil L.
 
 
 Notation "'ε'" := nilctx.
-Notation " Γ ,, d " := (Tcons Γ d) (at level 20, d at next level).
-Notation " Γ ,, new ↦ b " := (Fcons Γ new b) (at level 20, new at next level, b at next level).
+Notation " Γ ,, d " := (Build_context (cons d (Tctx Γ)) (Fctx Γ)) (at level 20, d at next level).
+Notation " Γ ,, new ↦ b " := (Build_context (Tctx Γ) (Fcons' (Fctx Γ) new b)) (at level 20, new at next level, b at next level).
 Notation " Γ ,,, Δ " := (appctx Δ Γ) (at level 25, Δ at next level, left associativity).
+
+Lemma cons_Fcons Γ A new b : Γ,, new ↦ b ,, A = Γ,, A ,, new ↦ b. 
+Proof. reflexivity. Qed.
 
 (** States that a definition, correctly weakened, is in a context. *)
 Inductive in_Tctx : Tcontext -> nat -> term -> Type :=
-  | in_here (Γ : Tcontext) d : in_Tctx (cons d Γ) 0 (d⟨↑⟩)
-  | in_there (Γ : Tcontext) d d' n : in_Tctx Γ n d -> in_Tctx (cons d' Γ) (S n) (ren_term shift d).
+  | in_here (Γ : Tcontext) A : in_Tctx (cons A Γ) 0 (A⟨↑⟩)
+  | in_there (Γ : Tcontext) A A' n : in_Tctx Γ n A -> in_Tctx (cons A' Γ) (S n) (ren_term shift A).
 
 Definition in_ctx Γ := in_Tctx (Tctx Γ).
+
+Lemma in_ctx_induction : forall P : forall Γ n A, in_ctx Γ n A -> Type,
+  (forall Γ A, P (Γ,, A) 0 A⟨↑⟩ (in_here Γ A)) ->
+  (forall Γ A A' n (hin : in_ctx Γ n A),
+    P Γ n A hin -> P (Γ,, A') (S n) (ren_term ↑ A) (in_there Γ A A' n hin)) ->
+  forall Γ n A (hin : in_ctx Γ n A), P Γ n A hin.
+Proof.
+  intros ? hhere hthere *. change Γ with (Build_context Γ Γ). induction hin.
+  + specialize (hhere (Build_context Γ0 Γ)).
+    eapply hhere.
+  + specialize (hthere (Build_context Γ0 Γ)).
+    now eapply hthere.
+Qed.
 
 Inductive in_Fctx : preFcontext -> nat -> bool -> SProp :=
   | in_hereF (L : preFcontext) n b : in_Fctx (cons (n,b) L)  n b
@@ -128,27 +144,6 @@ Proof.
     + right.
       now eapply not_in_nowhere.
 Qed.
-(* Lemma trichotomy L n : or_tricho (in_Fctx L n true) (in_Fctx L n false) (not_in_Fctx L n).
-Proof.
-  induction L.
-  - apply in_right.
-    constructor.
-  - destruct a as [n' b'].
-    destruct IHL.
-    + apply in_left.
-      now apply in_thereF.
-    + apply in_mid.
-      now apply in_thereF.
-    + pose proof (PeanoNat.Nat.eq_dec n n') as e.
-      destruct e as [<-|].
-      1: destruct b'.
-      * apply in_left.
-        constructor.
-      * apply in_mid.
-        constructor.
-      * apply in_right.
-        now eapply not_in_nowhere.
-Defined. *)
 
 Lemma notin_is_not_in {L n b} : not_in_Fctx L n -> in_Fctx L n b -> SFalse.
 Proof.
@@ -159,6 +154,30 @@ Proof.
   - eapply IHhin.
     now inversion hnotin ; subst.
 Qed.
+
+Lemma not_in_is_notin' {L n} : (in_Fctx L n true -> SFalse) -> (in_Fctx L n false -> SFalse) -> not_in_Fctx L n.
+Proof.
+  intros hnotint hnotinf.
+  induction L.
+  + constructor.
+  + destruct a as [n' b'].
+    constructor.
+    - intros <-.
+      assert SFalse as [].
+      destruct b'.
+      * eapply hnotint; constructor.
+      * eapply hnotinf; constructor.
+    - eapply IHL; intros hin.
+      * eapply hnotint, in_thereF, hin.
+      * eapply hnotinf, in_thereF, hin.
+Qed.
+
+Lemma not_in_is_notin {L n} : (forall b, in_Fctx L n b -> SFalse) -> not_in_Fctx L n.
+Proof.
+  intros.
+  now eapply not_in_is_notin'.
+Qed.
+
 
 Lemma functionality (L:Fcontext) n b b': in_Fctx L n b -> in_Fctx L n b' -> b = b'.
 Proof.

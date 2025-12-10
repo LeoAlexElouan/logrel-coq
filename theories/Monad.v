@@ -214,6 +214,8 @@ Section Sheaves.
     - destruct hover.
   Qed.
 
+
+
 Definition over {Γ : context} {wfΓ} (d : DTree Γ) (A: PSh Γ wfΓ) := forall Δ wfΔ (ρ : Δ ≤ Γ), overtree d Δ -> A Δ wfΔ ρ.
 
 
@@ -261,10 +263,10 @@ Proof.
       bsimpl; reflexivity.
     + set (new' := Build_newnat Δ new hnotin).
       eapply hBshf.
-      * specialize (ihAt (Δ,, new' ↦ true) (wfc_consF wfΔ) (wk_Fup true new ρ new new')).
+      * specialize (ihAt (Δ,, new' ↦ true) (wfc_consF wfΔ) (wk_Fup true ρ new new' eq_refl)).
         refine (PSh_rew B _ _ _ ihAt).
         bsimpl. reflexivity.
-      * specialize (ihAf (Δ,, new' ↦ false) (wfc_consF wfΔ) (wk_Fup false new ρ new new')).
+      * specialize (ihAf (Δ,, new' ↦ false) (wfc_consF wfΔ) (wk_Fup false ρ new new' eq_refl)).
         refine (PSh_rew B _ _ _ ihAf).
         bsimpl. reflexivity.
 Qed.

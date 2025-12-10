@@ -179,6 +179,7 @@ Reserved Notation "[ Γ |-[ ta  ] t :⤳*: u : A ]" (at level 0, ta, Γ, t, u, A
 (** ** Weakenings *)
 (** Well-formed weakening *)
 Reserved Notation "L ≤ε L'" (at level 40).
+Reserved Notation "L =ε L'" (at level 40).
 Reserved Notation "Γ ≤ Δ" (at level 40).
 Reserved Notation "Γ ≤w Δ" (at level 40).
 (** Composition of weakenings *)
@@ -295,10 +296,12 @@ Reserved Notation "[||-v Γ ]" (at level 0, Γ at level 50).
 Reserved Notation "[ Δ ||-v σ : Γ | VΓ | wfΔ ]" (at level 0, Δ, σ, Γ, VΓ, wfΔ at level 50).
 Reserved Notation "[ Δ ||-v σ ≅ σ' : Γ | VΓ | wfΔ | vσ ]" (at level 0, Δ, σ, σ', Γ, VΓ, wfΔ, vσ at level 50).
 Reserved Notation "[ Γ ||-v< l > A | VΓ ]" (at level 0, Γ, l , A, VΓ at level 50).
+Reserved Notation "[ Γ ||-vS< l > A | VΓ ]" (at level 0, Γ, l , A, VΓ at level 50).
 Reserved Notation "[ P | Δ ||-v σ : Γ | wfΔ ]" (at level 0, P, Δ, σ, Γ, wfΔ at level 50).
 Reserved Notation "[ P | Δ ||-v σ ≅ σ' : Γ | wfΔ | vσ ]"  (at level 0, P, Δ, σ, σ', Γ, wfΔ, vσ at level 50).
 Reserved Notation "[ R | ||-v Γ ]"  (at level 0, R, Γ at level 50).
 Reserved Notation "[ R | Δ ||-v σ : Γ | RΓ | wfΔ ]"  (at level 0, R, Δ, σ, Γ, RΓ, wfΔ at level 50).
 Reserved Notation "[ R | Δ ||-v σ ≅ σ' : Γ | RΓ | wfΔ | vσ ]" (at level 0, R, Δ, σ, σ', Γ, RΓ, wfΔ, vσ at level 50).
 Reserved Notation "[ P | Γ ||-v< l > A ]"  (at level 0, P, Γ, l, A at level 50).
+Reserved Notation "[ P | Γ ||-vS< l > A ]"  (at level 0, P, Γ, l, A at level 50).
 
