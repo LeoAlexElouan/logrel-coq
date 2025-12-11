@@ -116,7 +116,7 @@ Section NatElimRedEq.
       + assert [wfΓ ||-<l> arr P[n..] P[(tSucc n)..] ≅ arr Q[n'..] Q[(tSucc n')..]].
         1: now eapply WAd_return, ArrRedTy; eapply RPQext;[|eapply succRed].
         unshelve eapply simple_appcongTerm'; [..| eauto]; tea.
-        unshelve (eapply irrLREq, appcongTerm; tea; now rewrite subst_arr, liftSubst_singleSubst_eq).
+        unshelve (eapply irrLREq, appcongTerm; tea; now rewrite subst_arr, liftSubst_singleSubst_eq); tea.
         now rewrite 2!subst_arr, 2!liftSubst_singleSubst_eq.
     - intros n n' Rn RP0.
       pose proof (neNfTermEq RN Rn).

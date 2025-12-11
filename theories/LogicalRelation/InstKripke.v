@@ -93,7 +93,7 @@ Lemma instKripkeFamConvTm {Γ A A' B B' t u l} (wfΓ : [|-Γ]) (wfA' : [Γ |- A'
 Proof.
   eapply irrLR.
   unshelve eapply instKripkeFamTm.
-  2: tea.
+  1,2: tea.
   2: intros; symmetry; eauto.
   1: unshelve (intros; eapply hB; now eapply SirrLRSym); tea.
   intros; unshelve eapply irrLR, eq; tea; now eapply SirrLRSym.
@@ -147,6 +147,7 @@ Proof.
   erewrite 2!eq_subst_scons.
   unshelve eapply eq; tea.
   eapply SirrLREq; [eapply eq_sym, wk_id_ren_on|]; now rewrite 2!wk_id_ren_on.
+  Unshelve. tea.
 Qed.
 
 End InstKripke.

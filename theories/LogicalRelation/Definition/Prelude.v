@@ -125,7 +125,7 @@ Proof.
   eapply wft_split; [eapply ht| eapply hf]; now eapply wfc_consF.
 Qed.
 
-Lemma Split_bind_wft {Γ wfΓ A} {C : PSh Γ wfΓ} (hC : Split C) :
+Lemma Split_bind_wft@{i} {Γ wfΓ A} {C : PSh@{i} Γ wfΓ} (hC : Split C) :
   (forall Δ (wfΔ : [|-Δ]) (ρ : Δ ≤ Γ), overtree hC Δ -> [Δ |- A⟨ρ⟩]) -> [Γ |- A].
 Proof.
   intros hA.

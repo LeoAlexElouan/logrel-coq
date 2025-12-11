@@ -75,6 +75,7 @@ Proof.
   - intros; eapply irrLREq.
     2: rewrite 2!wk_snd; now eapply wkLR.
     now bsimpl.
+    Unshelve. tea.
 Qed.
 
 Lemma redtmwf_fst {F G f f'} :
@@ -280,7 +281,7 @@ Proof.
     transitivity (tFst p); tea.
     1:symmetry; tea.
     Unshelve.
-    2: eapply RB; symmetry; tea.
+    3: eapply RB; symmetry; tea.
 Qed.
 
 

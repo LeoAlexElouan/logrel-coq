@@ -18,30 +18,32 @@ Section Symmetry.
 
   Notation "A <≈> B" := (prod@{v v} (A -> B) (B -> A)) (at level 90).
 
-  Record sym {Γ l A B} {R : [LogRel@{i j k l} l | Γ ||- A ≅ B]} :=
-    { symRed : [LogRel@{i j k l} l | Γ ||- B ≅ A] ;
-      symRedTm : forall {t u}, [Γ ||-S<l> t ≅ u : _ | symRed] <≈> [Γ ||-S<l> u ≅ t : _ | R] }.
+  Record Ssym {Γ l A B} {R : [LogRel@{i j k l} l | Γ ||- A ≅ B]} :=
+    { SsymRed : [LogRel@{i j k l} l | Γ ||- B ≅ A] ;
+      SsymRedTm : forall {t u}, [Γ ||-S<l> t ≅ u : _ | SsymRed] <≈> [Γ ||-S<l> u ≅ t : _ | R] }.
 
-  Arguments sym : clear implicits.
-  Arguments sym {_ _ _ _}.
+  Arguments Ssym : clear implicits.
+  Arguments Ssym {_ _ _ _}.
 
   Definition symPoly {Γ l A A' B B'} (ΠA : PolyRed Γ l A A' B B')
-    (ihdom: forall (Δ : context) (ρ : Δ ≤ Γ) (wfΔ : [ |-[ ta ] Δ]), sym (PolyRed.shpRed ΠA ρ wfΔ))
+    (ihdom: forall (Δ : context) (ρ : Δ ≤ Γ) (wfΔ : [ |-[ ta ] Δ]), Ssym (PolyRed.shpRed ΠA ρ wfΔ))
     (ihcod: forall (Δ : context) (a b : term) (ρ : Δ ≤ Γ) (wfΔ : [ |-[ ta ] Δ])
-      (ha : [PolyRed.shpRed ΠA ρ wfΔ | Δ ||- a ≅ b : _]), dover (PolyRed.posRed ΠA ρ wfΔ ha) (fun _ _ _ => sym))
+      (ha : [PolyRed.shpRed ΠA ρ wfΔ | Δ ||- a ≅ b : _]),
+        dover (PolyRed.posRed ΠA ρ wfΔ ha) (fun _ _ _ => Ssym))
       : PolyRed Γ l A' A B' B.
   Proof.
     unshelve econstructor.
-    * intros; now unshelve eapply symRed, ihdom.
+    * intros; now unshelve eapply SsymRed, ihdom.
     * intros * ha; cbn in *.
-      exists (PolyRed.posRed ΠA ρ wfΔ (fst (symRedTm (ihdom Δ ρ wfΔ)) ha)).(dtree).
+      exists (PolyRed.posRed ΠA ρ wfΔ (fst (SsymRedTm (ihdom Δ ρ wfΔ)) ha)).(dtree).
       intros; now eapply ihcod.
   Defined.
 
   Definition symParamRedTy {T Γ l A A'} (ΠA : ParamRedTy T Γ l A A')
-    (ihdom: forall (Δ : context) (ρ : Δ ≤ Γ) (wfΔ : [ |-[ ta ] Δ]), sym (PolyRed.shpRed ΠA ρ wfΔ))
+    (ihdom: forall (Δ : context) (ρ : Δ ≤ Γ) (wfΔ : [ |-[ ta ] Δ]), Ssym (PolyRed.shpRed ΠA ρ wfΔ))
     (ihcod: forall (Δ : context) (a b : term) (ρ : Δ ≤ Γ) (wfΔ : [ |-[ ta ] Δ])
-      (ha : [PolyRed.shpRed ΠA ρ wfΔ | Δ ||- a ≅ b : _]), dover (PolyRed.posRed ΠA ρ wfΔ ha) (fun _ _ _ => sym))
+      (ha : [PolyRed.shpRed ΠA ρ wfΔ | Δ ||- a ≅ b : _]),
+        dover (PolyRed.posRed ΠA ρ wfΔ ha) (fun _ _ _ => Ssym))
       : ParamRedTy T Γ l A' A.
   Proof.
     destruct ΠA; cbn in *; unshelve econstructor.
@@ -52,9 +54,10 @@ Section Symmetry.
 
   Section SymΠ.
     Context {Γ l A A'} (ΠA : [Γ ||-Π<l> A ≅ A'])
-      (ihdom: forall (Δ : context) (ρ : Δ ≤ Γ) (wfΔ : [ |-[ ta ] Δ]), sym (PolyRed.shpRed ΠA ρ wfΔ))
+      (ihdom: forall (Δ : context) (ρ : Δ ≤ Γ) (wfΔ : [ |-[ ta ] Δ]), Ssym (PolyRed.shpRed ΠA ρ wfΔ))
       (ihcod: forall (Δ : context) (a b : term) (ρ : Δ ≤ Γ) (wfΔ : [ |-[ ta ] Δ])
-        (ha : [PolyRed.shpRed ΠA ρ wfΔ | Δ ||- a ≅ b : _]), dover (PolyRed.posRed ΠA ρ wfΔ ha) (fun _ _ _ => sym)).
+        (ha : [PolyRed.shpRed ΠA ρ wfΔ | Δ ||- a ≅ b : _]),
+          dover (PolyRed.posRed ΠA ρ wfΔ ha) (fun _ _ _ => Ssym)).
 
     Let symΠ := symParamRedTy ΠA ihdom ihcod.
 
@@ -65,7 +68,7 @@ Section Symmetry.
         * constructor; tea.
           1: etransitivity; tea; eapply ParamRedTy.eqdom.
           intros.
-          specialize (Rbody Δ b a ρ wfΔ (fst (symRedTm _) ha)).
+          specialize (Rbody Δ b a ρ wfΔ (fst (SsymRedTm _) ha)).
           eapply (dSplit_bind_return Rbody).
           intros Ξ wfΞ ρΞ oha' oRbody ohA; cbn in *.
           now unshelve eapply ihcod, Rbody.
@@ -74,7 +77,7 @@ Section Symmetry.
         * constructor; tea.
           1: etransitivity; tea; eapply ParamRedTy.eqdom.
           intros ??????.
-          specialize (Rbody Δ b a ρ wfΔ (snd (symRedTm _) ha)).
+          specialize (Rbody Δ b a ρ wfΔ (snd (SsymRedTm _) ha)).
           eapply (dSplit_bind_return Rbody).
           intros Ξ wfΞ ρΞ oha' oRbody ohA; cbn in *.
           now unshelve eapply ihcod, SirrLR, Rbody.
@@ -92,18 +95,18 @@ Section Symmetry.
       split; intros []; unshelve econstructor; try now eapply symPiRedTm.
       1,3: cbn; eapply convtm_conv; [now symmetry| eapply PiRedTy.eq].
       - intros Δ a b ρ wfΔ hab; cbn in *.
-        specialize (eqApp Δ b a ρ wfΔ (fst (symRedTm _) hab)).
+        specialize (eqApp Δ b a ρ wfΔ (fst (SsymRedTm _) hab)).
         eapply (dSplit_bind_return eqApp).
         intros Ξ wfΞ ρΞ oha' oeqApp ohA; cbn in *.
         now eapply ihcod, eqApp.
       - intros Δ a b ρ wfΔ hab; cbn in *.
-        specialize (eqApp Δ b a ρ wfΔ (snd (symRedTm _) hab)).
+        specialize (eqApp Δ b a ρ wfΔ (snd (SsymRedTm _) hab)).
         eapply (dSplit_bind_return eqApp).
         intros Ξ wfΞ ρΞ oha' oeqApp ohA; cbn in *.
         now unshelve eapply ihcod, SirrLR, eqApp.
     Qed.
 
-    Definition symLRΠ : sym (LRPi' ΠA).
+    Definition symLRΠ : Ssym (LRPi' ΠA).
     Proof. exists (LRPi' symΠ); intros; cbn; split; eapply symPiRedTmEq. Qed.
   End SymΠ.
 
@@ -149,9 +152,9 @@ Section Symmetry.
 
   Section SymΣ.
     Context {Γ l A A'} (ΣA : [Γ ||-Σ<l> A ≅ A'])
-      (ihdom: forall (Δ : context) (ρ : Δ ≤ Γ) (wfΔ : [ |-[ ta ] Δ]), sym (PolyRed.shpRed ΣA ρ wfΔ))
+      (ihdom: forall (Δ : context) (ρ : Δ ≤ Γ) (wfΔ : [ |-[ ta ] Δ]), Ssym (PolyRed.shpRed ΣA ρ wfΔ))
       (ihcod: forall (Δ : context) (a b : term) (ρ : Δ ≤ Γ) (wfΔ : [ |-[ ta ] Δ])
-        (ha : [PolyRed.shpRed ΣA ρ wfΔ | Δ ||- a ≅ b : _]), dover (PolyRed.posRed ΣA ρ wfΔ ha) (fun _ _ _ => sym)).
+        (ha : [PolyRed.shpRed ΣA ρ wfΔ | Δ ||- a ≅ b : _]), dover (PolyRed.posRed ΣA ρ wfΔ ha) (fun _ _ _ => Ssym)).
 
     Let symΣ := symParamRedTy ΣA ihdom ihcod.
 
@@ -217,12 +220,12 @@ Section Symmetry.
         now unshelve eapply ihcod, SirrLR, eqSnd.
     Qed.
 
-    Definition symLRΣ : sym (LRSig' ΣA).
+    Definition symLRΣ : Ssym (LRSig' ΣA).
     Proof. exists (LRSig' symΣ); intros; cbn; split; eapply symSigRedTmEq. Qed.
   End SymΣ.
 
   Section SymId.
-  Context {Γ l A B} (IA: [Γ ||-Id< l > A ≅ B]) (ihdom:  sym (IdRedTy.tyRed IA)).
+  Context {Γ l A B} (IA: [Γ ||-Id< l > A ≅ B]) (ihdom:  Ssym (IdRedTy.tyRed IA)).
 
   Lemma symId : [Γ ||-Id<l> B ≅ A].
   Proof.
@@ -267,7 +270,7 @@ Section Symmetry.
     all: eapply redtmwf_conv; tea; eapply IdRedTy.eq.
   Qed.
 
-  Lemma symLRId : sym (LRId' IA).
+  Lemma symLRId : Ssym (LRId' IA).
   Proof.
     exists (LRId' symId).
     intros; split; eapply symIdRedTmEq.
@@ -277,12 +280,12 @@ Section Symmetry.
 
   End SymLemmas.
 
-  Arguments sym : clear implicits.
-  Arguments sym {_ _ _ _}.
+  Arguments Ssym : clear implicits.
+  Arguments Ssym {_ _ _ _}.
 
   Theorem symLR_rec@{h i j k l v} {l}
-    (ih : forall l', l' << l -> forall {Γ A B} (R : [Γ ||-S<l'> A ≅ B]), sym@{h i j k v} R)
-    {Γ A B} (R : [Γ ||-S<l> A ≅ B]) : sym@{i j k l v} R.
+    (ih : forall l', l' << l -> forall {Γ A B} (R : [Γ ||-S<l'> A ≅ B]), Ssym@{h i j k v} R)
+    {Γ A B} (R : [Γ ||-S<l> A ≅ B]) : Ssym@{i j k l v} R.
   Proof.
     revert ih; indLR R.
     - intros h ih; unshelve econstructor.
@@ -290,7 +293,7 @@ Section Symmetry.
       + cbn; intros ??; split; intros []; cbn in *.
         all: unshelve econstructor; tea;[now symmetry|]; cbn.
         1,2: eapply redTyRecBwd.
-        1,2: unshelve eapply symRed, ih, URedTy.lt.
+        1,2: unshelve eapply SsymRed, ih, URedTy.lt.
         1,2: now eapply redTyRecFwd.
     - intros h _ ; unshelve econstructor.
       1: now eapply LRne_, symNe.
@@ -320,16 +323,59 @@ Section Symmetry.
   Qed.
 
 
-  Theorem symLR0@{i j k l v} : forall {Γ A B} (R : [Γ ||-S<zero> A ≅ B]), sym@{i j k l v} R.
+  Theorem symLR0@{i j k l v} : forall {Γ A B} (R : [Γ ||-S<zero> A ≅ B]), Ssym@{i j k l v} R.
   Proof.
     eapply symLR_rec; intros ? h; inversion h.
   Qed.
 
-  Theorem symLR@{h i j k l v} : forall {l Γ  A B} (R : [Γ ||-S<l> A ≅ B]), sym@{i j k l v} R.
+  Theorem SsymLR@{h i j k l v} : forall {l Γ  A B} (R : [Γ ||-S<l> A ≅ B]), Ssym@{i j k l v} R.
   Proof.
     intros []; [intros; eapply symLR0| apply symLR_rec].
     intros ? h; inversion h; intros; eapply symLR0.
   Qed.
 
 End Symmetry.
+
+
+Section WSymmetry.
+  Context `{GenericTypingProperties}.
+
+
+  Universe i j k l v.
+
+  Notation "A <≈> B" := (prod@{v v} (A -> B) (B -> A)) (at level 90).
+
+  Record sym {Γ wfΓ l A B} {R : WLRAdequate@{i j k l} Γ wfΓ l A B} :=
+    { symRed : WLRAdequate@{i j k l} Γ wfΓ l B A ;
+      symRedTm : forall {t u}, [wfΓ ||-<l> t ≅ u : _ | symRed] <≈> [wfΓ ||-<l> u ≅ t : _ | R] }.
+
+  Arguments sym : clear implicits.
+  Arguments sym {_ _ _ _ _}.
+
+  Theorem symLR : forall {l Γ} {wfΓ: [|-Γ]}  {A B} (R : [wfΓ ||-<l> A ≅ B]), sym R.
+  Proof.
+    intros ??????.
+    unshelve econstructor.
+    + eapply (Split_bind_return R).
+      intros ??? oR.
+      eapply SsymLR.
+      now eapply R.
+    + intros t u; split;
+      intros Rtu; eapply (dSplit_bind_return Rtu);
+      intros ??? oR' oRtu oR;
+      now unshelve eapply SsymLR, SirrLR, Rtu.
+  Qed.
+
+End WSymmetry.
+
+
+
+
+
+
+
+
+
+
+
 

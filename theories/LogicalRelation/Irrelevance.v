@@ -304,15 +304,16 @@ Qed.
 
 
 
-Definition irr@{v i j k l i' j' k' l'} `{GenericTypingProperties} {Γ wfΓ l1 l2 A B1 B2} (RA1 : WLRAdequate@{i j k l} Γ wfΓ l1 A B1) (RA2 : WLRAdequate@{i j k l} Γ wfΓ l2 A B2) : Type@{v}:=
+Definition irr@{v i j k l i' j' k' l'} `{GenericTypingProperties} {Γ wfΓ wfΓ' l1 l2 A B1 B2}
+  (RA1 : WLRAdequate@{i j k l} Γ wfΓ l1 A B1) (RA2 : WLRAdequate@{i' j' k' l'} Γ wfΓ' l2 A B2) : Type@{v}:=
   forall t u, [Γ ||-< l1 > t ≅ u : _ | RA1] -> [ Γ ||-< l2 > t ≅ u : _ | RA2].
 
 Theorem irrLR@{i j k l i' j' k' l' v} `{GenericTypingProperties} {l1 l2}
-  {Γ} {wfΓ : [|-Γ]} {A B1 B2} (R1 : [wfΓ ||-<l1> A ≅ B1]) (R2 : [wfΓ ||-<l2> A ≅ B2]) :
+  {Γ} {wfΓ wfΓ' : [|-Γ]} {A B1 B2} (R1 : [wfΓ ||-<l1> A ≅ B1]) (R2 : [wfΓ' ||-<l2> A ≅ B2]) :
     irr@{v i j k l i' j' k' l'} R1 R2.
 Proof.
   intros t u Rtu.
-  eapply (dSplit_bind_return Rtu).
+  refine (dSplit_bind_return Rtu _).
   intros Δ ρ oR1 oRtu oR2 hΔ.
   eapply SirrLR.
   now unshelve eapply Rtu.

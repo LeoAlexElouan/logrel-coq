@@ -356,6 +356,7 @@ Lemma Wpack_return `{GenericTypingProperties}
   (Rtu : [Γ ||-S< l > t ≅ u : A | RAB] ) : [wfΓ ||-< l > t ≅ u : A | WAd_return (wfΓ := wfΓ) RAB].
 Proof.
   unshelve eapply irrLR, Wpack_return', Rtu.
+  easy.
   now eapply WAd_return.
 Qed.
 

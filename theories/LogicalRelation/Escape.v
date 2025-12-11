@@ -44,6 +44,12 @@ Section Escapes.
       now first [eapply escape,lr| eapply escapeTy,lr].
   Qed.
 
+  Lemma escapeSplit {l Γ} {wfΓ : [|-Γ]} {A B} : [wfΓ ||-<l> A ≅ B] ->
+    [Γ |- A].
+  Proof.
+    apply escapeSplitTy.
+  Qed.
+
   Lemma escapeTm {l Γ A B t u} (lr : [Γ ||-S< l > A ≅ B]) :
     [Γ ||-S< l > t ≅ u : A | lr ] ->
     [Γ |- t : A] × [Γ |- u : A] × [Γ |- t ≅ u : A].

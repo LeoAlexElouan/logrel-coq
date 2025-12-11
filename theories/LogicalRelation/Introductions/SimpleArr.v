@@ -51,7 +51,7 @@ Section SimpleArrow.
     (Ruu' : [Γ ||-S<l> u ≅ u' : F | RF ]) :
       [wfΓ ||-<l> tApp t u ≅ tApp t' u' : G | RG].
   Proof.
-    unshelve (eapply irrLREq, appcongTerm; tea);
+    unshelve (eapply irrLREq, appcongTerm; tea); tea;
     erewrite !shift_subst1; tea; reflexivity.
   Qed.
 
