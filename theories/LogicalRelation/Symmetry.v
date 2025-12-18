@@ -35,7 +35,7 @@ Section Symmetry.
     unshelve econstructor.
     * intros; now unshelve eapply SsymRed, ihdom.
     * intros * ha; cbn in *.
-      exists (PolyRed.posRed ΠA ρ wfΔ (fst (SsymRedTm (ihdom Δ ρ wfΔ)) ha)).(dtree).
+      eapply (Split_bind_return (PolyRed.posRed ΠA ρ wfΔ (fst (SsymRedTm (ihdom Δ ρ wfΔ)) ha))).
       intros; now eapply ihcod.
   Defined.
 
@@ -71,7 +71,7 @@ Section Symmetry.
           specialize (Rbody Δ b a ρ wfΔ (fst (SsymRedTm _) ha)).
           eapply (dSplit_bind_return Rbody).
           intros Ξ wfΞ ρΞ oha' oRbody ohA; cbn in *.
-          now unshelve eapply ihcod, Rbody.
+          now unshelve eapply SirrLR, ihcod, Rbody.
         * constructor; eapply convneu_conv; tea; eapply ParamRedTy.eq.
       - intros [???? Rbody|].
         * constructor; tea.
@@ -98,7 +98,7 @@ Section Symmetry.
         specialize (eqApp Δ b a ρ wfΔ (fst (SsymRedTm _) hab)).
         eapply (dSplit_bind_return eqApp).
         intros Ξ wfΞ ρΞ oha' oeqApp ohA; cbn in *.
-        now eapply ihcod, eqApp.
+        now unshelve eapply SirrLR, ihcod, eqApp.
       - intros Δ a b ρ wfΔ hab; cbn in *.
         specialize (eqApp Δ b a ρ wfΔ (snd (SsymRedTm _) hab)).
         eapply (dSplit_bind_return eqApp).
@@ -176,7 +176,7 @@ Section Symmetry.
             specialize (r2 _ ρ h).
             eapply (dSplit_bind_return r2).
             intros Ξ wfΞ ρΞ oha' or2 ohA; cbn in *.
-            now unshelve eapply ihcod, SirrLR, r2.
+            now unshelve eapply SirrLR, ihcod, SirrLR, r2.
         * constructor; eapply convneu_conv; tea; eapply ParamRedTy.eq.
       - intros [???????? r1 r2|].
         * unshelve eapply PairLRPair; tea.
@@ -212,7 +212,7 @@ Section Symmetry.
         specialize (eqSnd _ ρ h).
         eapply (dSplit_bind_return eqSnd).
         intros Ξ wfΞ ρΞ oha' oeqSnd ohA; cbn in *.
-        now unshelve eapply ihcod, SirrLR, eqSnd.
+        now unshelve eapply SirrLR, ihcod, SirrLR, eqSnd.
       + intros; cbn in *.
         specialize (eqSnd _ ρ h).
         eapply (dSplit_bind_return eqSnd).
@@ -345,16 +345,16 @@ Section WSymmetry.
 
   Notation "A <≈> B" := (prod@{v v} (A -> B) (B -> A)) (at level 90).
 
-  Record sym {Γ wfΓ l A B} {R : WLRAdequate@{i j k l} Γ wfΓ l A B} :=
-    { symRed : WLRAdequate@{i j k l} Γ wfΓ l B A ;
-      symRedTm : forall {t u}, [wfΓ ||-<l> t ≅ u : _ | symRed] <≈> [wfΓ ||-<l> u ≅ t : _ | R] }.
+  Record sym {Γ l A B} {R : WLRAdequate@{i j k l} Γ l A B} :=
+    { symRed : WLRAdequate@{i j k l} Γ l B A ;
+      symRedTm : forall {t u}, [Γ ||-<l> t ≅ u : _ | symRed] <≈> [Γ ||-<l> u ≅ t : _ | R] }.
 
   Arguments sym : clear implicits.
-  Arguments sym {_ _ _ _ _}.
+  Arguments sym {_ _ _ _}.
 
-  Theorem symLR : forall {l Γ} {wfΓ: [|-Γ]}  {A B} (R : [wfΓ ||-<l> A ≅ B]), sym R.
+  Theorem symLR : forall {l Γ A B} (R : [Γ ||-<l> A ≅ B]), sym R.
   Proof.
-    intros ??????.
+    intros ?????.
     unshelve econstructor.
     + eapply (Split_bind_return R).
       intros ??? oR.

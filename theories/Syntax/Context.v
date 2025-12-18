@@ -16,7 +16,8 @@ Definition preFcontext := list (nat × bool).
 
 Inductive not_in_Fctx : preFcontext -> nat -> SProp :=
   | not_in_nil n : not_in_Fctx nil n
-  | not_in_nowhere (L : preFcontext) n n' b' : (n <> n') -> not_in_Fctx L n -> (not_in_Fctx (cons (n',b') L) n).
+  | not_in_nowhere (L : preFcontext) n n' b' :
+    (n <> n') -> not_in_Fctx L n -> (not_in_Fctx (cons (n',b') L) n).
 
 Inductive wfFcontext : preFcontext -> SProp :=
   | wf_nil : wfFcontext nil
@@ -82,8 +83,8 @@ Proof.
 Qed.
 
 Inductive in_Fctx : preFcontext -> nat -> bool -> SProp :=
-  | in_hereF (L : preFcontext) n b : in_Fctx (cons (n,b) L)  n b
-  | in_thereF (L : preFcontext) n b n' b' : in_Fctx L n b -> in_Fctx (cons (n', b') L)n b.
+  | in_hereF (L : preFcontext) n b : in_Fctx (cons (n,b) L) n b
+  | in_thereF (L : preFcontext) n b n' b' : in_Fctx L n b -> in_Fctx (cons (n', b') L) n b.
 
 
 

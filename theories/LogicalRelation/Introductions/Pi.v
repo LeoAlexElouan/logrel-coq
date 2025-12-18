@@ -18,3 +18,21 @@ Section PolyRedPi.
     LRPi' (LRPiPoly0 wfΓ PAB).
 
 End PolyRedPi.
+
+
+
+Lemma canonPi `{GenericTypingProperties} {Γ A A' B B' l p p'}
+  {RΠ : [Γ ||-S< l > tProd A B ≅ tProd A' B']} :
+  [ Γ ||-S< l > p ≅ p' : tProd A B | RΠ] ->
+  [ Γ ||-S< l > p ≅ p' : tProd A B | LRPi' (normRedΠ RΠ)].
+Proof.
+  intro. now eapply SirrLR.
+Qed.
+
+Lemma canonPi_inv `{GenericTypingProperties} {Γ A A' B B' l p p'}
+  {RΠ : [Γ ||-S< l > tProd A B ≅ tProd A' B']} :
+  [ Γ ||-S< l > p ≅ p' : tProd A B | LRPi' (normRedΠ RΠ)] ->
+  [ Γ ||-S< l > p ≅ p' : tProd A B | RΠ].
+Proof.
+  intro. now eapply SirrLR.
+Qed.

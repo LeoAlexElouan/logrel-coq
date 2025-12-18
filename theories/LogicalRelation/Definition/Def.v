@@ -133,56 +133,50 @@ Section Weak_LogRel.
     `{!ConvType ta} `{!ConvTerm ta} `{!ConvNeuConv ta}
     `{!RedType ta} `{!RedTerm ta}.
 
-  Definition WLRAdequate@{i j k l | i < j, j < k, k < l} Γ wfΓ l A B : Type@{l} :=
-    Split@{l} (wfΓ := wfΓ) (fun Δ wfΔ (ρ: Δ ≤ Γ) => LRAdequate@{k l} Δ (LogRel@{i j k l} l) A⟨ρ⟩ B⟨ρ⟩).
+  Definition WLRAdequate@{i j k l | i < j, j < k, k < l} Γ l A B : Type@{l} :=
+    Split@{l} (fun Δ _ (ρ: Δ ≤ Γ) => LRAdequate@{k l} Δ (LogRel@{i j k l} l) A⟨ρ⟩ B⟨ρ⟩).
 
-  Definition Wpack@{i j k l | i < j, j < k, k < l} Γ wfΓ l A B (RA : WLRAdequate@{i j k l} Γ wfΓ l A B) : LRPack@{k} Γ A B :=
+  Definition Wpack@{i j k l | i < j, j < k, k < l} Γ l A B (RA : WLRAdequate@{i j k l} Γ l A B) : LRPack@{k} Γ A B :=
     Build_LRPack@{k} Γ A B (fun t u =>
-      dSplit (fun Δ wfΔ (ρ: Δ ≤ Γ) hSplit => [LogRel@{i j k l} l | Δ ||- t⟨ρ⟩ ≅ u⟨ρ⟩ : A⟨ρ⟩ | hSplit]) RA).
+      dSplit (fun Δ _ (ρ: Δ ≤ Γ) hSplit => [LogRel@{i j k l} l | Δ ||- t⟨ρ⟩ ≅ u⟨ρ⟩ : A⟨ρ⟩ | hSplit]) RA).
   Coercion Wpack : WLRAdequate >-> LRPack.
 End Weak_LogRel.
 
-Notation "[ wfΓ ||-< l > A ≅ B ]" := (WLRAdequate _ wfΓ l A B).
-Notation "[ wfΓ ||-< l > A ]" := [ wfΓ ||-<l> A ≅ A].
-Notation "[ wfΓ ||-< l > t ≅ u : A | RA ]" := (RA.(LRPack.eqTm) t u).
-Notation "[ wfΓ ||-< l > t : A | RA ]" := [ Γ ||-< l > t ≅ t : A | RA].
+Notation "[ Γ ||-< l > A ≅ B ]" := (WLRAdequate Γ l A B).
+Notation "[ Γ ||-< l > A ]" := [ Γ ||-<l> A ≅ A].
+Notation "[ Γ ||-< l > t ≅ u : A | RA ]" := (RA.(LRPack.eqTm) t u).
+Notation "[ Γ ||-< l > t : A | RA ]" := [ Γ ||-< l > t ≅ t : A | RA].
 
 Lemma WAdrefold `{GenericTypingProperties} :
-    forall {Γ l A B Δ wfΔ} {ρ : Δ≤ Γ}, [wfΔ ||-<l> A⟨ρ⟩ ≅ B⟨ρ⟩] ->
-     Split (wfΓ:= wfΔ) (fun Ξ wfΞ (ρΞ : Ξ ≤ Δ) => [Ξ ||-S<l> A⟨ρΞ ∘w ρ⟩ ≅ B⟨ρΞ ∘w ρ⟩]).
+    forall {Γ l A B Δ} {ρ : Δ≤ Γ}, [Δ ||-<l> A⟨ρ⟩ ≅ B⟨ρ⟩] ->
+     Split (fun Ξ _ (ρΞ : Ξ ≤ Δ) => [Ξ ||-S<l> A⟨ρΞ ∘w ρ⟩ ≅ B⟨ρΞ ∘w ρ⟩]).
 Proof.
-  intros ??????? RAB.
-  eapply (Split_bind_return RAB).
+  intros ?????? RAB.
+  unshelve eapply (Split_bind_return RAB); tea.
   intros Ξ wfΞ ρΞ oRAB.
   rewrite <-2!wk_comp_ren_on.
   now eapply RAB.
 Qed.
 
-Lemma WAd_split `{GenericTypingProperties} :
-  forall {Γ l A B new} {wfΓ : [|-Γ]} {wfΓt : [|-Γ,, new ↦ true]} {wfΓf : [|-Γ,, new ↦ false]},
-  [wfΓt ||-< l > A ≅ B] -> [wfΓf ||-< l > A ≅ B] -> [wfΓ ||-< l >A ≅ B].
+Lemma WAd_split `{GenericTypingProperties}
+  {Γ l A B new} :
+  [Γ,, new ↦ true ||-< l > A ≅ B] -> [Γ,, new ↦ false ||-< l > A ≅ B] -> [Γ ||-< l >A ≅ B].
 Proof.
-  intros ???????? ht hf.
-  epose proof (Split_shf (A:= fun Δ wfΔ ρ => [Δ ||-S< l > A⟨ρ⟩ ≅ B⟨ρ⟩]) Γ wfΓ wk_id new _ _) as hsplit.
-  cbn in hsplit.
-  eapply (Split_bind_return hsplit).
-  intros Δ wfΔ ρ ohsplit.
-  rewrite <- (wk_comp_runit ρ).
-  now eapply hsplit.
+  intros ht hf.
+  assert (wftrue : [|-Γ,, new ↦ true]) by apply ht.
+  assert (wffalse : [|-Γ,, new ↦ false]) by apply hf.
+  assert (wfΓ : [|-Γ]) by now eapply wfc_split.
+  epose proof (Split_shf (A:= fun Δ _ ρ => [Δ ||-S< l > A⟨ρ⟩ ≅ B⟨ρ⟩]) Γ wfΓ wk_id new _ _) as hsplit.
+  eapply Split_hom_PSh, hsplit.
+  intros ??? RAB.
+  now rewrite wk_comp_runit in RAB.
   Unshelve.
-  easy.
-  + cbn.
-    eapply (Split_wk_bind_return ht).
-    eapply wk_id.
-    intros Ξ wfΞ ρΞ oht.
-    rewrite <- 2!wk_comp_ren_on, 2!wk_Fstep_ren_on, 2!wk_id_ren_on.
-    now eapply ht.
-  + cbn.
-    eapply (Split_wk_bind_return hf).
-    eapply wk_id.
-    intros Ξ wfΞ ρΞ ohf.
-    rewrite <- 2!wk_comp_ren_on, 2!wk_Fstep_ren_on, 2!wk_id_ren_on.
-    now eapply hf.
+  + eapply Split_hom_PSh, ht.
+    intros ?? RAB.
+    now rewrite <- 2!wk_comp_ren_on, 2!wk_Fstep_ren_on, 2!wk_id_ren_on.
+  + eapply Split_hom_PSh, hf.
+    intros ?? RAB.
+    now rewrite <- 2!wk_comp_ren_on, 2!wk_Fstep_ren_on, 2!wk_id_ren_on.
 Qed.
 
 

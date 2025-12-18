@@ -10,23 +10,23 @@ Set Printing Primitive Projection Parameters.
 Section Var.
   Context `{GenericTypingProperties}.
 
-  Lemma var0Valid {Γ Γ' l A A'} (VΓ : [||-v Γ ≅ Γ']) (VA : [Γ ||-vS<l> A ≅ A'| VΓ]) :
-    [Γ,, A ||-vS<l> tRel 0 : _ | validSnoc VΓ VA | wk1ValidTy _ VA ].
+  Lemma var0Valid {Γ Γ' l A A'} (VΓ : [||-v Γ ≅ Γ']) (VA : [Γ ||-v<l> A ≅ A'| VΓ]) :
+    [Γ,, A ||-v<l> tRel 0 : _ | validSnoc VΓ VA | wk1ValidTy _ VA ].
   Proof.
     constructor; intros; cbn; epose (eqHead Vσσ').
-    eapply SirrLREq; tea; now bsimpl.
+    eapply irrLREq; tea; now bsimpl.
   Qed.
 
-  Lemma var0Valid' {Γ Γ' l A A'} (VΓ : [||-v Γ,,A ≅ Γ']) (VA : [Γ,,A ||-vS<l> A⟨↑⟩ ≅ A' | VΓ]) :
-    [Γ,, A ||-vS<l> tRel 0 : _ | VΓ | VA ].
+  Lemma var0Valid' {Γ Γ' l A A'} (VΓ : [||-v Γ,,A ≅ Γ']) (VA : [Γ,,A ||-v<l> A⟨↑⟩ ≅ A' | VΓ]) :
+    [Γ,, A ||-v<l> tRel 0 : _ | VΓ | VA ].
   Proof.
     pose proof (invValidity VΓ) as (?&?&?&?&?&e&h); subst; cbn in h; subst.
-    constructor; intros; cbn; eapply SirrLREqCum;[| exact (eqHead Vσσ')].
+    constructor; intros; cbn; eapply irrLREqCum;[| exact (eqHead Vσσ')].
     now asimpl.
   Qed.
 
   Lemma in_ctx_valid {Γ : context} {A n} (hin : in_ctx Γ n A)
-    : forall {Γ'} (VΓ : [||-v Γ ≅ Γ']), ∑ l B, [Γ ||-vS<l> A ≅ B | VΓ].
+    : forall {Γ'} (VΓ : [||-v Γ ≅ Γ']), ∑ l B, [Γ ||-v<l> A ≅ B | VΓ].
   Proof.
     induction hin as [| ???? hin ih] using in_ctx_induction; intros ? VΓ;
     pose proof (invValidity VΓ) as (?&?&?&VΓ'&VA &e&?); subst; cbn in *; subst.
@@ -36,8 +36,8 @@ Section Var.
 
 
   Lemma varnValid {Γ A n} (hin : in_ctx Γ n A) :
-    forall l {Γ' A'} (VΓ : [||-v Γ ≅ Γ']) (VA : [Γ ||-vS<l> A ≅ A' | VΓ]),
-      [Γ ||-vS<l> tRel n : _ | VΓ | VA ].
+    forall l {Γ' A'} (VΓ : [||-v Γ ≅ Γ']) (VA : [Γ ||-v<l> A ≅ A' | VΓ]),
+      [Γ ||-v<l> tRel n : _ | VΓ | VA ].
   Proof.
     induction hin as [| ???? hin ih] using in_ctx_induction; intros l ?? VΓ VA.
     1: eapply var0Valid'.
@@ -51,8 +51,8 @@ Section Var.
     Unshelve. 3: now eapply lrefl, convValidTy. now eapply lrefl.
   Qed.
 
-  Lemma var1Valid {Γ l A B} (VΓ : [||-v (Γ,, A) ,, B]) (VA : [_ ||-vS<l> A⟨↑⟩⟨↑⟩ | VΓ]) :
-    [(Γ,, A) ,, B ||-vS<l> tRel 1 : _ | VΓ | VA ].
+  Lemma var1Valid {Γ l A B} (VΓ : [||-v (Γ,, A) ,, B]) (VA : [_ ||-v<l> A⟨↑⟩⟨↑⟩ | VΓ]) :
+    [(Γ,, A) ,, B ||-v<l> tRel 1 : _ | VΓ | VA ].
   Proof.
     eapply varnValid; do 2 constructor.
   Qed.

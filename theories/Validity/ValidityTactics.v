@@ -7,21 +7,21 @@ Set Universe Polymorphism.
 Set Printing Primitive Projection Parameters.
 
 Definition packed_valid_ty `{GenericTypingProperties} l :=
-  packed_ciper (VAdequate VR) (fun Γ Γ' VΓ => StypeValidity Γ Γ' VΓ l).
+  packed_ciper (VAdequate VR) (fun Γ Γ' VΓ => typeValidity Γ Γ' VΓ l).
 
 Instance packed_valid_tyPER `{GenericTypingProperties} l : PER (packed_valid_ty l) :=
   packed_ciper_per.
 
 Definition mkVty `{GenericTypingProperties} {l Γ Γ' A A'}
-  {VΓ : [||-v Γ ≅ Γ']} (VA : [_ ||-vS<l> A ≅ A' | VΓ]) :
+  {VΓ : [||-v Γ ≅ Γ']} (VA : [_ ||-v<l> A ≅ A' | VΓ]) :
   packed_valid_ty l (& Γ, A)  (& Γ', A') := (& VΓ ; VA ).
 
 
 Definition packed_valid_tm `{GenericTypingProperties} l :=
-  packed_ciper (packed_valid_ty l) (fun _ _ VΓA t u => [_ ||-vS<l> t ≅ u : _ | dfst VΓA | dsnd VΓA]).
+  packed_ciper (packed_valid_ty l) (fun _ _ VΓA t u => [_ ||-v<l> t ≅ u : _ | dfst VΓA | dsnd VΓA]).
 
 Instance iperValidTm `{GenericTypingProperties} l :
-  IPER (packed_valid_ty l) (fun _ => term) (fun _ _ VΓA t u => [_ ||-vS<l> t ≅ u : _ | dfst VΓA | dsnd VΓA]).
+  IPER (packed_valid_ty l) (fun _ => term) (fun _ _ VΓA t u => [_ ||-v<l> t ≅ u : _ | dfst VΓA | dsnd VΓA]).
 Proof.
   constructor.
   - intros; now eapply symValidTm.
@@ -32,7 +32,7 @@ Instance packed_valid_tmPER `{GenericTypingProperties} l : PER (packed_valid_tm 
   packed_ciper_per.
 
 Definition mkVtm `{GenericTypingProperties} {l Γ Γ' A A' t t'}
-  {VΓ : [||-v Γ ≅ Γ']} {VA : [_ ||-vS<l> A ≅ A' | VΓ]} (Vt : [_ ||-vS<l> t ≅ t' : _ | VΓ | VA]) :
+  {VΓ : [||-v Γ ≅ Γ']} {VA : [_ ||-v<l> A ≅ A' | VΓ]} (Vt : [_ ||-v<l> t ≅ t' : _ | VΓ | VA]) :
   packed_valid_tm l (&(& Γ, A), t) (&(& Γ', A'), t') := (& mkVty VA; Vt ).
 
 Ltac2 mkvty c := preterm:(mkVty $preterm:c).
@@ -49,8 +49,8 @@ Ltac2 pose_proof c :=
 Ltac2 valid_ctx_matcher ty pfopt :=
   lazy_match! ty with
   | VAdequate VR ?g ?g' => Some (g, g'), pfopt
-  | StypeValidity ?g ?g' (VAd.pack ?vg) _ _ _ => Some (g, g'), Some vg
-  | StermEqValidity ?g ?g' _ _ _ ?vg _ _ _ => Some (g, g'), Some vg
+  | typeValidity ?g ?g' (VAd.pack ?vg) _ _ _ => Some (g, g'), Some vg
+  | termEqValidity ?g ?g' _ _ _ ?vg _ _ _ => Some (g, g'), Some vg
   | _ => None, None
   end.
 
@@ -62,8 +62,8 @@ Ltac2 valid_ctx_rel h c :=
 
 Ltac2 valid_ty_matcher ty pfopt :=
   lazy_match! ty with
-  | StypeValidity ?g ?g' (VAd.pack ?vg) ?l ?a ?a' => Some (g, g', vg, a, a', l), pfopt
-  | StermEqValidity ?g ?g' ?l ?a ?a' ?vg ?va _ _ => Some (g, g', vg, a, a', l), Some va
+  | typeValidity ?g ?g' (VAd.pack ?vg) ?l ?a ?a' => Some (g, g', vg, a, a', l), pfopt
+  | termEqValidity ?g ?g' ?l ?a ?a' ?vg ?va _ _ => Some (g, g', vg, a, a', l), Some va
   | _ => None, None
   end.
 
@@ -79,17 +79,17 @@ Ltac2 valid_ty_rel st h c :=
 
 Ltac2 valid_tm_matcher ty pfopt :=
   lazy_match! ty with
-  | StermEqValidity ?g ?g' ?_l ?a ?a' ?_vg ?va ?t ?t' => Some (pair g a, pair g' a', mkvty preterm:($va), t, t'), pfopt
+  | termEqValidity ?g ?g' ?_l ?a ?a' ?_vg ?va ?t ?t' => Some (pair g a, pair g' a', mkvty preterm:($va), t, t'), pfopt
   | _ => None, None
   end.
 
 Definition ureflValidTy `{GenericTypingProperties} {Γ Γ' l A B} {VΓ : [||-v Γ ≅ Γ']} (VΓ' := urefl VΓ) :
-  [Γ ||-vS<l> A ≅ B | VΓ] -> [_ ||-vS<l> B ≅ B | VΓ'].
+  [Γ ||-v<l> A ≅ B | VΓ] -> [_ ||-v<l> B ≅ B | VΓ'].
 Proof. apply ureflValidTy. Defined.
 
 Ltac2 valid_tm_rel st h c :=
   lazy_match! c with
-  | StermEqValidity ?g ?_g' ?_l ?a ?_a' ?_vg ?va ?t ?t' =>
+  | termEqValidity ?g ?_g' ?_l ?a ?_a' ?_vg ?va ?t ?t' =>
     let h := Control.hyp h in
     let (g0, wgg0) := Option.get_bt (PER.repr st g) in
     (* let va0 := mkvty constr:(irrValidTy (VΓ0:=$vg) (VΓ1:=urefl $wgg0) $wgg0 $va) in *)
@@ -182,15 +182,15 @@ Ltac2 solve_any get_st g :=
   | VAdequate VR ?g ?g' =>
     let st := get_st () in
     solve_ctx st g g'
-    (* Control.time (Some "solveCtx:") (fun () => solve_ctx st g g') *)
-  | StypeValidity ?g ?g' (VAd.pack ?vg) ?l ?a ?a' =>
+(*     Control.time (Some "solveCtx:") (fun () => solve_ctx st g g') *)
+  | typeValidity ?g ?g' (VAd.pack ?vg) ?l ?a ?a' =>
     let st := get_st () in
     solve_ty st g g' vg l a a'
-    (* Control.time (Some "solveTy:") (fun () => solve_ty st g g' vg l a a') *)
-  | StermEqValidity ?g ?g' ?l ?a ?a' ?vg ?va ?t ?t' =>
+(*     Control.time (Some "solveTy:") (fun () => solve_ty st g g' vg l a a') *)
+  | termEqValidity ?g ?g' ?l ?a ?a' ?vg ?va ?t ?t' =>
     let st := get_st () in
     solve_tm st g g' vg a a' va l t t'
-    (* Control.time (Some "solveTm:") (fun () => solve_tm st g g' vg a a' va l t t') *)
+(*     Control.time (Some "solveTm:") (fun () => solve_tm st g g' vg a a' va l t t') *)
   | _ => fail "Term does not match"
   end.
 
@@ -199,7 +199,7 @@ Ltac2 init n :=
   List.iter (PER.add_rel st valid_ctx_rel) (Control.hyps ());
   List.iter (PER.add_rel st (valid_ty_rel st)) (Control.hyps ()) ;
   List.iter (PER.add_rel st (valid_tm_rel st)) (Control.hyps ()) ; st.
-  (* Control.time (Some "Init stage 1:") (fun () => List.iter (PER.add_rel st valid_ctx_rel) (Control.hyps ()));
+(*   Control.time (Some "Init stage 1:") (fun () => List.iter (PER.add_rel st valid_ctx_rel) (Control.hyps ()));
   Control.time (Some "Init stage 2:") (fun () => List.iter (PER.add_rel st (valid_ty_rel st)) (Control.hyps ())) ;
   Control.time (Some "Init stage 3:") (fun () => List.iter (PER.add_rel st (valid_tm_rel st)) (Control.hyps ())) ; st. *)
 
@@ -220,27 +220,27 @@ Proof.
   irrValid ().
 Qed.
 
-Context {l A B C D} (VAB : [_ ||-vS<l> A ≅ B | VΓ01]) (VDC : [_ ||-vS<l> C ≅ D | VΓ12]).
+Context {l A B C D} (VAB : [_ ||-v<l> A ≅ B | VΓ01]) (VDC : [_ ||-v<l> C ≅ D | VΓ12]).
 
-Lemma VBB2 (VΓ22 := urefl VΓ02) : [_ ||-vS<l> B |VΓ22].
+Lemma VBB2 (VΓ22 := urefl VΓ02) : [_ ||-v<l> B |VΓ22].
 Proof.
   irrValid ().
 Qed.
 
-Lemma VAD10 (VΓ10 := symmetry VΓ01) (VCB : [_ ||-vS<l> C ≅ B | VΓ12]) :
-  [_ ||-vS<l> A ≅ D | VΓ10].
+Lemma VAD10 (VΓ10 := symmetry VΓ01) (VCB : [_ ||-v<l> C ≅ B | VΓ12]) :
+  [_ ||-v<l> A ≅ D | VΓ10].
 Proof.
   irrValid ().
 Qed.
 
-Context {t u v} (Vtu : [_ ||-vS<l> t ≅ u : _ | _ | VAB]) (Vvu : [_ ||-vS<l> v ≅ u : _ | _ | VBB2]).
+Context {t u v} (Vtu : [_ ||-v<l> t ≅ u : _ | _ | VAB]) (Vvu : [_ ||-v<l> v ≅ u : _ | _ | VBB2]).
 
-Lemma Vtt :  [_ ||-vS<l> t ≅ t : _ | _ | VAB].
+Lemma Vtt :  [_ ||-v<l> t ≅ t : _ | _ | VAB].
 Proof.
   irrValid ().
 Qed.
 
-Lemma Vvt (VCB : [_ ||-vS<l> C ≅ B | VΓ12]) : [_ ||-vS<l> v ≅ t : _ | _ | VAD10 VCB].
+Lemma Vvt (VCB : [_ ||-v<l> C ≅ B | VΓ12]) : [_ ||-v<l> v ≅ t : _ | _ | VAD10 VCB].
 Proof.
   irrValid ().
 Qed.

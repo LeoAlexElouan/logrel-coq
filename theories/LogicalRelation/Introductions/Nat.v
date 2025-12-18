@@ -68,7 +68,7 @@ Lemma liftSubst_singleSubst_eq {t u v: term} : t[u]⇑[v..] = t[u[v..]..].
 Proof. now bsimpl. Qed.
 
 Section NatElimRedEq.
-  Context {Γ} {wfΓ : [|-Γ]} {l P Q hs hs' hz hz'}
+  Context {Γ l P Q hs hs' hz hz'}
     (NN : [Γ ||-Nat tNat ≅ tNat])
     (RN := LRNat_ _ NN)
     (WtP : [Γ ,, tNat |- P])
@@ -90,9 +90,9 @@ Section NatElimRedEq.
 
   Lemma natElimRedEqAux :
     (forall n n' (Rnn' : [Γ ||-S<l> n ≅ n' : _ | RN]),
-      [wfΓ ||-<l> tNatElim P hz hs n ≅ tNatElim Q hz' hs' n' : _ | WAd_return (wfΓ := wfΓ) (RPQext _ _ Rnn') ]) ×
+      [Γ ||-<l> tNatElim P hz hs n ≅ tNatElim Q hz' hs' n' : _ | WAd_return (RPQext _ _ Rnn') ]) ×
     (forall n n' (Rnn' : NatPropEq Γ n n') (RP : [Γ ||-S<l> P[n..] ≅ Q[n'..]]),
-      [wfΓ ||-<l> tNatElim P hz hs n ≅ tNatElim Q hz' hs' n' : _ | WAd_return (wfΓ := wfΓ) RP ]).
+      [Γ ||-<l> tNatElim P hz hs n ≅ tNatElim Q hz' hs' n' : _ | WAd_return RP ]).
   Proof. 
     apply NatRedEqInduction.
     - intros t u  nfL nfR redL redR ? prop ih.
@@ -113,7 +113,7 @@ Section NatElimRedEq.
       + escape; eapply redtm_natElimSucc; tea.
       + escape; eapply redtm_natElimSucc; tea.
         1,2: now eapply ty_conv.
-      + assert [wfΓ ||-<l> arr P[n..] P[(tSucc n)..] ≅ arr Q[n'..] Q[(tSucc n')..]].
+      + assert [Γ ||-<l> arr P[n..] P[(tSucc n)..] ≅ arr Q[n'..] Q[(tSucc n')..]].
         1: now eapply WAd_return, ArrRedTy; eapply RPQext;[|eapply succRed].
         unshelve eapply simple_appcongTerm'; [..| eauto]; tea.
         unshelve (eapply irrLREq, appcongTerm; tea; now rewrite subst_arr, liftSubst_singleSubst_eq); tea.
@@ -130,7 +130,7 @@ Section NatElimRedEq.
 
   Lemma natElimRedEq :
     (forall n n' (Rnn' : [Γ ||-S<l> n ≅ n' : _ | RN]),
-      [Γ ||-<l> tNatElim P hz hs n ≅ tNatElim Q hz' hs' n' : _ | WAd_return (wfΓ := wfΓ) (RPQext _ _ Rnn') ]).
+      [Γ ||-<l> tNatElim P hz hs n ≅ tNatElim Q hz' hs' n' : _ | WAd_return  (RPQext _ _ Rnn') ]).
   Proof. intros; now apply (fst natElimRedEqAux). Qed.
 End NatElimRedEq.
 

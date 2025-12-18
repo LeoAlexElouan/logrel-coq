@@ -233,7 +233,7 @@ Lemma cumPolyRed@{h h'} {lA}
     [LogRel@{i' j' k' l'} lA | Δ ||- shp⟨ρ⟩ ≅ shp'⟨ρ⟩])
   (IHpos : forall (Δ : context) (a b : term) (ρ : Δ ≤ Γ) (wfΔ : [ |-[ ta ] Δ]),
           [ PolyRed.shpRed PA ρ wfΔ | Δ ||- a ≅ b : shp⟨ρ⟩] ->
-          Split_Rel@{l'} (fun Ξ wfΞ A B => [ LogRel@{i' j' k' l'} lA | Ξ ||- A ≅ B]) Δ wfΔ pos[a .: (ρ >> tRel)] pos'[b .: (ρ >> tRel)]) :
+          WLRAdequate@{i' j' k' l'} Δ lA pos[a .: (ρ >> tRel)] pos'[b .: (ρ >> tRel)]) :
   PolyRed@{i' j' k' l'} Γ lA shp shp' pos pos'.
 Proof.
   unshelve econstructor.
@@ -254,7 +254,9 @@ Proof.
     eapply LRPi'; econstructor.
     5:{ eapply (cumPolyRed ih).
       + intros; now eapply IHdom.
-      + intros * ha. exists (PolyRed.posRed polyRed ρ wfΔ ha).(dtree). intros; now eapply IHcod. }
+      + intros * ha.
+        eapply (Split_bind_return (PolyRed.posRed polyRed ρ wfΔ ha)).
+        intros; now eapply IHcod. }
     all: tea.
   - intros; now eapply LRNat_.
   - intros; now eapply LRBool_.
@@ -263,7 +265,9 @@ Proof.
     eapply LRSig'; econstructor.
     5:{ eapply (cumPolyRed ih).
       + intros; now eapply IHdom.
-      + intros * ha. exists (PolyRed.posRed polyRed ρ wfΔ ha).(dtree). intros; now eapply IHcod. }
+      + intros * ha.
+        eapply (Split_bind_return (PolyRed.posRed polyRed ρ wfΔ ha)).
+        intros; now eapply IHcod. }
     all: tea.
   - intros [] IHPar ?; cbn in *.
     eapply LRId'; unshelve econstructor.
@@ -304,17 +308,17 @@ Qed.
 
 
 
-Definition irr@{v i j k l i' j' k' l'} `{GenericTypingProperties} {Γ wfΓ wfΓ' l1 l2 A B1 B2}
-  (RA1 : WLRAdequate@{i j k l} Γ wfΓ l1 A B1) (RA2 : WLRAdequate@{i' j' k' l'} Γ wfΓ' l2 A B2) : Type@{v}:=
+Definition irr@{v i j k l i' j' k' l'} `{GenericTypingProperties} {Γ l1 l2 A B1 B2}
+  (RA1 : WLRAdequate@{i j k l} Γ l1 A B1) (RA2 : WLRAdequate@{i' j' k' l'} Γ l2 A B2) : Type@{v}:=
   forall t u, [Γ ||-< l1 > t ≅ u : _ | RA1] -> [ Γ ||-< l2 > t ≅ u : _ | RA2].
 
 Theorem irrLR@{i j k l i' j' k' l' v} `{GenericTypingProperties} {l1 l2}
-  {Γ} {wfΓ wfΓ' : [|-Γ]} {A B1 B2} (R1 : [wfΓ ||-<l1> A ≅ B1]) (R2 : [wfΓ' ||-<l2> A ≅ B2]) :
+  {Γ A B1 B2} (R1 : [Γ ||-<l1> A ≅ B1]) (R2 : [Γ ||-<l2> A ≅ B2]) :
     irr@{v i j k l i' j' k' l'} R1 R2.
 Proof.
   intros t u Rtu.
-  refine (dSplit_bind_return Rtu _).
-  intros Δ ρ oR1 oRtu oR2 hΔ.
+  eapply (dSplit_bind_return Rtu).
+  intros ??? oR1 oRtu oR2.
   eapply SirrLR.
   now unshelve eapply Rtu.
 Qed.

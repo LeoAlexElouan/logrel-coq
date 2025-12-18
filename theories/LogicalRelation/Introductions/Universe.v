@@ -1,4 +1,4 @@
-From LogRel Require Import Utils Syntax.All GenericTyping LogicalRelation.
+From LogRel Require Import Utils Syntax.All GenericTyping Monad LogicalRelation.
 From LogRel.LogicalRelation Require Import Properties.
 
 Set Universe Polymorphism.
@@ -27,7 +27,7 @@ Section UniverseReducibility.
     by (eapply SirrLREqCum; tea; reflexivity).
   Qed.
 
-  Lemma UnivEq@{i j k l} {Γ A B l} l' (rU : [ LogRel@{i j k l} l | Γ ||- U ≅ U]) (rA : [ LogRel@{i j k l} l | Γ ||- A ≅ B : U | rU])
+  Lemma SUnivEq@{i j k l} {Γ A B l} l' (rU : [ LogRel@{i j k l} l | Γ ||- U ≅ U]) (rA : [ LogRel@{i j k l} l | Γ ||- A ≅ B : U | rU])
     : [ LogRel@{i j k l} l' | Γ ||- A ≅ B].
   Proof.
     destruct l'.
@@ -35,6 +35,15 @@ Section UniverseReducibility.
     - econstructor. eapply LR_embedding.
       + exact Oi.
       + apply (UnivEq' rU rA).
+  Qed.
+
+  Lemma UnivEq@{i j k l} {Γ A B l} l' (rU : WLRAdequate@{i j k l} Γ l U U) (rA : [ Γ ||-< l > A ≅ B : U | rU])
+    : WLRAdequate@{i j k l} Γ l' A B.
+  Proof.
+    eapply (dSplit_bind_return rA).
+    intros ??? orU orA.
+    eapply SUnivEq.
+    now unshelve now eapply rA.
   Qed.
 
 End UniverseReducibility.

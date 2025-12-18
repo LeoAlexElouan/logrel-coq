@@ -51,7 +51,6 @@ Proof.
     + eapply irrLREq.
       2: now unshelve now eapply wkLR.
       now asimpl.
-  Unshelve. tea.
 Qed.
 
 Lemma wk1Subst {Γ Γ' σ σ' Δ F} (VΓ : [||-v Γ ≅ Γ'])
@@ -63,6 +62,18 @@ Proof.
   intro vσσ'. eapply wkSubst ; eassumption.
 Qed.
 
+Lemma consWkSubst {Γ Γ' Δ Ξ A A' σ σ' a b l} {VΓ : [||-v Γ ≅ Γ']} {wfΔ : [|- Δ]}
+  (VA : [Γ ||-v<l> A ≅ A' | VΓ])
+  (Vσσ' : [Δ ||-v σ ≅ σ' : Γ | VΓ | wfΔ ])
+  (ρ : Ξ ≤ Δ) wfΞ
+  (Rab : [Ξ ||-<l> a ≅ b : A[σ]⟨ρ⟩ | wkLRTy ρ wfΞ (VA.(validTyExt) _ Vσσ')]) :
+  [Ξ ||-v (a .: σ⟨ρ⟩) ≅  (b .: σ'⟨ρ⟩) : Γ ,, A | validSnoc VΓ VA | wfΞ ].
+Proof.
+  unshelve eapply consSubst.
+  1: now eapply wkSubst.
+  eapply irrLREq; tea; now asimpl.
+Qed.
+
 Lemma consWkSubstEq {Γ Γ' Δ Ξ A A' B σ σ' a b l} {VΓ : [||-v Γ ≅ Γ']} {wfΔ : [|- Δ]}
   (VA : [Γ ||-v<l> A ≅ A' | VΓ])
   (Vσσ' : [Δ ||-v σ ≅ σ' : Γ | VΓ | wfΔ ])
@@ -72,7 +83,7 @@ Lemma consWkSubstEq {Γ Γ' Δ Ξ A A' B σ σ' a b l} {VΓ : [||-v Γ ≅ Γ']}
 Proof.
   unshelve eapply consSubst.
   1: now eapply wkSubst.
-  eapply SirrLREq; tea; now asimpl.
+  eapply irrLREq; tea; now asimpl.
 Qed.
 
 
@@ -82,20 +93,19 @@ Lemma liftSubst {Γ Γ' σ σ' Δ lF F F'}
   (Vσσ' : [Δ ||-v σ ≅ σ' : Γ | VΓ | wfΔ ]) :
   let VΓF := validSnoc VΓ VF in
   let ρ := @wk1 Δ F[σ] in
-  let wfΔF := wfc_cons wfΔ (escape (validTyExt VF wfΔ Vσσ')) in
+  let wfΔF := wfc_cons wfΔ (escapeSplit (validTyExt VF wfΔ Vσσ')) in
   [Δ ,, F[σ] ||-v (tRel 0 .: σ ⟨ ρ ⟩) ≅ (tRel 0 .: σ' ⟨ ρ ⟩) : Γ ,, F | VΓF | wfΔF ].
 Proof.
   intros; unshelve econstructor.
   + now apply wk1Subst.
-  + eapply Svar0; unfold ρ; [now bsimpl|].
-    now eapply escape, VF.
+  + eapply var0; unfold ρ; now bsimpl.
 Qed.
 
 Lemma liftSubst' {Γ Γ' σ σ' Δ lF F F'} {VΓ : [||-v Γ ≅ Γ' ]} {wfΔ : [|- Δ]}
   (VF : [Γ ||-v<lF> F ≅ F' | VΓ])
   (Vσ : [Δ ||-v σ ≅ σ' : Γ | VΓ | wfΔ ]) :
   let VΓF := validSnoc VΓ VF in
-  let wfΔF := wfc_cons wfΔ (escape (validTyExt VF wfΔ Vσ)) in
+  let wfΔF := wfc_cons wfΔ (escapeSplit (validTyExt VF wfΔ Vσ)) in
   [Δ ,, F[σ] ||-v up_term_term σ ≅ up_term_term σ' : Γ ,, F | VΓF | wfΔF ].
 Proof.
   intros; eapply irrelevanceSubstEqExt.
@@ -107,7 +117,7 @@ Lemma liftSubstSym' {Γ Γ' σ σ' Δ lF F F'} {VΓ : [||-v Γ ≅ Γ' ]} {wfΔ 
   (VF : [Γ ||-v<lF> F ≅ F' | VΓ])
   (Vσ : [Δ ||-v σ ≅ σ' : Γ | VΓ | wfΔ ]) :
   let VΓF := symValid (validSnoc VΓ VF) in
-  let wfΔF := wfc_cons wfΔ (escape (validTyExt (symValidTy' VF) wfΔ (symSubst _ _ _ _ Vσ))) in
+  let wfΔF := wfc_cons wfΔ (escapeSplit (validTyExt (symValidTy' VF) wfΔ (symSubst _ _ _ _ Vσ))) in
   [Δ ,, F'[σ'] ||-v up_term_term σ' ≅ up_term_term σ : Γ' ,, F' | VΓF | wfΔF ].
 Proof.
   unshelve eapply irrelevanceSubst, liftSubst'; cycle 3; [now eapply symValidTy'|..]; tea.
@@ -122,7 +132,7 @@ Lemma wk1ValidTy {Γ Γ' lA A A' lF F F'} {VΓ : [||-v Γ ≅ Γ']} (VF : [Γ ||
   [Γ ,, F ||-v<lA> A ⟨ @wk1 Γ F ⟩ ≅ A' ⟨ @wk1 Γ' F' ⟩ | validSnoc VΓ VF ].
 Proof.
   intros VA; constructor; intros * [tl hd].
-  rewrite 2!wk1_subst; now eapply SvalidTyExt.
+  rewrite 2!wk1_subst; now eapply validTyExt.
 Qed.
 
 Lemma wk1ValidTm {Γ Γ' lA t u A A' lF F F'} {VΓ : [||-v Γ ≅ Γ']}
@@ -131,16 +141,18 @@ Lemma wk1ValidTm {Γ Γ' lA t u A A' lF F F'} {VΓ : [||-v Γ ≅ Γ']}
   (Vt : [Γ ||-v<lA> t ≅ u : A | VΓ | VA]) (ρ := @wk1 Γ F):
   [Γ,, F ||-v<lA> t⟨ρ⟩ ≅ u⟨ρ⟩ : A⟨ρ⟩ | validSnoc VΓ VF | wk1ValidTy VF VA].
 Proof.
-  constructor; intros ???? [] ; rewrite !wk1_subst.
-  now unshelve (eapply SirrLREq, SvalidTmExt ; tea; now rewrite wk1_subst).
+  constructor; intros ???? []; rewrite !(wk1_subst t), !wk1_subst.
+  now unshelve (eapply irrLREq, validTmExt ; tea; now rewrite wk1_subst).
 Qed.
 
 Lemma embValidTy@{u i j k l} {Γ Γ' l l' A A'}
     {VΓ : [VR@{i j k l}| ||-v Γ ≅ Γ']} (h : l << l')
-    (VA : StypeValidity@{u i j k l} Γ _ VΓ l A A' (*[Γ ||-v<l> A |VΓ]*)) :
-    StypeValidity@{u i j k l} Γ _ VΓ l' A A' (*[Γ ||-v<l'> A |VΓ]*).
+    (VA : typeValidity@{u i j k l} Γ _ VΓ l A A' (*[Γ ||-v<l> A |VΓ]*)) :
+    typeValidity@{u i j k l} Γ _ VΓ l' A A' (*[Γ ||-v<l'> A |VΓ]*).
 Proof.
-  constructor; intros ???? [pack]%(SvalidTyExt VA _).
+  constructor; intros ???? RA%(validTyExt VA _).
+  eapply Monad.Split_hom_PSh, RA.
+  intros Ξ wfΞ ρΞ [pack].
   exists pack; now eapply LR_embedding.
 Defined.
 
@@ -160,7 +172,7 @@ Proof.
     eapply Fwk_id.
   - intros ????? VΓ VA [wfΓ ih].
     pose proof (RA := validTyExt VA _ ih).
-    assert (hA : [Γ |- A]) by (rewrite <- subst_rel; exact (escape RA)).
+    assert (hA : [Γ |- A]) by (rewrite <- subst_rel; exact (escapeSplit RA)).
     pose (wfΓA := wfc_cons wfΓ hA).
     assert (Vs : [VΓ | _ ||-v ↑ >> tRel : _ | wfΓA]).
     1:{
@@ -169,7 +181,7 @@ Proof.
       all: intros ?; now bsimpl.
     }
     exists wfΓA; exists Vs.
-    eapply Svar0; tea.
+    eapply var0; tea.
     rewrite <-(subst_rel A⟨↑⟩); now asimpl.
 Qed.
 
@@ -183,7 +195,7 @@ Proof. intros; instValid (idSubst VΓ); now rewrite !subst_rel in *. Qed.
 
 Lemma redValidTm {Γ Γ' A A' l t t'} {VΓ : [||-v Γ ≅ Γ']} {VA : [_ ||-v<l> A ≅ A' | VΓ ]}
   (Vt : [Γ ||-v<l> t ≅ t' : _ | _ | VA]) :  [Γ ||-<l> t ≅ t' : _ | redValidTy VA ].
-Proof. intros; instValid (idSubst VΓ); rewrite !subst_rel in *; eapply SirrLREq; tea; now rewrite subst_rel. Qed.
+Proof. intros; instValid (idSubst VΓ); rewrite !subst_rel, !(subst_rel t) in *; eapply irrLREq; tea; now apply subst_rel. Qed.
 
 Lemma redValidTm' {Γ Γ' A A' l t t'} {VΓ : [||-v Γ ≅ Γ']} {VA : [_ ||-v<l> A ≅ A' | VΓ ]}
   (RA : [Γ ||-<l> A ≅ A']) (Vt : [Γ ||-v<l> t ≅ t' : _ | _ | VA]) :  [Γ ||-<l> t ≅ t' : _ | RA].
@@ -226,7 +238,7 @@ Lemma wkValidTy {l Γ Γ' Δ Δ' A A'} (ρ : Δ ≤ Γ)
   [Δ ||-v<l> A⟨ρ⟩ ≅ A'⟨ρ⟩ | VΔ].
 Proof.
   constructor; intros; cbn; rewrite !ren_subst.
-  eapply SvalidTyExt; tea; now eapply wkrenSubst.
+  eapply validTyExt; tea; now eapply wkrenSubst.
 Qed.
 
 Lemma wkValidTm {l Γ Γ' Δ Δ' A A' t u} (ρ : Δ ≤ Γ)
@@ -236,33 +248,33 @@ Lemma wkValidTm {l Γ Γ' Δ Δ' A A' t u} (ρ : Δ ≤ Γ)
   (Vt : [Γ ||-v<l> t ≅ u: A | VΓ | VA]) :
   [Δ ||-v<l> t⟨ρ⟩ ≅ u⟨ρ⟩ : A⟨ρ⟩ | VΔ | wkValidTy ρ VΓ VΔ VA].
 Proof.
-  econstructor; intros; rewrite 2!ren_subst.
-  (unshelve now eapply SirrLREq, SvalidTmExt; tea; rewrite ren_subst); tea.
+  econstructor; intros; rewrite !ren_subst, !(ren_subst t).
+  (unshelve now eapply irrLREq, validTmExt; tea; rewrite ren_subst); tea.
   now eapply wkrenSubst.
 Qed.
 
 Lemma escapeValidTy {Γ Γ' A A' l} (VΓ : [||-v Γ ≅ Γ']) : [_ ||-v<l> A ≅ A' | VΓ ] -> [Γ |- A] × [Γ |- A'] × [Γ |-  A ≅ A'].
 Proof.
-  intros VA;  generalize (SvalidTyExt VA _ (idSubst VΓ)); rewrite 2!subst_rel; intros; now escape.
+  intros VA;  generalize (validTyExt VA _ (idSubst VΓ)); rewrite 2!subst_rel; intros; now escape.
 Qed.
 
 Lemma escapeValidTm {Γ Γ' A A' l t t'} (VΓ : [||-v Γ ≅ Γ'])
   (VA : [_ ||-v<l> A ≅ A' | VΓ ]) :
   [_ ||-v<l> t ≅ t' : _ | _ | VA] -> [Γ |- t : A] × [Γ |- t' : A] × [Γ |- t ≅ t' : A].
 Proof.
-  intros Vt; pose proof (SvalidTmExt Vt _ (idSubst VΓ)); escape.
+  intros Vt; pose proof (validTmExt Vt _ (idSubst VΓ)); escape.
   rewrite !subst_rel in *. now repeat split.
 Qed.
 
 Lemma redSubstValid {Γ Γ' A A' t u l}
   (VΓ : [||-v Γ ≅ Γ'])
   (red : [Γ ||-v t ⤳* u : A | VΓ])
-  (VA : [Γ ||-vS<l> A ≅ A' | VΓ])
-  (Vu : [Γ ||-vS<l> u : A | VΓ | VA]) :
-  [Γ ||-vS<l> t ≅ u : A | VΓ | VA].
+  (VA : [Γ ||-v<l> A ≅ A' | VΓ])
+  (Vu : [Γ ||-v<l> u : A | VΓ | VA]) :
+  [Γ ||-v<l> t ≅ u : A | VΓ | VA].
 Proof.
-  constructor; intros. eapply SredSubstLeftTmEq.
-  1: now eapply SvalidTmExt.
+  constructor; intros. eapply redSubstLeftTmEq.
+  1: now eapply validTmExt.
   now eapply validRed.
 Qed.
 
@@ -273,7 +285,7 @@ Lemma SsubstS {Γ Γ' F F' G G' t t' l} {VΓ : [||-v Γ ≅ Γ']}
   [Γ ||-v<l> G[t..] ≅ G'[t'..] | VΓ].
 Proof.
   constructor; intros; rewrite 2!singleSubstComm.
-  eapply SvalidTyExt; tea; now eapply consValidSubst.
+  eapply validTyExt; tea; now eapply consValidSubst.
 Qed.
 
 Lemma substS {Γ Γ' F F' G G' t t' l} {VΓ : [||-v Γ ≅ Γ']}
@@ -292,12 +304,12 @@ Lemma substSTm {Γ Γ' F F' G G' t t' f f' l} (VΓ : [||-v Γ ≅ Γ'])
   (VG : [Γ ,, F ||-v<l> G ≅ G' | VΓF])
   (Vtt' : [Γ ||-v<l> t ≅ t' : F | VΓ | VF])
   (Vff' : [Γ ,, F ||-v<l> f ≅ f' : G | VΓF | VG]) :
-  [Γ ||-v<l> f[t..] ≅ f'[t'..] : G[t..] | VΓ | SsubstS VG Vtt'].
+  [Γ ||-v<l> f[t..] ≅ f'[t'..] : G[t..] | VΓ | substS VG Vtt'].
 Proof.
-  constructor; intros; rewrite !singleSubstComm.
-  eapply SirrLREq.
+  constructor; intros; rewrite !singleSubstComm, !(singleSubstComm f).
+  eapply irrLREq.
   1: symmetry; apply singleSubstComm.
-  (unshelve now eapply SvalidTmExt); tea.
+  (unshelve now eapply validTmExt); tea.
   now eapply consValidSubst.
 Qed.
 
@@ -310,9 +322,9 @@ Lemma substLiftS {Γ Γ' F F' G G' t t' l} (VΓ : [||-v Γ ≅ Γ'])
   [Γ ,, F ||-v<l> G[t]⇑ ≅ G'[t']⇑ | VΓF].
 Proof.
   constructor; intros; erewrite 2! liftSubstComm.
-  eapply SvalidTyExt; tea; opector.
+  eapply validTyExt; tea; opector.
   1: now eapply wkrenSubst.
-  now unshelve now eapply SirrLREq, SvalidTmExt; tea; rewrite ren_subst.
+  now unshelve now eapply irrLREq, validTmExt; tea; rewrite ren_subst.
 Qed.
 
 

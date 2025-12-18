@@ -14,7 +14,7 @@ Proof.
 Qed.
 
 Lemma instKripke `{GenericTypingProperties} {Γ A B l} (wfΓ : [|-Γ])
-  (h : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), [wfΔ ||-<l> A⟨ρ⟩ ≅ B⟨ρ⟩]) : [wfΓ ||-<l> A ≅ B].
+  (h : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), [Δ ||-<l> A⟨ρ⟩ ≅ B⟨ρ⟩]) : [Γ ||-<l> A ≅ B].
 Proof.
   specialize (h Γ wk_id wfΓ); now rewrite 2!wk_id_ren_on in h.
 Qed.
@@ -39,9 +39,7 @@ Section PolyRed.
       shpRed [Δ] (ρ : Δ ≤ Γ) : [ |- Δ ] -> [ LogRel@{i j k l} l | Δ ||- shp⟨ρ⟩ ≅ shp'⟨ρ⟩ ] ;
       posRed [Δ a b] (ρ : Δ ≤ Γ) (wfΔ : [ |- Δ ]) :
           [ shpRed ρ wfΔ | Δ ||- a ≅ b : shp⟨ρ⟩] ->
-          WLRAdequate@{i j k l} Δ wfΔ l pos[a .: (ρ >> tRel)] pos'[b .: (ρ >> tRel)] }.
-   (*        Split (wfΓ := wfΔ)(fun Ξ wfΞ (ρΞ : Ξ ≤ Δ) => [ LogRel@{i j k l} l | Ξ ||- pos[a .: (ρ >> tRel)]⟨ρΞ⟩ ≅ pos'[b .: (ρ >> tRel)]⟨ρΞ⟩]);
-    }. *)
+          WLRAdequate@{i j k l} Δ l pos[a .: (ρ >> tRel)] pos'[b .: (ρ >> tRel)] }.
 
   Definition from@{i j k l} {PA : PolyRedPack@{k l} Γ shp shp' pos pos'}
     (PAad : PolyRedPackAdequate@{k l} (LogRel@{i j k l} l) PA)
@@ -49,7 +47,8 @@ Section PolyRed.
   Proof.
     unshelve econstructor; intros.
     - econstructor; unshelve eapply PolyRedPack.shpAd; cycle 2; tea.
-    - exists (PA.(PolyRedPack.posRed) ρ wfΔ X); intros Ξ wfΞ ρΞ.
+    - refine (Build_Split (PA.(PolyRedPack.posRed) ρ wfΔ X).(wfc_Split) (PA.(PolyRedPack.posRed) ρ wfΔ X) _).
+      intros Ξ wfΞ ρΞ.
       unshelve econstructor.
       + now eapply (PA.(PolyRedPack.posRed) ρ wfΔ X).(cover).
       + now eapply PAad.
@@ -60,7 +59,7 @@ Section PolyRed.
     unshelve econstructor.
     - now eapply shpRed.
     - intros * hshp; cbn in hshp.
-      exists (PA.(posRed) ρ wfΔ hshp).
+      refine (Build_Split (PA.(posRed) ρ wfΔ hshp).(wfc_Split) (PA.(posRed) ρ wfΔ hshp) _).
       intros Ξ ρ' hover.
       now eapply posRed.
   Defined.
@@ -198,7 +197,7 @@ End EvenMoreDefs.
 
 Notation "[ Γ ||-Π< l > A ≅ B ]" := (PiRedTy Γ l A B) (at level 0, Γ, l, A, B at level 50).
 Notation "[ Γ ||-Σ< l > A ≅ B ]" := (SigRedTy Γ l A B) (at level 0, Γ, l, A, B at level 50).
-Notation "[ Γ ||-Π t ≅ u : A | ΠA ]" := (PiRedTmEq (Γ:=Γ) (A:=A) t u (ParamRedTy.toPack ΠA)).
+Notation "[ Γ ||-Π t ≅ u : A | ΠA ]" := (PiRedTmEq (Γ:=Γ) (A:=A) (ParamRedTy.toPack ΠA) t u).
 
 Module PiRedTy.
   Include ParamRedTyPack.

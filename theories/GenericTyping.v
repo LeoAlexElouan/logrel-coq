@@ -230,6 +230,10 @@ Section GenericTyping.
     wfc_convtm {Γ A t u} : [Γ |- t ≅ u : A] -> [|- Γ];
     wfc_redty {Γ A B} : [Γ |- A ⤳* B] -> [|- Γ];
     wfc_redtm {Γ A t u} : [Γ |- t ⤳* u : A] -> [|- Γ];
+    wfc_split {Γ new} :
+      [|-Γ,, new ↦ true] ->
+      [|-Γ,, new ↦ false] ->
+      [|-Γ];
   }.
 
   Class WfTypeProperties :=

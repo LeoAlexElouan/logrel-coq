@@ -16,9 +16,8 @@ Section PolyValidity.
     ParamRedTy T Γ l (T A B) (T A' B').
   Proof.
     pose proof (SinstKripke wfΓ PA.(PolyRed.shpRed)).
-    escape.
-    pose proof (instKripkeFam wfΓ EscLX PA.(PolyRed.posRed)).
-    pose proof (instKripkeFamConv wfΓ EscRX PA.(PolyRed.posRed)).
+    pose proof (instKripkeFam wfΓ PA.(PolyRed.posRed)).
+    pose proof (instKripkeFamConv wfΓ PA.(PolyRed.posRed)).
     escape.
     exists A A' B B'; tea.
     1,2: econstructor; tea; eapply redtywf_refl; eauto.

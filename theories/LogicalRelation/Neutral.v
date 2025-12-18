@@ -132,9 +132,9 @@ Proof.
       rewrite <- !(wk1_ren_on Γ (ParamRedTy.domL RA)).
       eapply convneu_app_ren; tea.
       eapply escapeTm, ihdom; tea; now apply convneu_var.
-      Unshelve. gtyping.
+      Unshelve. all:gtyping.
   * intros Δ a b ρ hΔ hab.
-    eapply Split_return.
+    eapply Split_return; tea.
     intros Ξ wfΞ ρΞ ohab; cbn in ohab, hab.
     escape.
     apply ihcod.
@@ -142,7 +142,6 @@ Proof.
     + eapply (ty_wk _ wfΞ), ty_conv; clear Ξ wfΞ ρΞ ohab.
       now eapply ty_app_ren.
       unshelve epose proof (kripkeLRlrefl (PolyRed.posRed RA) ρ hΔ hab) as hcod.
-      1: gtyping.
       symmetry.
       now escape.
     + eapply convneu_wk; tea.
@@ -185,11 +184,11 @@ Definition hconv_snd
         reflect (PolyRed.shpRed RA ρ h))
   (ihcod : forall (Δ : context) (a b : term) (ρ : Δ ≤ Γ) (h : [ |-[ ta ] Δ])
           (ha : [PolyRed.shpRed RA ρ h | Δ ||- a ≅ b: _]),
-        dover (PolyRed.posRed RA ρ h ha) (fun _ _ _=> reflect))
+        dover (PolyRed.posRed RA ρ h ha) (fun _ _ _ => reflect))
   {n n' Δ} (ρ : Δ ≤ Γ) (h : [ |- Δ])
   (tyn : [Γ |- n : A]) (tyn' : [Γ |- n' : A]) (convnn' : [Γ |- n ~ n' : A])
   (hfst := hconv_fst ihdom ρ h tyn tyn' convnn') :
-  dover (PolyRed.posRed RA ρ h hfst) (fun Ξ wfΞ ρΞ hSplit => [ hSplit | Ξ ||- tSnd n⟨ρ⟩⟨ρΞ⟩ ≅ tSnd n'⟨ρ⟩⟨ρΞ⟩ : _]).
+  dover (PolyRed.posRed RA ρ h hfst) (fun Ξ _ ρΞ hSplit => [ hSplit | Ξ ||- tSnd n⟨ρ⟩⟨ρΞ⟩ ≅ tSnd n'⟨ρ⟩⟨ρΞ⟩ : _]).
 Proof.
   intros Ξ wfΞ ρΞ ohfst; eapply ihcod; rewrite !wk_fst, !wk_snd, <-subst_ren_subst_mixed.
   1,2: eapply ty_wk; tea.
@@ -200,7 +199,7 @@ Proof.
     pose (hfst' := hconv_fst ihdom wk_id wfΓ tyn tyn' convnn').
     unshelve epose proof (kr := kripkeLRlrefl (PolyRed.posRed RA) wk_id wfΓ hfst'); tea.
     rewrite 2!wk_fst,<-2!eq_subst_scons in kr; symmetry.
-    eapply Split_bind_convty; tea.
+    unshelve eapply Split_bind_convty; tea.
     intros Δ ρ hover hΔ.
     now eapply escapeTy, kr.
   * do 2 (eapply convneu_wk; tea); now eapply convneu_snd, convneu_conv.
@@ -223,7 +222,7 @@ Proof.
   * assert (wfΓ : [|-Γ]) by gtyping.
     unshelve epose proof (hfst := hconv_fst ihdom wk_id wfΓ _ _ h); tea.
     unshelve epose proof (hsnd := hconv_snd ihdom ihcod wk_id wfΓ _ _ h); tea.
-    eapply (Split_bind_convtm (PolyRed.posRed RA wk_id wfΓ (hconv_fst ihdom wk_id wfΓ H8 H9 h))).
+    unshelve eapply (Split_bind_convtm (PolyRed.posRed RA wk_id wfΓ (hconv_fst ihdom wk_id wfΓ H8 H9 h))); tea.
     intros Δ wfΔ ρ ohconv_fst.
     specialize (hsnd Δ wfΔ ρ ohconv_fst).
     cbn in hsnd; escape.
@@ -236,8 +235,8 @@ Proof.
     1,2: constructor; eapply (convneu_wk (A:= outTy RA)); tea; now eapply convneu_conv.
     now eapply (convtm_wk (t:=tFst n) (u:= tFst n')).
   * intros Δ ρ hΔ.
-    eapply Split_return.
-    intros Ξ ρΞ hoverfst.
+    eapply Split_return; tea.
+    intros Ξ wfΞ ρΞ ofst.
     eapply hconv_snd.
     clear dependent Δ; clear dependent Ξ.
     eapply ihcod.
@@ -319,13 +318,14 @@ Proof.
   apply reflect_var0 ; now eapply reflectLR.
 Qed.
 
-Lemma var0conv {l Γ} {wfΓ : [|-Γ]} {A} {wfA : [Γ |- A]} {A' B'} (RAB : [ wfc_cons wfΓ wfA ||-<l> A' ≅ B']) :
+Lemma var0conv {l Γ A A' B'} (RAB : [ Γ,,A||-<l> A' ≅ B']) :
   [Γ,, A |- A⟨↑⟩ ≅ A'] ->
   [Γ ,, A ||-<l> tRel 0 : A' | RAB].
 Proof.
   intros convA.
   eapply Split_return.
-  intros Δ ρ oRAB hΔ.
+  1: now eapply wfc_convty.
+  intros Δ wfΔ ρ oRAB.
   assert ([Γ,, A |-[ ta ] tRel 0 : A'])
     by (eapply ty_conv, convA; eapply ty_var, in_here; gtyping).
   eapply reflectLR.
@@ -343,12 +343,12 @@ Proof.
   eapply lrefl; now escape.
 Qed.
 
-Lemma var0 {l Γ} {wfΓ : [|-Γ]} {A} {wfA : [Γ |- A]} {A' B'} (RA : [ wfc_cons wfΓ wfA  ||-<l> A' ≅ B']) :
+Lemma var0 {l Γ A A' B'} (RA : [ Γ,,A  ||-<l> A' ≅ B']) :
   A⟨↑⟩ = A' ->
   [Γ ,, A ||-<l> tRel 0 : A' | RA].
 Proof.
-  intros <-; apply var0conv; tea.
-  eapply lrefl; now escape.
+  intros <-; eapply var0conv; tea.
+  eapply lrefl. now escape.
 Qed.
 
 End Neutral.

@@ -31,7 +31,10 @@ Inductive isLRPair `{ta : tag} `{WfContext ta}
   (rfst : forall {Δ} (ρ : Δ ≤ Γ) (h : [ |- Δ ]),
       [ΣA.(PolyRedPack.shpRed) ρ h | Δ ||- a⟨ρ⟩ ≅ a⟨ρ⟩ : (SigRedTyPack.domL ΣA)⟨ρ⟩])
   (rsnd : forall {Δ} (ρ : Δ ≤ Γ) (h : [ |- Δ ]),
-      dSplit (fun Ξ wfΞ ρ' hSplit => [hSplit | Ξ ||- b⟨ρ⟩⟨ρ'⟩ ≅ b⟨ρ⟩⟨ρ'⟩ : (SigRedTyPack.codL ΣA)[a⟨ρ⟩ .: (ρ >> tRel)]⟨ρ'⟩]) (ΣA.(PolyRedPack.posRed) ρ h (rfst ρ h))),
+      dSplit (fun Ξ wfΞ ρΞ hSplit =>
+        [hSplit | Ξ ||- b⟨ρ⟩⟨ρΞ⟩ ≅ b⟨ρ⟩⟨ρΞ⟩ :
+          (SigRedTyPack.codL ΣA)[a⟨ρ⟩ .: (ρ >> tRel)]⟨ρΞ⟩])
+        (ΣA.(PolyRedPack.posRed) ρ h (rfst ρ h))),
 
   isLRPair ΣA (tPair A' B' a b)
 
@@ -78,7 +81,9 @@ Module SigRedTmEq.
     eqFst [Δ] (ρ : Δ ≤ Γ) (h : [ |- Δ ]) :
       [ΣA.(PolyRedPack.shpRed) ρ h | Δ ||- tFst redL.(nf)⟨ρ⟩ ≅ tFst redR.(nf)⟨ρ⟩ : ΣA.(ParamRedTyPack.domL)⟨ρ⟩] ;
     eqSnd [Δ] (ρ : Δ ≤ Γ) (h : [ |- Δ ]) :
-      dSplit (fun Ξ wfΞ ρ' hSplit => [hSplit| Ξ ||- (tSnd redL.(nf)⟨ρ⟩)⟨ρ'⟩ ≅ (tSnd redR.(nf)⟨ρ⟩)⟨ρ'⟩ : _]) (ΣA.(PolyRedPack.posRed) ρ h (eqFst ρ h));
+      dSplit (fun Ξ wfΞ ρΞ hSplit =>
+      [hSplit| Ξ ||- (tSnd redL.(nf)⟨ρ⟩)⟨ρΞ⟩ ≅ (tSnd redR.(nf)⟨ρ⟩)⟨ρΞ⟩ : _])
+      (ΣA.(PolyRedPack.posRed) ρ h (eqFst ρ h));
   }.
 
   Arguments SigRedTmEq {_ _ _ _ _ _ _ _ _ _ _ _}.

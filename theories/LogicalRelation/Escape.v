@@ -35,19 +35,20 @@ Section Escapes.
     now eapply escapeTy.
   Qed.
 
-  Lemma escapeSplitTy {l Γ} {wfΓ : [|-Γ]} {A B} (lr : [wfΓ ||-<l> A ≅ B]) :
+  Lemma escapeSplitTy {l Γ A B} (lr : [Γ ||-<l> A ≅ B]) :
     [Γ |- A] × [Γ |- B] × [Γ |- A ≅ B].
   Proof.
+    assert ([|-Γ]) by apply lr.
     prod_splitter.
-    all: first [eapply (Split_bind_wft lr) | eapply (Split_bind_convty lr)];
+    all: unshelve first [eapply (Split_bind_wft lr) | eapply (Split_bind_convty lr)]; tea; 
       intros;
       now first [eapply escape,lr| eapply escapeTy,lr].
   Qed.
 
-  Lemma escapeSplit {l Γ} {wfΓ : [|-Γ]} {A B} : [wfΓ ||-<l> A ≅ B] ->
+  Lemma escapeSplit {l Γ A B} : [Γ ||-<l> A ≅ B] ->
     [Γ |- A].
   Proof.
-    apply escapeSplitTy.
+    now unshelve eapply escapeSplitTy.
   Qed.
 
   Lemma escapeTm {l Γ A B t u} (lr : [Γ ||-S< l > A ≅ B]) :
@@ -114,16 +115,27 @@ Section Escapes.
     [Γ |- t ≅ u : A].
   Proof. apply escapeTm. Qed.
 
-  Lemma escapeSplitTm {l Γ} {wfΓ : [|-Γ]} {A B t u} (lr : [wfΓ ||-< l > A ≅ B]) :
-    [wfΓ ||-< l > t ≅ u : A | lr ] ->
+  Lemma escapeSplitTm {l Γ A B t u} (lr : [Γ ||-< l > A ≅ B]) :
+    [Γ ||-< l > t ≅ u : A | lr ] ->
     [Γ |- t : A] × [Γ |- u : A] × [Γ |- t ≅ u : A].
   Proof.
+    assert ([|-Γ]) by apply lr.
     intros htu.
     prod_splitter.
-    all: first [eapply (dSplit_bind_ty htu) | eapply (dSplit_bind_convtm htu)];
+    all: unshelve first [eapply (dSplit_bind_ty htu) | eapply (dSplit_bind_convtm htu)]; tea;
       intros;
       now unshelve first [refine (fst (escapeTm _ _)); eapply htu|eapply escapeTm, htu].
   Qed.
+
+  Definition escapeSplitTerm {l Γ t u A} (lr : [Γ ||-< l > A ]) :
+    [Γ ||-< l > t ≅ u : A | lr ] ->
+    [Γ |- t : A].
+  Proof. apply escapeSplitTm. Qed.
+
+  Definition escapeSplitEqTerm {l Γ t u A} (lr : [Γ ||-< l > A ]) :
+    [Γ ||-< l > t ≅ u : A | lr ] ->
+    [Γ |- t ≅ u : A].
+  Proof. apply escapeSplitTm. Qed.
 
   Lemma escapeConv {l Γ A B} :
     [Γ ||-S<l> A ≅ B] ->

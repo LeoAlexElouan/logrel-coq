@@ -125,7 +125,7 @@ Section Weakenings.
       eassert ([_ |_||- _≅ _ : (ParamRedTy.domL ΠA)⟨ρΞ∘w ρ⟩ ≅ _]) as hab'
         by (eapply SirrLREq; [eapply wk_comp_ren_on| eapply hab]).
       specialize (eqApp Ξ a b (ρΞ∘w ρ) wfΞ hab').
-      eapply (dSplit_bind_return eqApp).
+      unshelve eapply (dSplit_bind_return eqApp); tea.
       intros Θ wfΘ ρΘ ohab' oeqApp owk.
       eapply SirrLREq; [now rewrite <-wk_up_ren_subst| unshelve eapply eqApp; tea].
   Qed.
@@ -288,44 +288,53 @@ End Weakenings.
 Section WeakWeakenings.
   Context `{GenericTypingProperties}.
 
-  Record Wkripke@{i j k l} {Γ wfΓ l A B} {RAB : WLRAdequate@{i j k l} Γ wfΓ l A B} := {
-    WwkRed : forall {Δ} (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), WLRAdequate@{i j k l} Δ wfΔ l A⟨ρ⟩ B⟨ρ⟩;
+  Record Wkripke@{i j k l} {Γ l A B} {RAB : WLRAdequate@{i j k l} Γ l A B} := {
+    WwkRed : forall {Δ} (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), WLRAdequate@{i j k l} Δ l A⟨ρ⟩ B⟨ρ⟩;
     WwkRedTm : forall {Δ} (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]) {t u},
-      [wfΓ ||-<l> t ≅ u : _ | RAB] -> [wfΔ ||-<l> t⟨ρ⟩ ≅ u⟨ρ⟩ : _ | WwkRed ρ wfΔ] ;
+      [Γ ||-<l> t ≅ u : _ | RAB] -> [Δ ||-<l> t⟨ρ⟩ ≅ u⟨ρ⟩ : _ | WwkRed ρ wfΔ] ;
   }.
-  Arguments Wkripke {_ _ _ _ _} _.
+  Arguments Wkripke {_ _ _ _} _.
 
-  Definition WwkStmt@{i j k l} l := (forall Γ wfΓ A B (R : WLRAdequate@{i j k l} Γ wfΓ l A B), Wkripke R).
+  Definition WwkStmt@{i j k l} l := (forall Γ A B (R : WLRAdequate@{i j k l} Γ l A B), Wkripke R).
 
   Theorem wkLR@{h i j k l} {l}: WwkStmt@{i j k l} l.
   Proof.
-    intros ?????.
+    intros ????.
     unshelve econstructor.
     + intros ???.
-      eapply (Split_wk_bind_return R ρ).
+      eapply (Split_wk_bind_return R wfΔ ρ).
       intros ????.
       rewrite 2wk_comp_ren_on.
       now eapply R.
     + intros ????? Rtu.
-      eapply (dSplit_wk_bind_return Rtu ρ).
+      eapply (dSplit_wk_bind_return Rtu wfΔ ρ).
       intros ??? oR oRtu oirr.
       eapply SirrLREq; clear oirr.
       symmetry; apply wk_comp_ren_on.
       rewrite 2!wk_comp_ren_on.
       now unshelve eapply Rtu.
   Qed.
+
+  Lemma wkLRTy {Γ l A B Δ} (ρ : Δ ≤ Γ) (wfΔ:[|-Δ]) : [Γ ||-< l > A ≅ B] -> [Δ ||-< l > A⟨ρ⟩ ≅ B⟨ρ⟩].
+  Proof. intros; now eapply wkLR. Qed.
+
+  Lemma wkLRTm {Γ l A B Δ} (ρ : Δ ≤ Γ) (wfΔ:[|-Δ]) {RA : [Γ ||-< l > A ≅ B]} {t u} :
+    [Γ ||-< l > t ≅ u : _ | RA] -> [Δ ||-< l > t⟨ρ⟩ ≅ u⟨ρ⟩ : _ | wkLRTy ρ wfΔ RA].
+  Proof. intros; now unshelve now eapply irrLR, wkLR. Qed.
+
 End WeakWeakenings.
 
 
 Lemma Wpackrefold `{GenericTypingProperties} :
-  forall Γ wfΓ l t u A B Δ wfΔ (ρ : Δ ≤ Γ) (RAB : [wfΓ ||-< l > A ≅ B]) (RAB' := WwkRed (wkLR _ _ _ _ RAB) ρ wfΔ),
-  [ wfΔ ||-< l > t⟨ρ⟩ ≅ u⟨ρ⟩ : A⟨ρ⟩ | RAB'] ->
-  Split (wfΓ:=wfΔ) (fun (Ξ : context) (wfΞ : [ |-[ ta ] Ξ]) (ρΞ : Ξ ≤ Δ) =>
-   forall oRAB : overtree RAB Ξ,
+  forall {Γ l t u A B Δ} wfΔ {ρ : Δ ≤ Γ} (RAB : [Γ ||-< l > A ≅ B])
+    (RAB' := WwkRed (wkLR _ _ _ RAB) ρ wfΔ),
+  [ Δ ||-< l > t⟨ρ⟩ ≅ u⟨ρ⟩ : A⟨ρ⟩ | RAB'] ->
+  Split (fun (Ξ : context) wfΞ (ρΞ : Ξ ≤ Δ) =>
+   forall oRAB,
    [cover RAB Ξ wfΞ (ρΞ ∘w ρ) oRAB | Ξ ||- t⟨ρΞ ∘w ρ⟩ ≅ u⟨
    ρΞ ∘w ρ⟩ : A⟨ρΞ ∘w ρ⟩ ≅ B⟨ρΞ ∘w ρ⟩]).
 Proof.
-  intros ???????????? Rtu.
+  intros ??????????? Rtu.
   eapply (dSplit_bind_return Rtu).
   intros Ξ wfΞ ρΞ oRAB' oRtu oRAB.
   eapply SirrLREq. 1: apply wk_comp_ren_on.
@@ -334,30 +343,33 @@ Proof.
 Qed.
 
 Lemma WAd_return `{GenericTypingProperties} 
-  {Γ} {wfΓ : [|-Γ]} {l A B}
-  (RAB : [Γ ||-S< l > A ≅ B]) : [wfΓ ||-< l > A ≅ B].
+  {Γ} {l A B}
+  (RAB : [Γ ||-S< l > A ≅ B]) : [Γ ||-< l > A ≅ B].
 Proof.
-  eapply Split_return.
+  eapply Split_return; tea.
+  1: escape; gtyping.
   intros ???.
   now eapply SwkLR.
 Qed.
 
 Lemma Wpack_return' `{GenericTypingProperties}
-  {Γ} {wfΓ : [|-Γ]} {l A B t u} {RAB : [Γ ||-S< l > A ≅ B]}  {RAB' : [wfΓ ||-< l > A ≅ B]}
-  (Rtu : [Γ ||-S< l > t ≅ u : A | RAB] ) : [wfΓ ||-< l > t ≅ u : A |  RAB'].
+  {Γ} {l A B t u} {RAB : [Γ ||-S< l > A ≅ B]}  {RAB' : [Γ ||-< l > A ≅ B]}
+  (Rtu : [Γ ||-S< l > t ≅ u : A | RAB] ) : [Γ ||-< l > t ≅ u : A |  RAB'].
 Proof.
   eapply Split_return.
-  intros ????.
+  1: escape; gtyping.
+  intros ??? oRAB'.
   now unshelve eapply SirrLR, SwkLR, Rtu.
 Qed.
 
 Lemma Wpack_return `{GenericTypingProperties}
-  {Γ} {wfΓ : [|-Γ]} {l A B t u} {RAB : [Γ ||-S< l > A ≅ B]}
-  (Rtu : [Γ ||-S< l > t ≅ u : A | RAB] ) : [wfΓ ||-< l > t ≅ u : A | WAd_return (wfΓ := wfΓ) RAB].
+  {Γ l A B t u} {RAB : [Γ ||-S< l > A ≅ B]}
+  (Rtu : [Γ ||-S< l > t ≅ u : A | RAB] ) : [Γ ||-< l > t ≅ u : A | WAd_return RAB].
 Proof.
   unshelve eapply irrLR, Wpack_return', Rtu.
-  easy.
   now eapply WAd_return.
 Qed.
+
+
 
 

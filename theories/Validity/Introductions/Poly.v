@@ -23,15 +23,15 @@ Section PolyValidity.
   Context `{GenericTypingProperties}.
 
   Context {l Γ Γ' F F' G G'} (VΓ : [||-v Γ ≅ Γ'])
-    (VF : [Γ ||-vS< l > F ≅ F' | VΓ ])
-    (VG : [Γ ,, F ||-vS< l > G ≅ G' | validSnoc VΓ VF]).
+    (VF : [Γ ||-v< l > F ≅ F' | VΓ ])
+    (VG : [Γ ,, F ||-v< l > G ≅ G' | validSnoc VΓ VF]).
 
   Context {Δ σ σ'} (wfΔ : [ |-[ ta ] Δ]) (Vσ : [VΓ | Δ ||-v σ ≅ σ' : _ | wfΔ]).
 
-  Lemma substPolyRed : PolyRed Δ l F[σ] F'[σ'] G[up_term_term σ] G'[up_term_term σ'].
+(*   Lemma substPolyRed : PolyRed Δ l F[σ] F'[σ'] G[up_term_term σ] G'[up_term_term σ'].
   Proof.
     opector.
-    - intros; eapply SwkLR; tea; now eapply SvalidTyExt.
+    - intros; eapply wkLR; tea; now eapply validTyExt.
     - intros. rewrite 2!eq_subst_2.
       eapply WAd_return.
       now unshelve now eapply SvalidTyExt; tea; eapply consWkSubstEq.
@@ -42,7 +42,7 @@ Section PolyValidity.
     (wtyT : forall Γ A B, [Γ |- A] -> [Γ,, A |- B] -> [Γ |- T A B])
     (convT : forall Γ A A' B B', [Γ |- A] -> [Γ |- A ≅ A'] -> [Γ,, A |- B ≅ B'] -> [Γ |- T A B ≅ T A' B']) :
     ParamRedTy T Δ l (T F[σ] G[up_term_term σ]) (T F'[σ'] G'[up_term_term σ']).
-  Proof. apply mkParamRedTy; tea; apply substPolyRed. Qed.
+  Proof. apply mkParamRedTy; tea; apply substPolyRed. Qed. *)
 
 End PolyValidity.
 

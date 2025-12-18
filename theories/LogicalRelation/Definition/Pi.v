@@ -27,8 +27,9 @@ Inductive isLRFun `{ta : tag} `{WfContext ta}
     [Γ |-  ΠA.(PiRedTyPack.domL) ≅ A'] ->
     (forall {Δ a b} (ρ : Δ ≤ Γ) (wfΔ : [ |- Δ ])
       (ha : [ ΠA.(PolyRedPack.shpRed) ρ wfΔ | Δ ||- a ≅ b : ΠA.(PiRedTyPack.domL)⟨ρ⟩ ]),
-        dSplit (fun Ξ wfΞ ρ' hSplit =>
-          [hSplit | Ξ ||- t[a .: (ρ >> tRel)]⟨ρ'⟩ ≅ t[b .: (ρ >> tRel)]⟨ρ'⟩ : ΠA.(PiRedTyPack.codL)[a .: (ρ >> tRel)]⟨ρ'⟩])
+        dSplit (fun Ξ wfΞ ρΞ hSplit =>
+          [hSplit | Ξ ||- t[a .: (ρ >> tRel)]⟨ρΞ⟩ ≅ t[b .: (ρ >> tRel)]⟨ρΞ⟩ :
+            ΠA.(PiRedTyPack.codL)[a .: (ρ >> tRel)]⟨ρΞ⟩])
         (ΠA.(PolyRedPack.posRed) ρ wfΔ ha)) ->
   isLRFun ΠA (tLambda A' t)
 | NeLRFun : forall f : term, [Γ |- f ~ f : PiRedTyPack.outTy ΠA] -> isLRFun ΠA f.
@@ -41,7 +42,9 @@ Module PiRedTmEq.
     {Γ A B} (ΠA : PiRedTyPack Γ A B) (nfL nfR : term) Δ a b :=
     forall (ρ : Δ ≤ Γ) (h : [ |- Δ ])
       (hab : [ΠA.(PolyRedPack.shpRed) (ρ) h | Δ ||- a ≅ b : ΠA.(domL)⟨ρ⟩]),
-      dSplit (fun Ξ wfΞ ρ' hSplit => [ hSplit | Ξ ||- (tApp nfL⟨ρ⟩ a)⟨ρ'⟩ ≅ (tApp nfR⟨ρ⟩ b)⟨ρ'⟩ : _ ]) (ΠA.(PolyRedPack.posRed) ρ h hab).
+      dSplit (fun Ξ wfΞ ρΞ hSplit => 
+        [ hSplit | Ξ ||- (tApp nfL⟨ρ⟩ a)⟨ρΞ⟩ ≅ (tApp nfR⟨ρ⟩ b)⟨ρΞ⟩ : _ ])
+      (ΠA.(PolyRedPack.posRed) ρ h hab).
 
   Arguments appRed /.
 

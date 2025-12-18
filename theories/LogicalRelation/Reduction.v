@@ -42,10 +42,10 @@ Proof.
     econstructor; tea; now eapply red_redtywf_trans.
 Qed.
 
-Lemma redSubst {Γ} {wfΓ : [|-Γ]} {A B B' l} :
-  [wfΓ ||-<l> B ≅ B'] ->
+Lemma redSubst {Γ} {A B B' l} :
+  [Γ ||-<l> B ≅ B'] ->
   [Γ |- A ⤳* B] ->
-  [wfΓ ||-<l> A ≅ B'].
+  [Γ ||-<l> A ≅ B'].
 Proof.
   intros lr hAB.
   eapply (Split_bind_return lr).
@@ -54,10 +54,10 @@ Proof.
   now unshelve eapply lr.
 Defined.
 
-Lemma redwfSubst {Γ} {wfΓ : [|-Γ]} {A B B' l} :
-  [wfΓ ||-<l> B ≅ B'] ->
+Lemma redwfSubst {Γ} {A B B' l} :
+  [Γ ||-<l> B ≅ B'] ->
   [Γ |- A :⤳*: B] ->
-  [wfΓ ||-<l> A ≅ B'].
+  [Γ ||-<l> A ≅ B'].
 Proof.
   intros ? []; now eapply redSubst.
 Qed.
@@ -127,10 +127,10 @@ Proof.
     all: cbn; eauto.
 Qed.
 
-Lemma redSubstLeftTmEq {Γ} {wfΓ : [|-Γ]} {A B t u v l} (RA : [wfΓ ||-<l> A ≅ B]) :
-  [wfΓ ||-<l> u ≅ v : A | RA] ->
+Lemma redSubstLeftTmEq {Γ A B t u v l} (RA : [Γ ||-<l> A ≅ B]) :
+  [Γ ||-<l> u ≅ v : A | RA] ->
   [Γ |- t ⤳* u : A ] ->
-  [wfΓ ||-<l> t ≅ v : A | RA].
+  [Γ ||-<l> t ≅ v : A | RA].
 Proof.
   intros huv hRtu.
   eapply (dSplit_bind_return huv).
@@ -152,17 +152,17 @@ Proof.
   eapply SredSubstLeftTmEq; tea; now symmetry.
 Qed.
 
-Lemma redSubstTmEq {Γ} {wfΓ : [|-Γ]} {A A' tl tr ul ur l} (RA : [wfΓ ||-<l> A ≅ A']) :
-  [wfΓ ||-<l> ul ≅ ur : A | RA] ->
+Lemma redSubstTmEq {Γ A A' tl tr ul ur l} (RA : [Γ ||-<l> A ≅ A']) :
+  [Γ ||-<l> ul ≅ ur : A | RA] ->
   [Γ |- tl ⤳* ul : A ] ->
   [Γ |- tr ⤳* ur : A' ] ->
-  [wfΓ ||-<l> tl ≅ tr : A | RA].
+  [Γ ||-<l> tl ≅ tr : A | RA].
 Proof.
   intros.
   assert [Γ |- tr ⤳* ur : A ].
   1: eapply redtm_conv; tea; escape; now symmetry.
-  eapply redSubstLeftTmEq; tea; symmetry.
-  eapply redSubstLeftTmEq; tea; now symmetry.
+  eapply redSubstLeftTmEq; tea; eapply Symmetry.symLR.
+  eapply redSubstLeftTmEq; tea; now eapply Symmetry.symLR.
 Qed.
 
 Lemma SredSubstTmEq' {Γ A A' tl tr ul ur l} (RA : [Γ ||-S<l> A ≅ A']) :
@@ -177,22 +177,22 @@ Proof.
   + eapply SredSubstLeftTmEq; tea; now eapply urefl, SirrLRConv.
 Qed.
 
-Lemma redSubstTmEq' {Γ} {wfΓ : [|-Γ]} {A A' tl tr ul ur l} (RA : [wfΓ ||-<l> A ≅ A']) :
-  [wfΓ ||-<l> ul ≅ ur : A | RA] ->
+Lemma redSubstTmEq' {Γ A A' tl tr ul ur l} (RA : [Γ ||-<l> A ≅ A']) :
+  [Γ ||-<l> ul ≅ ur : A | RA] ->
   [Γ |- tl ⤳* ul : A ] ->
   [Γ |- tr ⤳* ur : A' ] ->
-  [wfΓ ||-<l> tl ≅ tr : A | RA] × [wfΓ ||-<l> tl ≅ ul : _ | lrefl RA] × [wfΓ ||-<l> tr ≅ ur : _ | urefl RA].
+  [Γ ||-<l> tl ≅ tr : A | RA] × [Γ ||-<l> tl ≅ ul : _ | lrefl RA] × [Γ ||-<l> tr ≅ ur : _ | urefl RA].
 Proof.
   intros; prod_splitter.
   + now eapply redSubstTmEq.
-  + eapply redSubstLeftTmEq; tea. now eapply lrefl, irrLR.
-  + eapply redSubstLeftTmEq; tea; now eapply urefl, irrLRConv.
+  + eapply redSubstLeftTmEq; tea. now eapply lreflRedTm, irrLR.
+  + eapply redSubstLeftTmEq; tea; now eapply ureflRedTm, irrLRConv.
 Qed.
 
-Lemma redwfSubstTmEq {Γ} {wfΓ : [|-Γ]} {A t u v l} (RA : [wfΓ ||-<l> A]) :
-  [wfΓ ||-<l> u ≅ v : A | RA] ->
+Lemma redwfSubstTmEq {Γ A t u v l} (RA : [Γ ||-<l> A]) :
+  [Γ ||-<l> u ≅ v : A | RA] ->
   [Γ |- t :⤳*: u : A ] ->
-  [wfΓ ||-<l> t ≅ v : A | RA].
+  [Γ ||-<l> t ≅ v : A | RA].
 Proof.
   intros ? []; now eapply redSubstLeftTmEq.
 Qed.

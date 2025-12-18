@@ -124,7 +124,7 @@ Record typeValidity@{u i j k l} `{ta : tag} `{!WfContext ta}
     validTyExt : forall {Δ : context} (wfΔ : [|- Δ ])
       {σ σ' : nat -> term}
       (vσσ' : [ VΓ | Δ ||-v σ ≅ σ' : Γ | wfΔ ]),
-      WLRAdequate@{i j k l} Δ wfΔ l A[σ] A'[σ']
+      WLRAdequate@{i j k l} Δ l A[σ] A'[σ']
   }.
 
 Arguments typeValidity : clear implicits.
@@ -398,15 +398,15 @@ Definition wfCtxOfsubstS `{GenericTypingProperties}
 Ltac instValid vσ :=
   let wfΔ := (eval unfold wfCtxOfsubstS in (wfCtxOfsubstS vσ)) in
   repeat lazymatch goal with
-  | [H : StypeValidity _ _ _ _ _ _ |- _] =>
-    try (let X := fresh "R" H in pose (X := SvalidTyExt H wfΔ vσ)) ;
+  | [H : typeValidity _ _ _ _ _ _ |- _] =>
+    try (let X := fresh "R" H in pose (X := validTyExt H wfΔ vσ)) ;
      (* TODO: should only do that if vσ : [.. |- σ ≅ σ' : ...] with σ != σ' *)
-    try (let X := fresh "Rl" H in pose (X := SvalidTyExt H wfΔ (lrefl vσ))) ;
-    try (let X := fresh "Rr" H in pose (X := SvalidTyExt H wfΔ (urefl vσ))) ;
+    try (let X := fresh "Rl" H in pose (X := validTyExt H wfΔ (lrefl vσ))) ;
+    try (let X := fresh "Rr" H in pose (X := validTyExt H wfΔ (urefl vσ))) ;
     block H
-  | [H : StermEqValidity _ _ _ _ _ _ _ _ _ |- _] =>
-    try (let X := fresh "R" H in pose (X := SvalidTmExt H wfΔ vσ)) ;
-    try (let X := fresh "Rl" H in pose (X := SvalidTmExt H wfΔ (lrefl vσ))) ;
-    try (let X := fresh "Rr" H in pose (X := SvalidTmExt H wfΔ (urefl vσ))) ;
+  | [H : termEqValidity _ _ _ _ _ _ _ _ _ |- _] =>
+    try (let X := fresh "R" H in pose (X := validTmExt H wfΔ vσ)) ;
+    try (let X := fresh "Rl" H in pose (X := validTmExt H wfΔ (lrefl vσ))) ;
+    try (let X := fresh "Rr" H in pose (X := validTmExt H wfΔ (urefl vσ))) ;
     block H
   end; unblock.

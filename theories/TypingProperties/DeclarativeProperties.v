@@ -670,6 +670,9 @@ Module WeakDeclarativeTypingProperties.
     1-2: now constructor.
     2-7: boundary.
     apply wfcon_new.
+    intros ?? wftrue wffalse.
+    assert [Γ |- tBool] by (eapply wfTypeSplit; now eapply wfTypeBool).
+    boundary.
   Qed.
 
   #[export, refine] Instance WfTypeDeclProperties : WfTypeProperties (ta := de) := {}.
