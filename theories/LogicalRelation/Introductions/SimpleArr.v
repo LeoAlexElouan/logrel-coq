@@ -21,8 +21,21 @@ Section SimpleArrow.
     eapply LRPiPoly0, shiftPolyRed; tea; escape; gtyping.
   Qed.
 
-  Lemma ArrRedTy {Γ l A A' B B'} : [Γ ||-S<l> A ≅ A'] -> [Γ ||-S<l> B ≅ B'] -> [Γ ||-S<l> arr A B ≅ arr A' B'].
+  Lemma SArrRedTy {Γ l A A' B B'} : [Γ ||-S<l> A ≅ A'] -> [Γ ||-S<l> B ≅ B'] -> [Γ ||-S<l> arr A B ≅ arr A' B'].
   Proof. intros; eapply LRPi'; now eapply ArrRedTy0. Qed.
+
+  Lemma ArrRedTy {Γ l A A' B B'} : [Γ ||-<l> A ≅ A'] -> [Γ ||-<l> B ≅ B'] -> [Γ ||-<l> arr A B ≅ arr A' B'].
+  Proof. 
+    intros RA RB.
+    eapply (Split_bind RA).
+    intros Δ wfΔ ρ oRA.
+    eapply (Split_wk_bind_return RB wfΔ ρ).
+    intros Ξ wfΞ ρΞ oRB.
+    rewrite <- 2wk_arr.
+    eapply SArrRedTy.
+    + now eapply RA, overtree_PSh.
+    + now eapply RB.
+  Qed.
 
   Lemma polyRedArrExt {Γ l A A' B B' C C'} : PolyRed Γ l A A' B B' -> PolyRed Γ l A A' C C' -> PolyRed Γ l A A' (arr B C) (arr B' C').
   Proof.
@@ -38,12 +51,12 @@ Section SimpleArrow.
     eapply (Split_wk_bind_return RC wfΞ ρΞ).
     intros Θ wfΘ ρΘ oRC.
     rewrite 2!subst_arr, 2!wk_comp_ren_on, <-2!wk_arr.
-    eapply ArrRedTy.
+    eapply SArrRedTy.
     + now eapply RB, overtree_PSh.
     + now eapply RC.
   Qed.
 
-  Lemma simple_appcongTerm {Γ t t' u u' F F' G G' l}
+  Lemma Ssimple_appcongTerm {Γ t t' u u' F F' G G' l}
     {RF : [Γ ||-S<l> F ≅ F']}
     (RG : [Γ ||-<l> G ≅ G'])
     (RΠ : [Γ ||-S<l> arr F G ≅ arr F' G'])
@@ -51,11 +64,11 @@ Section SimpleArrow.
     (Ruu' : [Γ ||-S<l> u ≅ u' : F | RF ]) :
       [Γ ||-<l> tApp t u ≅ tApp t' u' : G | RG].
   Proof.
-    unshelve (eapply irrLREq, appcongTerm; tea); tea;
+    unshelve (eapply irrLREq, SappcongTerm; tea); tea;
     erewrite !shift_subst1; tea; reflexivity.
   Qed.
 
-  Lemma simple_appcongTerm' {Γ t t' u u' F F' G G' l}
+  Lemma simple_appcongTerm {Γ t t' u u' F F' G G' l}
     {RF : [Γ ||-<l> F ≅ F']}
     (RG : [Γ ||-<l> G ≅ G'])
     (RΠ : [Γ ||-<l> arr F G ≅ arr F' G'])
@@ -70,7 +83,7 @@ Section SimpleArrow.
     eapply Split_hom_PSh, (Wpackrefold wfΞ).
     1: intros Θ wfΘ ρΘ h oRG; rewrite wk_comp_assoc; eapply h.
     rewrite <- 2!wk_app.
-    unshelve eapply simple_appcongTerm, Ruu', overtree_PSh, oRuu'; tea.
+    unshelve eapply Ssimple_appcongTerm, Ruu', overtree_PSh, oRuu'; tea.
     1: rewrite 2!wk_arr; now eapply RΠ, oRΠ.
     1: now eapply overtree_PSh.
     unshelve eapply SirrLREq, Rtt'; tea.

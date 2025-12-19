@@ -136,6 +136,7 @@ Section Weak_LogRel.
   Definition WLRAdequate@{i j k l | i < j, j < k, k < l} Γ l A B : Type@{l} :=
     Split@{l} (fun Δ _ (ρ: Δ ≤ Γ) => LRAdequate@{k l} Δ (LogRel@{i j k l} l) A⟨ρ⟩ B⟨ρ⟩).
 
+
   Definition Wpack@{i j k l | i < j, j < k, k < l} Γ l A B (RA : WLRAdequate@{i j k l} Γ l A B) : LRPack@{k} Γ A B :=
     Build_LRPack@{k} Γ A B (fun t u =>
       dSplit (fun Δ _ (ρ: Δ ≤ Γ) hSplit => [LogRel@{i j k l} l | Δ ||- t⟨ρ⟩ ≅ u⟨ρ⟩ : A⟨ρ⟩ | hSplit]) RA).

@@ -306,7 +306,7 @@ Qed.
 Definition neuTerm {l Γ A B} (RA : [Γ ||-S<l> A ≅ B]) {n} :=
   reflect_diag RA (reflectLR RA) n.
 
-Lemma neNfTermEq {Γ l A n n'} (RA : [Γ ||-S<l> A]) : [Γ ||-NeNf n ≅ n' : A] -> [RA | Γ ||- n ≅ n' : A].
+Lemma SneNfTermEq {Γ l A n n'} (RA : [Γ ||-S<l> A]) : [Γ ||-NeNf n ≅ n' : A] -> [RA | Γ ||- n ≅ n' : A].
 Proof. intros []; now eapply reflectLR. Qed.
 
 
@@ -316,6 +316,27 @@ Lemma Svar0conv {l Γ A A' B'} (RA : [Γ ,, A ||-S<l> A' ≅ B']) :
   [Γ ,, A ||-S<l> tRel 0 : A' | RA].
 Proof.
   apply reflect_var0 ; now eapply reflectLR.
+Qed.
+
+Lemma Svar0 {l Γ A A' B'} (RA : [Γ ,, A ||-S<l> A' ≅ B']) :
+  A⟨↑⟩ = A' ->
+  [Γ |- A] ->
+  [Γ ,, A ||-S<l> tRel 0 : A' | RA].
+Proof.
+  intros; subst; apply Svar0conv; tea.
+  eapply lrefl; now escape.
+Qed.
+
+
+Lemma neNfTermEq {Γ l A n n'} (RA : [Γ ||-<l> A]) :
+  [Γ ||-NeNf n ≅ n' : A] -> [RA | Γ ||- n ≅ n' : A].
+Proof.
+  intros [Hn Hn' Hnn'].
+  eapply Split_return.
+  1: escape; gtyping.
+  intros Δ wfΔ ρ oRA.
+  eapply SneNfTermEq; constructor;
+  now first [eapply ty_wk|eapply convneu_wk].
 Qed.
 
 Lemma var0conv {l Γ A A' B'} (RAB : [ Γ,,A||-<l> A' ≅ B']) :
@@ -332,15 +353,6 @@ Proof.
   + now eapply ty_wk.
   + now eapply ty_wk.
   + now eapply convneu_wk, convneu_var.
-Qed.
-
-Lemma Svar0 {l Γ A A' B'} (RA : [Γ ,, A ||-S<l> A' ≅ B']) :
-  A⟨↑⟩ = A' ->
-  [Γ |- A] ->
-  [Γ ,, A ||-S<l> tRel 0 : A' | RA].
-Proof.
-  intros; subst; apply Svar0conv; tea.
-  eapply lrefl; now escape.
 Qed.
 
 Lemma var0 {l Γ A A' B'} (RA : [ Γ,,A  ||-<l> A' ≅ B']) :

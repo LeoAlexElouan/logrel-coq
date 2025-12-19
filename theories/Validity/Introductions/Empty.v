@@ -17,7 +17,7 @@ Defined.
 
 Lemma emptyValidU {Γ Γ'} (VΓ : [||-v Γ ≅ Γ']):  [Γ ||-v<one> tEmpty : U | VΓ | UValid VΓ].
 Proof.
-  constructor; intros; eapply emptyTermRed.
+  constructor; intros; eapply Wpack_return, emptyTermRed.
 Qed.
 
 
@@ -35,11 +35,13 @@ Section EmptyElimValid.
     : [Γ ||-v<l> tEmptyElim P n ≅ tEmptyElim P' n' : _ | VΓ | VPn].
   Proof.
     constructor; intros; instValid Vσσ'; epose proof (Vuσ := liftSubst' VN Vσσ').
-    instValid Vuσ; cbn in *; escape.
+    instValid Vuσ; cbn -[Wpack] in *; escape.
     eapply irrLREq. 1: now rewrite singleSubstComm'.
     unshelve eapply emptyElimRedEq; rewrite ?elimSuccHypTy_subst; tea.
-    + now apply emptyRedTy.
-    + intros ; rewrite 2!up_single_subst; eapply validTyExt; tea.
+(*     + now apply emptyRedTy. *)
+    + clear dependent n; clear dependent n'; intros Ξ wfΞ ρΞ ?? Rnn'.
+      rewrite 2eq_upren', 2!up_single_subst; eapply validTyExt; tea.
+      unshelve eapply wkSubst in Vσσ' as VρΞ; tea.
       now unshelve econstructor.
   Qed.
 End EmptyElimValid.

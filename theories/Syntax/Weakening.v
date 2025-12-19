@@ -382,6 +382,12 @@ Proof.
   now bsimpl.
 Qed.
 
+Lemma eq_upren t σ ρ : t[up_term_term σ]⟨upRen_term_term ρ⟩ = t[up_term_term σ⟨ρ⟩].
+Proof. asimpl; unfold Ren1_subst; asimpl; substify; now asimpl. Qed.
+
+Lemma eq_upren' {Γ Δ} A t σ (ρ : Δ ≤ Γ) : t[up_term_term σ]⟨wk_up A ρ⟩ = t[up_term_term σ⟨ρ⟩].
+Proof. eapply eq_upren. Qed.
+
 Lemma subst_ren_wk_up {Γ Δ P A n} (ρ : Γ ≤ Δ): P[n..]⟨ρ⟩ = P⟨wk_up A ρ⟩[n⟨ρ⟩..].
 Proof. now bsimpl. Qed.
 
@@ -427,19 +433,13 @@ Lemma wk1_ren_on Γ F (H : term) : H⟨@wk1 Γ F⟩ = H⟨↑⟩.
 Proof. now bsimpl. Qed.
 
 Lemma wk_up_ren_on Γ Δ (ρ : Γ ≤ Δ) F (H : term) : H⟨wk_up F ρ⟩ = H⟨upRen_term_term ρ⟩.
-Proof. now bsimpl. Qed.
+Proof. reflexivity. Qed.
 
 Lemma wk_up_wk1_ren_on Γ F G (H : term) : H⟨wk_up F (@wk1 Γ G)⟩ = H⟨upRen_term_term ↑⟩.
 Proof. now bsimpl. Qed.
 
 Lemma wk_arr {A B Γ Δ} (ρ : Δ ≤ Γ) : arr A⟨ρ⟩ B⟨ρ⟩ = (arr A B)⟨ρ⟩.
 Proof. now bsimpl. Qed.
-
-Lemma wk_elimSuccHypTy {P Γ Δ} A (ρ : Δ ≤ Γ) :
-  elimSuccHypTy P⟨wk_up A ρ⟩ = (elimSuccHypTy P)⟨ρ⟩.
-Proof.
-  unfold elimSuccHypTy; cbn; f_equal; now bsimpl.
-Qed.
 
 Lemma wk_prod {A B Γ Δ} (ρ : Δ ≤ Γ) : tProd A⟨ρ⟩ B⟨wk_up A ρ⟩ = (tProd A B)⟨ρ⟩.
 Proof. reflexivity. Qed.
@@ -465,10 +465,32 @@ Proof. reflexivity. Qed.
 Lemma wk_comp {Γ Δ A f g} (ρ : Δ ≤ Γ) : (comp A f g)⟨ρ⟩ = comp A⟨ρ⟩ f⟨ρ⟩ g⟨ρ⟩.
 Proof. now bsimpl. Qed.
 
+Lemma wk_emptyElim {Γ Δ P n} (ρ : Δ ≤ Γ) :
+  tEmptyElim P⟨wk_up tEmpty ρ⟩ n⟨ρ⟩ = (tEmptyElim P n)⟨ρ⟩.
+Proof. reflexivity. Qed.
+
+Lemma wk_elimSuccHypTy {P Γ Δ} A (ρ : Δ ≤ Γ) :
+  elimSuccHypTy P⟨wk_up A ρ⟩ = (elimSuccHypTy P)⟨ρ⟩.
+Proof.
+  unfold elimSuccHypTy; cbn; f_equal; now bsimpl.
+Qed.
+
+Lemma wk_natElim {Γ Δ P hz hs n} (ρ : Δ ≤ Γ) :
+  tNatElim P⟨wk_up tNat ρ⟩ hz⟨ρ⟩ hs⟨ρ⟩ n⟨ρ⟩ = (tNatElim P hz hs n)⟨ρ⟩.
+Proof. reflexivity. Qed.
+
+Lemma wk_boolElim {Γ Δ P hz hs n} (ρ : Δ ≤ Γ) :
+  tBoolElim P⟨wk_up tBool ρ⟩ hz⟨ρ⟩ hs⟨ρ⟩ n⟨ρ⟩ = (tBoolElim P hz hs n)⟨ρ⟩.
+Proof. reflexivity. Qed.
+
 Lemma wk_Id {A x y Γ Δ} (ρ : Δ ≤ Γ) : tId A⟨ρ⟩ x⟨ρ⟩ y⟨ρ⟩ = (tId A x y)⟨ρ⟩.
 Proof. reflexivity. Qed.
 
 Lemma wk_refl {A x Γ Δ} (ρ : Δ ≤ Γ) : tRefl A⟨ρ⟩ x⟨ρ⟩ = (tRefl A x)⟨ρ⟩.
+Proof. reflexivity. Qed.
+
+Lemma wk_idElim {A x P hr y e Δ Γ} (ρ : Δ ≤ Γ) :
+  tIdElim A⟨ρ⟩ x⟨ρ⟩ P⟨wk_up (tId A⟨@wk1 Γ A⟩ x⟨@wk1 Γ A⟩ (tRel 0)) (wk_up A ρ)⟩ hr⟨ρ⟩ y⟨ρ⟩ e⟨ρ⟩ = (tIdElim A x P hr y e)⟨ρ⟩.
 Proof. reflexivity. Qed.
 
 
@@ -479,9 +501,6 @@ Lemma wk_up_wk1 {A t Γ Δ} (ρ : Δ ≤ Γ) :  t⟨ρ⟩⟨@wk1 Δ A⟨ρ⟩⟩
 Proof. now bsimpl. Qed.
 
 
-Lemma wk_idElim {A x P hr y e Δ Γ} (ρ : Δ ≤ Γ) :
-  tIdElim A⟨ρ⟩ x⟨ρ⟩ P⟨wk_up (tId A⟨@wk1 Γ A⟩ x⟨@wk1 Γ A⟩ (tRel 0)) (wk_up A ρ)⟩ hr⟨ρ⟩ y⟨ρ⟩ e⟨ρ⟩ = (tIdElim A x P hr y e)⟨ρ⟩.
-Proof. reflexivity. Qed.
 
 Lemma wk_to_ren_inj : forall Γ Δ (ρ1 ρ2 : Γ ≤ Δ), wk_to_ren ρ1 =1 wk_to_ren ρ2 -> ρ1 = ρ2.
 Proof.

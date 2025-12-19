@@ -18,21 +18,19 @@ Defined.
 
 Lemma boolValidU {Γ} (VΓ : [||-v Γ]):  [Γ ||-v<one> tBool : U | VΓ | UValid VΓ].
 Proof.
-  constructor; intros; eapply boolTermRed.
+  constructor; intros; eapply Wpack_return, boolTermRed.
 Qed.
 
 Lemma trueValid {Γ Γ' l} (VΓ : [||-v Γ ≅ Γ']):
   [Γ ||-v<l> tTrue : tBool | VΓ | boolValid VΓ].
 Proof.
   constructor; intros; cbn; unshelve eapply trueRed; tea.
-  3: now eapply boolRedTy.
 Qed.
 
 Lemma falseValid {Γ Γ' l} (VΓ : [||-v Γ ≅ Γ']):
   [Γ ||-v<l> tFalse : tBool | VΓ | boolValid VΓ].
 Proof.
   constructor; intros; cbn; unshelve eapply falseRed; tea.
-  3: now eapply boolRedTy.
 Qed.
 
 
@@ -54,12 +52,13 @@ Section BoolElimValid.
     : [Γ ||-v<l> tBoolElim P ht hf n ≅ tBoolElim P' ht' hf' n' : _ | VΓ | VPn].
   Proof.
     constructor; intros; instValid Vσσ'; epose proof (Vuσ := liftSubst' VN Vσσ').
-    instValid Vuσ; cbn in *.
+    instValid Vuσ; cbn -[Wpack] in *.
     eapply irrLREq. 1: now rewrite singleSubstComm'.
     unshelve eapply boolElimRedEq; tea.
-    3-5: now escape.
-    + now eapply boolRedTy.
-    + intros ?? Rn; rewrite 2!up_single_subst; unshelve eapply validTyExt; cycle 3; tea.
+    2-4: now escape.
+    + clear dependent n; clear dependent n'; intros Ξ wfΞ ρΞ ?? Rnn'.
+      rewrite 2eq_upren', 2!up_single_subst; eapply validTyExt; tea.
+      unshelve eapply wkSubst in Vσσ' as VρΞ; tea.
       now unshelve econstructor.
     + eapply irrLREq; tea; now rewrite singleSubstComm'.
     + eapply irrLREq; tea; now rewrite singleSubstComm'.

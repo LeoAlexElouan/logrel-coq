@@ -265,12 +265,6 @@ Proof.
   bsimpl ; now substify.
 Qed.
 
-Lemma eq_upren t σ ρ : t[up_term_term σ]⟨upRen_term_term ρ⟩ = t[up_term_term σ⟨ρ⟩].
-Proof. asimpl; unfold Ren1_subst; asimpl; substify; now asimpl. Qed.
-
-Lemma eq_upren' {Γ Δ} A t σ (ρ : Δ ≤ Γ) : t[up_term_term σ]⟨wk_up A ρ⟩ = t[up_term_term σ⟨ρ⟩].
-Proof. eapply eq_upren. Qed.
-
 Lemma eq_substren {Γ Δ} t σ (ρ : Γ ≤ Δ) : t[σ]⟨ρ⟩ = t[σ⟨ρ⟩].
 Proof. now asimpl. Qed.
 
@@ -479,10 +473,8 @@ Proof.
       rewrite <- 2(subst_ren_wk (σ:=σ) (ρΘ ∘w ρΞ)).
       now destruct (PiRedTmEq.redL Rg') as [? []].
   Unshelve.
-  eapply SwkLR. destruct RΠ, redL. cbn in *. clear - RΠ.
-  eapply RΠ.
-  Search ([_ ||-< _ > (tProd _ _)[_] ≅ _]).
-  destruct RΠ, redL.
+  rewrite <- subst_ren_wk.
+  now eapply (PolyRed.shpRed RΠ).
 Qed.
 
 Lemma etaeqValid {f g} (ρ := @wk1 Γ F)

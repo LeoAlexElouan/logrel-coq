@@ -18,14 +18,13 @@ Defined.
 
 Lemma natValidU {Γ} (VΓ : [||-v Γ]):  [Γ ||-v<one> tNat : U | VΓ | UValid VΓ].
 Proof.
-  constructor; intros; eapply natTermRed.
+  constructor; intros; eapply Wpack_return, natTermRed.
 Qed.
 
 Lemma zeroValid {Γ Γ' l} (VΓ : [||-v Γ ≅ Γ']):
   [Γ ||-v<l> tZero : tNat | VΓ | natValid VΓ].
 Proof.
   constructor; intros; cbn; unshelve eapply zeroRed; tea.
-  3: now eapply natRedTy.
 Qed.
 
 Lemma succValid' {Γ Γ' A A' l n n'} (VΓ : [||-v Γ ≅ Γ'])
@@ -35,8 +34,8 @@ Lemma succValid' {Γ Γ' A A' l n n'} (VΓ : [||-v Γ ≅ Γ'])
   [Γ ||-v<l> tSucc n ≅ tSucc n' : A | VΓ | VN].
 Proof.
   subst.
-  constructor; intros; cbn; instValid Vσσ'; eapply irrLR.
-  unshelve eapply succRed, irrLR; cycle 4; tea; cbn; eapply natRedTy; tea.
+  constructor; intros; cbn -[Wpack]; instValid Vσσ'; eapply irrLR.
+  unshelve eapply succRed, irrLR; cycle 4; tea.
   Unshelve. tea.
 Qed.
 
@@ -80,12 +79,13 @@ Section NatElimValid.
   Proof.
     pose proof (elimSuccHypTyValid VP).
     constructor; intros; instValid Vσσ'; epose proof (Vuσ := liftSubst' VN Vσσ').
-    instValid Vuσ; cbn -[elimSuccHypTy elimSuccHypTyValid] in *.
+    instValid Vuσ; cbn -[elimSuccHypTy elimSuccHypTyValid Wpack] in *.
     eapply irrLREq. 1: now rewrite singleSubstComm'.
     unshelve eapply natElimRedEq; tea.
-    4-6: now escape.
-    + now eapply natRedTy.
-    + intros ?? Rn; rewrite 2!up_single_subst; unshelve eapply validTyExt; cycle 3; tea.
+    3-5: now escape.
+    + clear dependent n; clear dependent n'; intros Ξ wfΞ ρΞ ???.
+      rewrite 2eq_upren', 2!up_single_subst; eapply validTyExt; tea.
+      unshelve eapply wkSubst in Vσσ' as VρΞ; tea.
       now unshelve econstructor.
     + now rewrite 2!elimSuccHypTy_subst.
     + eapply irrLREq; tea; now rewrite singleSubstComm'.

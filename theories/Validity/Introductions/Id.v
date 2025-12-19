@@ -33,7 +33,6 @@ Context `{GenericTypingProperties}.
   Proof.
     constructor; intros; instValid Vσσ'.
     unshelve eapply IdCongRedU; refold; tea.
-    1: now eapply univValid.
     1,2: now eapply irrLR.
   Qed.
 
@@ -45,7 +44,7 @@ Context `{GenericTypingProperties}.
     [_ ||-v<l> tRefl A x ≅ tRefl A' x' : _ | _ | VId].
   Proof.
     constructor; intros; instValid Vσσ'; escape.
-    now eapply reflCongRed0.
+    eapply reflCongRed0; tea.
   Qed.
 
 
@@ -158,7 +157,7 @@ Context `{GenericTypingProperties}.
     (VPye := substIdElimMotive VΓ VA Vx VΓext VP Vy VId Ve) :
     [_ ||-v<l> tIdElim A x P hr y e ≅ tIdElim A' x' P' hr' y' e' : _ | _ | VPye].
   Proof.
-    constructor; intros; cbn.
+    constructor; intros; cbn -[Wpack].
     instValid Vσσ'.
     pose proof (Vuu0 := liftSubst' (idElimMotiveCtxIdValid VΓ VA Vx) (liftSubst' VA Vσσ')).
     set (wfΔ' := wfc_cons _ _) in Vuu0.
