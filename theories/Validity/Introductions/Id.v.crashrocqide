@@ -165,33 +165,17 @@ Context `{GenericTypingProperties}.
     instValid Vuu.
     eapply irrLREq; [now rewrite <-up_twice_subst|].
     (unshelve (eapply idElimCongRed; tea)); tea.
-    - intros ???? Ry Re.
+    - intros * Ry ? Re.
       epose proof (Vext := idElimMotiveScons2Red Vx VΓext Vσσ' Ry Re).
       instValid Vext; now rewrite 2!subst_upup_scons2.
-    - eapply irrLR, RVe.
-    - erewrite idElimMotive_Idsubst_eq; now eapply escapeSplit.
+    - erewrite idElimMotive_Idsubst_eq; now eapply escape.
     - erewrite idElimMotive_Idsubst_eq.
       pose (t := idElimMotiveCtxIdValid _ (symValidTy' VA) (symValidTm' Vx)).
       pose proof (Vuu1 := liftSubst' t (liftSubst' (symValidTy' VA) (symSubst _ _ _ wfΔ Vσσ'))).
       set (wfΔ'' := wfc_cons _ _) in Vuu1.
-      now unshelve eapply (escapeSplit (validTyExt (symValidTy' VP) _ (irrelevanceSubst _ _ _ _ Vuu1))).
-    - erewrite idElimMotive_Idsubst_eq; now eapply escapeSplitTy.
-    - intros Ξ wfΞ ρΞ z z' f f' ? Rz Rf.
-      rewrite 2eq_upupren', 2!subst_upup_scons2.
-      eapply validTyExt; tea.
-      unshelve eapply wkSubst in Vσσ' as VρΞ; tea.
-      eapply idElimMotiveScons2Red.
-      + eapply Vx.
-      + eapply VρΞ.
-      + eapply irrLREq, Rz.
-        eapply subst_ren_wk.
-      + eapply irrLREq, Rf.
-        now rewrite 2 subst_ren_wk.
+      now unshelve eapply (escape (validTyExt (symValidTy' VP) _ (irrelevanceSubst _ _ _ _ Vuu1))).
+    - erewrite idElimMotive_Idsubst_eq; now eapply escapeEq.
     - eapply irrLREq; tea; clear; now bsimpl.
-    Unshelve.
-    + now rewrite <- 2 subst_ren_wk.
-    + rewrite <- 4 subst_ren_wk.
-      eapply (IdRed RAρ (wkLRTm ρΞ wfΞ RVx) Rz).
   Qed.
 
   Lemma subst_subst_twice t a b σ :

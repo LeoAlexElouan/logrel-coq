@@ -132,11 +132,10 @@ Section SigTmValidity.
     (VGU : [ Γ ,, F ||-v< one > G ≅ G' : U | validSnoc VΓ VF | VU ]). *)
 
 
-  Lemma PiValidU {Γ Γ' F F' G G'}
+  Lemma SigValidU {Γ Γ' F F' G G'}
     (VΓ : [||-v Γ ≅ Γ'])
     (VF : [ Γ ||-v< one > F ≅ F' | VΓ ])
     (VΓF := validSnoc VΓ VF)
-    (VG : [ Γ ,, F ||-v< one > G ≅ G' | VΓF])
     (VU : [ Γ ||-v< one > U | VΓ ])
     (VU' : [ Γ ,, F ||-v< one > U | VΓF ])
     (VFU : [ Γ ||-v< one > F ≅ F' : U | VΓ | VU ])

@@ -388,14 +388,6 @@ Proof. asimpl; unfold Ren1_subst; asimpl; substify; now asimpl. Qed.
 Lemma eq_upren' {Γ Δ} A t σ (ρ : Δ ≤ Γ) : t[up_term_term σ]⟨wk_up A ρ⟩ = t[up_term_term σ⟨ρ⟩].
 Proof. eapply eq_upren. Qed.
 
-Lemma eq_upupren t σ ρ : t[up_term_term (up_term_term σ)]⟨upRen_term_term (upRen_term_term ρ)⟩ =
- t[up_term_term (up_term_term σ⟨ρ⟩)].
-Proof. asimpl; unfold Ren1_subst; asimpl; substify; now asimpl. Qed.
-
-Lemma eq_upupren' {Γ Δ} A B t σ (ρ : Δ ≤ Γ) :
-  t[up_term_term (up_term_term σ)]⟨wk_up A (wk_up B ρ)⟩ = t[up_term_term (up_term_term σ⟨ρ⟩)].
-Proof. eapply eq_upupren. Qed.
-
 Lemma subst_ren_wk_up {Γ Δ P A n} (ρ : Γ ≤ Δ): P[n..]⟨ρ⟩ = P⟨wk_up A ρ⟩[n⟨ρ⟩..].
 Proof. now bsimpl. Qed.
 

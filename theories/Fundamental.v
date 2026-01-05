@@ -107,8 +107,8 @@ Section Fundamental.
   Context `{GenericTypingProperties}.
   Import DeclarativeTypingData.
 
-  Lemma FundConNil : FundCon ε.
-  Proof. eapply validEmpty. Qed.
+  Lemma FundConNil L: FundCon (fromFctx L).
+  Proof. now eapply validEmpty. Qed.
 
   Lemma FundConCons (Γ : context) (A : term)
   (fΓ : FundCon Γ) (fA : FundTy Γ A) : FundCon (Γ,, A).
@@ -150,13 +150,14 @@ Section Fundamental.
     + now eapply varnValid.
   Qed.
 
+
   Lemma FundTmProd : forall (Γ : context) (A B : term),
     FundTm Γ U A ->
     FundTm (Γ,, A) U B -> FundTm Γ U (tProd A B).
   Proof.
     intros * [] []; econstructor.
-    unshelve eapply PiValidU;
-    first [now eapply UValid| now eapply univValid| irrValid | tea].
+    unshelve (eapply PiValidU);
+    first [now eapply UValid| now eapply univValid | irrValid | try assumption].
   Qed.
 
   Lemma FundTmLambda : forall (Γ : context) (A B t : term),
@@ -515,7 +516,7 @@ Section Fundamental.
     intros * [] []; unshelve econstructor.
     3:eapply SigValidU; irrValid.
     tea.
-    Unshelve. 1: now eapply univValid. irrValid.
+    Unshelve. 1: now eapply univValid. irrValid. irrValid.
   Qed.
 
   Lemma FundTmPair : forall (Γ : context) (A B a b : term),
@@ -565,7 +566,6 @@ Section Fundamental.
   Proof.
     intros * [] [] []; unshelve econstructor.
     3: eapply SigValidU ; tea; try irrValid.
-    tea.
     Unshelve.
     + unshelve (eapply univValid; irrValid); irrValid.
     + irrValid.
@@ -804,6 +804,7 @@ Lemma Fundamental : (forall Γ : context, [ |-[ de ] Γ ] -> FundCon (ta := ta) 
   + intros; now apply FundTySig.
   + intros; now apply FundTyId.
   + intros; now apply FundTyUniv.
+  + admit.
   + intros; now apply FundTmVar.
   + intros; now apply FundTmProd.
   + intros; now apply FundTmLambda.
@@ -816,6 +817,7 @@ Lemma Fundamental : (forall Γ : context, [ |-[ de ] Γ ] -> FundCon (ta := ta) 
   + intros; now apply FundTmTrue.
   + intros; now apply FundTmFalse.
   + intros; now apply FundTmBoolElim.
+  + admit.
   + intros; now apply FundTmEmpty.
   + intros; now apply FundTmEmptyElim.
   + intros; now apply FundTmSig.
@@ -826,6 +828,7 @@ Lemma Fundamental : (forall Γ : context, [ |-[ de ] Γ ] -> FundCon (ta := ta) 
   + intros; now eapply FundTmRefl.
   + intros; now eapply FundTmIdElim.
   + intros; now eapply FundTmConv.
+  + admit.
   + intros; now apply FundTyEqPiCong.
   + intros; now apply FundTyEqSigCong.
   + intros; now eapply FundTyEqId.
@@ -833,6 +836,7 @@ Lemma Fundamental : (forall Γ : context, [ |-[ de ] Γ ] -> FundCon (ta := ta) 
   + intros; now apply FundTyEqUniv.
   + intros; now apply FundTyEqSym.
   + intros; now eapply FundTyEqTrans.
+  + admit.
   + intros; now apply FundTmEqBRed.
   + intros; now apply FundTmEqPiCong.
   + intros; now eapply FundTmEqAppCong.
@@ -845,6 +849,8 @@ Lemma Fundamental : (forall Γ : context, [ |-[ de ] Γ ] -> FundCon (ta := ta) 
   + intros; now apply FundTmEqBoolElimCong.
   + intros; now apply FundTmEqBoolElimTrue.
   + intros; now apply FundTmEqBoolElimFalse.
+  + admit.
+  + admit.
   + intros; now apply FundTmEqEmptyElimCong.
   + intros; now apply FundTmEqSigCong.
   + intros; now apply FundTmEqPairCong.
@@ -861,7 +867,7 @@ Lemma Fundamental : (forall Γ : context, [ |-[ de ] Γ ] -> FundCon (ta := ta) 
   + intros; now eapply FundTmEqConv.
   + intros; now apply FundTmEqSym.
   + intros; now eapply FundTmEqTrans.
-  Qed.
+  Admitted.
 
 (** ** Well-typed substitutions are also valid *)
 

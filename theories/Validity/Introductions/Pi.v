@@ -84,7 +84,6 @@ Section PiValidity.
     (VΓ : [||-v Γ ≅ Γ'])
     (VF : [ Γ ||-v< one > F ≅ F' | VΓ ])
     (VΓF := validSnoc VΓ VF)
-    (VG : [ Γ ,, F ||-v< one > G ≅ G' | VΓF])
     (VU : [ Γ ||-v< one > U | VΓ ])
     (VU' : [ Γ ,, F ||-v< one > U | VΓF ])
     (VFU : [ Γ ||-v< one > F ≅ F' : U | VΓ | VU ])

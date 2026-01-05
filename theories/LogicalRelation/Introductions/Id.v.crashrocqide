@@ -249,14 +249,6 @@ Proof.
 Qed.
 
 
-Lemma wft_wkEq {Γ Δ Δ': context} {A : term} (ρ : Δ ≤ Γ):
-[ |-[ ta ] Δ] -> Δ = Δ' -> [Γ |-[ ta ] A] -> [Δ' |-[ ta ] A⟨ρ⟩].
-Proof. intros. subst. now eapply wft_wk. Qed.
-
-Lemma convty_wkEq {Γ Δ Δ': context} {A A': term} (ρ : Δ ≤ Γ):
-[ |-[ ta ] Δ] -> Δ = Δ' -> [Γ |-[ ta ] A ≅ A'] -> [Δ' |-[ ta ] A⟨ρ⟩ ≅ A'⟨ρ⟩].
-Proof. intros. subst. now eapply convty_wk. Qed.
-
 Lemma idElimCongRed {Γ l A A' x x' P P' hr hr' y y' e e'}
   (RA : [Γ ||-<l> A ≅ A'])
   (Rxx' : [RA | _ ||- x ≅ x' : _])
@@ -264,94 +256,29 @@ Lemma idElimCongRed {Γ l A A' x x' P P' hr hr' y y' e e'}
   (RP0 : [Γ ,, A ,, tId A⟨@wk1 Γ A⟩ x⟨@wk1 Γ A⟩ (tRel 0) |- P])
   (RP0' : [Γ ,, A' ,, tId A'⟨@wk1 Γ A'⟩ x'⟨@wk1 Γ A'⟩ (tRel 0) |- P'])
   (RPP0 : [Γ ,, A ,, tId A⟨@wk1 Γ A⟩ x⟨@wk1 Γ A⟩ (tRel 0) |- P ≅ P'])
-  (RP : forall Δ (wfΔ : [|-Δ]) (ρ : Δ ≤ Γ) {y y' e e'}
-    (RAρ := wkLRTy ρ wfΔ RA)
-    (Ryy' : [RAρ | _ ||- y ≅ y' : _])
-    (Ree' : [ IdRed RAρ (wkLRTm ρ wfΔ Rxx') Ryy'| _ ||- e ≅ e' : _]),
-    [Δ ||-<l> (P⟨wk_up (tId A⟨@wk1 Γ A⟩ x⟨@wk1 Γ A⟩ (tRel 0)) (wk_up A ρ)⟩)[
-e .: (y..)] ≅ (P'⟨wk_up (tId A'⟨@wk1 Γ A'⟩ x'⟨@wk1 Γ A'⟩ (tRel 0)) (wk_up A' ρ)⟩)
-[e' .: (y'..)]])
-  (RPnow : forall {y y' e e'}
+  (RP : forall {y y' e e'}
     (Ryy' : [RA | _ ||- y ≅ y' : _])
-    (Ree' : [ IdRed RA Rxx' Ryy' | _ ||- e ≅ e' : _]),
+    (Ree' : [ IdRed RA Rxx' Ryy'| _ ||- e ≅ e' : _]),
     [Γ ||-<l> P[e .: y..] ≅ P'[e' .: y'..]])
   (Rrfl := (reflCongRed RA Rxx' RIAxx))
-  (Rhrhr' : [RPnow Rxx' Rrfl | _ ||- hr ≅ hr' : _])
+  (Rhrhr' : [RP Rxx' Rrfl | _ ||- hr ≅ hr' : _])
   (Ryy' : [RA | _ ||- y ≅ y' : _])
 (*   (RIAxy : [Γ ||-<l> tId A x y ≅ tId A' x' y']) *)
   (Ree' : [IdRed RA Rxx' Ryy' | _ ||- e ≅ e' : _]) :
-  [RPnow Ryy' Ree' | _ ||- tIdElim A x P hr y e ≅ tIdElim A' x' P' hr' y' e' : _].
+  [RP Ryy' Ree' | _ ||- tIdElim A x P hr y e ≅ tIdElim A' x' P' hr' y' e' : _].
 Proof.
   eapply (Split_bind Rxx').
-  intros Δ wfΔ ρΔ oRxx'.
-  eapply (Wpackrefold wfΔ), (dSplit_wk_bind Ryy' wfΔ ρΔ).
+  intros Δ wfΔ ρ oRxx'.
+  eapply (Wpackrefold wfΔ), (dSplit_wk_bind Ryy' wfΔ ρ).
   intros Ξ wfΞ ρΞ oRA oRyy'.
-  eapply (Wpackrefold wfΞ), (dSplit_wk_bind Ree' wfΞ (ρΞ∘w ρΔ)).
+  eapply (Wpackrefold wfΞ), (dSplit_wk_bind Ree' wfΞ (ρΞ∘w ρ)).
   intros Θ wfΘ ρΘ oIdRed oRee'; eapply (Wpackrefold wfΘ).
   rewrite 2(wk_comp_ren_on (tIdElim A' x' P' hr' y' e')),
     2(wk_comp_ren_on (tIdElim A x P hr y e)).
-  set (ρ := ρΘ ∘w (ρΞ ∘w ρΔ)) in *.
-  rewrite <- 2wk_idElim.
-  assert [Θ |-[ ta ] A⟨ρ⟩]
-    by (escape; now eapply wft_wk).
-  assert ([ |-[ ta ] Θ,, (A⟨ρ⟩)])
-    by now eapply wfc_cons.
-  assert ([ |-[ ta ] (Θ,, (A⟨ρ⟩)),, ((tId A⟨@wk1 Γ A⟩ x⟨@wk1 Γ A⟩ (tRel 0))⟨wk_up A ρ⟩)]).
-  { eapply wfc_cons; tea.
-    eapply wft_wk; tea.
-    eapply wft_Id.
-    + eapply wft_wk; escape; gtyping.
-    + eapply ty_wk; escape; gtyping.
-    + rewrite wk1_ren_on.
-      eapply ty_var0; escape; gtyping. }
-  assert [Θ |-[ ta ] A'⟨ρ⟩]
-    by (escape; now eapply wft_wk).
-  assert ([ |-[ ta ] Θ,, (A'⟨ρ⟩)])
-    by now eapply wfc_cons.
-  assert ([ |-[ ta ] (Θ,, (A'⟨ρ⟩)),, ((tId A'⟨@wk1 Γ A'⟩ x'⟨@wk1 Γ A'⟩ (tRel 0))⟨wk_up A' ρ⟩)]).
-  { eapply wfc_cons; tea.
-    eapply wft_wk; tea.
-    eapply wft_Id.
-    + eapply wft_wk; escape; gtyping.
-    + eapply ty_wk; escape; gtyping.
-    + rewrite wk1_ren_on.
-      eapply ty_var0; escape; gtyping. }
-  unshelve eapply irrLREq, SidElimCongRed.
-  + eapply RA; tea.
-    eapply (overtree_PSh _ oRA).
-  + clear dependent y.
-    clear dependent y'.
-    clear dependent e.
-    clear dependent e'.
-    intros.
-    eapply RP.
-    eapply irrLR.
-    eapply Wpack_return.
-    exact Ree'.
-  + eapply Ryy'.
-    eapply (overtree_PSh _ oRyy').
-  + shelve.
-  + now eapply Ree'.
-  + eapply Rxx'.
-    unshelve eapply (overtree_PSh _ oRxx').
-    eapply Fwk_compose, ρΞ; eapply ρΘ.
-  + eapply SIdRed.
-    all: unshelve (eapply Rxx', (overtree_PSh _ oRxx')); tea.
-    1: eapply (overtree_PSh _ oRA).
-    all: eapply (ρΘ ∘w ρΞ).
-  + now rewrite 2 (wk_comp_ren_on P[e .: y..]), <- subst_ren_wk_up2.
-  + eapply wft_wkEq, RP0.
-    2: now bsimpl.
-    tea.
-  + eapply wft_wkEq, RP0'.
-    2: now bsimpl.
-    tea.
-  + refine (convty_wkEq _ _ _ RPP0).
-    2: now bsimpl.
-    tea.
-  + eapply irrLREq, wkLRTm, Rhrhr'.
-    now bsimpl.
-  Unshelve. all: tea.
-  eapply irrLR, Wpack_return, Ryy'.
-Qed.
+  rewrite <- wk_idElim.
+  eapply irrLREq, SidElimCongRed;refold.
+  1: now rewrite 2 (wk_comp_ren_on P[e .: y..]), <- subst_ren_wk_up2.
+  +
+    
+
 End IdRed.
