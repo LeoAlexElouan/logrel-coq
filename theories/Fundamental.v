@@ -2,7 +2,7 @@
 From LogRel Require Import Utils Syntax.All GenericTyping DeclarativeTyping LogicalRelation.
 From LogRel.LogicalRelation Require Import Properties.
 From LogRel.Validity Require Import Validity Irrelevance Properties ValidityTactics.
-From LogRel.Validity.Introductions Require Import Application Universe Pi Lambda Var Nat Bool Empty SimpleArr Sigma Id.
+From LogRel.Validity.Introductions Require Import Application Universe Pi Lambda Var Nat Bool Empty SimpleArr Sigma Id Split.
 
 Set Primitive Projections.
 Set Universe Polymorphism.
@@ -138,6 +138,14 @@ Section Fundamental.
     destruct fA as [ VΓ VU RA]. econstructor.
     now eapply univValid.
   Qed.
+
+  Lemma FundTySplit (Γ : context) (A : term) (new : newnat Γ) :
+    FundTy (Γ,, new ↦ true) A ->
+    FundTy (Γ,, new ↦ false) A -> FundTy Γ A.
+  Proof.
+    intros FAt FAf.
+    unshelve econstructor.
+
 
   Lemma FundTmVar : forall (Γ : context) (n : nat) decl,
     FundCon Γ ->
@@ -804,7 +812,7 @@ Lemma Fundamental : (forall Γ : context, [ |-[ de ] Γ ] -> FundCon (ta := ta) 
   + intros; now apply FundTySig.
   + intros; now apply FundTyId.
   + intros; now apply FundTyUniv.
-  + admit.
+  + unfold FundTy. admit.
   + intros; now apply FundTmVar.
   + intros; now apply FundTmProd.
   + intros; now apply FundTmLambda.

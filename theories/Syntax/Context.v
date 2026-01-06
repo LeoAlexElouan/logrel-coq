@@ -104,6 +104,7 @@ Proof.
   - now apply (hcons (Build_context Γ L) a).
 Qed.
 
+
 (* Properties of in_Fctx *)
 
 Inductive SFalse : SProp := .
@@ -268,6 +269,24 @@ Definition Build_Fcontext_eq_inv {L L'} (eL : L = L'):
   eL = Build_Fcontext_eq (f_equal preFctx eL).
 Proof. destruct eL; reflexivity. Qed.
 
+Lemma cons_eq_inversion' {Γ Γ'} {A A': term} {P} (e : cons A Γ = cons A' Γ') : P Γ A eq_refl -> P Γ' A' e.
+Proof.
+  intros.
+  change ((match cons A' Γ' with cons A0 Γ0 => fun e => P Γ0 A0 e | _ => fun _ => unit:Type end) e).
+  now destruct e.
+Qed.
+
+Lemma cons_eq_inversion {Γ A Γ' A' P} (e : Γ,,A = Γ',,A') : P Γ A eq_refl -> P Γ' A' e.
+Proof.
+  intros hP.
+  rewrite (Build_context_eq_inv e).
+  set (eF := f_equal Fctx e); clearbody eF.
+  set (eT := f_equal Tctx e); clearbody eT.
+  destruct Γ as [Γ L], Γ' as [Γ' L']; cbn in *.
+  destruct eF.
+  pattern Γ', A', eT.
+  now eapply (cons_eq_inversion' eT).
+Defined.
 
 Instance FctxEqDec : EqDec Fcontext.
 Proof.
