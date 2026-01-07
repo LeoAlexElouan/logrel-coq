@@ -3,17 +3,14 @@ From LogRel Require Import Utils BasicAst AutoSubst.Extra.
 
 Set Primitive Projections.
 
-Fixpoint nat_to_term n : term :=
-  match n with
-  | 0 => tZero
-  | S n => tSucc (nat_to_term n)
-  end.
-
 Fixpoint nSucc n t : term :=
   match n with
   | 0 => t
   | S n => tSucc (nSucc n t)
   end.
+
+Definition nat_to_term n : term :=
+  nSucc n tZero.
 
 Definition bool_to_term b : term :=
   match b with
@@ -26,20 +23,18 @@ Proof.
   intros [|] ρ; reflexivity.
 Qed.
 
-Lemma nat_to_term_ren : forall n ρ, (nat_to_term n)⟨ρ⟩ = nat_to_term n.
-Proof.
-  intros n ρ.
-  induction n; cbn.
-  - reflexivity.
-  - now f_equal.
-Qed.
-
 Lemma nSucc_ren : forall n t ρ, (nSucc n t)⟨ρ⟩ = nSucc n (t⟨ρ⟩).
 Proof.
   intros n t ρ.
   induction n; cbn.
   - reflexivity.
   - now f_equal.
+Qed.
+
+Lemma nat_to_term_ren : forall n ρ, (nat_to_term n)⟨ρ⟩ = nat_to_term n.
+Proof.
+  intros n ρ.
+  eapply nSucc_ren.
 Qed.
 
 Lemma nat_to_term_inj n n' : nat_to_term n = nat_to_term n' -> n = n'.

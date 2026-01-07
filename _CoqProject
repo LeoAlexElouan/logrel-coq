@@ -29,11 +29,11 @@ theories/DeclarativeTyping.v
 theories/TypingProperties/DeclarativeProperties.v
 theories/TypingProperties/NormalisationDefinition.v
 theories/TypingProperties/PropertiesDefinition.v
-theories/TypingProperties/SubstConsequences.v
-theories/TypingProperties/TypeInjectivityConsequences.v
-theories/TypingProperties/NeutralConvProperties.v
-theories/TypingProperties/NormalisationConsequences.v
-theories/TypingProperties/LogRelConsequences.v
+#theories/TypingProperties/SubstConsequences.v
+#theories/TypingProperties/TypeInjectivityConsequences.v
+#theories/TypingProperties/NeutralConvProperties.v
+#theories/TypingProperties/NormalisationConsequences.v
+#theories/TypingProperties/LogRelConsequences.v
 
 
 theories/LogicalRelation/Definition/Prelude.v
@@ -96,27 +96,27 @@ theories/Validity/Introductions/Split.v
 
 theories/Fundamental.v
 
-theories/AlgorithmicJudgments.v
-theories/Algorithmic/Bundled.v
-theories/Algorithmic/TypedConvProperties.v
-theories/Algorithmic/TypedConvPER.v
-theories/Algorithmic/TypedConvInstances.v
-theories/Algorithmic/UntypedConvSoundness.v
-theories/Algorithmic/UntypedTypedConv.v
-theories/Algorithmic/AlgorithmicTypingProperties.v
-theories/Algorithmic/Strengthening.v
+#theories/AlgorithmicJudgments.v
+#theories/Algorithmic/Bundled.v
+#theories/Algorithmic/TypedConvProperties.v
+#theories/Algorithmic/TypedConvPER.v
+#theories/Algorithmic/TypedConvInstances.v
+#theories/Algorithmic/UntypedConvSoundness.v
+#theories/Algorithmic/UntypedTypedConv.v
+#theories/Algorithmic/AlgorithmicTypingProperties.v
+#theories/Algorithmic/Strengthening.v
 
-theories/Checkers/Functions.v
-theories/Checkers/Views.v
-theories/Checkers/CtxAccessCorrectness.v
-theories/Checkers/ReductionCorrectness.v
-theories/Checkers/Soundness.v
-theories/Checkers/NegativeSoundness.v
-theories/Checkers/UntypedNegativeSoundness.v
-theories/Checkers/Completeness.v
-theories/Checkers/UntypedCompleteness.v
-theories/Checkers/Termination.v
-theories/Checkers/UntypedTermination.v
+#theories/Checkers/Functions.v
+#theories/Checkers/Views.v
+#theories/Checkers/CtxAccessCorrectness.v
+#theories/Checkers/ReductionCorrectness.v
+#theories/Checkers/Soundness.v
+#theories/Checkers/NegativeSoundness.v
+#theories/Checkers/UntypedNegativeSoundness.v
+#theories/Checkers/Completeness.v
+#theories/Checkers/UntypedCompleteness.v
+#theories/Checkers/Termination.v
+#theories/Checkers/UntypedTermination.v
 
 theories/Execution.v
 theories/Decidability.v
