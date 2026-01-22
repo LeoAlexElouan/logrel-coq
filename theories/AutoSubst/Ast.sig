@@ -23,6 +23,11 @@ tAlpha : term -> term
 tEmpty : term
 tEmptyElim : (bind term in term) -> term -> term
 
+tTree : term
+tLeaf : term -> term
+tNode : term -> term -> term -> term
+tTreeElim : (bind term in term) -> term -> term -> term -> term 
+
 tSig : term -> (bind term in term) -> term
 tPair : term -> (bind term in term) -> term -> term -> term
 tFst : term -> term

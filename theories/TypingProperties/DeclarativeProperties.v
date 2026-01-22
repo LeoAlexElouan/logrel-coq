@@ -106,6 +106,7 @@ Section TypingWk.
     - intros; now constructor.
     - intros; now constructor.
     - intros; now constructor.
+    - intros; now constructor.
     - intros ?????? ih ** ; rewrite <- wk_sig.
       constructor; eauto.
       eapply ih; constructor; eauto.
@@ -187,6 +188,17 @@ Section TypingWk.
       erewrite subst_ren_wk_up; eapply wfTermEmptyElim.
       * eapply ihP; econstructor; tea; now econstructor.
       * now eapply ihe.
+    - intros; now constructor.
+    - intros; now constructor.
+    - intros; now constructor.
+    - intros * ? ihP ? ihhl ? ihhn ? iht **; cbn.
+      erewrite subst_ren_wk_up; eapply wfTermTreeElim.
+      * eapply ihP; econstructor; tea; now econstructor.
+      * rewrite wk_elimLeafHypTy.
+        now eapply ihhl.
+      * rewrite wk_elimNodeHypTy.
+        now eapply ihhn.
+      * now eapply iht.
     - intros ???? ih1 ? ih2 ** ; rewrite <- wk_sig; cbn.
       constructor.
       1: now eapply ih1.
@@ -387,6 +399,37 @@ Section TypingWk.
       eapply TermEmptyElimCong.
       * eapply ihP; constructor; tea; now constructor.
       * now eapply ihe.
+    - intros; now constructor.
+    - intros; now constructor.
+    - intros * ? ihP ? ihhl ? ihhn ? iht **; cbn.
+      erewrite subst_ren_wk_up.
+      eapply TermTreeElimCong.
+      * eapply ihP; constructor; tea; now constructor.
+      * rewrite wk_elimLeafHypTy.
+        now eapply ihhl.
+      * rewrite wk_elimNodeHypTy.
+        now eapply ihhn.
+      * now eapply iht.
+    - intros * ? ihP ? ihn ? ihhl ? ihhn **.
+      erewrite subst_ren_wk_up.
+      eapply TermTreeElimLeaf; fold ren_term.
+      * eapply ihP; constructor; tea; now constructor.
+      * now eapply ihn.
+      * rewrite wk_elimLeafHypTy.
+        now eapply ihhl.
+      * rewrite wk_elimNodeHypTy.
+        now eapply ihhn.
+    - intros * ? ihP ? ihn ? ihhl ? ihhn ? ihtl ? ihtr **.
+      erewrite subst_ren_wk_up.
+      eapply TermTreeElimNode; fold ren_term.
+      * eapply ihP; constructor; tea; now constructor.
+      * now eapply ihn.
+      * rewrite wk_elimLeafHypTy.
+        now eapply ihhl.
+      * rewrite wk_elimNodeHypTy.
+        now eapply ihhn.
+      * now eapply ihtl.
+      * now eapply ihtr.
     - intros * ????? ih ** ; do 2 rewrite <- wk_sig.
       constructor; eauto.
       eapply ih; constructor; tea; constructor; eauto.
@@ -745,11 +788,14 @@ Module WeakDeclarativeTypingProperties.
   - now do 2 econstructor.
   - now do 2 econstructor.
   - now econstructor.
+  - now do 2 econstructor.
+  - now do 2 econstructor.
+  - now econstructor.
+  - now econstructor.
   - intros.
     eapply TermTrans; [|now constructor].
     eapply TermTrans; [eapply TermSym; now constructor|].
     constructor; tea; now apply TypeRefl.
-  - now do 2 econstructor.
   - now econstructor.
   - now econstructor.
   - now econstructor.
@@ -782,6 +828,7 @@ Module WeakDeclarativeTypingProperties.
     constructor.
     now apply TermnSuccCong.
   - intros ?????? []; split; now econstructor.
+  - intros ???????????? []; split; now econstructor.
   - intros ????? []; split; now econstructor.
   - intros ????? []; split; now econstructor.
   - intros * ??????? []; split; now econstructor.
@@ -831,6 +878,14 @@ Module WeakDeclarativeTypingProperties.
       now eapply boundary_tm_ctx.
     + eapply redalg_one_step; constructor.
     + now constructor.
+  - intros; split.
+    + repeat (econstructor; tea).
+    + eapply redalg_one_step; constructor.
+    + now constructor.
+  - intros; split.
+    + repeat (econstructor; tea).
+    + eapply redalg_one_step; constructor.
+    + now constructor.
   - intros; now eapply redtmdecl_app.
   - intros * ??? []; split.
     + repeat (constructor; tea).
@@ -852,6 +907,10 @@ Module WeakDeclarativeTypingProperties.
   - intros * ? []; split.
     + repeat (constructor; tea).
     + now eapply redalg_emptyElim.
+    + constructor; first [eassumption|now apply TermRefl|now apply TypeRefl].
+  - intros * ??? []; split.
+    + repeat (constructor; tea).
+    + now eapply redalg_treeElim.
     + constructor; first [eassumption|now apply TermRefl|now apply TypeRefl].
   - intros; split; refold.
     + econstructor; now constructor.

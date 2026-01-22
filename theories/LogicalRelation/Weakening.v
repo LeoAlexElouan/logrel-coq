@@ -199,6 +199,12 @@ Section Weakenings.
     intros []; constructor; change tEmpty with tEmpty⟨ρ⟩; gtyping.
   Qed.
 
+  Lemma wkTree {Γ A B Δ} (ρ : Δ ≤ Γ) (wfΔ : [|- Δ]) : [Γ ||-Tree A ≅ B] -> [Δ ||-Tree A⟨ρ⟩ ≅ B⟨ρ⟩].
+  Proof.
+    intros []; constructor.
+    all: change tTree with tTree⟨ρ⟩; gtyping.
+  Qed.
+
   Lemma wkId@{i j k l} {Γ l A B} (IA : IdRedTy@{i j k l} Γ l A B)
     (ih : kripke@{i j k l} IA.(IdRedTy.tyRed)) {Δ} (ρ : Δ ≤ Γ) (wfΔ : [|- Δ]) :
     IdRedTy@{i j k l} Δ l A⟨ρ⟩ B⟨ρ⟩.
@@ -218,6 +224,17 @@ Section Weakenings.
     intros []; constructor; gen_typing.
   Qed.
 
+  Lemma wkNatTm Γ : (forall t u : term, [Γ ||-Nat t ≅ u:Nat] -> forall (Δ : context) (ρ : Δ ≤ Γ), [ |-[ ta ] Δ] -> [Δ ||-Nat t⟨ρ⟩ ≅ u⟨ρ⟩:Nat])
+    × (forall t u, NatPropEq Γ t u -> forall Δ (ρ : Δ ≤ Γ), [ |-[ ta ] Δ] ->NatPropEq Δ t⟨ρ⟩ u⟨ρ⟩).
+  Proof.
+    apply NatRedEqInduction.
+    * intros; econstructor; tea; change tNat with tNat⟨ρ⟩; gen_typing.
+    * constructor.
+    * now constructor.
+    * intros; constructor.
+      change tNat with tNat⟨ρ⟩.
+      now eapply wkNeNfEq.
+  Qed.
 
   Lemma wkLR_rec@{h i j k l} {l} (ih : forall l', l' << l -> wkStmt@{h i j k} l') :
     wkStmt@{i j k l} l.
@@ -234,17 +251,8 @@ Section Weakenings.
     - intros; eapply wkLRΠ.
     - intros; unshelve econstructor.
       + intros; now eapply LRNat_, wkNat.
-      + intros ??? t u hNat; cbn in *. revert t u hNat Δ ρ wfΔ.
-        set (G := _); enough (h : G ×
-          (forall t u, NatPropEq Γ t u -> forall Δ (ρ : Δ ≤ Γ), [ |-[ ta ] Δ] ->NatPropEq Δ t⟨ρ⟩ u⟨ρ⟩))
-          by apply h.
-        subst G; apply NatRedEqInduction.
-        * intros; econstructor; tea; change tNat with tNat⟨ρ⟩; gen_typing.
-        * constructor.
-        * now constructor.
-        * intros; constructor.
-          change tNat with tNat⟨ρ⟩.
-          now eapply wkNeNfEq.
+      + cbn. intros ??? t u hNat; cbn in *.
+        now eapply wkNatTm.
     - intros; unshelve econstructor.
       + intros; now apply LRBool_, wkBool.
       + cbn; intros ????? [ ]; econstructor; change tBool with tBool⟨ρ⟩.
@@ -257,6 +265,17 @@ Section Weakenings.
       + intros; now eapply LREmpty_, wkEmpty.
       + cbn; intros ????? []; econstructor; change tEmpty with tEmpty⟨ρ⟩.
         1,2: now eapply redtmwf_wk.
+        now eapply wkNeNfEq.
+    - intros; unshelve econstructor.
+      + intros; now eapply LRTree_, wkTree.
+      + intros ??? t u hTree; cbn in *.
+        unfold TreeRedTmEq.
+        induction hTree.
+        * econstructor; tea; change tTree with tTree⟨ρ⟩; gtyping.
+        * cbn; constructor; now eapply wkNatTm.
+        * cbn; constructor; tea; now eapply wkNatTm.
+        * constructor.
+        change tTree with tTree⟨ρ⟩.
         now eapply wkNeNfEq.
     - intros; eapply wkLRΣ.
     - intros IA ihty ih; unshelve econstructor.

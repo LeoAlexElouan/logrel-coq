@@ -313,12 +313,28 @@ Proof.
   now eapply consValidSubst.
 Qed.
 
-Lemma substLiftS {Γ Γ' F F' G G' t t' l} (VΓ : [||-v Γ ≅ Γ'])
+(* Lemma substLiftS {Γ Γ' F F' G G' t t' l} (VΓ : [||-v Γ ≅ Γ'])
   (VF : [Γ ||-v<l> F ≅ F'| VΓ])
   (VΓF := validSnoc VΓ VF)
   (VG : [Γ,, F ||-v<l> G ≅ G' | VΓF])
   (VF' := wk1ValidTy VF VF)
   (Vt : [Γ,, F ||-v<l> t ≅ t' : F⟨@wk1 Γ F⟩ | VΓF | VF']) :
+  [Γ ,, F ||-v<l> G[t]⇑ ≅ G'[t']⇑ | VΓF].
+Proof.
+  constructor; intros; erewrite 2! liftSubstComm.
+  eapply validTyExt; tea; opector.
+  1: now eapply wkrenSubst.
+  now unshelve now eapply irrLREq, validTmExt; tea; rewrite ren_subst.
+Qed. *)
+
+Lemma substLiftS {Γ Γ' F F' G G' A A' t t' l} (VΓ : [||-v Γ ≅ Γ'])
+  (VF : [Γ ||-v<l> F ≅ F'| VΓ])
+  (VΓF := validSnoc VΓ VF)
+  (VA : [Γ ||-v<l> A ≅ A'| VΓ])
+  (VΓA := validSnoc VΓ VA)
+  (VG : [Γ,, A ||-v<l> G ≅ G' | VΓA])
+  (VA' := wk1ValidTy VF VA)
+  (Vt : [Γ,, F ||-v<l> t ≅ t' : A⟨@wk1 Γ F⟩ | VΓF | VA']) :
   [Γ ,, F ||-v<l> G[t]⇑ ≅ G'[t']⇑ | VΓF].
 Proof.
   constructor; intros; erewrite 2! liftSubstComm.

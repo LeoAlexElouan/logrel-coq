@@ -37,6 +37,14 @@ Inductive OneRedAlg {L : Fcontext} : term -> term -> Type :=
 | emptyElimSubst {P e e'} :
     [L |e ⤳ e'] ->
     [L |tEmptyElim P e ⤳ tEmptyElim P e']
+| treeElimSubst {P hl hn t t'} :
+    [ L |t ⤳ t' ] ->
+    [ L |tTreeElim P hl hn t ⤳ tTreeElim P hl hn t' ]
+| treeElimLeaf {P hl hn n} :
+    [ L |tTreeElim P hl hn (tLeaf n) ⤳ tApp hl n ]
+| treeElimNode {P hl hn n tl tr} :
+    [ L |tTreeElim P hl hn (tNode n tl tr) ⤳
+      tApp (tApp (tApp (tApp (tApp hn n) tl) tr) (tTreeElim P hl hn tl)) (tTreeElim P hl hn tr) ]
 | fstSubst {p p'} :
     [ L |p ⤳ p'] ->
     [ L |tFst p ⤳ tFst p']
@@ -108,9 +116,9 @@ Lemma whnf_nored L n u :
 Proof.
   intros nf red.
   induction red in nf |- *.
-  2,3,6,9,12,13,15,18 : inversion nf; subst; inv_whne; subst; apply IHred; now constructor.
-  7:clear i; induction n.
-  1-11: inversion nf; subst; inv_whne; subst; try now inv_whne.
+  2,3,6,9,12,13,16,18,21 : inversion nf; subst; inv_whne; subst; apply IHred; now constructor.
+  7: clear i; induction n.
+  1-13: inversion nf; subst; inv_whne; subst; try now inv_whne.
   - apply IHred; now constructor.
   - apply IHn; now constructor.
 Qed.
@@ -158,7 +166,7 @@ Proof.
     exfalso; eapply whnf_nored; tea; constructor.
   - inversion red'; subst.
     2,3: exfalso; eapply whnf_nored; tea; constructor.
-    f_equal; eauto. 
+    f_equal; eauto.
   - inversion red'; try reflexivity; subst.
     exfalso; eapply whnf_nored; tea; constructor.
   - inversion red'; try reflexivity; subst.
@@ -183,6 +191,13 @@ Proof.
       now eapply functionality.
   - inversion red'; subst.
     f_equal; eauto.
+  - inversion red'; subst.
+    2,3: exfalso; eapply whnf_nored; tea; constructor.
+    f_equal; eauto.
+  - inversion red'; try reflexivity; subst.
+    exfalso; eapply whnf_nored; tea; constructor.
+  - inversion red'; try reflexivity; subst.
+    exfalso; eapply whnf_nored; tea; constructor.
   - inversion red'; subst; clear red'.
     1: f_equal; now eapply IHred.
     exfalso; eapply whnf_nored; tea; constructor.
@@ -258,7 +273,7 @@ Lemma oredalg_wk (ρ : nat -> nat) L (t u : term) :
 Proof.
   intros Hred.
   induction Hred in ρ |- *.
-  2-10,12-18: cbn; asimpl; now econstructor.
+  2-10,12-21: cbn; asimpl; now econstructor.
   - cbn ; asimpl.
     evar (t' : term).
     replace (subst_term _ t) with t'.
@@ -349,6 +364,14 @@ induction 1.
 Qed.
 
 Lemma redalg_emptyElim {L P t t'} : [L | t ⤳* t'] -> [L|tEmptyElim P t ⤳* tEmptyElim P t'].
+Proof.
+induction 1.
++ reflexivity.
++ econstructor; [|eassumption].
+  now econstructor.
+Qed.
+
+Lemma redalg_treeElim {L P hl hn t t'} : [L | t ⤳* t'] -> [L|tTreeElim P hl hn t ⤳* tTreeElim P hl hn t'].
 Proof.
 induction 1.
 + reflexivity.

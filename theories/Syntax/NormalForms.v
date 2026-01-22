@@ -17,6 +17,9 @@ Inductive whnf : term -> Type :=
   | whnf_tTrue : whnf tTrue
   | whnf_tFalse : whnf tFalse
   | whnf_tEmpty : whnf tEmpty
+  | whnf_tTree : whnf tTree
+  | whnf_tLeaf {n} : whnf (tLeaf n)
+  | whnf_tNode {n tl tr} : whnf (tNode n tl tr)
   | whnf_tSig {A B} : whnf (tSig A B)
   | whnf_tPair {A B a b} : whnf (tPair A B a b)
   | whnf_tId {A x y} : whnf (tId A x y)
@@ -28,6 +31,7 @@ with whne : term -> Type :=
   | whne_tNatElim {P hz hs n} : whne n -> whne (tNatElim P hz hs n)
   | whne_tBoolElim {P ht hf n} : whne n -> whne (tBoolElim P ht hf n)
   | whne_tEmptyElim {P e} : whne e -> whne (tEmptyElim P e)
+  | whne_tTreeElim {P hl hn n} : whne n -> whne (tTreeElim P hl hn n)
   | whne_tFst {p} : whne p -> whne (tFst p)
   | whne_tSnd {p} : whne p -> whne (tSnd p)
   | whne_tIdElim {A x P hr y e} : whne e -> whne (tIdElim A x P hr y e)
@@ -78,6 +82,7 @@ Inductive isType : term -> Type :=
   | NatType : isType tNat
   | BoolType : isType tBool
   | EmptyType : isType tEmpty
+  | TreeType : isType tTree
   | SigType {A B} : isType (tSig A B)
   | IdType {A x y} : isType (tId A x y)
   | NeType {A}  : whne A -> isType A.
@@ -87,6 +92,7 @@ Inductive isPosType : term -> Type :=
   | NatPos : isPosType tNat
   | BoolPos : isPosType tBool
   | EmptyPos : isPosType tEmpty
+  | TreePos : isPosType tTree
   | IdPos {A x y} : isPosType (tId A x y)
   | NePos {A}  : whne A -> isPosType A.
 
@@ -103,6 +109,11 @@ Inductive isBool : term -> Type :=
   | TrueBool : isBool tTrue
   | FalseBool : isBool tFalse
   | NeBool {n} : whne n -> isBool n.
+
+Inductive isTree : term -> Type :=
+  | LeafTree {n} : isTree (tLeaf n)
+  | NodeTree {n tl tr} : isTree (tNode n tl tr)
+  | NeTree {n} : whne n -> isTree n.
 
 Inductive isPair : term -> Type :=
   | PairPair {A B a b} : isPair (tPair A B a b)
@@ -145,15 +156,22 @@ Definition isBool_whnf t (i : isBool t) : whnf t :=
   | FalseBool => whnf_tFalse
   | NeBool n => whnf_whne n
   end.
-  
+
+Definition isTree_whnf t (i : isTree t) : whnf t :=
+  match i with
+  | LeafTree => whnf_tLeaf
+  | NodeTree => whnf_tNode
+  | NeTree n => whnf_whne n
+  end.
+
 Definition isId_whnf t (i : isId t) : whnf t :=
   match i with
   | ReflId => whnf_tRefl
   | NeId n => whnf_whne n
   end.
 
-#[global] Hint Resolve isPosType_isType isType_whnf isFun_whnf isNat_whnf isBool_whnf isPair_whnf isId_whnf : gen_typing.
-#[global] Hint Constructors isPosType isType isFun isNat isBool isId : gen_typing.
+#[global] Hint Resolve isPosType_isType isType_whnf isFun_whnf isNat_whnf isBool_whnf isTree_whnf isPair_whnf isId_whnf : gen_typing.
+#[global] Hint Constructors isPosType isType isFun isNat isBool isTree isId : gen_typing.
 
 Equations Derive Signature for isNat.
 
@@ -270,6 +288,9 @@ Inductive isCanonical : term -> Type :=
   | can_tTrue : isCanonical tTrue
   | can_tFalse : isCanonical tFalse
   | can_tEmpty : isCanonical tEmpty
+  | can_tTree : isCanonical tTree
+  | can_tLeaf {n} : isCanonical (tLeaf n)
+  | can_tNode {n tl tr} : isCanonical (tNode n tl tr)
   | can_tSig {A B} : isCanonical (tSig A B)
   | can_tPair {A B a b}: isCanonical (tPair A B a b)
   | can_tId {A x y}: isCanonical (tId A x y)
@@ -341,6 +362,7 @@ Variant ty_entry : term -> Type :=
 | eNat : ty_entry tNat
 | eBool : ty_entry tBool
 | eEmpty : ty_entry tEmpty
+| eTree : ty_entry tTree
 | eSig A B : ty_entry (tSig A B)
 | eId A x y : ty_entry (tId A x y).
 
@@ -351,6 +373,10 @@ Variant nat_entry : term -> Type :=
 Variant bool_entry : term -> Type :=
 | eTrue : bool_entry tTrue
 | eFalse : bool_entry tFalse.
+
+Variant tree_entry : term -> Type :=
+| eLeaf n : tree_entry (tLeaf n)
+| eNode n tl tr : tree_entry (tNode n tl tr).
 
 (** ** Normal and neutral forms are stable by renaming *)
 
@@ -371,7 +397,7 @@ Section RenWhnf.
     - remember t⟨ρ⟩ as t'.
       intros Hne.
       induction Hne in t, Heqt' |- * ; cbn.
-      1-9: push_renaming; econstructor ; eauto.
+      1-10: push_renaming; econstructor ; eauto.
       destruct t; cbn in *; try solve [congruence].
       destruct t; cbn in *; try solve [congruence].
       apply whne_tAlphaSucc.

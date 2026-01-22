@@ -277,6 +277,18 @@ Proof.
   constructor; tea; now eapply convneu_conv.
 Qed.
 
+Lemma reflect_Tree {l Γ A B} (NA : [Γ ||-Tree A ≅ B]) : reflect (LRTree_ l NA).
+Proof.
+  red; intros; pose proof (whredL_conv (LRTree_ l NA)).
+  assert [Γ |- n : tTree] by now eapply ty_conv.
+  econstructor.
+  1,2: eapply redtmwf_refl; tea; now eapply ty_conv.
+  2: do 2 constructor; tea.
+  1: eapply convtm_convneu ; [now constructor|..].
+  1,3: eapply convneu_conv; [|eassumption]; tea.
+  eapply ty_conv; eassumption.
+Qed.
+
 Lemma reflect_Id {l Γ A B} (IA : [Γ ||-Id<l> A ≅ B]) :
   reflect (LRId' IA).
 Proof.
@@ -299,6 +311,7 @@ Proof.
   - now apply reflect_Nat.
   - now apply reflect_Bool.
   - now apply reflect_Empty.
+  - now apply reflect_Tree.
   - now apply reflect_Sig.
   - now apply reflect_Id.
 Qed.

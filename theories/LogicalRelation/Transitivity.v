@@ -422,6 +422,31 @@ Section Transitivity.
     - now eapply transBoolPropEq.
   Qed.
 
+  Lemma transTreeRedTmEq {Γ} :
+    forall veq t u, TreeRedTmEq.TreeTmEq Γ veq t u ->
+      forall v, TreeRedTmEq.TreeTmEq Γ veq u v -> TreeRedTmEq.TreeTmEq Γ veq t v.
+  Proof.
+    intros ??? Rtu.
+    induction Rtu as [??????? prop ih| |??????? Rtl ihRtl Rtr ihRtr| ?? [?? conv]].
+    + intros v Ruv.
+      induction u, v, Ruv as [u v nfL' nfR' redL' redR' eq' prop'] using TreeRedTmEq.TreeRedTmEq_destruct.
+      set (Rtu := Build_TreeRedTmEq _ _ redL redR eq prop).
+      set (Ruv := Build_TreeRedTmEq _ _ redL' redR' eq' prop').
+      pose proof (equ := whredtm_det (whredtmR Rtu) (whredtmL Ruv)); cbn in equ; subst.
+      econstructor; tea.
+      - now etransitivity.
+      - now eapply ih.
+    + intros v Ruv; inversion Ruv as [ | | | ?? [?? whl%convneu_whne]]; subst.
+      - constructor; now eapply transNatRedTmEq.
+      - inversion whl.
+    + intros v Ruv; inversion Ruv as [ | | | ?? [?? whn%convneu_whne]]; subst.
+      - constructor; eauto.
+        now eapply transNatRedTmEq.
+      - inversion whn.
+    + intros v Ruv; inversion Ruv as [ | | | ?? []]; subst.
+      1,2 : symmetry in conv; eapply convneu_whne in conv; inversion conv.
+      do 2 constructor; tea; now etransitivity.
+  Qed.
 
   Definition transLRU@{h i j k l h' i' j' k' l' v} {l1}
     (ih : forall l', l' << l1 ->
@@ -469,6 +494,9 @@ Section Transitivity.
         pose proof (equ := whredtm_det (whredtmR Rtu) (whredtmL Ruv)); cbn in equ.
         destruct Rtu as [???? []], Ruv as [???? []] ; econstructor; tea.
         constructor; tea; subst; now etransitivity.
+    - intros TAB _ ??? [TBC]; subst; unshelve econstructor.
+      + apply LRTree_; destruct TAB, TBC; now econstructor.
+      + intros ???; cbn; intros ?; now eapply transTreeRedTmEq.
     - intros ΣAB ? ihdom ihcod ??? [ΣBC []]; cbn in *; subst; eapply transLRΣ; eauto.
       intros ???????? Ξ ρΞ hovera RBC. eapply ihdom. eapply ihcod.
     - intros IAB ihty ???? [IBC []]; cbn in *; subst.

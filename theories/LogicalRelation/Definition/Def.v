@@ -1,7 +1,7 @@
 (** * LogRel.LogicalRelation.Definition.Def : Definition of the logical relation *)
 From Stdlib Require Import CRelationClasses.
 From LogRel Require Import Utils Syntax.All GenericTyping Monad.
-From LogRel.LogicalRelation.Definition Require Import Prelude Ne Universe Poly Pi Sig Nat Bool Empty Id.
+From LogRel.LogicalRelation.Definition Require Import Prelude Ne Universe Poly Pi Sig Nat Bool Empty Tree Id.
 
 
 Set Primitive Projections.
@@ -33,6 +33,8 @@ Inductive LR@{i j k} `{ta : tag}
     LR rec Γ A B (BoolRedTmEq Γ)
   | LREmpty {Γ A B} (NA : [Γ ||-Empty A ≅ B]) :
     LR rec Γ A B (EmptyRedTmEq Γ)
+  | LRTree {Γ A B} (NA : [Γ ||-Tree A ≅ B]) :
+    LR rec Γ A B (TreeRedTmEq Γ)
   | LRSig {Γ : context} {A B : term} (ΣA : SigRedTyPack@{j k} Γ A B) (ΣAad : SigRedTyAdequate@{j k} (LR rec) ΣA) :
     LR rec Γ A B (SigRedTmEq ΣA)
   | LRId {Γ A B} (IA : IdRedTyPack@{j} Γ A B) (IAad : IdRedTyAdequate@{j k} (LR rec) IA) :
@@ -111,6 +113,10 @@ Section MoreDefs.
   Definition LREmpty_@{i j k l} l {Γ A B} (NA : [Γ ||-Empty A ≅ B])
     : [LogRel@{i j k l} l | Γ ||- A ≅ B] :=
     LRbuild (LREmpty (LogRelRec l) NA).
+
+  Definition LRTree_@{i j k l} l {Γ A B} (NA : [Γ ||-Tree A ≅ B])
+    : [LogRel@{i j k l} l | Γ ||- A ≅ B] :=
+    LRbuild (LRTree (LogRelRec l) NA).
 
   Definition LRId_@{i j k l} l {Γ A B} (IA : IdRedTyPack@{k} Γ A B)
     (IAad : IdRedTyAdequate (LR (LogRelRec@{i j k} l)) IA)

@@ -480,11 +480,27 @@ Proof. reflexivity. Qed.
 Lemma wk_elimSuccHypTy {P Γ Δ} A (ρ : Δ ≤ Γ) :
   elimSuccHypTy P⟨wk_up A ρ⟩ = (elimSuccHypTy P)⟨ρ⟩.
 Proof.
-  unfold elimSuccHypTy; cbn; f_equal; now bsimpl.
+  unfold elimSuccHypTy; cbn; f_equal; f_equal; now bsimpl.
+Qed.
+
+Lemma wk_elimLeafHypTy {P Γ Δ} A (ρ : Δ ≤ Γ) :
+  elimLeafHypTy P⟨wk_up A ρ⟩ = (elimLeafHypTy P)⟨ρ⟩.
+Proof.
+  unfold elimLeafHypTy; cbn. f_equal ; now bsimpl.
+Qed.
+
+Lemma wk_elimNodeHypTy {P Γ Δ} A (ρ : Δ ≤ Γ) :
+  elimNodeHypTy P⟨wk_up A ρ⟩ = (elimNodeHypTy P)⟨ρ⟩.
+Proof.
+  unfold elimNodeHypTy; cbn; f_equal; f_equal; f_equal; f_equal; [ | f_equal]; now bsimpl.
 Qed.
 
 Lemma wk_natElim {Γ Δ P hz hs n} (ρ : Δ ≤ Γ) :
   tNatElim P⟨wk_up tNat ρ⟩ hz⟨ρ⟩ hs⟨ρ⟩ n⟨ρ⟩ = (tNatElim P hz hs n)⟨ρ⟩.
+Proof. reflexivity. Qed.
+
+Lemma wk_treeElim {Γ Δ P hl hn t} (ρ : Δ ≤ Γ) :
+  tTreeElim P⟨wk_up tTree ρ⟩ hl⟨ρ⟩ hn⟨ρ⟩ t⟨ρ⟩ = (tTreeElim P hl hn t)⟨ρ⟩.
 Proof. reflexivity. Qed.
 
 Lemma wk_boolElim {Γ Δ P hz hs n} (ρ : Δ ≤ Γ) :
@@ -574,8 +590,11 @@ Proof. asimpl; now rewrite wk1_ren. Qed.
 Lemma ren_subst  {Γ Δ} A (ρ : Γ ≤ Δ) σ : A⟨ρ⟩[σ] = A[ ρ >> σ].
 Proof. now asimpl. Qed.
 
-Lemma liftSubstComm Γ F G t σ : G[t]⇑[σ] = G[t[σ] .: @wk1 Γ F >> σ].
+Lemma liftSubstComm' G t σ : G[t]⇑[σ] = G[t[σ] .: ↑ >> σ].
 Proof. now bsimpl. Qed.
+
+Lemma liftSubstComm Γ F G t σ : G[t]⇑[σ] = G[t[σ] .: @wk1 Γ F >> σ].
+Proof. rewrite wk1_ren; eapply liftSubstComm'. Qed.
 
 
 Lemma Fwk_new {L L' : Fcontext} (new : newnat L) b :  L' ≤ε L -> in_Fctx L' new b ->  L' ≤ε (Fcons' L new b).

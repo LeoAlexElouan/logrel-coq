@@ -111,6 +111,14 @@ Proof. now asimpl. Qed.
 Definition elimSuccHypTy P :=
   tProd tNat (arr P P[tSucc (tRel 0)]⇑).
 
+Definition elimLeafHypTy P :=
+  tProd tNat P[tLeaf (tRel 0)]⇑.
+
+Definition elimNodeHypTy P :=
+  tProd tNat (tProd tTree (tProd tTree
+    (arr P⟨upRen_term_term ↑⟩⟨↑⟩ 
+    (arr P⟨upRen_term_term ↑⟩⟨upRen_term_term ↑⟩
+      P⟨upRen_term_term ↑⟩⟨upRen_term_term ↑⟩[tNode (tRel 2) (tRel 1) (tRel 0)]⇑)))).
 
 Equations Derive NoConfusion EqDec for sort.
 Equations Derive NoConfusion Subterm EqDec for term.

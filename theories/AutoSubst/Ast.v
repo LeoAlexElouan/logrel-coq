@@ -24,6 +24,10 @@ Inductive term : Type :=
   | tAlpha : term -> term
   | tEmpty : term
   | tEmptyElim : term -> term -> term
+  | tTree : term
+  | tLeaf : term -> term
+  | tNode : term -> term -> term -> term
+  | tTreeElim : term -> term -> term -> term -> term
   | tSig : term -> term -> term
   | tPair : term -> term -> term -> term -> term
   | tFst : term -> term
@@ -136,6 +140,41 @@ exact (eq_trans (eq_trans eq_refl (ap (fun x => tEmptyElim x s1) H0))
          (ap (fun x => tEmptyElim t0 x) H1)).
 Qed.
 
+Lemma congr_tTree : tTree = tTree.
+Proof.
+exact (eq_refl).
+Qed.
+
+Lemma congr_tLeaf {s0 : term} {t0 : term} (H0 : s0 = t0) :
+  tLeaf s0 = tLeaf t0.
+Proof.
+exact (eq_trans eq_refl (ap (fun x => tLeaf x) H0)).
+Qed.
+
+Lemma congr_tNode {s0 : term} {s1 : term} {s2 : term} {t0 : term} {t1 : term}
+  {t2 : term} (H0 : s0 = t0) (H1 : s1 = t1) (H2 : s2 = t2) :
+  tNode s0 s1 s2 = tNode t0 t1 t2.
+Proof.
+exact (eq_trans
+         (eq_trans (eq_trans eq_refl (ap (fun x => tNode x s1 s2) H0))
+            (ap (fun x => tNode t0 x s2) H1))
+         (ap (fun x => tNode t0 t1 x) H2)).
+Qed.
+
+Lemma congr_tTreeElim {s0 : term} {s1 : term} {s2 : term} {s3 : term}
+  {t0 : term} {t1 : term} {t2 : term} {t3 : term} (H0 : s0 = t0)
+  (H1 : s1 = t1) (H2 : s2 = t2) (H3 : s3 = t3) :
+  tTreeElim s0 s1 s2 s3 = tTreeElim t0 t1 t2 t3.
+Proof.
+exact (eq_trans
+         (eq_trans
+            (eq_trans
+               (eq_trans eq_refl (ap (fun x => tTreeElim x s1 s2 s3) H0))
+               (ap (fun x => tTreeElim t0 x s2 s3) H1))
+            (ap (fun x => tTreeElim t0 t1 x s3) H2))
+         (ap (fun x => tTreeElim t0 t1 t2 x) H3)).
+Qed.
+
 Lemma congr_tSig {s0 : term} {s1 : term} {t0 : term} {t1 : term}
   (H0 : s0 = t0) (H1 : s1 = t1) : tSig s0 s1 = tSig t0 t1.
 Proof.
@@ -233,6 +272,13 @@ Fixpoint ren_term (xi_term : nat -> nat) (s : term) {struct s} : term :=
   | tEmptyElim s0 s1 =>
       tEmptyElim (ren_term (upRen_term_term xi_term) s0)
         (ren_term xi_term s1)
+  | tTree => tTree
+  | tLeaf s0 => tLeaf (ren_term xi_term s0)
+  | tNode s0 s1 s2 =>
+      tNode (ren_term xi_term s0) (ren_term xi_term s1) (ren_term xi_term s2)
+  | tTreeElim s0 s1 s2 s3 =>
+      tTreeElim (ren_term (upRen_term_term xi_term) s0) (ren_term xi_term s1)
+        (ren_term xi_term s2) (ren_term xi_term s3)
   | tSig s0 s1 =>
       tSig (ren_term xi_term s0) (ren_term (upRen_term_term xi_term) s1)
   | tPair s0 s1 s2 s3 =>
@@ -285,6 +331,15 @@ term :=
   | tEmptyElim s0 s1 =>
       tEmptyElim (subst_term (up_term_term sigma_term) s0)
         (subst_term sigma_term s1)
+  | tTree => tTree
+  | tLeaf s0 => tLeaf (subst_term sigma_term s0)
+  | tNode s0 s1 s2 =>
+      tNode (subst_term sigma_term s0) (subst_term sigma_term s1)
+        (subst_term sigma_term s2)
+  | tTreeElim s0 s1 s2 s3 =>
+      tTreeElim (subst_term (up_term_term sigma_term) s0)
+        (subst_term sigma_term s1) (subst_term sigma_term s2)
+        (subst_term sigma_term s3)
   | tSig s0 s1 =>
       tSig (subst_term sigma_term s0)
         (subst_term (up_term_term sigma_term) s1)
@@ -355,6 +410,18 @@ subst_term sigma_term s = s :=
       congr_tEmptyElim
         (idSubst_term (up_term_term sigma_term) (upId_term_term _ Eq_term) s0)
         (idSubst_term sigma_term Eq_term s1)
+  | tTree => congr_tTree
+  | tLeaf s0 => congr_tLeaf (idSubst_term sigma_term Eq_term s0)
+  | tNode s0 s1 s2 =>
+      congr_tNode (idSubst_term sigma_term Eq_term s0)
+        (idSubst_term sigma_term Eq_term s1)
+        (idSubst_term sigma_term Eq_term s2)
+  | tTreeElim s0 s1 s2 s3 =>
+      congr_tTreeElim
+        (idSubst_term (up_term_term sigma_term) (upId_term_term _ Eq_term) s0)
+        (idSubst_term sigma_term Eq_term s1)
+        (idSubst_term sigma_term Eq_term s2)
+        (idSubst_term sigma_term Eq_term s3)
   | tSig s0 s1 =>
       congr_tSig (idSubst_term sigma_term Eq_term s0)
         (idSubst_term (up_term_term sigma_term) (upId_term_term _ Eq_term) s1)
@@ -436,6 +503,19 @@ ren_term xi_term s = ren_term zeta_term s :=
         (extRen_term (upRen_term_term xi_term) (upRen_term_term zeta_term)
            (upExtRen_term_term _ _ Eq_term) s0)
         (extRen_term xi_term zeta_term Eq_term s1)
+  | tTree => congr_tTree
+  | tLeaf s0 => congr_tLeaf (extRen_term xi_term zeta_term Eq_term s0)
+  | tNode s0 s1 s2 =>
+      congr_tNode (extRen_term xi_term zeta_term Eq_term s0)
+        (extRen_term xi_term zeta_term Eq_term s1)
+        (extRen_term xi_term zeta_term Eq_term s2)
+  | tTreeElim s0 s1 s2 s3 =>
+      congr_tTreeElim
+        (extRen_term (upRen_term_term xi_term) (upRen_term_term zeta_term)
+           (upExtRen_term_term _ _ Eq_term) s0)
+        (extRen_term xi_term zeta_term Eq_term s1)
+        (extRen_term xi_term zeta_term Eq_term s2)
+        (extRen_term xi_term zeta_term Eq_term s3)
   | tSig s0 s1 =>
       congr_tSig (extRen_term xi_term zeta_term Eq_term s0)
         (extRen_term (upRen_term_term xi_term) (upRen_term_term zeta_term)
@@ -521,6 +601,19 @@ subst_term sigma_term s = subst_term tau_term s :=
         (ext_term (up_term_term sigma_term) (up_term_term tau_term)
            (upExt_term_term _ _ Eq_term) s0)
         (ext_term sigma_term tau_term Eq_term s1)
+  | tTree => congr_tTree
+  | tLeaf s0 => congr_tLeaf (ext_term sigma_term tau_term Eq_term s0)
+  | tNode s0 s1 s2 =>
+      congr_tNode (ext_term sigma_term tau_term Eq_term s0)
+        (ext_term sigma_term tau_term Eq_term s1)
+        (ext_term sigma_term tau_term Eq_term s2)
+  | tTreeElim s0 s1 s2 s3 =>
+      congr_tTreeElim
+        (ext_term (up_term_term sigma_term) (up_term_term tau_term)
+           (upExt_term_term _ _ Eq_term) s0)
+        (ext_term sigma_term tau_term Eq_term s1)
+        (ext_term sigma_term tau_term Eq_term s2)
+        (ext_term sigma_term tau_term Eq_term s3)
   | tSig s0 s1 =>
       congr_tSig (ext_term sigma_term tau_term Eq_term s0)
         (ext_term (up_term_term sigma_term) (up_term_term tau_term)
@@ -612,6 +705,21 @@ Fixpoint compRenRen_term (xi_term : nat -> nat) (zeta_term : nat -> nat)
            (upRen_term_term zeta_term) (upRen_term_term rho_term)
            (up_ren_ren _ _ _ Eq_term) s0)
         (compRenRen_term xi_term zeta_term rho_term Eq_term s1)
+  | tTree => congr_tTree
+  | tLeaf s0 =>
+      congr_tLeaf (compRenRen_term xi_term zeta_term rho_term Eq_term s0)
+  | tNode s0 s1 s2 =>
+      congr_tNode (compRenRen_term xi_term zeta_term rho_term Eq_term s0)
+        (compRenRen_term xi_term zeta_term rho_term Eq_term s1)
+        (compRenRen_term xi_term zeta_term rho_term Eq_term s2)
+  | tTreeElim s0 s1 s2 s3 =>
+      congr_tTreeElim
+        (compRenRen_term (upRen_term_term xi_term)
+           (upRen_term_term zeta_term) (upRen_term_term rho_term)
+           (up_ren_ren _ _ _ Eq_term) s0)
+        (compRenRen_term xi_term zeta_term rho_term Eq_term s1)
+        (compRenRen_term xi_term zeta_term rho_term Eq_term s2)
+        (compRenRen_term xi_term zeta_term rho_term Eq_term s3)
   | tSig s0 s1 =>
       congr_tSig (compRenRen_term xi_term zeta_term rho_term Eq_term s0)
         (compRenRen_term (upRen_term_term xi_term)
@@ -713,6 +821,21 @@ subst_term tau_term (ren_term xi_term s) = subst_term theta_term s :=
            (up_term_term theta_term) (up_ren_subst_term_term _ _ _ Eq_term)
            s0)
         (compRenSubst_term xi_term tau_term theta_term Eq_term s1)
+  | tTree => congr_tTree
+  | tLeaf s0 =>
+      congr_tLeaf (compRenSubst_term xi_term tau_term theta_term Eq_term s0)
+  | tNode s0 s1 s2 =>
+      congr_tNode (compRenSubst_term xi_term tau_term theta_term Eq_term s0)
+        (compRenSubst_term xi_term tau_term theta_term Eq_term s1)
+        (compRenSubst_term xi_term tau_term theta_term Eq_term s2)
+  | tTreeElim s0 s1 s2 s3 =>
+      congr_tTreeElim
+        (compRenSubst_term (upRen_term_term xi_term) (up_term_term tau_term)
+           (up_term_term theta_term) (up_ren_subst_term_term _ _ _ Eq_term)
+           s0)
+        (compRenSubst_term xi_term tau_term theta_term Eq_term s1)
+        (compRenSubst_term xi_term tau_term theta_term Eq_term s2)
+        (compRenSubst_term xi_term tau_term theta_term Eq_term s3)
   | tSig s0 s1 =>
       congr_tSig (compRenSubst_term xi_term tau_term theta_term Eq_term s0)
         (compRenSubst_term (upRen_term_term xi_term) (up_term_term tau_term)
@@ -831,6 +954,23 @@ ren_term zeta_term (subst_term sigma_term s) = subst_term theta_term s :=
            (upRen_term_term zeta_term) (up_term_term theta_term)
            (up_subst_ren_term_term _ _ _ Eq_term) s0)
         (compSubstRen_term sigma_term zeta_term theta_term Eq_term s1)
+  | tTree => congr_tTree
+  | tLeaf s0 =>
+      congr_tLeaf
+        (compSubstRen_term sigma_term zeta_term theta_term Eq_term s0)
+  | tNode s0 s1 s2 =>
+      congr_tNode
+        (compSubstRen_term sigma_term zeta_term theta_term Eq_term s0)
+        (compSubstRen_term sigma_term zeta_term theta_term Eq_term s1)
+        (compSubstRen_term sigma_term zeta_term theta_term Eq_term s2)
+  | tTreeElim s0 s1 s2 s3 =>
+      congr_tTreeElim
+        (compSubstRen_term (up_term_term sigma_term)
+           (upRen_term_term zeta_term) (up_term_term theta_term)
+           (up_subst_ren_term_term _ _ _ Eq_term) s0)
+        (compSubstRen_term sigma_term zeta_term theta_term Eq_term s1)
+        (compSubstRen_term sigma_term zeta_term theta_term Eq_term s2)
+        (compSubstRen_term sigma_term zeta_term theta_term Eq_term s3)
   | tSig s0 s1 =>
       congr_tSig
         (compSubstRen_term sigma_term zeta_term theta_term Eq_term s0)
@@ -958,6 +1098,23 @@ subst_term tau_term (subst_term sigma_term s) = subst_term theta_term s :=
            (up_term_term tau_term) (up_term_term theta_term)
            (up_subst_subst_term_term _ _ _ Eq_term) s0)
         (compSubstSubst_term sigma_term tau_term theta_term Eq_term s1)
+  | tTree => congr_tTree
+  | tLeaf s0 =>
+      congr_tLeaf
+        (compSubstSubst_term sigma_term tau_term theta_term Eq_term s0)
+  | tNode s0 s1 s2 =>
+      congr_tNode
+        (compSubstSubst_term sigma_term tau_term theta_term Eq_term s0)
+        (compSubstSubst_term sigma_term tau_term theta_term Eq_term s1)
+        (compSubstSubst_term sigma_term tau_term theta_term Eq_term s2)
+  | tTreeElim s0 s1 s2 s3 =>
+      congr_tTreeElim
+        (compSubstSubst_term (up_term_term sigma_term)
+           (up_term_term tau_term) (up_term_term theta_term)
+           (up_subst_subst_term_term _ _ _ Eq_term) s0)
+        (compSubstSubst_term sigma_term tau_term theta_term Eq_term s1)
+        (compSubstSubst_term sigma_term tau_term theta_term Eq_term s2)
+        (compSubstSubst_term sigma_term tau_term theta_term Eq_term s3)
   | tSig s0 s1 =>
       congr_tSig
         (compSubstSubst_term sigma_term tau_term theta_term Eq_term s0)
@@ -1124,6 +1281,19 @@ Fixpoint rinst_inst_term (xi_term : nat -> nat) (sigma_term : nat -> term)
         (rinst_inst_term (upRen_term_term xi_term) (up_term_term sigma_term)
            (rinstInst_up_term_term _ _ Eq_term) s0)
         (rinst_inst_term xi_term sigma_term Eq_term s1)
+  | tTree => congr_tTree
+  | tLeaf s0 => congr_tLeaf (rinst_inst_term xi_term sigma_term Eq_term s0)
+  | tNode s0 s1 s2 =>
+      congr_tNode (rinst_inst_term xi_term sigma_term Eq_term s0)
+        (rinst_inst_term xi_term sigma_term Eq_term s1)
+        (rinst_inst_term xi_term sigma_term Eq_term s2)
+  | tTreeElim s0 s1 s2 s3 =>
+      congr_tTreeElim
+        (rinst_inst_term (upRen_term_term xi_term) (up_term_term sigma_term)
+           (rinstInst_up_term_term _ _ Eq_term) s0)
+        (rinst_inst_term xi_term sigma_term Eq_term s1)
+        (rinst_inst_term xi_term sigma_term Eq_term s2)
+        (rinst_inst_term xi_term sigma_term Eq_term s3)
   | tSig s0 s1 =>
       congr_tSig (rinst_inst_term xi_term sigma_term Eq_term s0)
         (rinst_inst_term (upRen_term_term xi_term) (up_term_term sigma_term)

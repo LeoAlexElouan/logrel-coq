@@ -36,6 +36,8 @@ Proof.
     constructor; tea; now eapply red_redtywf_trans.
   - intros [] **; apply LREmpty_.
     constructor; tea; now eapply red_redtywf_trans.
+  - intros [] **; apply LRTree_.
+    constructor; tea; now eapply red_redtywf_trans.
   - intros [???? []] **; cbn in *; apply LRSig'.
     econstructor; tea; constructor; tea; now eapply red_redtywf_trans.
   - intros [] **; cbn in *; apply LRId'.
@@ -117,6 +119,10 @@ Proof.
   - intros * [] **; econstructor; tea.
     now eapply red_redtmwf_trans.
   - intros * [] **; econstructor; tea.
+    now eapply red_redtmwf_trans.
+  - intros * Ruv;
+    induction u, v, Ruv using TreeRedTmEq.TreeRedTmEq_destruct;
+    intros **; econstructor; tea.
     now eapply red_redtmwf_trans.
   - intros * ?? * [] **; unshelve econstructor; tea.
     1: now eapply redSigRedTm.
@@ -211,6 +217,7 @@ Proof.
   - intros []; cbn in *; apply LRNat_; econstructor; gtyping.
   - intros []; cbn in *; apply LRBool_; econstructor; gtyping.
   - intros []; cbn in *; apply LREmpty_; econstructor; gtyping.
+  - intros []; cbn in *; apply LRTree_; econstructor; gtyping.
   - intros [???? [] []] _ _; cbn in *; apply LRSig'; econstructor.
     1,2: econstructor; [eapply redtywf_refl|..]; tea; gtyping.
     all: tea.
@@ -257,7 +264,9 @@ Lemma redTmFwd {Γ l A B t u} {RA : [Γ ||-S<l> A ≅ B]}
   (Rtu : [Γ ||-S<l> t ≅ u : A | RA]) :
   [Γ ||-S<l> (whredtmL Rtu).(tmred_whnf) ≅ (whredtmR Rtu).(tmred_whnf) : _  | RA].
 Proof.
-  revert Rtu; caseLR RA; intros h []; cbn in *; unshelve econstructor.
+  revert Rtu; caseLR RA; intros h Rtu;
+  first [destruct Rtu| induction t, u, Rtu using TreeRedTmEq.TreeRedTmEq_destruct];
+  cbn in *; unshelve econstructor.
   all: try match goal with
     | [|- URedTm _ _ _] => tea ; (unshelve now eapply redFwdURedTm) ; [| | | tea]
     | [|- PiRedTm _ _] => tea ; now eapply redFwdPiRedTm

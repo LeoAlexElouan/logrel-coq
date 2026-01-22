@@ -325,6 +325,23 @@ Section GenericTyping.
       [Γ ,,  tEmpty |- P ] ->
       [Γ |- e : tEmpty] ->
       [Γ |- tEmptyElim P e : P[e..]] ;
+    ty_tree {Γ} :
+        [|-Γ] ->
+        [Γ |- tTree : U] ;
+    ty_leaf {Γ n} :
+        [Γ|- n : tNat] ->
+        [Γ |- tLeaf n : tTree] ;
+    ty_node {Γ n tl tr} :
+        [Γ |- n : tNat] ->
+        [Γ |- tl : tTree] ->
+        [Γ |- tr : tTree] ->
+        [Γ |- tNode n tl tr : tTree] ;
+    ty_treeElim {Γ P hl hn t} :
+      [Γ ,, tTree |- P ] ->
+      [Γ |- hl : elimLeafHypTy P] ->
+      [Γ |- hn : elimNodeHypTy P] ->
+      [Γ |- t : tTree] ->
+      [Γ |- tTreeElim P hl hn t : P[t..]] ;
     ty_sig {Γ} {A B} :
         [ Γ |- A : U] ->
         [Γ ,, A |- B : U ] ->
@@ -449,6 +466,17 @@ Section GenericTyping.
     convtm_alpha {Γ n b} :
       [|-Γ] ->
       in_Fctx Γ n b -> [Γ |- tAlpha (nat_to_term n) ≅ bool_to_term b : tBool] ;
+    convtm_empty {Γ} :
+      [|-Γ] -> [Γ |- tEmpty ≅ tEmpty : U] ;
+    convtm_tree {Γ} :
+      [|-Γ] -> [Γ |- tTree ≅ tTree : U] ;
+    convtm_leaf {Γ n n'} :
+      [Γ |- n ≅ n': tNat] -> [Γ |- tLeaf n ≅ tLeaf n': tTree] ;
+    convtm_node {Γ} {n n' tl tl' tr tr'} :
+        [Γ |- n ≅ n' : tNat] ->
+        [Γ |- tl ≅ tl' : tTree] ->
+        [Γ |- tr ≅ tr' : tTree] ->
+        [Γ |- tNode n tl tr ≅ tNode n' tl' tr' : tTree] ;
     convtm_eta_sig {Γ p p' A B} :
       [Γ |- A] ->
       [Γ ,, A |- B] ->
@@ -459,8 +487,6 @@ Section GenericTyping.
       [Γ |- tFst p ≅ tFst p' : A] ->
       [Γ |- tSnd p ≅ tSnd p' : B[(tFst p)..]] ->
       [Γ |- p ≅ p' : tSig A B] ;
-    convtm_empty {Γ} :
-      [|-Γ] -> [Γ |- tEmpty ≅ tEmpty : U] ;
     convtm_Id {Γ A A' x x' y y'} :
       (* [Γ |- A] -> ?  *)
       [Γ |- A ≅ A' : U] ->
@@ -509,6 +535,12 @@ Section GenericTyping.
         [Γ ,, tEmpty |- P ≅ P'] ->
         [Γ |- e ~ e' : tEmpty] ->
         [Γ |- tEmptyElim P e ~ tEmptyElim P' e' : P[e..]] ;
+    convneu_treeElim {Γ P P' hl hl' hn hn' t t'} :
+        [Γ ,, tTree |- P ≅ P'] ->
+        [Γ |- hl ≅ hl' : elimLeafHypTy P] ->
+        [Γ |- hn ≅ hn' : elimNodeHypTy P] ->
+        [Γ |- t ~ t' : tTree] ->
+        [Γ |- tTreeElim P hl hn t ~ tTreeElim P' hl' hn' t' : P[t..]] ;
     convneu_fst {Γ A B p p'} :
       [Γ |- p ~ p' : tSig A B] ->
       [Γ |- tFst p ~ tFst p' : A] ;
@@ -579,6 +611,22 @@ Section GenericTyping.
         [Γ |- ht : P[tTrue..]] ->
         [Γ |- hf : P[tFalse..]] ->
         [Γ |- tBoolElim P ht hf tFalse ⤳* hf : P[tFalse..]] ;
+    redtm_treeElimLeaf {Γ P hl hn n} :
+        [Γ ,, tTree |- P ] ->
+        [Γ |- hl : elimLeafHypTy P] ->
+        [Γ |- hn : elimNodeHypTy P] ->
+        [Γ |- n : tNat] ->
+        [Γ |- tTreeElim P hl hn (tLeaf n) ⤳* tApp hl n : P[(tLeaf n)..]] ;
+    redtm_treeElimNode {Γ P hl hn tl tr n} :
+        [Γ ,, tTree |- P ] ->
+        [Γ |- n : tNat] ->
+        [Γ |- hl : elimLeafHypTy P] ->
+        [Γ |- hn : elimNodeHypTy P] ->
+        [Γ |- tl : tTree] ->
+        [Γ |- tr : tTree] ->
+        [Γ |- tTreeElim P hl hn (tNode n tl tr) ⤳*
+          tApp (tApp (tApp (tApp (tApp hn n) tl) tr) (tTreeElim P hl hn tl)) (tTreeElim P hl hn tr) :
+          P[(tNode n tl tr)..]] ;
     redtm_app {Γ A B f f' t} :
       [ Γ |- f ⤳* f' : tProd A B ] ->
       [ Γ |- t : A ] ->
@@ -605,6 +653,12 @@ Section GenericTyping.
       [ Γ,, tEmpty |- P ] ->
       [ Γ |- n ⤳* n' : tEmpty ] ->
       [ Γ |- tEmptyElim P n ⤳* tEmptyElim P n' : P[n..] ];
+    redtm_treeelim {Γ P hl hn t t'} :
+      [ Γ,, tTree |- P ] ->
+      [ Γ |- hl : elimLeafHypTy P ] ->
+      [ Γ |- hn : elimNodeHypTy P ] ->
+      [ Γ |- t ⤳* t' : tTree ] ->
+      [ Γ |- tTreeElim P hl hn t ⤳* tTreeElim P hl hn t' : P[t..] ];
     redtm_fst_beta {Γ A B a b} :
       [Γ |- A] ->
       [Γ ,, A |- B] ->
@@ -682,10 +736,10 @@ Class GenericTypingProperties `(ta : tag)
 (* Priority 2 *)
 #[export] Hint Resolve wfc_nil wfc_cons | 2 : gen_typing.
 #[export] Hint Resolve wft_wk wft_U wft_prod wft_sig wft_Id | 2 : gen_typing.
-#[export] Hint Resolve ty_wk ty_var ty_prod ty_lam ty_app ty_nat ty_bool ty_empty ty_zero ty_succ ty_natElim ty_true ty_false ty_alpha ty_boolElim ty_emptyElim ty_sig ty_pair ty_fst ty_snd ty_Id ty_refl ty_IdElim| 2 : gen_typing.
+#[export] Hint Resolve ty_wk ty_var ty_prod ty_lam ty_app ty_nat ty_bool ty_empty ty_tree ty_zero ty_succ ty_natElim ty_true ty_false ty_alpha ty_boolElim ty_emptyElim ty_leaf ty_node ty_treeElim ty_sig ty_pair ty_fst ty_snd ty_Id ty_refl ty_IdElim| 2 : gen_typing.
 #[export] Hint Resolve convty_wk convty_uni convty_prod convty_sig convty_Id | 2 : gen_typing.
-#[export] Hint Resolve convtm_wk convtm_prod convtm_sig convtm_eta convtm_nat convtm_bool convtm_empty convtm_zero convtm_succ convtm_true convtm_false convtm_eta_sig convtm_Id convtm_refl | 2 : gen_typing.
-#[export] Hint Resolve convneu_wk convneu_var convneu_app convneu_natElim convneu_boolElim convneu_emptyElim convneu_fst convneu_snd convneu_IdElim | 2 : gen_typing.
+#[export] Hint Resolve convtm_wk convtm_prod convtm_sig convtm_eta convtm_nat convtm_bool convtm_empty convtm_tree convtm_zero convtm_succ convtm_true convtm_false convtm_leaf convtm_node convtm_eta_sig convtm_Id convtm_refl | 2 : gen_typing.
+#[export] Hint Resolve convneu_wk convneu_var convneu_app convneu_natElim convneu_boolElim convneu_emptyElim convneu_treeElim convneu_fst convneu_snd convneu_IdElim | 2 : gen_typing.
 #[export] Hint Resolve redty_ty_src redtm_ty_src | 2 : gen_typing.
 (* Priority 4 *)
 #[export] Hint Resolve wft_term convty_term convtm_convneu | 4 : gen_typing.

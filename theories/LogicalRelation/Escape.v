@@ -18,6 +18,7 @@ Section Escapes.
     - intros []; prod_splitter; [| |eapply convty_exp]; gtyping.
     - intros []; prod_splitter; [| |eapply convty_exp]; gtyping.
     - intros []; prod_splitter; [| |eapply convty_exp]; gtyping.
+    - intros []; prod_splitter; [| |eapply convty_exp]; gtyping.
     - intros [???? [] []] _ _; prod_splitter; [| |eapply convty_exp]; gtyping.
     - intros [] _ ; prod_splitter; [| |eapply convty_exp]; gtyping.
   Qed.
@@ -91,6 +92,12 @@ Section Escapes.
       1-3: gen_typing.
       2: now eapply urefl.
       eapply convtm_convneu; tea; constructor.
+    - intros TA ? Rtu; induction t, u, Rtu as [] using TreeRedTmEq.TreeRedTmEq_destruct; prod_splitter.
+      1,2: (eapply ty_conv; [gtyping|now symmetry]).
+      destruct TA; eapply convtm_wfexp.
+      1-3: gen_typing.
+      2: now eapply urefl.
+      tea.
     - intros ΣA ? [[] []]; prod_splitter.
       1,2: (eapply ty_conv; [gtyping|now symmetry]).
       destruct ΣA as [???? []]; cbn in *; eapply convtm_wfexp.

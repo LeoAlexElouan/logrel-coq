@@ -2,7 +2,7 @@
 From LogRel Require Import Utils Syntax.All GenericTyping DeclarativeTyping LogicalRelation.
 From LogRel.LogicalRelation Require Import Properties.
 From LogRel.Validity Require Import Validity Irrelevance Properties ValidityTactics.
-From LogRel.Validity.Introductions Require Import Application Universe Pi Lambda Var Nat Bool Empty SimpleArr Sigma Id Split.
+From LogRel.Validity.Introductions Require Import Application Universe Pi Lambda Var Nat Bool Empty Tree SimpleArr Sigma Id Split.
 
 Set Primitive Projections.
 Set Universe Polymorphism.
@@ -454,6 +454,40 @@ Section Fundamental.
     Unshelve. all: irrValid.
   Qed.
 
+  Lemma FundTyTree : forall Γ : context, FundCon Γ -> FundTy Γ tTree.
+  Proof.
+    intros ??; unshelve econstructor; tea;  eapply treeValid.
+  Qed.
+
+  Lemma FundTmTree : forall Γ : context, FundCon Γ -> FundTm Γ U tTree.
+  Proof.
+    intros ??; unshelve econstructor; tea.
+    2: eapply treeValidU.
+  Qed.
+
+  Lemma FundTmLeaf : forall (Γ : context) (n : term), FundTm Γ tNat n -> FundTm Γ tTree (tLeaf n).
+  Proof.
+    intros * []; unshelve (econstructor; eapply leafValid); irrValid.
+  Qed.
+
+  Lemma FundTmNode : forall (Γ : context) (n tl tr : term),
+    FundTm Γ tNat n -> FundTm Γ tTree tl -> FundTm Γ tTree tr -> FundTm Γ tTree (tNode n tl tr).
+  Proof.
+    intros * [] [] []; unshelve econstructor;
+    [ | |eapply nodeValid]; irrValid.
+  Qed.
+
+  Lemma FundTmTreeElim : forall (Γ : context) (P hl hn t : term),
+    FundTy (Γ,, tTree) P ->
+    FundTm Γ (elimLeafHypTy P) hl ->
+    FundTm Γ (elimNodeHypTy P) hn ->
+    FundTm Γ tTree t -> FundTm Γ P[t..] (tTreeElim P hl hn t).
+  Proof.
+    intros * [] [] [] []; unshelve econstructor; tea.
+    2: eapply treeElimValid; irrValid.
+    Unshelve. all: irrValid.
+  Qed.
+
   Lemma FundTmEqSuccCong : forall (Γ : context) (n n' : term),
     FundTmEq Γ tNat n n' -> FundTmEq Γ tNat (tSucc n) (tSucc n').
   Proof.
@@ -547,6 +581,64 @@ Section Fundamental.
     tea.
     Unshelve.  all: first [exact Γ| exact one| eassumption| irrValid].
   Qed.
+
+
+  Lemma FundTmEqLeafCong : forall (Γ : context) (n n' : term),
+    FundTmEq Γ tNat n n' -> FundTmEq Γ tTree (tLeaf n) (tLeaf n').
+  Proof.
+    intros * []; unshelve (econstructor; eapply leafValid); irrValid.
+  Qed.
+
+  Lemma FundTmEqNodeCong : forall (Γ : context) (n n' tl tl' tr tr': term),
+    FundTmEq Γ tNat n n' ->
+    FundTmEq Γ tTree tl tl' ->
+    FundTmEq Γ tTree tr tr' ->
+    FundTmEq Γ tTree (tNode n tl tr) (tNode n' tl' tr').
+  Proof.
+    intros * [] [] []; unshelve (econstructor; eapply nodeValid); irrValid.
+  Qed.
+
+  Lemma FundTmEqTreeElimCong : forall (Γ : context)
+      (P P' hl hl' hn hn' t t' : term),
+    FundTyEq (Γ,, tTree) P P' ->
+    FundTmEq Γ (elimLeafHypTy P) hl hl' ->
+    FundTmEq Γ (elimNodeHypTy P) hn hn' ->
+    FundTmEq Γ tTree t t' ->
+    FundTmEq Γ P[t..] (tTreeElim P hl hn t) (tTreeElim P' hl' hn' t').
+  Proof.
+    intros * [? VP0] [VΓ0] [] []; opector; tea.
+    1: unshelve (eapply lrefl, substS; irrValid); eapply treeValid.
+    unshelve (eapply irrValidTm; [|eapply treeElimCongValid]; irrValid); irrValid.
+  Qed.
+
+  Lemma FundTmEqTreeElimLeaf : forall (Γ : context) (P hl hn n : term),
+    FundTy (Γ,, tTree) P ->
+    FundTm Γ (elimLeafHypTy P) hl ->
+    FundTm Γ (elimNodeHypTy P) hn ->
+    FundTm Γ tNat n ->
+    FundTmEq Γ P[(tLeaf n)..] (tTreeElim P hl hn (tLeaf n))
+      (tApp hl n).
+  Proof.
+    intros * [] [] [] []; unshelve econstructor; tea.
+    2: eapply treeElimLeafValid; try irrValid.
+    Unshelve. all: irrValid.
+  Qed.
+
+  Lemma FundTmEqTreeElimNode : forall (Γ : context) (P hl hn n tl tr : term),
+    FundTy (Γ,, tTree) P ->
+    FundTm Γ (elimLeafHypTy P) hl ->
+    FundTm Γ (elimNodeHypTy P) hn ->
+    FundTm Γ tNat n ->
+    FundTm Γ tTree tl ->
+    FundTm Γ tTree tr ->
+    FundTmEq Γ P[(tNode n tl tr)..] (tTreeElim P hl hn (tNode n tl tr))
+      (tApp (tApp (tApp (tApp (tApp hn n) tl) tr) (tTreeElim P hl hn tl)) (tTreeElim P hl hn tr)).
+  Proof.
+    intros * [] [] [] [] [] []; unshelve econstructor; tea.
+    2: eapply treeElimNodeValid; try irrValid.
+    Unshelve. all: irrValid.
+  Qed.
+
 
   Lemma FundTySig : forall (Γ : context) (A B : term),
   FundTy Γ A -> FundTy (Γ,, A) B -> FundTy Γ (tSig A B).
@@ -898,6 +990,7 @@ Lemma Fundamental : (forall Γ : context, [ |-[ de ] Γ ] -> FundCon (ta := ta) 
   + intros; now apply FundTyNat.
   + intros; now apply FundTyBool.
   + intros; now apply FundTyEmpty.
+  + intros; now apply FundTyTree.
   + intros; now apply FundTySig.
   + intros; now apply FundTyId.
   + intros; now apply FundTyUniv.
@@ -917,6 +1010,10 @@ Lemma Fundamental : (forall Γ : context, [ |-[ de ] Γ ] -> FundCon (ta := ta) 
   + intros; now eapply FundTmAlpha.
   + intros; now apply FundTmEmpty.
   + intros; now apply FundTmEmptyElim.
+  + intros; now apply FundTmTree.
+  + intros; now apply FundTmLeaf.
+  + intros; now apply FundTmNode.
+  + intros; now apply FundTmTreeElim.
   + intros; now apply FundTmSig.
   + intros; now apply FundTmPair.
   + intros; now eapply FundTmFst.
@@ -949,6 +1046,11 @@ Lemma Fundamental : (forall Γ : context, [ |-[ de ] Γ ] -> FundCon (ta := ta) 
   + intros; now apply FundTmEqAlpha.
   + intros; now apply FundTmEqDigamma.
   + intros; now apply FundTmEqEmptyElimCong.
+  + intros; now apply FundTmEqLeafCong.
+  + intros; now apply FundTmEqNodeCong.
+  + intros; now apply FundTmEqTreeElimCong.
+  + intros; now apply FundTmEqTreeElimLeaf.
+  + intros; now apply FundTmEqTreeElimNode.
   + intros; now apply FundTmEqSigCong.
   + intros; now apply FundTmEqPairCong.
   + intros; now apply FundTmEqSigEta.
@@ -1010,4 +1112,4 @@ Lemma Fundamental : (forall Γ : context, [ |-[ de ] Γ ] -> FundCon (ta := ta) 
         eapply irrLREq; [reflexivity| now eapply redValidTm].
   Qed.
  *)
-End Fundamental.
+End Fundamental.T

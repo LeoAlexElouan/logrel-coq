@@ -148,7 +148,17 @@ Section Symmetry.
     2: now eapply symBoolPropEq.
     now symmetry.
   Qed.
- 
+
+  Lemma symTreeRedTmEq {Γ} :
+    forall v t u, TreeRedTmEq.TreeTmEq Γ v t u -> TreeRedTmEq.TreeTmEq Γ v u t.
+  Proof.
+    intros ??? Rtu.
+    induction Rtu; econstructor; tea.
+    + now symmetry.
+    + now eapply symNatRedTmEq.
+    + now eapply symNatRedTmEq.
+    + now eapply symNeNf.
+  Qed.
 
   Section SymΣ.
     Context {Γ l A A'} (ΣA : [Γ ||-Σ<l> A ≅ A'])
@@ -316,6 +326,9 @@ Section Symmetry.
     - intros EA _; unshelve econstructor.
       + eapply LREmpty_; destruct EA; now econstructor.
       + intro; cbn; split; intros []; econstructor; tea; now eapply symNeNf.
+    - intros TA _; unshelve econstructor.
+      + eapply LRTree_; destruct TA; now econstructor.
+      + intro; cbn; split; eapply symTreeRedTmEq.
     - intros ΣA ihdom ihcod ih; eapply symLRΣ; intros; eauto.
       intros Ξ ρ' hover hΞ.
       now unshelve eapply ihcod.

@@ -47,6 +47,7 @@ same. Both need to be proven simultaneously, because of contravariance in the pr
     | LRNat _ NA => LRNat _ NA
     | LRBool _ NA => LRBool _ NA
     | LREmpty _ NA => LREmpty _ NA
+    | LRTree _ NA => LRTree _ NA
     | LRSig _ PA PAad => LRSig _ PA (embedPolyAd PAad)
     | LRId _ IA IAad => LRId _ IA {| IdRedTyPack.tyAd := LR_embedding l_ IAad.(IdRedTyPack.tyAd) ; |}
     end.
@@ -82,6 +83,8 @@ same. Both need to be proven simultaneously, because of contravariance in the pr
 
     (forall Γ A B (NA : [Γ ||-Empty A ≅ B]), P (LREmpty rec NA)) ->
 
+    (forall Γ A B (NA : [Γ ||-Tree A ≅ B]), P (LRTree rec NA)) ->
+
     (forall (Γ : context) (A B : term) (ΠA : SigRedTyPack@{j k} Γ A B) (HAad : SigRedTyAdequate (LR rec) ΠA),
       PolyHyp P Γ ΠA HAad (P (LRSig rec ΠA HAad))) ->
 
@@ -94,7 +97,7 @@ same. Both need to be proven simultaneously, because of contravariance in the pr
       P lr.
   Proof.
     cbn.
-    intros HU Hne HPi HNat HBool HEmpty HSig HId.
+    intros HU Hne HPi HNat HBool HEmpty HTree HSig HId.
     fix HRec 5.
     destruct lr.
     - eapply HU.
@@ -104,6 +107,7 @@ same. Both need to be proven simultaneously, because of contravariance in the pr
     - eapply HNat.
     - eapply HBool.
     - eapply HEmpty.
+    - eapply HTree.
     - eapply HSig.
       all: repeat intro; eapply HRec.
     - eapply HId; intros; eapply HRec.
@@ -140,6 +144,8 @@ same. Both need to be proven simultaneously, because of contravariance in the pr
 
     (forall l Γ A B (NA : [Γ ||-Empty A ≅ B]), P (LREmpty (LogRelRec l) NA)) ->
 
+    (forall l Γ A B (NA : [Γ ||-Tree A ≅ B]), P (LRTree (LogRelRec l) NA)) ->
+
     (forall (l : TypeLevel) (Γ : context) (A B : term) (ΠA : SigRedTy@{i j k l} Γ l A B),
       PolyHypLogRel P Γ ΠA (P (LRSig' ΠA).(LRAd.adequate ))) ->
 
@@ -152,8 +158,8 @@ same. Both need to be proven simultaneously, because of contravariance in the pr
       (lr : LR@{j k l} (LogRelRec@{i j k} l) Γ A B tmeq),
       P lr.
   Proof.
-    intros ?? HPi ??? HSig HId **; eapply LR_rect@{j k l o}.
-    1,2,4,5,6: auto.
+    intros ?? HPi ???? HSig HId **; eapply LR_rect@{j k l o}.
+    1,2,4,5,6,7: auto.
     - intros; eapply (HPi _ _ _ _ (ParamRedTy.from HAad)); eauto.
     - intros; eapply (HSig _ _ _ _ (ParamRedTy.from HAad)); eauto.
     - intros; eapply (HId _ _ _ _ (IdRedTy.from IAad)) ; eauto.
@@ -184,6 +190,8 @@ same. Both need to be proven simultaneously, because of contravariance in the pr
 
     (forall l Γ A B (NA : [Γ ||-Empty A ≅ B]), P (LREmpty_ l NA)) ->
 
+    (forall l Γ A B (NA : [Γ ||-Tree A ≅ B]), P (LRTree_ l NA)) ->
+
     (forall (l : TypeLevel) (Γ : context) (A B : term) (ΠA : SigRedTy@{i j k l} Γ l A B),
       PolyHypTyUr P Γ ΠA (P (LRSig' ΠA))) ->
 
@@ -194,7 +202,7 @@ same. Both need to be proven simultaneously, because of contravariance in the pr
     forall (l : TypeLevel) (Γ : context) (A B : term) (lr : [LogRel@{i j k l} l | Γ ||- A ≅ B]),
       P lr.
   Proof.
-    intros HU Hne HPi HNat HBool HEmpty HSig HId l Γ A B lr.
+    intros HU Hne HPi HNat HBool HEmpty HTree HSig HId l Γ A B lr.
     apply (LR_rect_LogRelRec@{i j k l o} (fun l Γ A B _ lr => P l Γ A B (LRbuild lr))).
     all: auto.
   Defined.
@@ -216,6 +224,8 @@ same. Both need to be proven simultaneously, because of contravariance in the pr
     (forall l Γ A B (NA : [Γ ||-Bool A ≅ B]), P (LRBool_ l NA)) ->
 
     (forall l Γ A B (NA : [Γ ||-Empty A ≅ B]), P (LREmpty_ l NA)) ->
+
+    (forall l Γ A B (NA : [Γ ||-Tree A ≅ B]), P (LRTree_ l NA)) ->
 
     (forall (l : TypeLevel) (Γ : context) (A B : term) (ΠA : SigRedTy@{i j k l} Γ l A B),
       P (LRSig' ΠA)) ->
@@ -304,6 +314,7 @@ Section Inversions.
     | NatType => ∑ (h : [Γ ||-Nat A ≅ B]), lr = LRNat_ l h
     | BoolType => ∑ (h : [Γ ||-Bool A ≅ B]), lr = LRBool_ l h
     | EmptyType => ∑ (h : [Γ ||-Empty A ≅ B]), lr = LREmpty_ l h
+    | TreeType => ∑ (h : [Γ ||-Tree A ≅ B]), lr = LRTree_ l h
     | SigType => ∑ (h : [Γ ||-Σ<l> A ≅ B]), [× lr = LRSig' h, h.(ParamRedTy.domL) = sigdom A' & h.(ParamRedTy.codL) = sigcod A']
     | IdType => ∑ (h : [Γ||-Id<l> A ≅ B]), [× lr = LRId' h, h.(IdRedTy.tyL) = idparam A', h.(IdRedTy.lhsL) = idlhs A' & h.(IdRedTy.rhsL) = idrhs A']
     | NeType _ => ∑ (h : [Γ ||-ne A ≅ B]), lr = LRne_ l h × h.(neRedTy.tyL) = A'

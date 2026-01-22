@@ -45,6 +45,9 @@ Section Definitions.
       | wfTypeEmpty {Γ} : 
           [|- Γ] ->
           [Γ |- tEmpty]
+      | wfTypeTree {Γ} : 
+          [|- Γ] ->
+          [Γ |- tTree]
       | wfTypeSig {Γ} {A B} : 
           [ Γ |- A ] -> 
           [Γ ,, A |- B ] -> 
@@ -119,6 +122,23 @@ Section Definitions.
         [Γ ,, tEmpty |- P ] ->
         [Γ |- e : tEmpty] ->
         [Γ |- tEmptyElim P e : P[e..]]
+      | wfTermTree {Γ} :
+          [|-Γ] ->
+          [Γ |- tTree : U]
+      | wfTermLeaf {Γ n} :
+          [Γ |- n : tNat] ->
+          [Γ |- tLeaf n : tTree]
+      | wfTermNode {Γ n tl tr} :
+          [Γ |- n : tNat] ->
+          [Γ |- tl : tTree] ->
+          [Γ |- tr : tTree] ->
+          [Γ |- tNode n tl tr : tTree]
+      | wfTermTreeElim {Γ P hl hn t} :
+        [Γ ,, tTree |- P ] ->
+        [Γ |- hl : elimLeafHypTy P] ->
+        [Γ |- hn : elimNodeHypTy P] ->
+        [Γ |- t : tTree] ->
+        [Γ |- tTreeElim P hl hn t : P[t..]]
       | wfTermSig {Γ} {A B} :
         [ Γ |- A : U] -> 
         [Γ ,, A |- B : U ] ->
@@ -266,6 +286,36 @@ Section Definitions.
           [Γ ,, tEmpty |- P ≅ P'] ->
           [Γ |- e ≅ e' : tEmpty] ->
           [Γ |- tEmptyElim P e ≅ tEmptyElim P' e' : P[e..]]
+      | TermLeafCong {Γ} {n n'} :
+          [Γ |- n ≅ n' : tNat] ->
+          [Γ |- tLeaf n ≅ tLeaf n' : tTree]
+      | TermNodeCong {Γ} {n n' tl tl' tr tr'} :
+          [Γ |- n ≅ n' : tNat] ->
+          [Γ |- tl ≅ tl' : tTree] ->
+          [Γ |- tr ≅ tr' : tTree] ->
+          [Γ |- tNode n tl tr ≅ tNode n' tl' tr' : tTree]
+      | TermTreeElimCong {Γ P P' hl hl' hn hn' t t'} :
+          [Γ ,, tTree |- P ≅ P'] ->
+          [Γ |- hl ≅ hl' : elimLeafHypTy P] ->
+          [Γ |- hn ≅ hn' : elimNodeHypTy P] ->
+          [Γ |- t ≅ t' : tTree] ->
+          [Γ |- tTreeElim P hl hn t ≅ tTreeElim P' hl' hn' t' : P[t..]]
+      | TermTreeElimLeaf {Γ P hl hn n} :
+          [Γ ,, tTree |- P ] ->
+          [Γ |- n : tNat] ->
+          [Γ |- hl : elimLeafHypTy P] ->
+          [Γ |- hn : elimNodeHypTy P] ->
+          [Γ |- tTreeElim P hl hn (tLeaf n) ≅ tApp hl n: P[(tLeaf n)..]]
+      | TermTreeElimNode {Γ P hl hn tl tr n} :
+          [Γ ,, tTree |- P ] ->
+          [Γ |- n : tNat] ->
+          [Γ |- hl : elimLeafHypTy P] ->
+          [Γ |- hn : elimNodeHypTy P] ->
+          [Γ |- tl : tTree] ->
+          [Γ |- tr : tTree] ->
+          [Γ |- tTreeElim P hl hn (tNode n tl tr) ≅
+            tApp (tApp (tApp (tApp (tApp hn n) tl) tr) (tTreeElim P hl hn tl)) (tTreeElim P hl hn tr) :
+            P[(tNode n tl tr)..]]
       | TermSigCong {Γ} {A A' B B'} :
           [ Γ |- A : U] ->
           [ Γ |- A ≅ A' : U ] ->
@@ -423,6 +473,13 @@ Section Definitions.
       [Γ ,, tEmpty |- P ≅ P'] ->
       [Γ |- e ~ e' : tEmpty] ->
       [Γ |- tEmptyElim P e ~ tEmptyElim P' e' : P[e..]]
+
+  | neuConvTree {P P' hl hl' hn hn' t t'} :
+      [Γ |- t ~ t' : tTree] ->
+      [Γ ,, tTree |- P ≅ P'] ->
+      [Γ |- hl ≅ hl' : elimLeafHypTy P] ->
+      [Γ |- hn ≅ hn' : elimLeafHypTy P] ->
+      [Γ |- tTreeElim P hl hn t ~ tTreeElim P' hl' hn' t' : P[t..]]
 
   | neuConvFst {A B p p'} :
       [Γ |- p ~ p' : tSig A B] ->

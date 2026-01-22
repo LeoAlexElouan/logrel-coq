@@ -79,10 +79,8 @@ Lemma elimSuccHypTy_subst {P} σ :
 Proof.
   unfold elimSuccHypTy.
   cbn. rewrite shift_up_eq.
-  erewrite liftSubstComm.
-  rewrite up_liftSubst_eq.
-  now rewrite wk1_ren.
-  Unshelve. all: tea. apply fromTctx. repeat constructor.
+  erewrite liftSubstComm'.
+  now rewrite up_liftSubst_eq.
 Qed.
 
 Lemma liftSubst_singleSubst_eq {t u v: term} : t[u]⇑[v..] = t[u[v..]..].

@@ -214,6 +214,7 @@ Section Irrelevance.
     - intros NA ?? [NA' ?] ?; subst; intros ??; split; now cbn.
     - intros BA ?? [BA' ?] ?; subst; intros ??; split; now cbn.
     - intros EA ?? [EA' ?] ?; subst; intros ??; split; now cbn.
+    - intros TA ?? [TA' ?] ?; subst; intros ??; split; now cbn.
     - intros ΣA ihdom ihcod ?? [ΣA' [? eqdom eqcod]] ?; subst; cbn in *.
       eapply irrΣ.
       3,4 : tea.
@@ -261,6 +262,7 @@ Proof.
   - intros; now eapply LRNat_.
   - intros; now eapply LRBool_.
   - intros; now eapply LREmpty_.
+  - intros; now eapply LRTree_.
   - intros [] IHdom IHcod ?; cbn in *.
     eapply LRSig'; econstructor.
     5:{ eapply (cumPolyRed ih).
