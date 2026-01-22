@@ -1,4 +1,5 @@
 sort : Type
+nat : Type
 
 term(tRel) : Type
 
@@ -18,7 +19,7 @@ tTrue : term
 tFalse : term
 tBoolElim : (bind term in term) -> term -> term -> term -> term
 
-tAlpha : term -> term
+tAlpha : nat -> term
 
 tEmpty : term
 tEmptyElim : (bind term in term) -> term -> term

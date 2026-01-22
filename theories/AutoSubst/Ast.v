@@ -21,7 +21,7 @@ Inductive term : Type :=
   | tTrue : term
   | tFalse : term
   | tBoolElim : term -> term -> term -> term -> term
-  | tAlpha : term -> term
+  | tAlpha : nat -> term
   | tEmpty : term
   | tEmptyElim : term -> term -> term
   | tTree : term
@@ -122,7 +122,7 @@ exact (eq_trans
          (ap (fun x => tBoolElim t0 t1 t2 x) H3)).
 Qed.
 
-Lemma congr_tAlpha {s0 : term} {t0 : term} (H0 : s0 = t0) :
+Lemma congr_tAlpha {s0 : nat} {t0 : nat} (H0 : s0 = t0) :
   tAlpha s0 = tAlpha t0.
 Proof.
 exact (eq_trans eq_refl (ap (fun x => tAlpha x) H0)).
@@ -267,7 +267,7 @@ Fixpoint ren_term (xi_term : nat -> nat) (s : term) {struct s} : term :=
   | tBoolElim s0 s1 s2 s3 =>
       tBoolElim (ren_term (upRen_term_term xi_term) s0) (ren_term xi_term s1)
         (ren_term xi_term s2) (ren_term xi_term s3)
-  | tAlpha s0 => tAlpha (ren_term xi_term s0)
+  | tAlpha s0 => tAlpha s0
   | tEmpty => tEmpty
   | tEmptyElim s0 s1 =>
       tEmptyElim (ren_term (upRen_term_term xi_term) s0)
@@ -326,7 +326,7 @@ term :=
       tBoolElim (subst_term (up_term_term sigma_term) s0)
         (subst_term sigma_term s1) (subst_term sigma_term s2)
         (subst_term sigma_term s3)
-  | tAlpha s0 => tAlpha (subst_term sigma_term s0)
+  | tAlpha s0 => tAlpha s0
   | tEmpty => tEmpty
   | tEmptyElim s0 s1 =>
       tEmptyElim (subst_term (up_term_term sigma_term) s0)
@@ -404,7 +404,7 @@ subst_term sigma_term s = s :=
         (idSubst_term sigma_term Eq_term s1)
         (idSubst_term sigma_term Eq_term s2)
         (idSubst_term sigma_term Eq_term s3)
-  | tAlpha s0 => congr_tAlpha (idSubst_term sigma_term Eq_term s0)
+  | tAlpha s0 => congr_tAlpha (eq_refl s0)
   | tEmpty => congr_tEmpty
   | tEmptyElim s0 s1 =>
       congr_tEmptyElim
@@ -496,7 +496,7 @@ ren_term xi_term s = ren_term zeta_term s :=
         (extRen_term xi_term zeta_term Eq_term s1)
         (extRen_term xi_term zeta_term Eq_term s2)
         (extRen_term xi_term zeta_term Eq_term s3)
-  | tAlpha s0 => congr_tAlpha (extRen_term xi_term zeta_term Eq_term s0)
+  | tAlpha s0 => congr_tAlpha (eq_refl s0)
   | tEmpty => congr_tEmpty
   | tEmptyElim s0 s1 =>
       congr_tEmptyElim
@@ -594,7 +594,7 @@ subst_term sigma_term s = subst_term tau_term s :=
         (ext_term sigma_term tau_term Eq_term s1)
         (ext_term sigma_term tau_term Eq_term s2)
         (ext_term sigma_term tau_term Eq_term s3)
-  | tAlpha s0 => congr_tAlpha (ext_term sigma_term tau_term Eq_term s0)
+  | tAlpha s0 => congr_tAlpha (eq_refl s0)
   | tEmpty => congr_tEmpty
   | tEmptyElim s0 s1 =>
       congr_tEmptyElim
@@ -696,8 +696,7 @@ Fixpoint compRenRen_term (xi_term : nat -> nat) (zeta_term : nat -> nat)
         (compRenRen_term xi_term zeta_term rho_term Eq_term s1)
         (compRenRen_term xi_term zeta_term rho_term Eq_term s2)
         (compRenRen_term xi_term zeta_term rho_term Eq_term s3)
-  | tAlpha s0 =>
-      congr_tAlpha (compRenRen_term xi_term zeta_term rho_term Eq_term s0)
+  | tAlpha s0 => congr_tAlpha (eq_refl s0)
   | tEmpty => congr_tEmpty
   | tEmptyElim s0 s1 =>
       congr_tEmptyElim
@@ -812,8 +811,7 @@ subst_term tau_term (ren_term xi_term s) = subst_term theta_term s :=
         (compRenSubst_term xi_term tau_term theta_term Eq_term s1)
         (compRenSubst_term xi_term tau_term theta_term Eq_term s2)
         (compRenSubst_term xi_term tau_term theta_term Eq_term s3)
-  | tAlpha s0 =>
-      congr_tAlpha (compRenSubst_term xi_term tau_term theta_term Eq_term s0)
+  | tAlpha s0 => congr_tAlpha (eq_refl s0)
   | tEmpty => congr_tEmpty
   | tEmptyElim s0 s1 =>
       congr_tEmptyElim
@@ -944,9 +942,7 @@ ren_term zeta_term (subst_term sigma_term s) = subst_term theta_term s :=
         (compSubstRen_term sigma_term zeta_term theta_term Eq_term s1)
         (compSubstRen_term sigma_term zeta_term theta_term Eq_term s2)
         (compSubstRen_term sigma_term zeta_term theta_term Eq_term s3)
-  | tAlpha s0 =>
-      congr_tAlpha
-        (compSubstRen_term sigma_term zeta_term theta_term Eq_term s0)
+  | tAlpha s0 => congr_tAlpha (eq_refl s0)
   | tEmpty => congr_tEmpty
   | tEmptyElim s0 s1 =>
       congr_tEmptyElim
@@ -1088,9 +1084,7 @@ subst_term tau_term (subst_term sigma_term s) = subst_term theta_term s :=
         (compSubstSubst_term sigma_term tau_term theta_term Eq_term s1)
         (compSubstSubst_term sigma_term tau_term theta_term Eq_term s2)
         (compSubstSubst_term sigma_term tau_term theta_term Eq_term s3)
-  | tAlpha s0 =>
-      congr_tAlpha
-        (compSubstSubst_term sigma_term tau_term theta_term Eq_term s0)
+  | tAlpha s0 => congr_tAlpha (eq_refl s0)
   | tEmpty => congr_tEmpty
   | tEmptyElim s0 s1 =>
       congr_tEmptyElim
@@ -1274,7 +1268,7 @@ Fixpoint rinst_inst_term (xi_term : nat -> nat) (sigma_term : nat -> term)
         (rinst_inst_term xi_term sigma_term Eq_term s1)
         (rinst_inst_term xi_term sigma_term Eq_term s2)
         (rinst_inst_term xi_term sigma_term Eq_term s3)
-  | tAlpha s0 => congr_tAlpha (rinst_inst_term xi_term sigma_term Eq_term s0)
+  | tAlpha s0 => congr_tAlpha (eq_refl s0)
   | tEmpty => congr_tEmpty
   | tEmptyElim s0 s1 =>
       congr_tEmptyElim
