@@ -17,7 +17,7 @@ FundTm tells that not only the term is valid at a given type, but also that this
 itself valid, and that the context is as well. This is needed because the definition of
 later validity relations depends on earlier ones, and makes using the fundamental lemma
 easier, because we can simply invoke it to get all the validity properties we need. *)
-
+(* 
 Definition FundCon `{GenericTypingProperties}
   (Γ : context) : Type := [||-v Γ ].
 
@@ -1113,3 +1113,4 @@ Lemma Fundamental : (forall Γ : context, [ |-[ de ] Γ ] -> FundCon (ta := ta) 
   Qed.
  *)
 End Fundamental.T
+ *)

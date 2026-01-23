@@ -38,28 +38,51 @@ Definition Fcons' (L:Fcontext) (new : newnat L) b : Fcontext
 
 Definition Fnil := Build_Fcontext nil wf_nil.
 
+Inductive list_index {A} : list A -> Set :=
+  | index_0 h t : list_index (cons h t)
+  | index_S h t (i : list_index t) : list_index (cons h t).
+
+Fixpoint index_to_nat {A} {l : list A} (i : list_index l) {struct i} := match i with
+  | index_0 h t => 0
+  | index_S h t i => S (index_to_nat i)
+  end.
+
+Coercion index_to_nat : list_index >-> nat.
+
+Fixpoint list_at {A} (l : list A ) (i : list_index l) {struct i} := match i with
+  | index_0 h t => h
+  | index_S h t i => list_at t i
+  end.
+
+Fixpoint Fcons (L : list Fcontext) i {struct i} : forall (new : newnat (list_at L i)) (b : bool), list Fcontext :=
+  match i with
+  |index_0 h t => fun new b => cons (Fcons' h new b) t
+  |index_S h t i => fun new b => cons h (Fcons t i new b)
+  end.
+
+
 
 Record context := {
   Tctx :> Tcontext;
-  Fctx :> Fcontext;
+  Fctx :> list Fcontext;
   }.
 
-Definition nilctx := Build_context nil Fnil.
+Definition nilctx := Build_context nil nil.
 (* Definition Tcons Γ d := Build_context (cons d (Tctx Γ)) (Fctx Γ). *)
 
 
-Definition Fcons Γ (new : newnat (Fctx Γ)) b := Build_context (Tctx Γ) (Fcons' (Fctx Γ) new b).
+(* Definition Fcons Γ (new : newnat (Fctx Γ)) b := Build_context (Tctx Γ) (Fcons' (Fctx Γ) new b). *)
 Definition appctx Δ Γ := Build_context (app Δ (Tctx Γ)) (Fctx Γ).
-Definition fromTctx Γ := Build_context Γ Fnil.
+Definition fromTctx Γ := Build_context Γ nil.
 Definition fromFctx L := Build_context nil L.
 
 
 Notation "'ε'" := nilctx.
 Notation " Γ ,, d " := (Build_context (cons d (Tctx Γ)) (Fctx Γ)) (at level 20, d at next level).
-Notation " Γ ,, new ↦ b " := (Build_context (Tctx Γ) (Fcons' (Fctx Γ) new b)) (at level 20, new at next level, b at next level).
+Notation " Γ ,, i : new ↦ b " := (Build_context (Tctx Γ) (Fcons (Fctx Γ) i new b)) (at level 20, new at next level, b at next level).
 Notation " Γ ,,, Δ " := (appctx Δ Γ) (at level 25, Δ at next level, left associativity).
 
-Lemma cons_Fcons Γ A new b : Γ,, new ↦ b ,, A = Γ,, A ,, new ↦ b. 
+Lemma cons_Fcons Γ A i new b : Γ,, i : new ↦ b ,, A = Γ,, A ,, i : new ↦ b. 
 Proof. reflexivity. Qed.
 
 (** States that a definition, correctly weakened, is in a context. *)

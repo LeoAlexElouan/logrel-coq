@@ -35,8 +35,8 @@ with whne : term -> Type :=
   | whne_tFst {p} : whne p -> whne (tFst p)
   | whne_tSnd {p} : whne p -> whne (tSnd p)
   | whne_tIdElim {A x P hr y e} : whne e -> whne (tIdElim A x P hr y e)
-  | whne_tAlpha {t} : whne t -> whne (tAlpha t)
-  | whne_tAlphaSucc {t} : whne (tAlpha t) -> whne (tAlpha (tSucc t)).
+  | whne_tAlpha {i t} : whne t -> whne (tApp (tAlpha i) t)
+  | whne_tAlphaSucc {i t} : whne (tApp (tAlpha i) t) -> whne (tApp (tAlpha i) (tSucc t)).
 
 #[global] Hint Constructors whne whnf : gen_typing.
 
@@ -64,7 +64,7 @@ Proof.
 Qed.
 
 
-Lemma whne_tAlphanSucc {t n} : whne t -> whne (tAlpha (nSucc n t)).
+Lemma whne_tAlphanSucc {i t n} : whne t -> whne (tApp (tAlpha i) (nSucc n t)).
 Proof.
   intros hne.
   induction n.
@@ -244,8 +244,7 @@ Qed.
 Definition whne_uniq {t} (w1 w2 : whne t) : w1 = w2.
 Proof.
   induction w1. all: depelim w2; f_equal; eauto.
-  - depelim w1.
-  - depelim w2.
+  all: solve [depelim w1 | now depelim w2].
 Qed.
 
 Derive Signature for isType.
@@ -397,13 +396,7 @@ Section RenWhnf.
     - remember t⟨ρ⟩ as t'.
       intros Hne.
       induction Hne in t, Heqt' |- * ; cbn.
-      1-10: push_renaming; econstructor ; eauto.
-      destruct t; cbn in *; try solve [congruence].
-      destruct t; cbn in *; try solve [congruence].
-      apply whne_tAlphaSucc.
-      apply IHHne.
-      inversion Heqt'; subst.
-      reflexivity.
+      all: push_renaming; econstructor ; now eauto.
     - induction 1 ; cbn.
       all: now econstructor.
   Qed.

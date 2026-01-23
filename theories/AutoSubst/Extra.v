@@ -21,6 +21,7 @@ Notation "f >> g" := (funcomp g f) (at level 50) : function_scope.
 Notation "s .: sigma" := (scons s sigma) (at level 55, sigma at next level, right associativity) : asubst_scope.
 
 Notation "s ⟨ xi1 ⟩" := (ren1 xi1 s) (at level 7, left associativity, format "s ⟨ xi1 ⟩") : asubst_scope.
+Notation "s ⟨ xi1 ; xi2 ⟩" := (ren2 xi1 xi2 s) (at level 7, left associativity, format "s ⟨ xi1 ; xi2 ⟩") : asubst_scope.
 (* Notation "⟨ xi ⟩" := (ren1 xi) (at level 1, left associativity, format "⟨ xi ⟩") : function_scope. *)
 
 Notation "s [ sigma ]" := (subst1 sigma s) (at level 7, left associativity, format "s '/' [ sigma ]") : asubst_scope.
@@ -122,3 +123,40 @@ Definition elimNodeHypTy P :=
 
 Equations Derive NoConfusion EqDec for sort.
 Equations Derive NoConfusion Subterm EqDec for term.
+
+Fixpoint ren_alpha (ρ : nat -> nat) (t:term) {struct t}: term := match t with
+  | tRel n => tRel n
+  | tSort lvl => tSort lvl
+  | tProd A B => tProd (ren_alpha ρ  A) (ren_alpha ρ B)
+  | tLambda A t => tLambda (ren_alpha ρ A) (ren_alpha ρ t)
+  | tApp t u => tApp (ren_alpha ρ t) (ren_alpha ρ u)
+  | tNat => tNat
+  | tZero => tZero
+  | tSucc n => tSucc (ren_alpha ρ n)
+  | tNatElim P hz hs n => tNatElim (ren_alpha ρ P) (ren_alpha ρ hz) (ren_alpha ρ hs) (ren_alpha ρ n)
+  | tBool => tBool
+  | tTrue => tTrue
+  | tFalse => tFalse
+  | tBoolElim P ht hf b => tBoolElim (ren_alpha ρ P) (ren_alpha ρ ht) (ren_alpha ρ hf) (ren_alpha ρ b)
+  | tAlpha n => tAlpha (ρ n)
+  | tEmpty => tEmpty
+  | tEmptyElim P e => tEmptyElim (ren_alpha ρ P) (ren_alpha ρ e)
+  | tTree => tTree
+  | tLeaf n => tLeaf (ren_alpha ρ n)
+  | tNode n tl tr => tNode (ren_alpha ρ n) (ren_alpha ρ tr) (ren_alpha ρ tl)
+  | tTreeElim P hl hn t => tTreeElim (ren_alpha ρ P) (ren_alpha ρ hl) (ren_alpha ρ hn) (ren_alpha ρ t)
+  | tSig A B => tSig (ren_alpha ρ A) (ren_alpha ρ B)
+  | tPair A B t u => tPair (ren_alpha ρ A) (ren_alpha ρ B) (ren_alpha ρ t) (ren_alpha ρ u) 
+  | tFst p => tFst (ren_alpha ρ p)
+  | tSnd p => tSnd (ren_alpha ρ p)
+  | tId X x y => tId (ren_alpha ρ X) (ren_alpha ρ x) (ren_alpha ρ y)
+  | tRefl X x => tRefl (ren_alpha ρ X) (ren_alpha ρ x)
+  | tIdElim A x P hr y e => tIdElim (ren_alpha ρ A) (ren_alpha ρ x) (ren_alpha ρ P) (ren_alpha ρ hr) (ren_alpha ρ y) (ren_alpha ρ e)
+  end.
+
+#[global] Instance Ren2_Alpha {X : Type} `{Ren1 X term term} :
+  (Ren2 X (nat -> nat) term term) :=
+  fun ρ ρε t => ren_alpha ρε t⟨ρ⟩.
+
+
+
