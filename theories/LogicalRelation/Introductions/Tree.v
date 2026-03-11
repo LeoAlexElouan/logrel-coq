@@ -115,12 +115,6 @@ Proof.
   now rewrite up_liftSubst_eq.
 Qed.
 
-Lemma shift_upRen_eq : forall {t : term} {ρ : nat -> nat}, t⟨↑⟩⟨upRen_term_term ρ⟩ = t⟨ρ⟩⟨↑⟩.
-Proof.
-  intros t ρ.
-  now bsimpl.
-Qed.
-
 
 Lemma liftSubst_can {t u} : t[u]⇑ = t⟨upRen_term_term ↑⟩[u..].
 Proof.

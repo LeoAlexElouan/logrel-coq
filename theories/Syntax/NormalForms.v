@@ -383,28 +383,28 @@ Section RenWhnf.
 
   #[local] Ltac push_renaming :=
   repeat match goal with
-  | eq : _ = ?t⟨_⟩ |- _ =>
+  | eq : _ = ?t⟨_;_⟩ |- _ =>
       destruct t ; cbn in * ; try solve [congruence] ;
       inversion eq ; subst ; clear eq
   end.
 
-  Variable (ρ : nat -> nat).
+  Variable (ρ ρε: nat -> nat).
 
-  Lemma whne_ren t : whne (t⟨ρ⟩) <~> whne t.
+  Lemma whne_ren t : whne (t⟨ρ; ρε⟩) <~> whne t.
   Proof.
     split.
-    - remember t⟨ρ⟩ as t'.
+    - remember t⟨ρ; ρε⟩ as t'.
       intros Hne.
       induction Hne in t, Heqt' |- * ; cbn.
-      all: push_renaming; econstructor ; now eauto.
+      all: try (push_renaming; econstructor ; now eauto).
     - induction 1 ; cbn.
       all: now econstructor.
   Qed.
 
-  Lemma whnf_ren t : whnf (t⟨ρ⟩) <~> whnf t.
+  Lemma whnf_ren t : whnf (t⟨ρ; ρε⟩) <~> whnf t.
   Proof.
     split.
-    - remember t⟨ρ⟩ as t'.
+    - remember t⟨ρ; ρε⟩ as t'.
       intros Hnf.
       induction Hnf in t, Heqt' |- * ; cbn.
       all: push_renaming ; econstructor ; eauto.
@@ -414,10 +414,10 @@ Section RenWhnf.
       now eapply whne_ren.
   Qed.
 
-  Lemma isType_ren A : isType (A⟨ρ⟩) <~> isType A.
+  Lemma isType_ren A : isType (A⟨ρ; ρε⟩) <~> isType A.
   Proof.
     split.
-    - remember A⟨ρ⟩ as A'.
+    - remember A⟨ρ; ρε⟩ as A'.
       intros Hty.
       induction Hty in A, HeqA' |- * ; cbn.
       all: push_renaming ; econstructor ; eauto.
@@ -427,10 +427,10 @@ Section RenWhnf.
       now eapply whne_ren.
   Qed.
 
-  Lemma isPosType_ren A : isPosType (A⟨ρ⟩) <~> isPosType A.
+  Lemma isPosType_ren A : isPosType (A⟨ρ; ρε⟩) <~> isPosType A.
   Proof.
     split.
-    - remember A⟨ρ⟩ as A'.
+    - remember A⟨ρ; ρε⟩ as A'.
       intros Hty.
       induction Hty in A, HeqA' |- * ; cbn.
       all: push_renaming ; econstructor ; eauto.
@@ -440,10 +440,10 @@ Section RenWhnf.
       now eapply whne_ren.
   Qed.
 
-  Lemma isFun_ren f : isFun (f⟨ρ⟩) <~> isFun f.
+  Lemma isFun_ren f : isFun (f⟨ρ; ρε⟩) <~> isFun f.
   Proof.
     split.
-    - remember f⟨ρ⟩ as f'.
+    - remember f⟨ρ; ρε⟩ as f'.
       intros Hfun.
       induction Hfun in f, Heqf' |- * ; cbn.
       all: push_renaming ; econstructor ; eauto.
@@ -454,10 +454,10 @@ Section RenWhnf.
   Qed.
 
 
-  Lemma isPair_ren p : isPair (p⟨ρ⟩) <~> isPair p.
+  Lemma isPair_ren p : isPair (p⟨ρ; ρε⟩) <~> isPair p.
   Proof.
     split.
-    - remember p⟨ρ⟩ as p'.
+    - remember p⟨ρ; ρε⟩ as p'.
       intros Hpair.
       induction Hpair in p, Heqp' |- * ; cbn.
       all: push_renaming ; econstructor ; eauto.
@@ -467,10 +467,10 @@ Section RenWhnf.
       now eapply whne_ren.
   Qed.
 
-  Lemma isId_ren p : isId (p⟨ρ⟩) <~> isId p.
+  Lemma isId_ren p : isId (p⟨ρ; ρε⟩) <~> isId p.
   Proof.
     split.
-    - remember p⟨ρ⟩ as p'.
+    - remember p⟨ρ; ρε⟩ as p'.
       intros Hid.
       induction Hid in p, Heqp' |- * ; cbn.
       all: push_renaming ; econstructor ; eauto.
@@ -480,7 +480,7 @@ Section RenWhnf.
       now eapply whne_ren.
   Qed.
 
-  Lemma isCanonical_ren t : isCanonical (t⟨ρ⟩) <~> isCanonical t.
+  Lemma isCanonical_ren t : isCanonical (t⟨ρ; ρε⟩) <~> isCanonical t.
   Proof.
     split.
     all: destruct t ; cbn ; inversion 1.

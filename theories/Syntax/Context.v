@@ -41,6 +41,14 @@ Definition Fnil := Build_Fcontext nil wf_nil.
 Inductive list_index {A} : list A -> Set :=
   | index_0 h t : list_index (cons h t)
   | index_S h t (i : list_index t) : list_index (cons h t).
+Lemma index_case {A : Set} {h: A} {t} P : (P h t (index_0 h t)) -> (forall i, P h t (index_S h t i)) -> forall i, P h t i.
+Proof.
+  intros h0 hS i.
+  revert h0 hS.
+  pattern h, t, i.
+  change (?A h t i) with (match cons h t as l return list_index l -> Type with nil => fun i => unit | cons h' t' => fun i => A h' t' i end i).
+  destruct i; auto.
+Qed.
 
 Fixpoint index_to_nat {A} {l : list A} (i : list_index l) {struct i} := match i with
   | index_0 h t => 0
@@ -59,7 +67,6 @@ Fixpoint Fcons (L : list Fcontext) i {struct i} : forall (new : newnat (list_at 
   |index_0 h t => fun new b => cons (Fcons' h new b) t
   |index_S h t i => fun new b => cons h (Fcons t i new b)
   end.
-
 
 
 Record context := {

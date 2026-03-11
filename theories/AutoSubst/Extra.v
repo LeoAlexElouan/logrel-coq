@@ -21,7 +21,7 @@ Notation "f >> g" := (funcomp g f) (at level 50) : function_scope.
 Notation "s .: sigma" := (scons s sigma) (at level 55, sigma at next level, right associativity) : asubst_scope.
 
 Notation "s ⟨ xi1 ⟩" := (ren1 xi1 s) (at level 7, left associativity, format "s ⟨ xi1 ⟩") : asubst_scope.
-Notation "s ⟨ xi1 ; xi2 ⟩" := (ren2 xi1 xi2 s) (at level 7, left associativity, format "s ⟨ xi1 ; xi2 ⟩") : asubst_scope.
+(* Notation "s ⟨ xi1 ; xi2 ⟩" := (ren2 xi1 xi2 s) (at level 7, left associativity, format "s ⟨ xi1 ; xi2 ⟩") : asubst_scope. *)
 (* Notation "⟨ xi ⟩" := (ren1 xi) (at level 1, left associativity, format "⟨ xi ⟩") : function_scope. *)
 
 Notation "s [ sigma ]" := (subst1 sigma s) (at level 7, left associativity, format "s '/' [ sigma ]") : asubst_scope.
@@ -37,8 +37,8 @@ Notation "↑" := (shift) : asubst_scope.
 Notation U := (tSort set).
 Notation "'eta_expand' f" := (tApp f⟨↑⟩ (tRel 0)) (at level 40, only parsing).
 
-#[global] Instance Ren1_subst {Y Z : Type} `{Ren1 (nat -> nat) Y Z} :
-  (Ren1 (nat -> nat) (nat -> Y) (nat -> Z)) :=
+#[global] Instance Ren1_subst {X Y Z : Type} `{Ren1 X Y Z} :
+  (Ren1 X (nat -> Y) (nat -> Z)) :=
   fun ρ σ i => (σ i)⟨ρ⟩.
 
 Ltac fold_autosubst :=
@@ -143,7 +143,7 @@ Fixpoint ren_alpha (ρ : nat -> nat) (t:term) {struct t}: term := match t with
   | tEmptyElim P e => tEmptyElim (ren_alpha ρ P) (ren_alpha ρ e)
   | tTree => tTree
   | tLeaf n => tLeaf (ren_alpha ρ n)
-  | tNode n tl tr => tNode (ren_alpha ρ n) (ren_alpha ρ tr) (ren_alpha ρ tl)
+  | tNode n tl tr => tNode (ren_alpha ρ n) (ren_alpha ρ tl) (ren_alpha ρ tr)
   | tTreeElim P hl hn t => tTreeElim (ren_alpha ρ P) (ren_alpha ρ hl) (ren_alpha ρ hn) (ren_alpha ρ t)
   | tSig A B => tSig (ren_alpha ρ A) (ren_alpha ρ B)
   | tPair A B t u => tPair (ren_alpha ρ A) (ren_alpha ρ B) (ren_alpha ρ t) (ren_alpha ρ u) 
@@ -154,9 +154,60 @@ Fixpoint ren_alpha (ρ : nat -> nat) (t:term) {struct t}: term := match t with
   | tIdElim A x P hr y e => tIdElim (ren_alpha ρ A) (ren_alpha ρ x) (ren_alpha ρ P) (ren_alpha ρ hr) (ren_alpha ρ y) (ren_alpha ρ e)
   end.
 
-#[global] Instance Ren2_Alpha {X : Type} `{Ren1 X term term} :
+(* #[global] Instance Ren1_Alpha :
+  (Ren1 (nat -> nat) term term) :=
+  fun ρε t => ren_alpha ρε t. *)
+
+(* #[global] Instance Ren2_alpha {X : Type} `{Ren1 X term term} :
   (Ren2 X (nat -> nat) term term) :=
-  fun ρ ρε t => ren_alpha ρε t⟨ρ⟩.
+  fun ρ ρε t => (ren_alpha ρε t)⟨ρ⟩. *)
+
+Notation "s ⟨ xi1 ; xi2 ⟩" := (ren_alpha xi2 s)⟨xi1⟩ (at level 7, left associativity, format "s ⟨ xi1 ; xi2 ⟩") : asubst_scope.
+
+Lemma extRen_alpha : forall (ρ ρ': nat -> nat), ρ =1 ρ' ->
+  ren_alpha ρ =1 ren_alpha ρ'.
+Proof.
+  intros ?? hρ t.
+  induction t; cbn; now f_equal.
+Qed.
+
+From Stdlib Require Import Setoid Morphisms Relation_Definitions.
+
+#[global]
+Instance ren_alpha_morphism :
+ (Proper (respectful (pointwise_relation _ eq) (respectful eq eq))
+    (@ren_alpha)).
+Proof.
+  intros ρ ρ' hρ t t' <-.
+  now eapply extRen_alpha.
+Qed.
+
+Lemma idRen_alpha t : ren_alpha id t = t.
+Proof.
+  induction t; cbn; now f_equal.
+Qed.
+Lemma idRen_alpha_pointwise : ren_alpha id =1 id.
+Proof. exact idRen_alpha. Qed.
+
+Lemma compRen_alpha ρ ρ' t : ren_alpha ρ' (ren_alpha ρ t) = ren_alpha (ρ >> ρ') t.
+Proof.
+  induction t; cbn; now f_equal.
+Qed.
+Lemma compRen_alpha_pointwise ρ ρ' : ren_alpha ρ >> ren_alpha ρ' =1 ren_alpha (ρ >> ρ').
+Proof. intros t; apply compRen_alpha. Qed.
 
 
+Lemma commRen_alpha_term_pointwise ρ ρε : ren1 ρ >> ren_alpha ρε =1 ren_alpha ρε >> ren1 ρ.
+Proof.
+  intros t; revert ρ.
+  induction t; intros; cbn; try now f_equal.
+Qed.
+Lemma commRen_alpha_term ρ ρε t :  ren_alpha ρε (ren1 ρ t) = (ren_alpha ρε >> ren1 ρ) t.
+Proof. apply commRen_alpha_term_pointwise. Qed.
 
+Instance up_term_term_morphism : Proper (respectful (pointwise_relation _ eq) (pointwise_relation _ eq)) up_term_term.
+Proof.
+  intros σ τ hσ [].
+  - reflexivity.
+  - cbn; now rewrite hσ.
+Qed.
