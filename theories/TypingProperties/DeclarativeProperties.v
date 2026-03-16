@@ -6,28 +6,29 @@ Import DeclarativeTypingData.
 
 (** ** Stability by weakening *)
 
-Lemma shift_up_ren {Γ Δ t} (ρ : Δ ≤ Γ) : t⟨ρ⟩⟨↑⟩ = t⟨↑ >> up_ren ρ⟩.
-Proof. now asimpl. Qed.
+(* Lemma shift_up_ren {Γ Δ t} (ρ : Δ ≤ Γ) : t⟨ρ⟩⟨↑⟩ = t⟨↑ >> up_ren ρ⟩.
+Proof. now asimpl. Qed. *)
 
 
-Section TypingFWk.
-  Let PCon (Γ : context) := forall L, Fweakening L Γ -> [|- Build_context Γ L].
-  Let PTy (Γ : context) (A : term) := forall L, Fweakening L Γ -> [Build_context Γ L |- A].
-  Let PTm (Γ : context) (A t : term) := forall L, Fweakening L Γ ->
-    [Build_context Γ L |- t : A].
-  Let PTyEq (Γ : context) (A B : term) := forall L, Fweakening L Γ ->
-    [Build_context Γ L |- A ≅ B].
-  Let PTmEq (Γ : context) (A t u : term) := forall L, Fweakening L Γ ->
-    [Build_context Γ L |- t ≅ u : A].
+(* Section TypingFWk.
+  Let PCon (Γ : context) := forall L ρε (wρε : well_Fweakening ρε L Γ), [|- Build_context Γ L].
+  Let PTy (Γ : context) (A : term) := forall L ρε (wρε : well_Fweakening ρε L Γ), [Build_context Γ L |- ren_alpha ρε A].
+  Let PTm (Γ : context) (A t : term) := forall L ρε (wρε : well_Fweakening ρε L Γ),
+    [Build_context Γ L |- ren_alpha ρε t : ren_alpha ρε A].
+  Let PTyEq (Γ : context) (A B : term) := forall L ρε (wρε : well_Fweakening ρε L Γ),
+    [Build_context Γ L |- ren_alpha ρε A ≅ ren_alpha ρε B].
+  Let PTmEq (Γ : context) (A t u : term) := forall L ρε (wρε : well_Fweakening ρε L Γ),
+    [Build_context Γ L |- ren_alpha ρε t ≅ ren_alpha ρε u : A].
 
   Theorem typing_Fwk : WfDeclInductionConcl PCon PTy PTm PTyEq PTmEq.
   Proof.
     subst PCon PTy PTm PTyEq PTmEq.
     apply WfDeclInduction.
     all: try now econstructor.
-    - intros Γ A hΓ ihΓ hA ihA L ρF.
+(*     - intros ?? wfΓ IHΓ HA IHA. *)
+    - intros Γ A hΓ ihΓ hA ihA L ρε wρε.
       change ([|-[ de ] (Build_context Γ L),, A]).
-      now constructor.
+      constructor.
     - intros Γ A new hAt ihAt hAf ihAf L ρF.
       destruct (decide_in L new) as [[] hin|hnotin].
       + apply ihAt.
@@ -66,9 +67,9 @@ Section TypingFWk.
         * apply ihAf; cbn. now eapply Fwk_Fup.
   Qed.
 
-End TypingFWk.
+End TypingFWk. *)
 
-Lemma wfcon_new : forall Γ new b, [|-Γ] -> [|- Γ,,new ↦ b].
+(* Lemma wfcon_new : forall Γ i new b, [|-Γ] -> [|- Γ,, i : new ↦ b].
 Proof.
   destruct typing_Fwk as [? _].
   intros Γ new b hΓ.
@@ -76,7 +77,7 @@ Proof.
   - apply hΓ.
   - apply wk_Fstep.
     apply wk_id.
-Qed.
+Qed. *)
 
 Section TypingWk.
 
@@ -115,20 +116,20 @@ Section TypingWk.
     - intros * _ IHA ? * ?.
       econstructor.
       now eapply IHA.
-    - intros Γ A new ht Iht hf Ihf Δ ρ hΔ.
-      destruct (decide_in Δ new) as [[] hin|hnotin].
-      + specialize (Iht Δ (wk_new new true ρ hin) hΔ).
+    - intros Γ A i new ht Iht hf Ihf Δ ρ hΔ.
+      destruct (decide_in (list_at Δ (ren_index ρ i)) new) as [[] hin|hnotin].
+      + specialize (Iht Δ (wk_new i new true ρ hin) hΔ).
         apply Iht.
-      + specialize (Ihf Δ (wk_new new false ρ hin) hΔ).
+      + specialize (Ihf Δ (wk_new i new false ρ hin) hΔ).
         apply Ihf.
       + set (new' := Build_newnat _ new hnotin).
         apply (wfTypeSplit (new := new')).
-        * pose (wk_Fup true ρ new new' eq_refl).
+        * pose (wk_Fup true ρ i new new' eq_refl).
           apply (Iht _ w).
-          now apply wfcon_new.
-        * pose (wk_Fup false ρ new new' eq_refl).
+          admit.
+        * pose (wk_Fup false ρ i new new' eq_refl).
           apply (Ihf _ w).
-          now apply wfcon_new.
+          admit.
     - intros * _ IHΓ Hnth ? * ?.
       eapply typing_meta_conv.
       1: econstructor ; tea.
@@ -149,17 +150,17 @@ Section TypingWk.
       econstructor ; tea.
       now eapply IHA.
     - intros * _ IHf _ IHu ? ρ ?.
-      cbn.
-      red in IHf.
-      cbn in IHf.
+      specialize (IHf _ ρ H).
+      specialize (IHu _ ρ H).
+      rewrite <- wk_app; rewrite <- wk_prod in IHf.
       eapply typing_meta_conv.
-      1: econstructor.
-      1: now eapply IHf.
-      1: now eapply IHu.
-      now asimpl.
+      1: now econstructor.
+      apply subst_ren_wk_up.
     - intros; now constructor.
     - intros; now constructor.
-    - intros; cbn; econstructor; eauto.
+    - intros ?? Hn IHn ?? wfΔ.
+      rewrite wk_succ.
+      constructor. now apply IHn.
     - intros * ? ihP ? ihhz ? ihhs ? ihn **; cbn.
       erewrite subst_ren_wk_up; eapply wfTermNatElim.
       * eapply ihP; econstructor; tea; now econstructor.
@@ -189,8 +190,15 @@ Section TypingWk.
       * eapply ihP; econstructor; tea; now econstructor.
       * now eapply ihe.
     - intros; now constructor.
-    - intros; now constructor.
-    - intros; now constructor.
+    - intros ?? Hn IHn ?? wfΔ.
+      change (tLeaf n)⟨ρ⟩ with (tLeaf n⟨ρ⟩).
+      constructor. now eapply IHn.
+    - intros ???? Hn IHn Htl IHtl Htr IHtr ?? wfΔ.
+      change (tNode n tl tr)⟨ρ⟩ with (tNode n⟨ρ⟩ tl⟨ρ⟩ tr⟨ρ⟩).
+      constructor.
+      * now eapply IHn.
+      * now eapply IHtl.
+      * now eapply IHtr.
     - intros * ? ihP ? ihhl ? ihhn ? iht **; cbn.
       erewrite subst_ren_wk_up; eapply wfTermTreeElim.
       * eapply ihP; econstructor; tea; now econstructor.
@@ -203,19 +211,21 @@ Section TypingWk.
       constructor.
       1: now eapply ih1.
       eapply ih2 ; constructor; eauto.
-      now constructor.
+      constructor. now eapply ih1.
     - intros ?????? ihA ? ihB ? iha ? ihb **.
       rewrite <- wk_sig; rewrite <- wk_pair.
       constructor; eauto.
       1: eapply ihB; constructor; eauto.
       rewrite <- subst_ren_wk_up.
       now eapply ihb.
-    - intros; cbn; econstructor; eauto.
+    - intros ???? Hp IHp ?? wfΔ.
+      rewrite <- wk_fst.
+      econstructor; now eapply IHp.
     - intros ????? ih **.
       unshelve erewrite subst_ren_wk_up; tea.
       econstructor; now eapply ih.
     - intros * _ IHA _ IHx _ IHy **; rewrite <- wk_Id.
-      constructor; eauto.
+      constructor; eauto. now eapply IHA.
     - intros * _ IHA _ IHx **; rewrite <- wk_Id, <- wk_refl.
       constructor; eauto.
     - intros * _ IHA _ IHx _ IHP _ IHhr _ IHy _ IHe **.
@@ -230,24 +240,25 @@ Section TypingWk.
         * rewrite <- 2!wk_up_wk1, 2!wk_step_wk1; eauto.
         * rewrite <- wk_up_wk1, wk1_ren_on; cbn; constructor; tea; constructor.
       + rewrite wk_refl, <- subst_ren_wk_up2; eauto.
+      + now eapply IHe.
     - intros * _ IHt _ IHAB ? ρ ?.
       econstructor.
       1: now eapply IHt.
       now eapply IHAB.
-    - intros Γ t A new ht Iht hf Ihf Δ ρ hΔ.
-      destruct (decide_in Δ new) as [[] hin|hnotin].
-      + specialize (Iht Δ (wk_new new true ρ hin) hΔ).
+    - intros Γ t A i new ht Iht hf Ihf Δ ρ hΔ.
+      destruct (decide_in (list_at Δ (ren_index ρ i)) new) as [[] hin|hnotin].
+      + specialize (Iht Δ (wk_new i new true ρ hin) hΔ).
         apply Iht.
-      + specialize (Ihf Δ (wk_new new false ρ hin) hΔ).
+      + specialize (Ihf Δ (wk_new i new false ρ hin) hΔ).
         apply Ihf.
       + set (new' := Build_newnat _ new hnotin).
         apply (wfTermSplit (new := new')).
-        * pose (wk_Fup true ρ new new' eq_refl).
+        * pose (wk_Fup true ρ i new new' eq_refl).
           apply (Iht _ w).
-          now apply wfcon_new.
-        * pose (wk_Fup false ρ new new' eq_refl).
+          admit.
+        * pose (wk_Fup false ρ i new new' eq_refl).
           apply (Ihf _ w).
-          now apply wfcon_new.
+          admit.
     - intros Γ A A' B B' _ IHA _ IHAA' _ IHBB' ? ρ ?.
       cbn.
       econstructor.
@@ -273,31 +284,31 @@ Section TypingWk.
       eapply TypeTrans.
       + now eapply IHA.
       + now eapply IHB.
-    - intros Γ A B new ht Iht hf Ihf Δ ρ hΔ.
-      destruct (decide_in Δ new) as [[] hin|hnotin].
-      + specialize (Iht Δ (wk_new new true ρ hin) hΔ).
+    - intros Γ A B i new ht Iht hf Ihf Δ ρ hΔ.
+      destruct (decide_in (list_at Δ (ren_index ρ i)) new) as [[] hin|hnotin].
+      + specialize (Iht Δ (wk_new i new true ρ hin) hΔ).
         apply Iht.
-      + specialize (Ihf Δ (wk_new new false ρ hin) hΔ).
+      + specialize (Ihf Δ (wk_new i new false ρ hin) hΔ).
         apply Ihf.
       + set (new' := Build_newnat _ new hnotin).
         apply (TypeSplit (new := new')).
-        * pose (wk_Fup true ρ new new' eq_refl).
+        * pose (wk_Fup true ρ i new new' eq_refl).
           apply (Iht _ w).
-          now apply wfcon_new.
-        * pose (wk_Fup false ρ new new' eq_refl).
+          admit.
+        * pose (wk_Fup false ρ i new new' eq_refl).
           apply (Ihf _ w).
-          now apply wfcon_new.
+          admit.
     - intros Γ u t A B _ IHA _ IHt _ IHu ? ρ ?.
-      cbn.
       eapply convtm_meta_conv.
+      rewrite <- wk_app, <- wk_lam.
       1: econstructor.
       + now eapply IHA.
       + eapply IHt with (ρ := wk_up _ ρ).
         econstructor ; tea.
         now eapply IHA.
       + now eapply IHu.
-      + now asimpl.
-      + now asimpl.
+      + eapply subst_ren_wk_up.
+      + eapply subst_ren_wk_up.
     - intros Γ A A' B B' _ IHA _ IHAA' _ IHBB' ? ρ ?.
       cbn.
       econstructor.
@@ -306,23 +317,22 @@ Section TypingWk.
       + eapply IHBB' with (ρ := wk_up _ ρ).
         pose (IHA _ ρ H).
         econstructor; tea; now econstructor.
-    - intros Γ u u' f f' A B _ IHf _ IHu ? ρ ?.
-      cbn.
-      red in IHf.
-      cbn in IHf.
+    - intros Γ u u' f f' A B _ IHf _ IHu ? ρ wfΔ.
+      specialize (IHf Δ ρ wfΔ).
+      specialize (IHu Δ ρ wfΔ).
+      rewrite <-2 wk_app; rewrite <- wk_prod in IHf.
       eapply convtm_meta_conv.
       1: econstructor.
       + now eapply IHf.
       + now eapply IHu.
-      + now asimpl.
-      + now asimpl.
+      + eapply subst_ren_wk_up.
+      + reflexivity.
     - intros * _ IHA _ IHA' _ IHA'' _ IHe ? ρ ?.
       cbn; econstructor; try easy.
       apply (IHe _ (wk_up _ ρ)).
       now constructor.
     - intros * _ IHf ? ρ ?.
-      cbn.
-      rewrite <- shift_upRen.
+      rewrite <- wk_lam, <- wk_app, <- wk_up_wk1.
       now apply TermFunEta, IHf.
     - intros * ? ih **; cbn; constructor; now apply ih.
     - intros * ? ihP ? ihhz ? ihhs ? ihn **; cbn.
@@ -379,28 +389,32 @@ Section TypingWk.
         1: now eapply ihhf.
         now bsimpl.
     - intros * ? ihP ? ihht ? ihhf **.
-      erewrite subst_ren_wk_up.
+      erewrite  <- wk_boolElim, subst_ren_wk_up.
       eapply TermBoolElimFalse; fold ren_term.
       * eapply ihP; constructor; tea; now constructor.
-      * eapply typing_meta_conv.
-        1: now eapply ihht.
-        now bsimpl.
-      * eapply typing_meta_conv.
-        1: now eapply ihhf.
-        now bsimpl.
+      * change tTrue with tTrue⟨ρ⟩.
+        rewrite <- subst_ren_wk_up.
+        now eapply ihht.
+      * change tFalse with tFalse⟨ρ⟩.
+        rewrite <- subst_ren_wk_up.
+        now eapply ihhf.
     - intros; now constructor.
-    - intros Γ n b hΓ _ hin Δ ρ hΔ.
-      bsimpl.
-      rewrite nat_to_term_ren.
-      rewrite bool_to_term_ren.
-      constructor; [ | apply ρ]; easy.
+    - intros Γ i n b hΓ _ hin Δ ρ hΔ.
+      rewrite <-wk_app, wk_nat_to_term, wk_bool_to_term.
+      cbn. erewrite <- ren_index_to_ren. constructor; tea.
+      now eapply well_Fwk_in.
     - intros * ? ihP ? ihe **; cbn.
       erewrite subst_ren_wk_up.
       eapply TermEmptyElimCong.
       * eapply ihP; constructor; tea; now constructor.
       * now eapply ihe.
-    - intros; now constructor.
-    - intros; now constructor.
+    - intros; constructor; eauto. now eapply H0.
+    - intros ??????? _ IHn _ IHtl _ IHtr ?? wfΔ.
+      change (tNode ?n ?tl ?tr)⟨ρ⟩ with (tNode n⟨ρ⟩ tl⟨ρ⟩ tr⟨ρ⟩).
+      constructor; eauto.
+      * now eapply IHn.
+      * now eapply IHtl.
+      * now eapply IHtr.
     - intros * ? ihP ? ihhl ? ihhn ? iht **; cbn.
       erewrite subst_ren_wk_up.
       eapply TermTreeElimCong.
@@ -430,9 +444,11 @@ Section TypingWk.
         now eapply ihhn.
       * now eapply ihtl.
       * now eapply ihtr.
-    - intros * ????? ih ** ; do 2 rewrite <- wk_sig.
+    - intros * _ IHA _ IHAA' _ IHBB' ** ; do 2 rewrite <- wk_sig.
       constructor; eauto.
-      eapply ih; constructor; tea; constructor; eauto.
+      * now eapply IHA.
+      * now eapply IHAA'.
+      * eapply IHBB'. constructor; tea; constructor. eapply IHA; tea.
     - intros * ? ihA₀ ? ihA ? ihA' ? ihB ? ihB' ? iha ? ihb Δ ρ **.
       rewrite <- wk_sig, <- !wk_pair.
       assert [|-[de] Δ,, A⟨ρ⟩] by now constructor.
@@ -456,6 +472,7 @@ Section TypingWk.
       rewrite <- subst_ren_wk_up; eauto.
     - intros * _ IHA _ IHx _ IHy **.
       rewrite <- 2! wk_Id; constructor; eauto.
+      now eapply IHA.
     - intros * _ IHA _ IHx **.
       rewrite <- 2!wk_refl, <- wk_Id; constructor; eauto.
     - intros * _ IHA0 _ IHx0 _ IHA _ IHx _ IHP _ IHhr _ IHy _ IHe **.
@@ -469,6 +486,7 @@ Section TypingWk.
         * rewrite <- 2!wk_up_wk1, 2!wk_step_wk1; eauto.
         * rewrite <- wk_up_wk1, wk1_ren_on; cbn; constructor; tea; constructor.
       + rewrite wk_refl, <- subst_ren_wk_up2; eauto.
+      + now eapply IHe.
     - intros * _ IHA _ IHx _ IHP _ IHhr _ IHy _ IHA' _ IHz _ IHAA' _ IHxy _ IHxz **.
       rewrite <- wk_idElim; erewrite subst_ren_wk_up2.
       assert [|- Δ ,, A⟨ρ⟩] by (constructor; tea; eauto).
@@ -488,20 +506,20 @@ Section TypingWk.
       now econstructor.
     - intros * _ IHt _ IHt' ? ρ ?.
       now econstructor.
-    - intros Γ t t' A new ht Iht hf Ihf Δ ρ hΔ.
-      destruct (decide_in Δ new) as [[] hin|hnotin].
-      + specialize (Iht Δ (wk_new new true ρ hin) hΔ).
+    - intros Γ t t' A i new ht Iht hf Ihf Δ ρ hΔ.
+      destruct (decide_in (list_at Δ (ren_index ρ i)) new) as [[] hin|hnotin].
+      + specialize (Iht Δ (wk_new i new true ρ hin) hΔ).
         apply Iht.
-      + specialize (Ihf Δ (wk_new new false ρ hin) hΔ).
+      + specialize (Ihf Δ (wk_new i new false ρ hin) hΔ).
         apply Ihf.
       + set (new' := Build_newnat _ new hnotin).
         apply (TermSplit (new := new')).
-        * pose (wk_Fup true ρ new new' eq_refl).
+        * pose (wk_Fup true ρ i new new' eq_refl).
           apply (Iht _ w).
-          now apply wfcon_new.
-        * pose (wk_Fup false ρ new new' eq_refl).
+          admit.
+        * pose (wk_Fup false ρ i new new' eq_refl).
           apply (Ihf _ w).
-          now apply wfcon_new.
+          admit.
 Qed.
 
 End TypingWk.

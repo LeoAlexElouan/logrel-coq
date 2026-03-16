@@ -8,7 +8,7 @@ From LogRel.Syntax Require Import BasicAst Context NormalForms Weakening Computa
 
 (** *** One-step reduction. *)
 
-Inductive OneRedAlg {L : Fcontext} : term -> term -> Type :=
+Inductive OneRedAlg {L : list Fcontext} : term -> term -> Type :=
 | BRed {A a t} :
     [ L | tApp (tLambda A t) a ⤳ t[a..] ]
 | appSubst {t u a} :
@@ -28,12 +28,13 @@ Inductive OneRedAlg {L : Fcontext} : term -> term -> Type :=
     [ L |tBoolElim P ht hf tTrue ⤳ ht ]
 | boolElimFalse {P ht hf} :
     [ L |tBoolElim P ht hf tFalse ⤳ hf ]
-| alphaSubst {n n'} :
-  [ L | n ⤳ n' ] -> [ L | tAlpha n ⤳ tAlpha n' ]
-| alphaSubstSucc {n n'} :
-  [ L | tAlpha n ⤳ tAlpha n' ] -> [ L | tAlpha (tSucc n) ⤳ tAlpha (tSucc n') ]
-| alphaRed {n b} : in_Fctx L n b ->
-  [ L | tAlpha (nat_to_term n) ⤳ bool_to_term b]
+| alphaSubst {i n n'} :
+  [ L | n ⤳ n' ] -> [ L | tApp (tAlpha i) n ⤳ tApp (tAlpha i) n' ]
+| alphaSubstSucc {i n n'} :
+  [ L | tApp (tAlpha i) n ⤳ tApp (tAlpha i) n' ] ->
+  [ L | tApp (tAlpha i) (tSucc n) ⤳ tApp (tAlpha i) (tSucc n') ]
+| alphaRed {i n b} (hin : in_Fctx (list_at L i) n b) :
+  [ L | tApp (tAlpha (index_to_nat i)) (nat_to_term n) ⤳ bool_to_term b]
 | emptyElimSubst {P e e'} :
     [L |e ⤳ e'] ->
     [L |tEmptyElim P e ⤳ tEmptyElim P e']
@@ -67,7 +68,7 @@ where "[ L | t ⤳ t' ]" := (@OneRedAlg L t t') : typing_scope.
 
 (** *** Multi-step reduction *)
 
-Inductive RedClosureAlg {L : Fcontext} : term -> term -> Type :=
+Inductive RedClosureAlg {L : list Fcontext} : term -> term -> Type :=
   | redIdAlg {t} :
     [ L | t ⤳* t ]
   | redSuccAlg {t t' u} :
@@ -106,18 +107,22 @@ Lemma whne_nored {L} n u :
 Proof.
   intros ne red.
   induction red in ne |- *.
-  11: clear i; induction n.
+  11: clear hin; induction n.
   all : inversion ne; subst; clear ne; try now inv_whne.
-  inversion red.
+  all: inversion red.
 Qed.
 
+Ltac inv_alpha :=
+  match goal with
+    [ H : [_ | tAlpha _ ⤳ _] |- _ ] => inversion H
+    | [ H : whne (tAlpha _) |- _ ] => inversion H end.
 Lemma whnf_nored L n u :
   whnf n -> [ L | n ⤳ u] -> False.
 Proof.
   intros nf red.
   induction red in nf |- *.
-  2,3,6,9,12,13,16,18,21 : inversion nf; subst; inv_whne; subst; apply IHred; now constructor.
-  7: clear i; induction n.
+  2,3,6,9,12,13,16,18,21: inversion nf; subst; inv_whne; subst; try inv_alpha; apply IHred; now constructor.
+  7: clear hin; induction n.
   1-13: inversion nf; subst; inv_whne; subst; try now inv_whne.
   - apply IHred; now constructor.
   - apply IHn; now constructor.
@@ -125,17 +130,19 @@ Qed.
 
 (** *** Determinism of reduction *)
 
-Lemma ored_detaux : forall {L n n'}, [ L | tAlpha (nat_to_term n) ⤳ tAlpha n'] -> False.
+Lemma ored_detaux : forall {L i i' n n'}, [ L | tApp (tAlpha i) (nat_to_term n) ⤳ tApp (tAlpha i') n'] -> False.
 Proof.
-  intros L n.
-  induction n; intros.
+  intros L i i' n n' H.
+  induction n in n', H|-*.
   - inversion H; subst.
-    * inversion H2.
-    * destruct b; inversion H1.
+    * inversion H1.
+    * inversion H1.
+    * destruct b; inversion H3.
   - inversion H; subst.
-    * inversion H2.
-    * now apply IHn in H2.
-    * destruct b; inversion H1.
+    * inversion H1.
+    * inversion H1.
+    * now apply IHn in H1.
+    * destruct b; inversion H3.
 Qed.
 
 Lemma ored_det {L t u v} :
@@ -147,13 +154,11 @@ Proof.
   - inversion red' ; subst ; clear red'.
     + reflexivity.
     + exfalso.
-      eapply whnf_nored.
-      2: eassumption.
+      eapply whnf_nored, H2.
       now econstructor.
-  - inversion red' ; subst ; clear red'.
+  - inversion red' ; subst ; clear red'; try inv_alpha.
     + exfalso.
-      eapply whnf_nored.
-      2: eassumption.
+      eapply whnf_nored, red.
       now econstructor.
     + f_equal.
       eauto.
@@ -172,21 +177,23 @@ Proof.
   - inversion red'; try reflexivity; subst.
     exfalso; eapply whnf_nored; tea; constructor.
   - inversion red'; subst.
+    + inv_alpha.
     + f_equal; now apply IHred.
     + inversion red.
     + destruct n0; inversion red.
   - inversion red'; subst.
-    + inversion H0.
-    + apply IHred in H0.
-      inversion H0; subst.
-      reflexivity.
-    + destruct n0; inversion H; subst.
+    + inv_alpha.
+    + inversion H2.
+    + apply IHred in H2.
+      now inversion H2; subst.
+    + destruct n0; inversion H1; subst.
       destruct (ored_detaux red).
   - inversion red'; subst.
+    + inv_alpha.
     + destruct (ored_detaux red').
     + destruct (ored_detaux red').
-    + apply nat_to_term_inj in H.
-      destruct H.
+    + apply nat_to_term_inj in H1; subst.
+      apply index_to_nat_inj in H0; subst.
       f_equal.
       now eapply functionality.
   - inversion red'; subst.
@@ -257,14 +264,18 @@ Proof.
 Qed.
 
 (** *** Stability by weakening *)
-
-Lemma oFredalg L L' t u: 
-  Fweakening L' L ->
-  [L | t ⤳ u] -> [L' | t ⤳ u].
+Lemma oFredalg L L' ρε (wρε : well_Fweakening ρε L' L) t u: 
+  [L | t ⤳ u] -> [L' | ren_alpha ρε t ⤳ ren_alpha ρε u].
 Proof.
-  intros hFwk hred.
+  intros hred.
   induction hred.
-  all: now constructor.
+  2-10, 12-21: now constructor.
+  - rewrite subst_ren_alpha. constructor.
+  - cbn.
+    rewrite nat_to_term_ren_alpha, bool_to_term_ren_alpha,
+      <- ren_index_to_ren with (wρε:=wρε).
+    eapply alphaRed.
+    eapply well_Fwk_in, hin.
 Defined.
 
 Lemma oredalg_wk (ρ : nat -> nat) L (t u : term) :
@@ -273,14 +284,11 @@ Lemma oredalg_wk (ρ : nat -> nat) L (t u : term) :
 Proof.
   intros Hred.
   induction Hred in ρ |- *.
-  2-10,12-21: cbn; asimpl; now econstructor.
-  - cbn ; asimpl.
-    evar (t' : term).
-    replace (subst_term _ t) with t'.
-    all: subst t'.
-    1: econstructor.
-    now asimpl.
-  - asimpl. rewrite nat_to_term_ren. rewrite bool_to_term_ren.
+  2-9,12-21:cbn; now econstructor.
+  - cbn. rewrite subst_ren_up.
+    constructor.
+  - cbn. eapply alphaSubstSucc, IHHred.
+  - cbn. rewrite nat_to_term_ren, bool_to_term_ren.
     now econstructor.
 Qed.
 (* 
@@ -300,11 +308,10 @@ Proof.
   all: eexists ; split ; cycle -1 ; [now econstructor | now bsimpl].
 Qed. *)
 
-Lemma cFredalg L L' t u: 
-  Fweakening L' L ->
-  [L | t ⤳* u] -> [L' | t ⤳* u].
+Lemma cFredalg L L' ρε (wρε : well_Fweakening ρε L' L) t u: 
+  [L | t ⤳* u] -> [L' | ren_alpha ρε t ⤳* ren_alpha ρε u].
 Proof.
-  induction 2; econstructor; eauto using oFredalg.
+  induction 1; econstructor; eauto using oFredalg.
 Defined.
 
 Lemma credalg_wk (ρ : nat -> nat) {L} (t u : term) :
@@ -318,7 +325,7 @@ Lemma credalg_Fwk (Γ Δ : context) (ρ : Δ ≤ Γ) (t u : term) :
 [Γ|t ⤳* u] ->
 [Δ | t⟨ρ⟩ ⤳* u⟨ρ⟩].
 Proof.
-  intros. apply credalg_wk. destruct ρ. now eapply cFredalg.
+  intros. eapply credalg_wk, cFredalg, H. eapply ρ.
 Qed.
 (* 
 Lemma credalg_str (Γ Δ : context) (ρ : Δ ≤ Γ) (t u : term) :
@@ -397,26 +404,30 @@ Proof.
   econstructor; tea; now constructor.
 Qed.
 
-Lemma redalg_alpha {L t t'} : [L | t ⤳* t'] -> [L | tAlpha t ⤳* tAlpha t'].
+Lemma redalg_alpha {L i t t'} : [L | t ⤳* t'] -> [L | tApp (tAlpha i) t ⤳* tApp (tAlpha i) t'].
 Proof.
   induction 1; [reflexivity|].
   econstructor; tea; now econstructor.
 Qed.
 
-Lemma redalg_alphaSucc {L t t'} : [L | tAlpha t ⤳* tAlpha t'] -> [L | tAlpha (tSucc t) ⤳* tAlpha (tSucc t')].
+Lemma redalg_alphaSucc {L i t t'} : [L | tApp (tAlpha i) t ⤳* tApp (tAlpha i) t'] ->
+  [L | tApp (tAlpha i) (tSucc t) ⤳* tApp (tAlpha i) (tSucc t')].
 Proof.
   intros hα.
-  change (match tAlpha t, tAlpha t' with
-    |tAlpha u, tAlpha u' => [L | tAlpha (tSucc u) ⤳* tAlpha (tSucc u')]
+  change (match tApp (tAlpha i) t, tApp (tAlpha i) t' with
+    | tApp (tAlpha i) u, tApp (tAlpha _) u' => [L | tApp (tAlpha i) (tSucc u) ⤳* tApp (tAlpha i) (tSucc u')]
     | _,_ => unit end).
-  induction hα; destruct t0; try apply tt; [reflexivity|destruct u]; try apply tt.
+  induction hα; destruct t0; try apply tt; destruct t0_1; try apply tt;
+  [reflexivity|]; destruct u; try apply tt; destruct u1; try apply tt.
   inversion o; subst.
+  - inversion H2.
   - econstructor; tea; now econstructor.
   - econstructor; tea; now econstructor.
   - destruct b; inversion hα; subst; inversion H.
 Qed.
 
-Lemma redalg_alphanSucc {L t t' n} : [L | tAlpha t ⤳* tAlpha t'] -> [L | tAlpha (nSucc n t) ⤳* tAlpha (nSucc n t')].
+Lemma redalg_alphanSucc {L i t t' n} : [L | tApp (tAlpha i) t ⤳* tApp (tAlpha i) t'] ->
+  [L | tApp (tAlpha i) (nSucc n t) ⤳* tApp (tAlpha i) (nSucc n t')].
 Proof.
   induction n; intros.
   - tea.

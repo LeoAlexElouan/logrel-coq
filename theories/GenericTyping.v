@@ -21,6 +21,7 @@ More precisely, an instance consists of giving notions of
 - (multi-step, weak-head) reduction of terms [Γ |- t ⤳* u : A]
 *)
 
+
 (** ** Generic definitions *)
 
 (** These can be defined over typing and conversion in a generic way. *)
@@ -223,16 +224,16 @@ Section GenericTyping.
   {
     wfc_nil {L} : [|- fromFctx L ] ;
     wfc_cons {Γ} {A} : [|- Γ] -> [Γ |- A] -> [|- Γ,,A];
-    wfc_consF {Γ} {new} {b} : [|- Γ] -> [|- Γ,,new ↦ b];
+    wfc_consF {Γ} {i new} {b} : [|- Γ] -> [|- Γ,, i : new ↦ b];
     wfc_wft {Γ A} : [Γ |- A] -> [|- Γ];
     wfc_ty {Γ A t} : [Γ |- t : A] -> [|- Γ];
     wfc_convty {Γ A B} : [Γ |- A ≅ B] -> [|- Γ];
     wfc_convtm {Γ A t u} : [Γ |- t ≅ u : A] -> [|- Γ];
     wfc_redty {Γ A B} : [Γ |- A ⤳* B] -> [|- Γ];
     wfc_redtm {Γ A t u} : [Γ |- t ⤳* u : A] -> [|- Γ];
-    wfc_split {Γ new} :
-      [|-Γ,, new ↦ true] ->
-      [|-Γ,, new ↦ false] ->
+    wfc_split {Γ i new} :
+      [|-Γ,, i : new ↦ true] ->
+      [|-Γ,, i : new ↦ false] ->
       [|-Γ];
   }.
 
@@ -259,9 +260,9 @@ Section GenericTyping.
     wft_term {Γ} {A} :
       [ Γ |- A : U ] ->
       [ Γ |- A ] ;
-    wft_split {Γ A new} :
-      [ Γ,, new ↦ true |- A] ->
-      [ Γ,, new ↦ false |- A] ->
+    wft_split {Γ A i new} :
+      [ Γ,, i : new ↦ true |- A] ->
+      [ Γ,, i : new ↦ false |- A] ->
       [ Γ |- A] ;
   }.
 
@@ -315,9 +316,8 @@ Section GenericTyping.
       [Γ |- hf : P[tFalse..]] ->
       [Γ |- n : tBool] ->
       [Γ |- tBoolElim P ht hf n : P[n..]] ;
-    ty_alpha {Γ n} :
-      [Γ |- n : tNat] ->
-      [Γ |- tAlpha n : tBool];
+    ty_alpha {Γ i} :
+      [Γ |- tAlpha i : arr' Γ tNat tBool];
     ty_empty {Γ} :
         [|-Γ] ->
         [Γ |- tEmpty : U] ;
@@ -383,9 +383,9 @@ Section GenericTyping.
       [Γ |- t : A'] -> 
       [Γ |- A' ≅ A] -> 
       [Γ |- t : A] ;
-    ty_split {Γ t A ne} :
-      [ Γ,, ne ↦ true |- t : A] ->
-      [ Γ,, ne ↦ false |- t : A] ->
+    ty_split {Γ t A i ne} :
+      [ Γ,, i : ne ↦ true |- t : A] ->
+      [ Γ,, i : ne ↦ false |- t : A] ->
       [ Γ |- t : A] ;
   }.
 
@@ -414,9 +414,9 @@ Section GenericTyping.
       [Γ |- x ≅ x' : A] ->
       [Γ |- y ≅ y' : A] ->
       [Γ |- tId A x y ≅ tId A' x' y' ] ;
-    convty_split {Γ A A' new} :
-      [ Γ,, new ↦ true |- A ≅ A'] ->
-      [ Γ,, new ↦ false |- A ≅ A'] ->
+    convty_split {Γ A A' i new} :
+      [ Γ,, i : new ↦ true |- A ≅ A'] ->
+      [ Γ,, i : new ↦ false |- A ≅ A'] ->
       [ Γ |- A ≅ A'] ;
   }.
 
@@ -448,7 +448,7 @@ Section GenericTyping.
       isWfFun Γ A B f ->
       [ Γ |- g : tProd A B ] ->
       isWfFun Γ A B g ->
-      [ Γ ,, A |- eta_expand f ≅ eta_expand g : B ] ->
+      [ Γ ,, A |- eta_expand' Γ A f ≅ eta_expand' Γ A g : B ] ->
       [ Γ |- f ≅ g : tProd A B ] ;
     convtm_nat {Γ} :
       [|-Γ] -> [Γ |- tNat ≅ tNat : U] ;
@@ -463,9 +463,9 @@ Section GenericTyping.
       [|-Γ] -> [Γ |- tTrue ≅ tTrue : tBool] ;
     convtm_false {Γ} :
       [|-Γ] -> [Γ |- tFalse ≅ tFalse : tBool] ;
-    convtm_alpha {Γ n b} :
+    convtm_alpha {Γ i n b} :
       [|-Γ] ->
-      in_Fctx Γ n b -> [Γ |- tAlpha (nat_to_term n) ≅ bool_to_term b : tBool] ;
+      in_Fctx (list_at Γ i) n b -> [Γ |- tApp (tAlpha i) (nat_to_term n) ≅ bool_to_term b : tBool] ;
     convtm_empty {Γ} :
       [|-Γ] -> [Γ |- tEmpty ≅ tEmpty : U] ;
     convtm_tree {Γ} :
@@ -497,9 +497,9 @@ Section GenericTyping.
       [Γ |- A ≅ A'] ->
       [Γ |- x ≅ x' : A] ->
       [Γ |- tRefl A x ≅ tRefl A' x' : tId A x x] ;
-    convtm_split {Γ t u A new} :
-      [ Γ,, new ↦ true |- t ≅ u : A] ->
-      [ Γ,, new ↦ false |- t ≅ u : A] ->
+    convtm_split {Γ t u A i new} :
+      [ Γ,, i : new ↦ true |- t ≅ u : A] ->
+      [ Γ,, i : new ↦ false |- t ≅ u : A] ->
       [ Γ |- t ≅ u :A] ;
   }.
 
@@ -528,9 +528,9 @@ Section GenericTyping.
         [Γ |- hf ≅ hf' : P[tFalse..]] ->
         [Γ |- n ~ n' : tBool] ->
         [Γ |- tBoolElim P ht hf n ~ tBoolElim P' ht' hf' n' : P[n..]] ;
-    convneu_alpha {Γ t u n} :
+    convneu_alpha {Γ t u i n} :
       [ Γ |- t ~ u : tNat ] ->
-      [ Γ |- tAlpha (nSucc n t) ~ tAlpha (nSucc n u) : tBool ];
+      [ Γ |- tApp (tAlpha i) (nSucc n t) ~ tApp (tAlpha i) (nSucc n u) : tBool ];
     convneu_emptyElim {Γ P P' e e'} :
         [Γ ,, tEmpty |- P ≅ P'] ->
         [Γ |- e ~ e' : tEmpty] ->
@@ -558,9 +558,9 @@ Section GenericTyping.
       [Γ |- y ≅ y' : A] ->
       [Γ |- e ~ e' : tId A x y] ->
       [Γ |- tIdElim A x P hr y e ~ tIdElim A' x' P' hr' y' e' : P[e .: y..]];
-    convneu_split {Γ t u A new} :
-      [ Γ,, new ↦ true |- t ~ u : A] ->
-      [ Γ,, new ↦ false |- t ~ u : A] ->
+    convneu_split {Γ t u A i new} :
+      [ Γ,, i : new ↦ true |- t ~ u : A] ->
+      [ Γ,, i : new ↦ false |- t ~ u : A] ->
       [ Γ |- t ~ u :A] ;
   }.
 
@@ -643,12 +643,12 @@ Section GenericTyping.
       [ Γ |- hf : P[tFalse..] ] ->
       [ Γ |- n ⤳* n' : tBool ] ->
       [ Γ |- tBoolElim P ht hf n ⤳* tBoolElim P ht hf n' : P[n..] ];
-    redtm_alphaSubst {Γ t u n} :
+    redtm_alphaSubst {Γ t u i n} :
       [ Γ |- t ⤳* u : tNat ] ->
-      [ Γ |- tAlpha (nSucc n t) ⤳* tAlpha (nSucc n u) : tBool ] ;
-    redtm_alpha {Γ} {n b} :
+      [ Γ |- tApp (tAlpha i) (nSucc n t) ⤳* tApp (tAlpha i) (nSucc n u) : tBool ] ;
+    redtm_alpha {Γ} {i n b} :
         [|- Γ] ->
-        in_Fctx Γ n b ->[ Γ |- tAlpha (nat_to_term n) ⤳* bool_to_term b : tBool ] ;
+        in_Fctx (list_at Γ i) n b ->[ Γ |- tApp (tAlpha i) (nat_to_term n) ⤳* bool_to_term b : tBool ] ;
     redtm_emptyelim {Γ P n n'} :
       [ Γ,, tEmpty |- P ] ->
       [ Γ |- n ⤳* n' : tEmpty ] ->
@@ -754,21 +754,21 @@ Ltac renToWk0 judg :=
   (** Type judgement, weakening *)
   | [?X ,, ?Y |- ?T⟨↑⟩ ] =>
     replace T⟨↑⟩ with T⟨@wk1 X Y⟩ by apply (wk1_ren_on X Y T)
-  (** Type judgement, lifting of weakening *)
+(*   (** Type judgement, lifting of weakening *)
   | [?X ,, ?Y ,, ?Z⟨↑⟩ |- _ ] =>
     replace Z⟨↑⟩ with Z⟨@wk1 X Y⟩ by apply wk1_ren_on
   | [?X ,, ?Y ,, ?Z⟨_⟩ |- ?T⟨upRen_term_term ↑⟩ ] =>
     replace T⟨upRen_term_term ↑⟩ with T⟨wk_up Z (@wk1 X Y)⟩ by apply wk_up_wk1_ren_on
   (* Type judgement, lifting *)
   | [?X ,, ?Y⟨wk_to_ren ?r⟩  |- ?T⟨upRen_term_term _⟩ ] =>
-    replace T⟨upRen_term_term r⟩ with T⟨wk_up Y r⟩ by apply wk_up_wk1_ren_on
+    replace T⟨upRen_term_term r⟩ with T⟨wk_up Y r⟩ by apply wk_up_wk1_ren_on *)
 
   (** Type conversion judgement, weakening *)
   | [?X ,, ?Y |- ?T⟨↑⟩ ≅ _ ] =>
     replace T⟨↑⟩ with T⟨@wk1 X Y⟩ by apply (wk1_ren_on X Y T)
   | [?X ,, ?Y |- _ ≅ ?T⟨↑⟩ ] =>
     replace T⟨↑⟩ with T⟨@wk1 X Y⟩ by apply (wk1_ren_on X Y T)
-  (** Type conversion judgement, lifting of weakening *)
+(*   (** Type conversion judgement, lifting of weakening *)
   | [?X ,, ?Y ,, ?Z⟨↑⟩ |- _ ≅ _ ] =>
     replace Z⟨↑⟩ with Z⟨@wk1 X Y⟩ by apply wk1_ren_on
   | [?X ,, ?Y ,, ?Z⟨_⟩ |- ?T⟨upRen_term_term ↑⟩ ≅ _ ] =>
@@ -779,14 +779,14 @@ Ltac renToWk0 judg :=
   | [?X ,, ?Y⟨wk_to_ren ?r⟩  |- ?T⟨upRen_term_term _⟩ ≅ _ ] =>
     replace T⟨upRen_term_term r⟩ with T⟨wk_up Y r⟩ by apply wk_up_wk1_ren_on
   | [?X ,, ?Y⟨wk_to_ren ?r⟩  |- _ ≅ ?T⟨upRen_term_term _⟩ ] =>
-    replace T⟨upRen_term_term r⟩ with T⟨wk_up Y r⟩ by apply wk_up_wk1_ren_on
+    replace T⟨upRen_term_term r⟩ with T⟨wk_up Y r⟩ by apply wk_up_wk1_ren_on *)
 
   (** Term judgement, weakening *)
   | [?X ,, ?Y |- _ : ?T⟨↑⟩ ] =>
     replace T⟨↑⟩ with T⟨@wk1 X Y⟩ by apply wk1_ren_on
   | [?X ,, ?Y |- ?t⟨↑⟩ : _ ] =>
     replace t⟨↑⟩ with t⟨@wk1 X Y⟩ by apply wk1_ren_on
-  (** Term judgement, lifting of weakening *)
+(*   (** Term judgement, lifting of weakening *)
   | [?X ,, ?Y ,, ?Z⟨↑⟩ |- _ : _ ] =>
     replace Z⟨↑⟩ with Z⟨@wk1 X Y⟩ by apply wk1_ren_on
   | [?X ,, ?Y ,, ?Z⟨_⟩ |- _ : ?T⟨upRen_term_term ↑⟩ ] =>
@@ -797,7 +797,7 @@ Ltac renToWk0 judg :=
   | [?X ,, ?Y⟨wk_to_ren ?r⟩ |- _ : ?T⟨upRen_term_term _⟩ ] =>
     replace T⟨upRen_term_term r⟩ with T⟨wk_up Y r⟩ by apply wk_up_ren_on
   | [?X ,, ?Y⟨wk_to_ren ?r⟩ |- ?t⟨upRen_term_term _⟩ : _ ] =>
-    replace t⟨upRen_term_term r⟩ with t⟨wk_up Y r⟩ by apply wk_up_ren_on
+    replace t⟨upRen_term_term r⟩ with t⟨wk_up Y r⟩ by apply wk_up_ren_on *)
 
   (** Term conversion judgement, weakening *)
   | [?X ,, ?Y |- _ ≅ _ : ?T⟨↑⟩ ] =>
@@ -806,7 +806,7 @@ Ltac renToWk0 judg :=
     replace t⟨↑⟩ with t⟨@wk1 X Y⟩ by apply wk1_ren_on
   | [?X ,, ?Y |- _ ≅ ?t⟨↑⟩ : _ ] =>
     replace t⟨↑⟩ with t⟨@wk1 X Y⟩ by apply wk1_ren_on
-  (** Term conversion judgement, lifting of weakening *)
+(*   (** Term conversion judgement, lifting of weakening *)
   | [?X ,, ?Y ,, ?Z⟨↑⟩ |- _ ≅ _ : _ ] =>
     replace Z⟨↑⟩ with Z⟨@wk1 X Y⟩ by apply wk1_ren_on
   | [?X ,, ?Y ,, ?Z⟨_⟩ |- _ ≅ _ : ?T⟨upRen_term_term ↑⟩ ] =>
@@ -821,7 +821,7 @@ Ltac renToWk0 judg :=
   | [?X ,, ?Y⟨wk_to_ren ?r⟩ |- ?t⟨upRen_term_term _⟩ ≅ _ : _ ] =>
     replace t⟨upRen_term_term r⟩ with t⟨wk_up Y r⟩ by apply wk_up_ren_on
   | [?X ,, ?Y⟨wk_to_ren ?r⟩ |- _ ≅ ?t⟨upRen_term_term _⟩ : _ ] =>
-    replace t⟨upRen_term_term r⟩ with t⟨wk_up Y r⟩ by apply wk_up_ren_on
+    replace t⟨upRen_term_term r⟩ with t⟨wk_up Y r⟩ by apply wk_up_ren_on *)
 
 
   end.
@@ -1023,7 +1023,7 @@ Section GenericConsequences.
   Lemma redtmwf_appwk {Γ Δ A B B' t u a} (ρ : Δ ≤ Γ) :
     [Γ |- t :⤳*: u : tProd A B] ->
     [Δ |- a : A⟨ρ⟩] ->
-    B' = B⟨upRen_term_term ρ⟩[a..] ->
+    B' = B⟨wk_up A ρ⟩[a..] ->
     [Δ |- tApp t⟨ρ⟩ a :⤳*: tApp u⟨ρ⟩ a : B'].
   Proof.
     intros redtu **.
@@ -1086,15 +1086,16 @@ Section GenericConsequences.
 
   Lemma ty_var0 {Γ A} :
     [Γ |- A] ->
-    [Γ ,, A |- tRel 0 : A⟨↑⟩].
+    [Γ ,, A |- tRel 0 : A⟨@wk1 Γ A⟩].
   Proof.
+    rewrite wk1_ren_on.
     intros; refine (ty_var _ (in_here _ _ : in_ctx (Γ,,A) _ _)); gen_typing.
   Qed.
 
   Lemma wft_simple_arr {Γ A B} :
     [Γ |- A] ->
     [Γ |- B] ->
-    [Γ |- arr A B].
+    [Γ |- arr' Γ A B].
   Proof.
     intros. eapply wft_prod; renToWk; tea.
     eapply wft_wk; gen_typing.
@@ -1104,30 +1105,30 @@ Section GenericConsequences.
     [Γ |- A] ->
     [Γ |- A ≅ A'] ->
     [Γ |- B ≅ B'] ->
-    [Γ |- arr A B ≅ arr A' B'].
+    [Γ |- arr' Γ A B ≅ arr' Γ A' B'].
   Proof.
     intros; eapply convty_prod; tea.
-    renToWk; eapply convty_wk; gen_typing.
+    rewrite (wk1_ren_on Γ A'), <- (wk1_ren_on Γ A).
+    eapply convty_wk; gen_typing.
   Qed.
 
   Lemma ty_simple_app {Γ A B f a} :
     [Γ |- A] ->
     [Γ |- B] ->
-    [Γ |- f : arr A B] ->
+    [Γ |- f : arr' Γ A B] ->
     [Γ |- a : A] ->
     [Γ |- tApp f a : B].
   Proof.
-    intros. replace B with B⟨shift⟩[a..] by now asimpl.
+    intros. rewrite <- (@shift_subst1 Γ A B a).
     eapply ty_app; tea.
   Qed.
 
   Lemma convneu_simple_app {Γ f g t u A B} :
-      [ Γ |- f ~ g : arr A B ] ->
+      [ Γ |- f ~ g : arr' Γ A B ] ->
       [ Γ |- t ≅ u : A ] ->
       [ Γ |- tApp f t ~ tApp g u : B ].
   Proof.
-    intros.
-    replace B with B⟨↑⟩[t..] by now asimpl.
+    intros. rewrite <- (@shift_subst1 Γ A B t).
     now eapply convneu_app.
   Qed.
 
@@ -1138,23 +1139,25 @@ Section GenericConsequences.
     [Γ |- A] ->
     [Γ |- A ≅ B] ->
     [Γ |- A ≅ C] ->
-    [Γ |- idterm A : arr B C].
+    [Γ |- idterm A : arr' Γ B C].
   Proof.
     intros.
     eapply ty_conv.
     2: eapply convty_simple_arr; cycle 1; tea.
     eapply ty_lam; tea.
+    renToWk.
     now eapply ty_var0.
   Qed.
 
   Lemma ty_id' {Γ A} :
     [Γ |- A] ->
-    [Γ |- idterm A : arr A A].
+    [Γ |- idterm A : arr' Γ A A].
   Proof.
     intros.
     (* eapply ty_conv. *)
     (* 2: eapply convty_simple_arr; cycle 1; tea. *)
     eapply ty_lam; tea.
+    renToWk.
     now eapply ty_var0.
   Qed.
 
@@ -1179,27 +1182,28 @@ Section GenericConsequences.
     [Γ |- A ≅ A'] ->
     [Γ |- A ≅ B] ->
     [Γ |- A ≅ C] ->
-    [Γ,, A |- tRel 0 ≅ tRel 0 : A⟨↑⟩] ->
-    [Γ |- idterm A ≅ idterm A' : arr B C].
+    [Γ,, A |- tRel 0 ≅ tRel 0 : A⟨@wk1 Γ A⟩] ->
+    [Γ |- idterm A ≅ idterm A' : arr' Γ B C].
   Proof.
     intros.
     assert [Γ |- A ≅ A] by (etransitivity; tea; now symmetry).
     eapply convtm_conv.
     2: eapply convty_simple_arr; cycle 1; tea.
     eapply convtm_eta; tea.
-    { renToWk; apply wft_wk; [apply wfc_cons|]; tea. }
+    { apply wft_wk; [apply wfc_cons|]; tea. }
     2:{ constructor; first [now eapply lrefl|now apply ty_var0|tea]. }
     3:{ constructor; first [now eapply lrefl|now apply ty_var0|tea]. }
     1,2: eapply ty_id; tea; now symmetry.
     assert [|- Γ,, A] by gen_typing.
     assert [Γ,, A |-[ ta ] A⟨@wk1 Γ A⟩] by now eapply wft_wk.
     eapply convtm_exp.
-    - cbn. eapply redtm_id_beta.
+    - rewrite <- wk_lam.
+      eapply redtm_id_beta.
       3: now eapply ty_var0.
-      1,2: renToWk; tea; now eapply convty_wk.
-    - cbn.
-      assert [Γ,, A |- A'⟨↑⟩ ≅ A⟨↑⟩]
-        by (renToWk; symmetry; now eapply convty_wk).
+      1,2: tea; now eapply convty_wk.
+    - rewrite <- wk_lam.
+      assert [Γ,, A |- A'⟨@wk1 Γ A⟩ ≅ A⟨@wk1 Γ A⟩]
+        by (symmetry; now eapply convty_wk).
       eapply redtm_conv; tea.
       eapply redtm_id_beta.
       1: renToWk; now eapply wft_wk.
@@ -1217,40 +1221,39 @@ Section GenericConsequences.
     [Γ |- A] ->
     [Γ |- B] ->
     [Γ |- C] ->
-    [Γ |- g : arr A B] ->
-    [Γ |- f : arr B C] ->
-    [Γ |- comp A f g : arr A C].
+    [Γ |- g : arr' Γ A B] ->
+    [Γ |- f : arr' Γ B C] ->
+    [Γ |- comp' Γ A f g : arr' Γ A C].
   Proof.
     intros tyA tyB **.
-    eapply ty_lam; tea.
+    eapply ty_lam ; tea.
     assert [|- Γ,, A] by gen_typing.
-    pose (r := @wk1 Γ A).
-    eapply ty_simple_app; renToWk.
-    - unshelve eapply (wft_wk _ _ tyB) ; tea.
+    eapply ty_simple_app.
+    - unshelve eapply (wft_wk (@wk1 Γ A) _ tyB) ; tea.
     - now eapply wft_wk.
-    - replace (arr _ _) with (arr B C)⟨r⟩ by (unfold r; now bsimpl).
+    - rewrite wk_arr'.
       now eapply ty_wk.
-    - eapply ty_simple_app; renToWk.
-      + unshelve eapply (wft_wk _ _ tyA) ; tea.
+    - eapply ty_simple_app.
+      + unshelve eapply (wft_wk (@wk1 Γ A) _ tyA) ; tea.
       + now eapply wft_wk.
-      + replace (arr _ _) with (arr A B)⟨r⟩ by (unfold r; now bsimpl).
+      + rewrite wk_arr'.
         now eapply ty_wk.
-      + unfold r; rewrite wk1_ren_on; now refine (ty_var _ (in_here _ _ : in_ctx (Γ,,A) _ _)).
+      + now eapply ty_var0.
   Qed.
 
-  Lemma wft_wk1 {Γ A B} : [Γ |- A] -> [Γ |- B] -> [Γ ,, A |- B⟨↑⟩].
-  Proof.
-    intros; renToWk; eapply wft_wk; gen_typing.
-  Qed.
+  Lemma wft_wk1 {Γ A B} : [Γ |- A] -> [Γ |- B] -> [Γ ,, A |- B⟨@wk1 Γ A⟩].
+  Proof. intros; eapply wft_wk; gen_typing. Qed.
+  Lemma ty_wk1 {Γ A B t} : [Γ |- A] -> [Γ |- t : B] -> [Γ ,, A |- t⟨@wk1 Γ A⟩ : B⟨@wk1 Γ A⟩].
+  Proof. intros; eapply ty_wk; gen_typing. Qed.
 
   Lemma redtm_comp_beta {Γ A B C f g a} :
     [Γ |- A] ->
     [Γ |- B] ->
     [Γ |- C] ->
-    [Γ |- f : arr A B] ->
-    [Γ |- g : arr B C] ->
+    [Γ |- f : arr' Γ A B] ->
+    [Γ |- g : arr' Γ B C] ->
     [Γ |- a : A] ->
-    [Γ |- tApp (comp A g f) a ⤳* tApp g (tApp f a) : C].
+    [Γ |- tApp (comp' Γ A g f) a ⤳* tApp g (tApp f a) : C].
   Proof.
     intros hA hB hC hf hg ha.
     eapply redtm_meta_conv.
@@ -1259,10 +1262,10 @@ Section GenericConsequences.
       4: eapply ty_simple_app.
       1,2,4,5: eapply wft_wk1; [gen_typing|].
       1: exact hB. 1: exact hC. 1: exact hA. 1: tea.
-      1,2: rewrite <- arr_ren1; renToWk; eapply ty_wk; tea; gen_typing.
+      1,2: rewrite wk_arr'; eapply ty_wk; tea; gen_typing.
       now eapply ty_var0.
-    + cbn; now bsimpl.
-    + now asimpl.
+    + now rewrite shift_subst1.
+    + cbn. now rewrite 2shift_subst1.
   Qed.
 
   Lemma convtm_comp_app {Γ A B C f f' g g'} :
@@ -1271,42 +1274,43 @@ Section GenericConsequences.
     [Γ |- B] ->
     [Γ |- C] ->
     [Γ |- C ≅ C] ->
-    [Γ |- f : arr A B] ->
-    [Γ |- f' : arr A B] ->
-    [Γ |- g : arr B C] ->
-    [Γ |- g' : arr B C] ->
-    [Γ,, A |- tApp g⟨↑⟩ (tApp f⟨↑⟩ (tRel 0)) ≅ tApp g'⟨↑⟩ (tApp f'⟨↑⟩ (tRel 0)) : C⟨↑⟩] ->
-    [Γ ,, A |- tApp (comp A g f)⟨↑⟩ (tRel 0) ≅ tApp (comp A g' f')⟨↑⟩ (tRel 0) : C⟨↑⟩].
+    [Γ |- f : arr' Γ A B] ->
+    [Γ |- f' : arr' Γ A B] ->
+    [Γ |- g : arr' Γ B C] ->
+    [Γ |- g' : arr' Γ B C] ->
+    [Γ,, A |- tApp g⟨@wk1 Γ A⟩ (tApp f⟨@wk1 Γ A⟩ (tRel 0)) ≅ tApp g'⟨@wk1 Γ A⟩ (tApp f'⟨@wk1 Γ A⟩ (tRel 0)) : C⟨@wk1 Γ A⟩] ->
+    [Γ ,, A |- tApp (comp' Γ A g f)⟨@wk1 Γ A⟩ (tRel 0) ≅ tApp (comp' Γ A g' f')⟨@wk1 Γ A⟩ (tRel 0) : C⟨@wk1 Γ A⟩].
   Proof.
     intros.
     eapply convtm_exp.
-    - cbn.
-      do 2 rewrite <- shift_upRen.
+    - rewrite wk_comp'.
       eapply redtm_comp_beta.
-      5: erewrite <- arr_ren1; renToWk; eapply ty_wk; tea; gen_typing.
-      4: erewrite <- arr_ren1; renToWk; eapply ty_wk; tea; gen_typing.
+      5: erewrite wk_arr'; eapply ty_wk; tea; gen_typing.
+      4: erewrite wk_arr'; eapply ty_wk; tea; gen_typing.
       1-3: now eapply wft_wk1.
       now eapply ty_var0.
-    - cbn. do 2 rewrite <- shift_upRen.
+    - rewrite wk_comp'.
       eapply redtm_comp_beta.
-      5: erewrite <- arr_ren1; renToWk; eapply ty_wk; tea; gen_typing.
-      4: erewrite <- arr_ren1; renToWk; eapply ty_wk; tea; gen_typing.
+      5: erewrite wk_arr'; eapply ty_wk; tea; gen_typing.
+      4: erewrite wk_arr'; eapply ty_wk; tea; gen_typing.
       1-3: now eapply wft_wk1.
       now eapply ty_var0.
     - now eapply wft_wk1.
-    - eapply @ty_simple_app with (A := B⟨↑⟩).
+    - eapply @ty_simple_app with (A := B⟨@wk1 Γ A⟩).
       + now eapply wft_wk1.
       + now eapply wft_wk1.
-      + erewrite <- arr_ren1; renToWk; eapply ty_wk; tea; gen_typing.
-      + eapply @ty_simple_app with (A := A⟨↑⟩); [now eapply wft_wk1|now eapply wft_wk1| |now apply ty_var0].
-        erewrite <- arr_ren1; renToWk; eapply ty_wk; tea; gen_typing.
-    - eapply @ty_simple_app with (A := B⟨↑⟩).
+      + erewrite wk_arr'; eapply ty_wk; tea; gen_typing.
+      + eapply @ty_simple_app with (A := A⟨@wk1 Γ A⟩);
+          [now eapply wft_wk1|now eapply wft_wk1| |now apply ty_var0].
+        erewrite wk_arr'; eapply ty_wk; tea; gen_typing.
+    - eapply @ty_simple_app with (A := B⟨@wk1 Γ A⟩).
       + now eapply wft_wk1.
       + now eapply wft_wk1.
-      + erewrite <- arr_ren1; renToWk; eapply ty_wk; tea; gen_typing.
-      + eapply @ty_simple_app with (A := A⟨↑⟩); [now eapply wft_wk1|now eapply wft_wk1| |now apply ty_var0].
-        erewrite <- arr_ren1; renToWk; eapply ty_wk; tea; gen_typing.
-    - renToWk; apply convty_wk; gen_typing.
+      + erewrite wk_arr'; eapply ty_wk; tea; gen_typing.
+      + eapply @ty_simple_app with (A := A⟨@wk1 Γ A⟩);
+          [now eapply wft_wk1|now eapply wft_wk1| |now apply ty_var0].
+        erewrite wk_arr'; eapply ty_wk; tea; gen_typing.
+    - apply convty_wk; gen_typing.
     - assumption.
   Qed.
 
@@ -1318,30 +1322,27 @@ Section GenericConsequences.
     [Γ |- B] ->
     [Γ |- C] ->
     [Γ |- C ≅ C] ->
-    [Γ |- f : arr A B] ->
-    [Γ |- f' : arr A B] ->
-    [Γ |- g : arr B C] ->
-    [Γ |- g' : arr B C] ->
-    [Γ,, A |-[ ta ] tApp g⟨↑⟩ (tApp f⟨↑⟩ (tRel 0)) ≅ tApp g'⟨↑⟩ (tApp f'⟨↑⟩ (tRel 0)) : C⟨↑⟩] ->
-    [Γ |- comp A g f ≅ comp A g' f' : arr A C].
+    [Γ |- f : arr' Γ A B] ->
+    [Γ |- f' : arr' Γ A B] ->
+    [Γ |- g : arr' Γ B C] ->
+    [Γ |- g' : arr' Γ B C] ->
+    [Γ,, A |-[ ta ] tApp g⟨@wk1 Γ A⟩ (tApp f⟨@wk1 Γ A⟩ (tRel 0)) ≅
+      tApp g'⟨@wk1 Γ A⟩ (tApp f'⟨@wk1 Γ A⟩ (tRel 0)) : C⟨@wk1 Γ A⟩] ->
+    [Γ |- comp' Γ A g f ≅ comp' Γ A g' f' : arr' Γ A C].
   Proof.
     intros.
-    assert (Hup : forall X Y h, [Γ |- h : arr X Y] -> [Γ,, A |- h⟨↑⟩ : arr X⟨↑⟩ Y⟨↑⟩]).
-    { intros; rewrite <- arr_ren1, <- !(wk1_ren_on Γ A).
-      apply (ty_wk (@wk1 Γ A)); [|now rewrite wk1_ren_on].
-      now apply wfc_cons. }
     eapply convtm_eta; tea.
-    { renToWk; apply wft_wk; [apply wfc_cons|]; tea. }
-    2:{ assert [Γ,, A |-[ ta ] tApp g⟨↑⟩ (tApp f⟨↑⟩ (tRel 0)) : C⟨↑⟩].
-        { eapply (ty_simple_app (A := B⟨↑⟩)); first [now apply wft_wk1|now apply Hup|idtac].
-          eapply (ty_simple_app (A := A⟨↑⟩)); first [now apply wft_wk1|now apply Hup|idtac].
-          now apply ty_var0. }
-        constructor; tea. }
-    3:{ assert [Γ,, A |-[ ta ] tApp g'⟨↑⟩ (tApp f'⟨↑⟩ (tRel 0)) : C⟨↑⟩].
-        { eapply (ty_simple_app (A := B⟨↑⟩)); first [now apply wft_wk1|now apply Hup|idtac].
-          eapply (ty_simple_app (A := A⟨↑⟩)); first [now apply wft_wk1|now apply Hup|idtac].
-          now apply ty_var0. }
-        constructor; tea. }
+    1: now eapply wft_wk1.
+    2:{ constructor; tea.
+        eapply ty_simple_app, ty_simple_app, ty_var0; tea.
+        3,6 : erewrite wk_arr'.
+        3,4: now eapply ty_wk1.
+        all: now apply wft_wk1. }
+    3:{ constructor; tea.
+        eapply ty_simple_app, ty_simple_app, ty_var0; tea.
+        3,6 : erewrite wk_arr'.
+        3,4: now eapply ty_wk1.
+        all: now apply wft_wk1. }
     1,2: eapply ty_comp.
     4,5,9,10: tea.
     all: tea.
@@ -1352,14 +1353,14 @@ Section GenericConsequences.
     [Γ |- A] ->
     [Γ,, A |- B] ->
     [Γ |- f : tProd A B] ->
-    [Γ,, A |- eta_expand f : B].
+    [Γ,, A |- eta_expand' Γ A f : B].
   Proof.
     intros ? ? Hf.
     eapply typing_meta_conv.
     eapply ty_app; tea.
-    2: refine (ty_var _ (in_here _ _ : in_ctx (Γ,,A) _ _)); gen_typing.
-    1: eapply typing_meta_conv; [renToWk; eapply ty_wk; tea;gen_typing|now rewrite wk1_ren_on].
-    fold ren_term. now bsimpl.
+    2: now eapply ty_var0.
+    1: erewrite wk_prod; eapply ty_wk1; tea.
+    now rewrite wk1_eta.
   Qed.
 
   Lemma lambda_cong {Γ A A' B B' t t'} :
@@ -1385,42 +1386,36 @@ Section GenericConsequences.
       symmetry.
       now eapply convty_prod.
     - constructor; tea.
-    - eapply @convtm_exp with (t' := t) (u' := t'); tea.
+    - rewrite <-2 wk_lam.
+      eapply @convtm_exp with (t' := t) (u' := t'); tea.
       3: now eapply lrefl.
       2: eapply redtm_conv ; cbn ; [eapply redtm_meta_conv |..] ; [eapply redtm_beta |..].
       1: eapply redtm_meta_conv ; cbn ; [eapply redtm_beta |..].
-      + renToWk.
-        now eapply wft_wk.
-      + renToWk.
-        eapply ty_wk ; tea.
+      + now eapply wft_wk.
+      + eapply ty_wk ; tea.
         eapply wfc_cons ; tea.
         now eapply wft_wk.
-      + eapply ty_var ; tea.
-        now econstructor.
-      + now bsimpl.
-      + now bsimpl.
-      + renToWk.
-        now eapply wft_wk.
-      + renToWk.
-        eapply ty_wk ; tea.
+      + eapply ty_var0 ; tea.
+      + symmetry; exact wk1_eta.
+      + symmetry; exact wk1_eta.
+      + now eapply wft_wk.
+      + eapply ty_wk ; tea.
         eapply wfc_cons ; tea.
         now eapply wft_wk.
       + eapply ty_conv.
         1: eapply ty_var0 ; tea.
-        renToWk.
         now eapply convty_wk.
-      + shelve.
-      + now bsimpl.
+      + symmetry; exact wk1_eta.
+      + symmetry; exact wk1_eta.
       + symmetry. eassumption.
-      Unshelve.
-      now bsimpl.
   Qed.
 
   Lemma ty_app_ren {Γ Δ A f a dom cod} (ρ : Δ ≤ Γ) :
-    [Γ |- f : A] -> [Γ |- A ≅ tProd dom cod] -> [Δ |- a : dom⟨ρ⟩] -> [Δ |- tApp f⟨ρ⟩ a : cod[a .: ρ >> tRel]].
+    [Γ |- f : A] -> [Γ |- A ≅ tProd dom cod] ->
+    [Δ |- a : dom⟨ρ⟩] -> [Δ |- tApp f⟨ρ⟩ a : cod⟨wk_up dom ρ⟩[a ..]].
   Proof.
-    intros; erewrite subst1_ren_wk_up.
-    unshelve eapply ty_app. 3: eassumption.
+    intros Hf HA Ha.
+    eapply ty_app, Ha.
     rewrite wk_prod; gtyping.
   Qed.
 
@@ -1428,10 +1423,10 @@ Section GenericConsequences.
     [Γ |- f ~ g : A] ->
     [Γ |- A ≅ tProd dom cod] ->
     [Δ |- a ≅ b : dom⟨ρ⟩] ->
-    [Δ |- tApp f⟨ρ⟩ a ~ tApp g⟨ρ⟩ b : cod[a .: ρ >> tRel]].
+    [Δ |- tApp f⟨ρ⟩ a ~ tApp g⟨ρ⟩ b : cod⟨wk_up dom ρ⟩[a ..]].
   Proof.
-    intros; erewrite subst1_ren_wk_up.
-    unshelve eapply convneu_app. 3: eassumption.
+    intros Hfg HA Hab.
+    eapply convneu_app, Hab.
     rewrite wk_prod; gtyping.
   Qed.
 

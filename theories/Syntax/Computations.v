@@ -22,8 +22,20 @@ Lemma bool_to_term_ren : forall b ρ, (bool_to_term b)⟨ρ⟩ = bool_to_term b.
 Proof.
   intros [|] ρ; reflexivity.
 Qed.
+Lemma bool_to_term_ren_alpha : forall b ρε, ren_alpha ρε (bool_to_term b) = bool_to_term b.
+Proof.
+  intros [|] ρ; reflexivity.
+Qed.
+
 
 Lemma nSucc_ren : forall n t ρ, (nSucc n t)⟨ρ⟩ = nSucc n (t⟨ρ⟩).
+Proof.
+  intros n t ρ.
+  induction n; cbn.
+  - reflexivity.
+  - now f_equal.
+Qed.
+Lemma nSucc_ren_alpha : forall n t ρε, ren_alpha ρε (nSucc n t) = nSucc n (ren_alpha ρε t).
 Proof.
   intros n t ρ.
   induction n; cbn.
@@ -35,6 +47,11 @@ Lemma nat_to_term_ren : forall n ρ, (nat_to_term n)⟨ρ⟩ = nat_to_term n.
 Proof.
   intros n ρ.
   eapply nSucc_ren.
+Qed.
+Lemma nat_to_term_ren_alpha : forall n ρε, ren_alpha ρε (nat_to_term n) = nat_to_term n.
+Proof.
+  intros n ρ.
+  eapply nSucc_ren_alpha.
 Qed.
 
 Lemma nat_to_term_inj n n' : nat_to_term n = nat_to_term n' -> n = n'.

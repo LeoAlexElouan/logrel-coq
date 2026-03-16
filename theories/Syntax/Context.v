@@ -1,5 +1,5 @@
 (** * LogRel.Syntax.Context: definition of contexts and operations on them.*)
-From Stdlib Require Import ssreflect Morphisms Setoid.
+From Stdlib Require Import ssreflect Morphisms Setoid Logic.StrictProp.
 From LogRel Require Import Utils BasicAst AutoSubst.Extra.
 From Equations Require Import Equations.
 
@@ -49,11 +49,30 @@ Proof.
   change (?A h t i) with (match cons h t as l return list_index l -> Type with nil => fun i => unit | cons h' t' => fun i => A h' t' i end i).
   destruct i; auto.
 Qed.
+Lemma index_caseS {A : Set} {h: A} {t} (P : forall h t i, SProp) : (P h t (index_0 h t)) -> (forall i, P h t (index_S h t i)) -> forall i, P h t i.
+Proof.
+  intros h0 hS i.
+  revert h0 hS.
+  pattern h, t, i.
+  change (?A h t i) with (match cons h t as l return list_index l -> SProp with nil => fun i => sUnit | cons h' t' => fun i => A h' t' i end i).
+  destruct i; auto.
+Qed.
 
 Fixpoint index_to_nat {A} {l : list A} (i : list_index l) {struct i} := match i with
   | index_0 h t => 0
   | index_S h t i => S (index_to_nat i)
   end.
+Lemma index_to_nat_inj {A}  {l : list A} {i i': list_index l} (ei : index_to_nat i = index_to_nat i') : i = i'.
+Proof.
+  induction i.
+  + induction i' using index_case.
+    - reflexivity.
+    - inversion ei.
+  + revert i ei IHi. induction i' using index_case; intros.
+    - inversion ei.
+    - inversion ei.
+      f_equal; auto.
+Qed.
 
 Coercion index_to_nat : list_index >-> nat.
 
@@ -74,7 +93,7 @@ Record context := {
   Fctx :> list Fcontext;
   }.
 
-Definition nilctx := Build_context nil nil.
+Notation nilctx := (Build_context nil nil).
 (* Definition Tcons Γ d := Build_context (cons d (Tctx Γ)) (Fctx Γ). *)
 
 
@@ -87,6 +106,7 @@ Definition fromFctx L := Build_context nil L.
 Notation "'ε'" := nilctx.
 Notation " Γ ,, d " := (Build_context (cons d (Tctx Γ)) (Fctx Γ)) (at level 20, d at next level).
 Notation " Γ ,, i : new ↦ b " := (Build_context (Tctx Γ) (Fcons (Fctx Γ) i new b)) (at level 20, new at next level, b at next level).
+Notation " Γ ,, ↦ " := (Build_context (List.map (ren_alpha S) Γ) (cons (Build_Fcontext nil wf_nil) Γ)).
 Notation " Γ ,,, Δ " := (appctx Δ Γ) (at level 25, Δ at next level, left associativity).
 
 Lemma cons_Fcons Γ A i new b : Γ,, i : new ↦ b ,, A = Γ,, A ,, i : new ↦ b. 

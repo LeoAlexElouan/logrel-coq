@@ -22,35 +22,36 @@ Section Definitions.
 
   (** **** Context well-formation *)
   Inductive WfContextDecl : context -> Type :=
-      | connil L : [ |- fromFctx L ]
-      | concons {Γ A} : 
-          [ |- Γ ] -> 
-          [ Γ |- A ] -> 
+      | connil : [ |- ε ]
+      | connew {Γ i new b} : [|-Γ] -> [|-Γ ,, i : new ↦ b]
+      | concons {Γ A} :
+          [ |- Γ ] ->
+          [ Γ |- A ] ->
           [ |-  Γ ,, A]
   (** **** Type well-formation *)
   with WfTypeDecl  : context -> term -> Type :=
-      | wfTypeU {Γ} : 
-          [ |- Γ ] -> 
-          [ Γ |- U ] 
-      | wfTypeProd {Γ} {A B} : 
-          [ Γ |- A ] -> 
-          [Γ ,, A |- B ] -> 
+      | wfTypeU {Γ} :
+          [ |- Γ ] ->
+          [ Γ |- U ]
+      | wfTypeProd {Γ} {A B} :
+          [ Γ |- A ] ->
+          [Γ ,, A |- B ] ->
           [ Γ |- tProd A B ]
-      | wfTypeNat {Γ} : 
+      | wfTypeNat {Γ} :
           [|- Γ] ->
           [Γ |- tNat]
-      | wfTypeBool {Γ} : 
+      | wfTypeBool {Γ} :
           [|- Γ] ->
           [Γ |- tBool]
-      | wfTypeEmpty {Γ} : 
+      | wfTypeEmpty {Γ} :
           [|- Γ] ->
           [Γ |- tEmpty]
-      | wfTypeTree {Γ} : 
+      | wfTypeTree {Γ} :
           [|- Γ] ->
           [Γ |- tTree]
-      | wfTypeSig {Γ} {A B} : 
-          [ Γ |- A ] -> 
-          [Γ ,, A |- B ] -> 
+      | wfTypeSig {Γ} {A B} :
+          [ Γ |- A ] ->
+          [Γ ,, A |- B ] ->
           [ Γ |- tSig A B ]
       | wftTypeId {Γ} {A x y} :
           [Γ |- A] ->
@@ -58,12 +59,12 @@ Section Definitions.
           [Γ |- y : A] ->
           [Γ |- tId A x y]
       | wfTypeUniv {Γ} {A} :
-          [ Γ |- A : U ] -> 
+          [ Γ |- A : U ] ->
           [ Γ |- A ]
-      | wfTypeSplit {Γ A new} :
-          [ Γ,, new ↦ true |- A] ->
-          [ Γ,, new ↦ false |- A] ->
-          [ Γ |- A] 
+      | wfTypeSplit {Γ A i new} :
+          [ Γ,, i : new ↦ true |- A] ->
+          [ Γ,, i : new ↦ false |- A] ->
+          [ Γ |- A]
   (** **** Typing *)
   with TypingDecl : context -> term -> term -> Type :=
       | wfVar {Γ} {n decl} :
@@ -75,7 +76,7 @@ Section Definitions.
           [Γ ,, A |- B : U ] ->
           [ Γ |- tProd A B : U ]
       | wfTermLam {Γ} {A B t} :
-          [ Γ |- A ] ->        
+          [ Γ |- A ] ->
           [ Γ ,, A |- t : B ] -> 
           [ Γ |- tLambda A t : tProd A B]
       | wfTermApp {Γ} {f a A B} :
@@ -112,9 +113,8 @@ Section Definitions.
         [Γ |- hf : P[tFalse..]] ->
         [Γ |- n : tBool] ->
         [Γ |- tBoolElim P ht hf n : P[n..]]
-      | wfTermAlpha {Γ n} :
-          [ Γ |- n : tNat] ->
-          [ Γ |- tAlpha n : tBool]
+      | wfTermAlpha {Γ i} :
+          [ Γ |- tAlpha i : arr tNat tBool]
       | wfTermEmpty {Γ} :
           [|-Γ] ->
           [Γ |- tEmpty : U]
@@ -176,9 +176,9 @@ Section Definitions.
           [ Γ |- t : A ] -> 
           [ Γ |- A ≅ B ] -> 
           [ Γ |- t : B ]
-      | wfTermSplit {Γ t A new} :
-          [ Γ,, new ↦ true |- t : A] ->
-          [ Γ,, new ↦ false |- t : A] ->
+      | wfTermSplit {Γ t A i new} :
+          [ Γ,, i : new ↦ true |- t : A] ->
+          [ Γ,, i : new ↦ false |- t : A] ->
           [ Γ |- t : A]
   (** **** Conversion of types *)
   with ConvTypeDecl : context -> term -> term  -> Type :=  
@@ -211,9 +211,9 @@ Section Definitions.
           [ Γ |- A ≅ B] ->
           [ Γ |- B ≅ C] ->
           [ Γ |- A ≅ C]
-      | TypeSplit {Γ A B new} :
-          [ Γ,, new ↦ true |- A ≅ B] ->
-          [ Γ,, new ↦ false |- A ≅ B] ->
+      | TypeSplit {Γ A B i new} :
+          [ Γ,, i : new ↦ true |- A ≅ B] ->
+          [ Γ,, i : new ↦ false |- A ≅ B] ->
           [ Γ |- A ≅ B]
   (** **** Conversion of terms *)
   with ConvTermDecl : context -> term -> term -> term -> Type :=
@@ -239,7 +239,7 @@ Section Definitions.
           [ Γ |- tLambda A' t ≅ tLambda A'' u : tProd A B ]
       | TermFunEta {Γ} {f A B} :
           [ Γ |- f : tProd A B ] ->
-          [ Γ |- tLambda A (eta_expand f) ≅ f : tProd A B ]
+          [ Γ |- tLambda A (eta_expand' Γ A f) ≅ f : tProd A B ]
       | TermSuccCong {Γ} {n n'} :
           [Γ |- n ≅ n' : tNat] ->
           [Γ |- tSucc n ≅ tSucc n' : tNat]
@@ -276,12 +276,11 @@ Section Definitions.
           [Γ |- ht : P[tTrue..]] ->
           [Γ |- hf : P[tFalse..]] ->
           [Γ |- tBoolElim P ht hf tFalse ≅ hf : P[tFalse..]]
-      | TermAlphaCong {Γ} {n n'} :
-          [ Γ |- n ≅ n' : tNat] ->
-          [ Γ |- tAlpha n ≅ tAlpha n' : tBool]
-      | TermAlphaConv {Γ n b} :
+      | TermAlphaCong {Γ i} :
+          [ Γ |- tAlpha i ≅ tAlpha i : arr tNat tBool]
+      | TermAlphaConv {Γ i n b} :
           [|-Γ] ->
-          in_Fctx Γ n b -> [ Γ |- tAlpha (nat_to_term n) ≅ bool_to_term b : tBool ]
+          in_Fctx (list_at Γ i) n b -> [ Γ |- tApp (tAlpha i) (nat_to_term n) ≅ bool_to_term b : tBool ]
       | TermEmptyElimCong {Γ P P' e e'} :
           [Γ ,, tEmpty |- P ≅ P'] ->
           [Γ |- e ≅ e' : tEmpty] ->
@@ -400,9 +399,9 @@ Section Definitions.
           [ Γ |- t ≅ t' : A ] ->
           [ Γ |- t' ≅ t'' : A ] ->
           [ Γ |- t ≅ t'' : A ]
-      | TermSplit {Γ t t' A new} :
-          [ Γ,, new ↦ true |- t ≅ t' : A] ->
-          [ Γ,, new ↦ false |- t ≅ t' : A] ->
+      | TermSplit {Γ t t' A i new} :
+          [ Γ,, i : new ↦ true |- t ≅ t' : A] ->
+          [ Γ,, i : new ↦ false |- t ≅ t' : A] ->
           [ Γ |- t ≅ t' : A]
       
   where "[   |- Γ ]" := (WfContextDecl Γ)
@@ -465,9 +464,9 @@ Section Definitions.
       [Γ |- hf ≅ hf' : P[tFalse..]] ->
       [Γ |- tBoolElim P ht hf n ~ tBoolElim P' ht' hf' n' : P[n..]]
 
-  | neuConvAlpha {k n n'} :
+  | neuConvAlpha {k i n n'} :
       [Γ |- n ~ n' : tNat] ->
-      [Γ |- tAlpha (nSucc k n) ~ tAlpha (nSucc k n') : tBool]
+      [Γ |- tApp (tAlpha i) (nSucc k n) ~ tApp (tAlpha i) (nSucc k n') : tBool]
 
   | neuConvEmpty {P P' e e'} :
       [Γ ,, tEmpty |- P ≅ P'] ->
@@ -619,18 +618,27 @@ End InductionPrinciples.
 
 Arguments WfDeclInductionConcl PCon PTy PTm PTyEq PTmEq : rename.
 
-Lemma consplit Γ new : [|-Γ,, new ↦ true] -> [|-Γ,, new ↦ false] -> [|-Γ].
+Lemma consplit Γ i new : [|-Γ,, i : new ↦ true] -> [|-Γ,, i: new ↦ false] -> [|-Γ].
 Proof.
   intros Ht Hf.
-  destruct Γ.
-  induction Tctx.
-  - constructor.
+  destruct Γ as [Γ L]; cbn in *.
+  inversion Ht.
+  * destruct i; inversion H1.
+  * 
+  induction Γ.
+  -  Ht.
+    * destruct i; inversion H0.
+    * destruct Γ as [Γ L']; cbn in *; subst.
+    induction i; cbn in *.
+    * inversion Ht; destruct Γ; cbn in *; subst.
+    * unfold Fcons in H0. inversion H0.
+    constructor.
   - set (Γ := Build_context Tctx Fctx) in *.
     change (Build_context (cons a Tctx) Fctx) with (Γ,,a) in *.
     inversion Ht; destruct Γ0; cbn in *; subst.
-    change (Build_context Tctx (Fcons' Fctx new true)) with (Γ,, new ↦ true) in *.
+    change (Build_context Tctx (Fcons Fctx i new true)) with (Γ,, i :new ↦ true) in *.
     inversion Hf; destruct Γ0; cbn in *; subst.
-    change (Build_context Tctx (Fcons' Fctx new false)) with (Γ,, new ↦ false) in *.
+    change (Build_context Tctx (Fcons Fctx i new false)) with (Γ,, i: new ↦ false) in *.
     change (Build_context (cons a Tctx) Fctx) with (Γ,,a) in *.
     constructor.
     * now eapply IHTctx.

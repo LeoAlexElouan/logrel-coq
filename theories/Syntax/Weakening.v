@@ -2,7 +2,7 @@
 From Stdlib Require Import Lia ssrbool.
 From Equations Require Import Equations.
 From LogRel Require Import Utils AutoSubst.Extra Notations.
-From LogRel.Syntax Require Import BasicAst Context NormalForms.
+From LogRel.Syntax Require Import BasicAst Context NormalForms Computations.
 
 (** ** Raw weakenings *)
 
@@ -111,22 +111,22 @@ Proof.
     now specialize (IHw1 w2) as [].
 Qed.
 
-Fixpoint well_Fweak_to_ren_index {L L' ρε} (wρε : well_Fweakening ρε L L')
+Fixpoint ren_index {L L' ρε} (wρε : well_Fweakening ρε L L')
   {struct wρε} : list_index L' -> list_index L :=
     match wρε in well_Fweakening ρε Lw Lw' return list_index Lw' -> list_index Lw with
     | well_emptyF => fun i =>
         match i in list_index Li return (match Li with nil => list_index nil | cons _ _ => unit end) with
         index_0 _ _ | index_S _ _ _=> tt end
-    | well_stepF F ρ wρ => fun i => index_S _ _ (well_Fweak_to_ren_index wρ i)
+    | well_stepF F ρ wρ => fun i => index_S _ _ (ren_index wρ i)
     | well_upF F F' ρ wρ wF => fun i => 
         (match i in list_index Li return
           (match Li with nil => unit |
             cons Fi Li' => (list_index Li' -> list_index _) -> list_index (cons F _) end) with
         | index_0 h t => fun w => index_0 _ _
-        | index_S _ _ i' => fun IH => index_S _ _ (IH i')  end) (well_Fweak_to_ren_index wρ)
+        | index_S _ _ i' => fun IH => index_S _ _ (IH i')  end) (ren_index wρ)
     end.
-Lemma to_ren_index_to_ren L L' ρε (wρε : well_Fweakening ρε L L')
-  (i : list_index L') : index_to_nat (well_Fweak_to_ren_index wρε i) = wk_to_ren ρε (index_to_nat i).
+Lemma ren_index_to_ren L L' ρε (wρε : well_Fweakening ρε L L')
+  (i : list_index L') : index_to_nat (ren_index wρε i) = wk_to_ren ρε (index_to_nat i).
 Proof.
   induction wρε.
   + inversion i.
@@ -137,6 +137,17 @@ Proof.
     - intros. cbn. reflexivity.
     - intros. cbn. eapply (f_equal S), IHwρε.
 Qed.
+Lemma well_Fwk_in (L L' : list Fcontext) (ρε : Fweakening) (wρε : well_Fweakening ρε L' L) (i : list_index L)
+  (n : nat) (b : bool) (hin : in_Fctx (list_at L i) n b) :
+  in_Fctx (list_at L' (ren_index wρε i)) n b.
+Proof.
+  induction wρε.
+  + inversion i.
+  + cbn. auto.
+  + revert wρε f hin IHwρε. induction i using index_caseS; intros.
+    - cbn in *. eapply f, hin.
+    - cbn in *. eapply IHwρε, hin.
+Qed.
 
 (** ** Well-formed weakenings between two contexts *)
 
@@ -144,17 +155,17 @@ Qed.
 a predicate on raw weakenings defined above, rather than directly
 using indexed weakenings. *)
 
-Inductive well_weakening {L L' ρε} (wρε : well_Fweakening ρε L L'):
+Inductive well_weakening (ρε : Fweakening) :
     weakening -> Tcontext -> Tcontext -> Type :=
-  | well_empty : well_weakening wρε _wk_empty nil nil
+  | well_empty : well_weakening ρε _wk_empty nil nil
   | well_step {Γ Δ : Tcontext} (A : term) (ρ : weakening) :
-    well_weakening wρε ρ Γ Δ -> well_weakening wρε (_wk_step ρ) (cons A Γ) Δ
+    well_weakening ρε ρ Γ Δ -> well_weakening ρε (_wk_step ρ) (cons A Γ) Δ
   | well_up {Γ Δ : Tcontext} (A : term) (ρ : weakening) :
-    well_weakening wρε ρ Γ Δ -> well_weakening wρε (_wk_up ρ) (cons A⟨ρ;wk_to_ren ρε⟩ Γ) (cons A Δ).
+    well_weakening ρε ρ Γ Δ -> well_weakening ρε (_wk_up ρ) (cons A⟨ρ;wk_to_ren ρε⟩ Γ) (cons A Δ).
 
 Derive Signature for well_weakening.
 
-Lemma well_wk_irr {L L' ρε} (wρε : well_Fweakening ρε L L'): forall ρ Γ Δ (w1 w2 : well_weakening wρε ρ Γ Δ), w1 = w2.
+Lemma well_wk_irr {ρε} : forall ρ Γ Δ (w1 w2 : well_weakening ρε ρ Γ Δ), w1 = w2.
 Proof.
 induction w1.
 + now depelim w2.
@@ -170,7 +181,7 @@ Proof.
   eapply Fwk_id.
 Qed.
 
-Lemma well_wk_id {L} (Γ : Tcontext) : well_weakening (@well_Fwk_id L) (_wk_id Γ) Γ Γ.
+Lemma well_wk_id {L : list Fcontext} (Γ : Tcontext) : well_weakening (_wk_id L) (_wk_id Γ) Γ Γ.
 Proof.
   induction Γ as [|d].
   1: econstructor.
@@ -199,8 +210,8 @@ Proof.
 Qed.
 
 
-Lemma well_wk_compose {L L' L''} {ρε ρε'} {wρε : well_Fweakening ρε L L'} {wρε' : well_Fweakening ρε' L' L''} {ρ ρ' : weakening} {Δ Δ' Δ'' : Tcontext} :
-  well_weakening wρε ρ Δ Δ' -> well_weakening wρε' ρ' Δ' Δ'' -> well_weakening (well_Fwk_compose wρε wρε') (wk_compose ρ ρ') Δ Δ''.
+Lemma well_wk_compose {ρε ρε'} {ρ ρ' : weakening} {Δ Δ' Δ'' : Tcontext} :
+  well_weakening ρε ρ Δ Δ' -> well_weakening ρε' ρ' Δ' Δ'' -> well_weakening (wk_compose ρε ρε') (wk_compose ρ ρ') Δ Δ''.
 Proof.
   intros H H'.
   induction H as [| | ? ? ? ν] in ρ', Δ'', H' |- *.
@@ -221,7 +232,7 @@ Qed.
   Fwk :> Fweakening;
   well_Fwk :> well_Fweakening Fwk (Fctx Γ) (Fctx Δ);
   wk :> weakening ;
-  well_wk :> well_weakening well_Fwk wk (Tctx Γ) (Tctx Δ)
+  well_wk :> well_weakening Fwk wk (Tctx Γ) (Tctx Δ)
 }.
 Arguments wk_well_wk : clear implicits.
 Arguments Build_wk_well_wk : clear implicits.
@@ -265,7 +276,7 @@ Smpl Add 10 change_well_wk : refold.
 (** Constructors of well-typed weakenings *)
 (* Definition Fwk_empty : ε ≤ε ε := fun n b hin => hin. *)
 Definition wk_empty : (ε ≤ ε) :=
-  Build_wk_well_wk ε ε _wk_empty well_emptyF _wk_empty (well_empty well_emptyF).
+  Build_wk_well_wk ε ε _wk_empty well_emptyF _wk_empty (well_empty _).
 
 
 (* Definition _Fwk_step {Γ Δ : context} {A}: Γ ≤ε Δ -> (Γ,,A) ≤ε Δ := fun ρ n b hin => (ρ n b hin). (* For symmetry. Fwk_id should always work *) *)
@@ -283,8 +294,12 @@ Definition wk_id {Γ} : Γ ≤ Γ :=
 (* Definition wk_Fwk {Γ: context} {L} (ρF : L ≤ε Γ) : (Build_context Γ L) ≤ Γ :=
   Build_wk_well_wk (Build_context Γ L) _ (_wk_id Γ) (well_wk_id Γ) ρF. *)
 
-Definition wk_well_wk_compose {Γ Γ' Γ'' : context} (ρ : Γ ≤ Γ') (ρ' : Γ' ≤ Γ'') : Γ ≤ Γ'' :=
-  Build_wk_well_wk Γ Γ'' (wk_compose ρ.(Fwk) ρ'.(Fwk)) (well_Fwk_compose ρ ρ') (wk_compose ρ.(wk) ρ'.(wk)) (well_wk_compose ρ.(well_wk) ρ'.(well_wk)).
+Definition wk_well_wk_compose {Γ Γ' Γ'' : context} (ρ : Γ ≤ Γ') (ρ' : Γ' ≤ Γ'') : Γ ≤ Γ'' := {|
+  Fwk := wk_compose ρ.(Fwk) ρ'.(Fwk);
+  well_Fwk := well_Fwk_compose ρ ρ';
+  wk := wk_compose ρ.(wk) ρ'.(wk);
+  well_wk := well_wk_compose ρ.(well_wk) ρ'.(well_wk)
+  |}.
 Notation "ρ ∘w ρ'" := (wk_well_wk_compose ρ ρ').
 
 (** ** The ubiquitous operation of adding one variable at the end of a context *)
@@ -616,6 +631,11 @@ Proof.
   now bsimpl.
 Qed.
 
+Lemma subst_ren_alpha {P n} ρε : ren_alpha ρε P[n..] = (ren_alpha ρε P)[(ren_alpha ρε n)..].
+Proof.
+  now bsimpl.
+Qed.
+
 Lemma subst_ren_wk_up {Γ Δ P A n} (ρ : Γ ≤ Δ): P[n..]⟨ρ⟩ = P⟨wk_up A ρ⟩[n⟨ρ⟩..].
 Proof.
   now bsimpl.
@@ -646,7 +666,7 @@ Proof. now bsimpl. Qed. *)
 (* Lemma shift_subst_scons {B a Γ Δ} (ρ : Δ ≤ Γ) : B⟨↑⟩[a .: ρ >> tRel] = B⟨ρ⟩.
 Proof. bsimpl; now rewrite rinstInst'_term. Qed. *)
 
-Lemma shift_subst1 {B a} : B⟨↑⟩[a..] = B.
+Lemma shift_subst1' {B a} : B⟨↑⟩[a..] = B.
 Proof. now bsimpl. Qed.
 
 Lemma shift_upRen ρ t : t⟨ρ⟩⟨↑⟩ = t⟨↑⟩⟨upRen_term_term ρ⟩.
@@ -662,18 +682,37 @@ Proof. bsimpl. unfold _wk_id. now bsimpl. Qed.
 Lemma wk1_ren_on Γ F (H : term) : H⟨@wk1 Γ F⟩ = H⟨↑⟩.
 Proof. now bsimpl. Qed.
 
-(* Lemma wk_up_ren_on Γ Δ (ρ : Γ ≤ Δ) F (H : term) : H⟨wk_up F ρ⟩ = H⟨upRen_term_term ρ⟩.
-Proof. bsimpl. Qed. *)
+Lemma shift_subst1 {Γ A B a} : B⟨@wk1 Γ A⟩[a..] = B.
+Proof. now rewrite wk1_ren_on, shift_subst1'. Qed.
+
+Lemma wk_up_ren_on Γ Δ (ρ : Γ ≤ Δ) F (H : term) : H⟨wk_up F ρ⟩ = H⟨upRen_term_term ρ; Fwk ρ⟩.
+Proof. reflexivity. Qed.
 
 (* Lemma wk_up_wk1_ren_on Γ F G (H : term) : H⟨wk_up F (@wk1 Γ G)⟩ = H⟨upRen_term_term ↑⟩.
 Proof. now bsimpl. Qed.
  *)
 
-Lemma wk_arr {A B Γ Δ} (ρ : Δ ≤ Γ) : arr A⟨ρ⟩ B⟨ρ⟩ = (arr A B)⟨ρ⟩.
+
+Lemma wk_step_wk1 {A Γ Δ} {t : term} (ρ : Δ ≤ Γ) :  t⟨ρ⟩⟨@wk1 Δ A⟩ = t⟨wk_step A ρ⟩.
+Proof.  now bsimpl. Qed.
+
+Lemma wk_up_wk1 {A Γ Δ} {t : term} (ρ : Δ ≤ Γ) :  t⟨ρ⟩⟨@wk1 Δ A⟨ρ⟩⟩ = t⟨@wk1 Γ A⟩⟨wk_up A ρ⟩.
 Proof. now bsimpl. Qed.
+
+Lemma wk1_eta {Γ A t} : t⟨wk_up A (@wk1 Γ A)⟩[(tRel 0)..] = t.
+Proof. now bsimpl. Qed.
+
+
+Notation eta_expand' Γ A f := (tApp f⟨@wk1 Γ A⟩ (tRel 0)) (only parsing).
 
 Lemma wk_prod {A B Γ Δ} (ρ : Δ ≤ Γ) : tProd A⟨ρ⟩ B⟨wk_up A ρ⟩ = (tProd A B)⟨ρ⟩.
 Proof. reflexivity. Qed.
+
+Lemma wk_arr {A B Γ Δ} (ρ : Δ ≤ Γ) : arr A⟨ρ⟩ B⟨ρ⟩ = (arr A B)⟨ρ⟩.
+Proof. now bsimpl. Qed.
+Notation arr' Γ A B := (tProd A B⟨@wk1 Γ A⟩).
+Lemma wk_arr' {A B Γ Δ} (ρ : Δ ≤ Γ) : arr' Δ A⟨ρ⟩ B⟨ρ⟩ = (arr' Γ A B)⟨ρ⟩.
+Proof. now rewrite wk_up_wk1. Qed.
 
 Lemma wk_lam {A t Γ Δ} (ρ : Δ ≤ Γ) : tLambda A⟨ρ⟩ t⟨wk_up A ρ⟩ = (tLambda A t)⟨ρ⟩.
 Proof. reflexivity. Qed.
@@ -695,57 +734,53 @@ Proof. reflexivity. Qed.
 
 Lemma wk_comp {Γ Δ A f g} (ρ : Δ ≤ Γ) : (comp A f g)⟨ρ⟩ = comp A⟨ρ⟩ f⟨ρ⟩ g⟨ρ⟩.
 Proof. now bsimpl. Qed.
+Notation comp' Γ A f g := (tLambda A (tApp f⟨@wk1 Γ A⟩ (tApp g⟨@wk1 Γ A⟩ (tRel 0)))).
+Lemma wk_comp' {Γ Δ A f g} (ρ : Δ ≤ Γ) : (comp' Γ A f g)⟨ρ⟩ = comp' Δ A⟨ρ⟩ f⟨ρ⟩ g⟨ρ⟩.
+Proof. now rewrite 2wk_up_wk1. Qed.
 
 Lemma wk_emptyElim {Γ Δ P n} (ρ : Δ ≤ Γ) :
   tEmptyElim P⟨wk_up tEmpty ρ⟩ n⟨ρ⟩ = (tEmptyElim P n)⟨ρ⟩.
 Proof. reflexivity. Qed.
 
+Lemma wk_nSucc {n t Γ Δ} (ρ : Δ ≤ Γ) : (nSucc n t)⟨ρ⟩ = nSucc n t⟨ρ⟩.
+Proof. unfold ren1, Ren1_well_wk. now rewrite nSucc_ren_alpha, nSucc_ren. Qed.
+Lemma wk_nat_to_term {n Γ Δ} (ρ : Δ ≤ Γ) : (nat_to_term n)⟨ρ⟩ = nat_to_term n.
+Proof. eapply (wk_nSucc (t:= tZero)). Qed.
+Lemma wk_succ {n Γ Δ} (ρ : Δ ≤ Γ) : (tSucc n)⟨ρ⟩ = tSucc n⟨ρ⟩.
+Proof. reflexivity. Qed.
 Lemma wk_elimSuccHypTy {P Γ Δ} A (ρ : Δ ≤ Γ) :
   elimSuccHypTy P⟨wk_up A ρ⟩ = (elimSuccHypTy P)⟨ρ⟩.
 Proof.
-  unfold elimSuccHypTy; cbn; f_equal; f_equal; now bsimpl.
+  unfold elimSuccHypTy; cbn; f_equal; f_equal. now bsimpl.
 Qed.
-
-Lemma wk_elimLeafHypTy {P Γ Δ} A (ρ : Δ ≤ Γ) :
-  elimLeafHypTy P⟨wk_up A ρ⟩ = (elimLeafHypTy P)⟨ρ⟩.
-Proof.
-  unfold elimLeafHypTy; cbn. f_equal ; now bsimpl.
-Qed.
-
-Lemma wk_elimNodeHypTy {P Γ Δ} A (ρ : Δ ≤ Γ) :
-  elimNodeHypTy P⟨wk_up A ρ⟩ = (elimNodeHypTy P)⟨ρ⟩.
-Proof.
-  unfold elimNodeHypTy; cbn; f_equal; f_equal; f_equal; f_equal; [ | f_equal]; now bsimpl.
-Qed.
-
 Lemma wk_natElim {Γ Δ P hz hs n} (ρ : Δ ≤ Γ) :
   tNatElim P⟨wk_up tNat ρ⟩ hz⟨ρ⟩ hs⟨ρ⟩ n⟨ρ⟩ = (tNatElim P hz hs n)⟨ρ⟩.
 Proof. reflexivity. Qed.
 
+Lemma wk_elimLeafHypTy {P Γ Δ} A (ρ : Δ ≤ Γ) :
+  elimLeafHypTy P⟨wk_up A ρ⟩ = (elimLeafHypTy P)⟨ρ⟩.
+Proof. unfold elimLeafHypTy; cbn. f_equal ; now bsimpl. Qed.
+Lemma wk_elimNodeHypTy {P Γ Δ} A (ρ : Δ ≤ Γ) :
+  elimNodeHypTy P⟨wk_up A ρ⟩ = (elimNodeHypTy P)⟨ρ⟩.
+Proof. unfold elimNodeHypTy; cbn; f_equal; f_equal; f_equal; f_equal; [ | f_equal]; now bsimpl. Qed.
 Lemma wk_treeElim {Γ Δ P hl hn t} (ρ : Δ ≤ Γ) :
   tTreeElim P⟨wk_up tTree ρ⟩ hl⟨ρ⟩ hn⟨ρ⟩ t⟨ρ⟩ = (tTreeElim P hl hn t)⟨ρ⟩.
 Proof. reflexivity. Qed.
 
+Lemma wk_bool_to_term {n Γ Δ} (ρ : Δ ≤ Γ) : (bool_to_term n)⟨ρ⟩ = bool_to_term n.
+Proof. unfold ren1, Ren1_well_wk. now rewrite bool_to_term_ren_alpha, bool_to_term_ren. Qed.
 Lemma wk_boolElim {Γ Δ P hz hs n} (ρ : Δ ≤ Γ) :
   tBoolElim P⟨wk_up tBool ρ⟩ hz⟨ρ⟩ hs⟨ρ⟩ n⟨ρ⟩ = (tBoolElim P hz hs n)⟨ρ⟩.
 Proof. reflexivity. Qed.
 
 Lemma wk_Id {A x y Γ Δ} (ρ : Δ ≤ Γ) : tId A⟨ρ⟩ x⟨ρ⟩ y⟨ρ⟩ = (tId A x y)⟨ρ⟩.
 Proof. reflexivity. Qed.
-
 Lemma wk_refl {A x Γ Δ} (ρ : Δ ≤ Γ) : tRefl A⟨ρ⟩ x⟨ρ⟩ = (tRefl A x)⟨ρ⟩.
 Proof. reflexivity. Qed.
-
 Lemma wk_idElim {A x P hr y e Δ Γ} (ρ : Δ ≤ Γ) :
   tIdElim A⟨ρ⟩ x⟨ρ⟩ P⟨wk_up (tId A⟨@wk1 Γ A⟩ x⟨@wk1 Γ A⟩ (tRel 0)) (wk_up A ρ)⟩ hr⟨ρ⟩ y⟨ρ⟩ e⟨ρ⟩ = (tIdElim A x P hr y e)⟨ρ⟩.
 Proof. reflexivity. Qed.
 
-
-Lemma wk_step_wk1 {A Γ Δ} {t : term} (ρ : Δ ≤ Γ) :  t⟨ρ⟩⟨@wk1 Δ A⟩ = t⟨wk_step A ρ⟩.
-Proof. now bsimpl. Qed.
-
-Lemma wk_up_wk1 {A Γ Δ} {t : term} (ρ : Δ ≤ Γ) :  t⟨ρ⟩⟨@wk1 Δ A⟨ρ⟩⟩ = t⟨@wk1 Γ A⟩⟨wk_up A ρ⟩.
-Proof. now bsimpl. Qed.
 
 
 
@@ -766,7 +801,7 @@ Proof.
     - specialize (Heq 0); discriminate Heq.
     - destruct Γ as [Γ L], Δ as [Γ' L']; cbn in *.
       depelim wρ1; depelim wρ2.
-      refine (IHρ1 (Build_context Γ0 L) (Build_context Γ' L') _ _ wρ1 _ _ _ wρ2 _ HFeq).
+      refine (IHρ1 (Build_context Γ0 L) (Build_context Γ' L') _ _ wρ1 _ _ _ wρ2 _ HFeq); tea.
       intros n; specialize (Heq n).
       now injection Heq.
     - specialize (Heq 0); discriminate Heq.
@@ -847,6 +882,7 @@ Lemma liftSubstComm Γ F G t σ : G[t]⇑[σ] = G[t[σ] .: @wk1 Γ F >> σ].
 Proof. rewrite wk1_ren; eapply liftSubstComm'. Qed. *)
 
 
+
 Lemma Fwk_new {L L' : Fcontext} (new : newnat L) b :  L' ≤ε L -> in_Fctx L' new b ->  L' ≤ε (Fcons' L new b).
 Proof.
   intros Fρ hin n' b' hin'.
@@ -857,10 +893,10 @@ Proof.
 Defined.
 
 Lemma wk_new : forall {Γ Δ: context} i (new : newnat (list_at Γ i)) b (ρ : Δ ≤ Γ),
-  in_Fctx (list_at Δ (well_Fweak_to_ren_index ρ i)) new b -> Δ ≤ (Γ,, i : new ↦ b).
+  in_Fctx (list_at Δ (ren_index ρ i)) new b -> Δ ≤ (Γ,, i : new ↦ b).
 Proof.
   intros Γ Δ i new b ρ hin.
-  unshelve refine (Build_wk_well_wk _ _ (Fwk ρ) _ (wk ρ) _).
+  refine (Build_wk_well_wk _ _ (Fwk ρ) _ (wk ρ) _).
   + destruct Γ as [Γ L], Δ as [Δ L'], ρ as [ρε wρε ρ wρ]; cbn in *.
     clear ρ wρ.
     induction wρε; cbn in *.
@@ -871,11 +907,7 @@ Proof.
       * constructor; tea.
         now eapply Fwk_new.
       * constructor; tea. eapply IHwρε, hin.
-  + destruct Γ as [Γ L], Δ as [Δ L'], ρ as [ρε wρε ρ wρ]; cbn in *.
-    induction wρ; cbn in *.
-    - constructor.
-    - now constructor.
-    - now constructor.
+  + apply ρ.
 Defined.
 
 Lemma Fwk_Fup : forall {L L'} b (Fρ :  L' ≤ε L) (new : newnat L) (new' : newnat L'),
@@ -887,46 +919,53 @@ Proof.
   now apply ρε.
 Defined.
 
-Lemma wk_Fup : forall {Γ Δ} b (ρ : Δ ≤ Γ ) (new : newnat Γ) (new' : newnat Δ),
-  new = new' :> nat -> (Δ,, new' ↦ b) ≤ (Γ,, new ↦ b).
+Lemma wk_Fup : forall {Γ Δ} b (ρ : Δ ≤ Γ ) i (new : newnat (list_at Γ i))
+  (new' : newnat (list_at Δ (ren_index ρ i))),
+  new = new' :> nat -> (Δ,, (ren_index ρ i) : new' ↦ b) ≤ (Γ,, i : new ↦ b).
 Proof.
-  intros * ρ new new' e.
-  apply (Build_wk_well_wk _ _ (wk ρ)).
-  apply (well_wk ρ).
-  eapply Fwk_Fup.
-  apply ρ.
-  apply e.
+  intros * e.
+  destruct ρ as [ρε wρε ρ wρ]; cbn.
+  unshelve eapply (Build_wk_well_wk _ _ ρε _ ρ), wρ.
+  destruct Γ as [Γ L], Δ as [Δ L']; cbn in *.
+  clear ρ wρ.
+  induction wρε.
+  - inversion i.
+  - cbn. constructor.
+    eapply IHwρε, e.
+  - revert wρε f new new' e IHwρε.
+    induction i using index_case; intros; cbn.
+    * constructor; tea.
+      now eapply Fwk_Fup.
+    * constructor; tea.
+      eapply IHwρε, e.
 Defined.
 
-(* 
-Lemma Fwk_Fup : forall {L L'} b n (Fρ :  L' ≤ε L) (newL : not_in_Fctx L n) (newL' : not_in_Fctx L' n),
-   (Fcons' L' (Build_newnat _ n newL') b) ≤ε (Fcons' L (Build_newnat _ n newL) b).
-Proof.
-  intros L L' b n Fρ newL newL' n' b' hin'.
-  inversion hin'; subst; constructor.
-  now apply Fρ.
-Defined.
-
-Lemma wk_Fup : forall {Γ Δ} b n (ρ : Δ ≤ Γ ) (newΓ : not_in_Fctx Γ n) (newΔ : not_in_Fctx Δ n),
-  (Δ,, (Build_newnat _ n newΔ) ↦ b) ≤ (Γ,, (Build_newnat _ n newΓ)↦ b).
-Proof.
-  intros Γ Δ b n ρ newΓ newΔ.
-  apply (Build_wk_well_wk _ _ (wk ρ)).
-  apply (well_wk ρ).
-  eapply Fwk_Fup.
-  apply ρ.
-Defined. *)
 
 Definition Fwk_Fstep {L L':Fcontext} (new : newnat L') b :  L' ≤ε L ->  (Fcons' L' new b) ≤ε L:=
   fun Fρ n b hin => in_thereF _ _ _ _ _ (Fρ _ _ hin).
 
-Definition wk_Fstep {Γ Δ} new b (ρ : Γ ≤ Δ) : (Γ,,new ↦ b) ≤ Δ :=
-  Build_wk_well_wk (Γ,,new ↦ b) Δ ρ ρ (Fwk_Fstep _ _ ρ).
+Lemma wk_Fstep {Γ Δ} i new b (ρ : Γ ≤ Δ) : (Γ,, i : new ↦ b) ≤ Δ.
+Proof.
+  destruct ρ as [ρε wρε ρ wρ]; cbn.
+  refine (Build_wk_well_wk (Γ,, i : new ↦ b) Δ ρε _ _ wρ).
+  destruct Γ as [Γ L], Δ as [Δ L']; cbn in *.
+  clear ρ wρ.
+  induction wρε as [|????ρε|].
+  + inversion i.
+  + induction i using index_case.
+    - cbn; now constructor.
+    - cbn; constructor. eapply IHwρε.
+  + induction i using index_case.
+    - cbn; constructor; tea.
+      eapply Fwk_Fstep, f.
+    - cbn; constructor; tea.
+      eapply IHwρε.
+Qed.
 
-Definition wk_Fstep_ren_on {Γ Δ} new b (ρ : Γ ≤ Δ) t: t⟨wk_Fstep new b ρ⟩ = t⟨ρ⟩.
+(* Definition wk_Fstep_ren_on {Γ Δ} new b (ρ : Γ ≤ Δ) t: t⟨wk_Fstep new b ρ⟩ = t⟨ρ⟩.
 Proof.
   reflexivity.
-Qed.
+Qed. *)
 
 Lemma wk_new_notin {L L':Fcontext} (new : newnat L') : L' ≤ε L -> not_in_Fctx L new.
 Proof.

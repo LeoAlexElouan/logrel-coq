@@ -57,9 +57,9 @@ Qed.
 
 Theorem section_wk {Γ Δ} (ρ : Γ ≤ Δ) : section ρ.
 Proof.
-  destruct Γ, Δ.
-  destruct ρ as [ρ Hρ]; cbn.
-  induction Hρ ; cbn in *.
+  destruct Γ as [Γ L], Δ as [Δ L']; cbn.
+  destruct ρ as [ρε wρε ρ wρ]; cbn.
+  induction wρ ; cbn in *.
   - apply section_id.
   - apply section_compose ; tea.
     apply section_S.
@@ -72,7 +72,7 @@ Notation "ρ ⁻¹" := (section_wk ρ) (at level 80).
   (Ren1 (section f) Y Z) := fun s t => t⟨s.(sec_fun)⟩.
 
 Arguments Ren1_sec {_ _ _} _ _/.
-
+(* 
 Lemma wk_section {Γ Δ} (ρ : Γ ≤ Δ) (t : term) :
   t⟨ρ⟩⟨ρ⁻¹⟩ = t.
 Proof.
@@ -82,4 +82,4 @@ Proof.
   eapply extRen_term.
   cbn.
   apply (ρ⁻¹).
-Qed.
+Qed. *)

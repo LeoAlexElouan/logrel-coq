@@ -26,11 +26,12 @@ Notation "s ⟨ xi1 ⟩" := (ren1 xi1 s) (at level 7, left associativity, format
 
 Notation "s [ sigma ]" := (subst1 sigma s) (at level 7, left associativity, format "s '/' [ sigma ]") : asubst_scope.
 
-Notation "s [ t ]⇑" := (subst_term (scons t (shift >> tRel)) s) (at level 7, left associativity, format "s '/' [ t ]⇑") : asubst_scope.
-
 Notation "s '..'" := (scons s ids) (at level 1, format "s ..") : asubst_scope.
 
 Notation "↑" := (shift) : asubst_scope.
+
+(* Notation "s [ t ]⇑" := (subst_term (scons t (shift >> tRel)) s) (at level 7, left associativity, format "s '/' [ t ]⇑") : asubst_scope. *)
+Notation "s [ t ]⇑" := (subst1 (scons t ids) (ren1 (upRen_term_term shift) s)) (at level 7, only parsing, left associativity) : asubst_scope.
 
 #[global] Open Scope asubst_scope.
 
@@ -100,14 +101,12 @@ Proof. now asimpl. Qed.
 
 
 Lemma up_liftSubst_eq {σ t u} : t[up_term_term σ][u]⇑ = t[u .: ↑ >> up_term_term σ].
-Proof.
-  asimpl. eapply ext_term; intros [|n]; cbn.
-  1: reflexivity.
-  unfold funcomp; now rewrite  rinstInst'_term.
+Proof. Search upRen_term_term.
+  asimpl. cbn. now rewrite rinstInst'_term_pointwise.
 Qed.
 
 Lemma liftSubst_scons_eq {t u v: term} σ : t[u]⇑[v .: σ] = t[u[v .: σ] .: σ].
-Proof. now asimpl. Qed.
+Proof.  now asimpl. Qed.
 
 Definition elimSuccHypTy P :=
   tProd tNat (arr P P[tSucc (tRel 0)]⇑).
