@@ -10,18 +10,18 @@ Inductive DTree (L : Fcontext) : Set :=
 
 Arguments node {_ _}.
 
-Fixpoint overtree {L} (d : DTree L) L' : SProp :=
+Fixpoint overtree0 {L} (d : DTree L) L' : SProp :=
   match d with
   | leaf _ => L' ≤ε L
   | @node _ new dt df =>
     match decide_in L' new with
-    | is_in true _ => overtree dt L'
-    | is_in false _ => overtree df L'
+    | is_in true _ => overtree0 dt L'
+    | is_in false _ => overtree0 df L'
     | is_notin _ => SFalse
     end
   end.
 
-Lemma overtree_Fwk {L L'} {d : DTree L} : overtree d L' -> L' ≤ε L.
+Lemma overtree_Fwk {L L'} {d : DTree L} : overtree0 d L' -> L' ≤ε L.
 Proof.
   induction d as [ | L new Lt iht Lf ihf] ; cbn ; intros H ; auto.
   destruct (decide_in L' new).
@@ -50,7 +50,7 @@ Proof.
 Defined.
 
 Lemma over_DTree_PSh {L L' L'' : Fcontext} {Fρ : L' ≤ε L} (d : DTree L) :
-  overtree (DTree_PSh L' d) L'' -> overtree d L''.
+  overtree0 (DTree_PSh L' d) L'' -> overtree0 d L''.
 Proof.
   intros Hover; assert (Fρ' : L'' ≤ε L') by now eapply overtree_Fwk.
   revert L' L'' Fρ Fρ' Hover;
@@ -70,7 +70,7 @@ Proof.
 Qed.
 
 Lemma over_DTree_PSh_inv (L L' L'' : Fcontext) (Fρ : L' ≤ε L) (Fρ' : L'' ≤ε L') (d : DTree L) :
-  overtree d L'' -> overtree (DTree_PSh L' d) L''.
+  overtree0 d L'' -> overtree0 (DTree_PSh L' d) L''.
 Proof.
   intros Hover.
   revert L' L'' Fρ Fρ' Hover;
@@ -89,8 +89,8 @@ Proof.
       now eapply (Fwk_new (Build_newnat L' new hnotin') false Fρ').
 Qed.
 
-Lemma overtree_PSh {L L' L'' : Fcontext} {Fρ : L'' ≤ε L'} (d : DTree L) :
-  overtree d L' -> overtree d L''.
+Lemma overtree0_PSh {L L' L'' : Fcontext} {Fρ : L'' ≤ε L'} (d : DTree L) :
+  overtree0 d L' -> overtree0 d L''.
 Proof.
   intros.
   induction d as [ | L new dt iht df ihf].
@@ -103,6 +103,16 @@ Proof.
       now apply ihf.
     - destruct H.
 Qed.
+
+Fixpoint DTree' (L : list Fcontext) : Set :=
+  match L with nil => unit | cons F L' => prod (DTree F) (DTree' L') end.
+
+Fixpoint overtree' {L : list Fcontext } {L' ρε} (wρε  : well_Fweakening ρε L' L) {struct wρε}: DTree' L -> SProp :=
+  match wρε with
+  | well_emptyF => fun _ => Logic.StrictProp.sUnit
+  | well_stepF _ _  wρε => fun d => overtree' wρε d
+  | well_upF _ _ _ wρ ρF => fun d => match d with pair d ds => SAnd (overtree0 d F') overtree' wρ ds end
+  end.
 
 Local Set Universe Polymorphism.
 Section Sheaves.

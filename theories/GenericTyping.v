@@ -222,19 +222,16 @@ Section GenericTyping.
 
   Class WfContextProperties :=
   {
-    wfc_nil {L} : [|- fromFctx L ] ;
+    wfc_nil : [|- ε ] ;
     wfc_cons {Γ} {A} : [|- Γ] -> [Γ |- A] -> [|- Γ,,A];
     wfc_consF {Γ} {i new} {b} : [|- Γ] -> [|- Γ,, i : new ↦ b];
+    wfc_alpha {Γ} : [|- Γ] -> [|- Γ,, ↦];
     wfc_wft {Γ A} : [Γ |- A] -> [|- Γ];
     wfc_ty {Γ A t} : [Γ |- t : A] -> [|- Γ];
     wfc_convty {Γ A B} : [Γ |- A ≅ B] -> [|- Γ];
     wfc_convtm {Γ A t u} : [Γ |- t ≅ u : A] -> [|- Γ];
     wfc_redty {Γ A B} : [Γ |- A ⤳* B] -> [|- Γ];
     wfc_redtm {Γ A t u} : [Γ |- t ⤳* u : A] -> [|- Γ];
-    wfc_split {Γ i new} :
-      [|-Γ,, i : new ↦ true] ->
-      [|-Γ,, i : new ↦ false] ->
-      [|-Γ];
   }.
 
   Class WfTypeProperties :=
@@ -261,6 +258,7 @@ Section GenericTyping.
       [ Γ |- A : U ] ->
       [ Γ |- A ] ;
     wft_split {Γ A i new} :
+      [|- Γ] ->
       [ Γ,, i : new ↦ true |- A] ->
       [ Γ,, i : new ↦ false |- A] ->
       [ Γ |- A] ;
@@ -317,6 +315,7 @@ Section GenericTyping.
       [Γ |- n : tBool] ->
       [Γ |- tBoolElim P ht hf n : P[n..]] ;
     ty_alpha {Γ i} :
+      [|- Γ] ->
       [Γ |- tAlpha i : arr' Γ tNat tBool];
     ty_empty {Γ} :
         [|-Γ] ->
@@ -384,6 +383,7 @@ Section GenericTyping.
       [Γ |- A' ≅ A] -> 
       [Γ |- t : A] ;
     ty_split {Γ t A i ne} :
+      [|- Γ] ->
       [ Γ,, i : ne ↦ true |- t : A] ->
       [ Γ,, i : ne ↦ false |- t : A] ->
       [ Γ |- t : A] ;
@@ -415,6 +415,7 @@ Section GenericTyping.
       [Γ |- y ≅ y' : A] ->
       [Γ |- tId A x y ≅ tId A' x' y' ] ;
     convty_split {Γ A A' i new} :
+      [|- Γ] ->
       [ Γ,, i : new ↦ true |- A ≅ A'] ->
       [ Γ,, i : new ↦ false |- A ≅ A'] ->
       [ Γ |- A ≅ A'] ;
@@ -498,6 +499,7 @@ Section GenericTyping.
       [Γ |- x ≅ x' : A] ->
       [Γ |- tRefl A x ≅ tRefl A' x' : tId A x x] ;
     convtm_split {Γ t u A i new} :
+      [|- Γ] ->
       [ Γ,, i : new ↦ true |- t ≅ u : A] ->
       [ Γ,, i : new ↦ false |- t ≅ u : A] ->
       [ Γ |- t ≅ u :A] ;
@@ -559,6 +561,7 @@ Section GenericTyping.
       [Γ |- e ~ e' : tId A x y] ->
       [Γ |- tIdElim A x P hr y e ~ tIdElim A' x' P' hr' y' e' : P[e .: y..]];
     convneu_split {Γ t u A i new} :
+      [|- Γ] ->
       [ Γ,, i : new ↦ true |- t ~ u : A] ->
       [ Γ,, i : new ↦ false |- t ~ u : A] ->
       [ Γ |- t ~ u :A] ;

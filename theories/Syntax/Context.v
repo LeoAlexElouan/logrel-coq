@@ -106,7 +106,7 @@ Definition fromFctx L := Build_context nil L.
 Notation "'ε'" := nilctx.
 Notation " Γ ,, d " := (Build_context (cons d (Tctx Γ)) (Fctx Γ)) (at level 20, d at next level).
 Notation " Γ ,, i : new ↦ b " := (Build_context (Tctx Γ) (Fcons (Fctx Γ) i new b)) (at level 20, new at next level, b at next level).
-Notation " Γ ,, ↦ " := (Build_context (List.map (ren_alpha S) Γ) (cons (Build_Fcontext nil wf_nil) Γ)).
+Notation " Γ ,, ↦ " := (Build_context (List.map (ren_alpha S) (Tctx Γ)) (cons (Build_Fcontext nil wf_nil) (Fctx Γ))).
 Notation " Γ ,,, Δ " := (appctx Δ Γ) (at level 25, Δ at next level, left associativity).
 
 Lemma cons_Fcons Γ A i new b : Γ,, i : new ↦ b ,, A = Γ,, A ,, i : new ↦ b. 
@@ -159,7 +159,7 @@ Qed.
 
 Inductive SFalse : SProp := .
 Inductive STrue : SProp := SI.
-(* Inductive SAnd (A B : SProp) : SProp := Sconj (a : A) (b : B). *)
+Inductive SAnd (A B : SProp) : SProp := Sconj (a : A) (b : B).
 (* Inductive or_tricho {P Q R : SProp} : Type :=
   | in_left (p :P)
   | in_mid (q : Q)
@@ -326,9 +326,9 @@ Proof.
   now destruct e.
 Qed.
 
-Lemma cons_eq_inversion {Γ A Γ' A' P} (e : Γ,,A = Γ',,A') : P Γ A eq_refl -> P Γ' A' e.
+Lemma cons_eq_inversion {Γ A Γ' A'} P : P Γ A eq_refl -> forall e : Γ,,A = Γ',,A', P Γ' A' e.
 Proof.
-  intros hP.
+  intros hP e.
   rewrite (Build_context_eq_inv e).
   set (eF := f_equal Fctx e); clearbody eF.
   set (eT := f_equal Tctx e); clearbody eT.
@@ -337,6 +337,7 @@ Proof.
   pattern Γ', A', eT.
   now eapply (cons_eq_inversion' eT).
 Defined.
+
 
 Instance FctxEqDec : EqDec Fcontext.
 Proof.

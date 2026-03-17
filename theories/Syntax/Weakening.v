@@ -125,7 +125,7 @@ Fixpoint ren_index {L L' ρε} (wρε : well_Fweakening ρε L L')
         | index_0 h t => fun w => index_0 _ _
         | index_S _ _ i' => fun IH => index_S _ _ (IH i')  end) (ren_index wρ)
     end.
-Lemma ren_index_to_ren L L' ρε (wρε : well_Fweakening ρε L L')
+Lemma ren_index_to_ren {L L' ρε} (wρε : well_Fweakening ρε L L')
   (i : list_index L') : index_to_nat (ren_index wρε i) = wk_to_ren ρε (index_to_nat i).
 Proof.
   induction wρε.
@@ -940,6 +940,20 @@ Proof.
       eapply IHwρε, e.
 Defined.
 
+Lemma wk_alphaup {Γ Δ} (ρ : Δ ≤ Γ) : Δ,,↦ ≤ Γ,,↦.
+Proof.
+  destruct ρ as [ρε wρε ρ wρ]; cbn.
+  refine (Build_wk_well_wk (Δ,, ↦ ) (Γ,,↦) (_wk_up ρε) _ ρ _).
+  + constructor; tea.
+    eapply Fwk_id.
+  + induction wρ; cbn in *.
+    - constructor.
+    - now constructor.
+    - replace (ren_alpha S A⟨ρ;wk_to_ren ρε⟩) with (ren_alpha S A)⟨ρ; wk_to_ren (_wk_up ρε)⟩.
+      2:{ bsimpl. rewrite <- compRen_alpha_pointwise. reflexivity. }
+      now constructor.
+Defined.
+
 
 Definition Fwk_Fstep {L L':Fcontext} (new : newnat L') b :  L' ≤ε L ->  (Fcons' L' new b) ≤ε L:=
   fun Fρ n b hin => in_thereF _ _ _ _ _ (Fρ _ _ hin).
@@ -960,12 +974,31 @@ Proof.
       eapply Fwk_Fstep, f.
     - cbn; constructor; tea.
       eapply IHwρε.
-Qed.
+Defined.
 
-(* Definition wk_Fstep_ren_on {Γ Δ} new b (ρ : Γ ≤ Δ) t: t⟨wk_Fstep new b ρ⟩ = t⟨ρ⟩.
+Lemma wk_Fstep_ren_on {Γ Δ} i new b (ρ : Γ ≤ Δ) (t : term) : t⟨wk_Fstep i new b ρ⟩ = t⟨ρ⟩.
 Proof.
   reflexivity.
-Qed. *)
+Qed.
+
+Definition wk_alphastep {Γ Δ} (ρ : Γ ≤ Δ) : (Γ,, ↦ ) ≤ Δ.
+Proof.
+  destruct ρ as [ρε wρε ρ wρ]; cbn.
+  refine (Build_wk_well_wk (Γ,, ↦ ) Δ (_wk_step ρε) _ ρ _).
+  + now constructor.
+  + induction wρ; cbn in *.
+    - constructor.
+    - now constructor.
+    - replace (ren_alpha S A⟨ρ;wk_to_ren ρε⟩) with A⟨ρ; wk_to_ren (_wk_step ρε)⟩.
+      2:{ bsimpl. rewrite <- compRen_alpha_pointwise. reflexivity. }
+      now constructor.
+Defined.
+
+Lemma wk_alphastep_ren_on {Γ Δ} (ρ : Γ ≤ Δ) (t : term) : t⟨wk_alphastep ρ⟩ = ren_alpha S t⟨ρ⟩.
+Proof.
+  bsimpl. cbn. bsimpl.
+  now rewrite <- compRen_alpha_pointwise.
+Qed.
 
 Lemma wk_new_notin {L L':Fcontext} (new : newnat L') : L' ≤ε L -> not_in_Fctx L new.
 Proof.
