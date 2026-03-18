@@ -175,58 +175,52 @@ Proof.
 Defined. *)
 
 
-Fixpoint overtree {L L' ρε} (wρε  : well_Fweakening ρε L' L) (d : DTree L) {struct wρε} : SProp :=
+Fixpoint overtree {L L' ρε} (d : DTree L) (wρε  : well_Fweakening ρε L' L) {struct wρε} : SProp :=
   match wρε with
-  | well_emptyF => SIsNil d
-  | well_stepF _ _  wρε => overtree wρε d
-  | well_upF F F' _ wρε _ => match d with cons d0 d => SAnd (overtree0 d0 F) (overtree wρε d) | nil => SFalse end
-  end.
+  | well_emptyF => fun _ => STrue
+  | well_stepF _ _  wρε => fun d => overtree d wρε
+  | well_upF F F' _ wρε _ => fun '(pair d0 d) => SAnd (overtree0 d0 F) (overtree d wρε)
+  end d.
 
-Fixpoint DTree_PSh {L L' ρε} (wρε  : well_Fweakening ρε L' L) (d : DTree) (wd : well_DTree L d) : DTree :=
-  match wρε in well_Fweakening _ _ L return well_DTree L d -> DTree with
-  | well_emptyF => fun _ => nil
-  | well_stepF _ _ wρε => fun wd => cons leaf (DTree_PSh wρε d wd)
-  | well_upF _ _ _ wρε _ => well_cons_inv _ (fun d0 d' wd' => cons d0 (DTree_PSh wρε d' wd'))
-  end wd.
+Fixpoint DTree_PSh {L L' ρε} (wρε  : well_Fweakening ρε L' L) (d : DTree L) : DTree L':=
+  match wρε in well_Fweakening _ L' L return DTree L -> DTree L' with
+  | well_emptyF => fun _ => tt
+  | well_stepF _ _ wρε => fun d => pair leaf (DTree_PSh wρε d)
+  | well_upF _ _ _ wρε _ =>fun '(pair d0 d') => pair d0 (DTree_PSh wρε d')
+  end d.
 
 
 Lemma over_DTree_PSh {L L' L'' ρε ρε'}
   (wρε  : well_Fweakening ρε L' L) (wρε'  : well_Fweakening ρε' L'' L')
-  (d : DTree) (wd : well_DTree L d) :
-  overtree (well_Fwk_compose wρε' wρε) d ->
-  overtree wρε' (DTree_PSh wρε d wd).
+  (d : DTree L) :
+  overtree d (well_Fwk_compose wρε' wρε) ->
+  overtree (DTree_PSh wρε d) wρε'.
 Proof.
   intros od.
-  induction wρε' in L, ρε, wρε, d, wd, od |-*.
-  - revert wd. cbn in *. dependent inversion wρε; subst; cbn in *.
-    constructor.
+  induction wρε' in L, ρε, wρε, d, od |-*.
+  - constructor.
   - eapply IHwρε', od.
-  - DepElim.depelim wρε.
-    + inversion H.
-    + inversion H; subst.
-      destruct (well_Fwk_irr (well_stepF F ρ wρε) wρε0); clear H.
+  - inversion wρε; subst.
+    + destruct (well_Fwk_irr (well_stepF F' ρ0 H3) wρε).
+      rename H3 into wρε.
       cbn. repeat constructor.
       eapply IHwρε', od.
-    + inversion H; subst.
-      destruct (well_Fwk_irr (well_upF F F'0 ρ wρε f) wρε0); clear H.
-      cbn. revert wρε od IHwρε'.
-      induction wd using Swell_cons_inv; intros.
-      destruct od as [hdo od']. cbn in *.
-      constructor; tea.
-      eapply IHwρε', od'.
+    + destruct (well_Fwk_irr (well_upF F' F'0 ρ0 H2 H4) wρε).
+      rename H2 into wρε, H4 into f0.
+      destruct d as [d0 d'], od as [hd0 od'].
+      constructor; auto.
 Qed.
 
 Lemma over_DTree_PSh_inv {L L' L'' ρε ρε'}
   (wρε  : well_Fweakening ρε L' L) (wρε' : well_Fweakening ρε' L'' L')
-  (d : DTree) (wd : well_DTree L d) :
-  overtree wρε' (DTree_PSh wρε d wd) ->
-  overtree (well_Fwk_compose wρε' wρε) d.
+  (d : DTree L) :
+  overtree (DTree_PSh wρε d) wρε' ->
+  overtree d (well_Fwk_compose wρε' wρε).
 Proof.
   intros od.
-  induction wρε' in L, ρε, wρε, d, wd, od |-*.
+  induction wρε' in L, ρε, wρε, d, od |-*.
   - inversion wρε; subst.
     destruct (well_Fwk_irr well_emptyF wρε).
-    induction d, wd using Swell_nil_inv.
     cbn in *.
     constructor.
   - eapply IHwρε', od.
@@ -236,16 +230,11 @@ Proof.
       eapply IHwρε', od.
     * destruct (well_Fwk_irr (well_upF F' F'0 ρ0 H2 H4) wρε).
       rename H2 into wρε, H4 into f0.
-      revert f0 wρε od IHwρε'.
-      induction wd using Swell_cons_inv; intros.
-      destruct od as [hd0 od'].
-      constructor.
-      + eapply overtree0_PSh, hd0.
-        admit.
-      + eapply IHwρε', od'.
-Admitted.
+      destruct d as [d0 d'], od as [hd0 od'].
+      constructor; auto.
+Qed.
 
-Lemma well_DTree_PSh {L L' ρε}
+(* Lemma well_DTree_PSh {L L' ρε}
   (wρε  : well_Fweakening ρε L' L)
   (d : DTree) (wd : well_DTree L d) :
   well_DTree L' (DTree_PSh wρε d wd).
@@ -259,7 +248,7 @@ Proof.
     cbn in *.
     constructor.
     eapply IHwρε.
-Qed.
+Qed. *)
 
 Local Set Universe Polymorphism.
 Section Sheaves.
@@ -275,10 +264,10 @@ Section Sheaves.
   Definition PSh_PSh {Γ Δ} (ρ : Δ ≤ Γ): PSh Γ -> PSh Δ :=
     fun A Ξ wfΞ ρΞ => A Ξ wfΞ (ρΞ ∘w ρ).
 
-  Lemma PSh_rew {Γ} (A : PSh Γ) : forall {Δ} wfΔ (ρ ρ' : Δ ≤ Γ), ρ =1 ρ' -> ρ.(Fwk) =1 ρ'.(Fwk) -> A Δ wfΔ ρ -> A Δ wfΔ ρ'.
+  Lemma PSh_rew {Γ} (A : PSh Γ) : forall {Δ} wfΔ (ρ ρ' : Δ ≤ Γ), ρ =₁ ρ' -> A Δ wfΔ ρ -> A Δ wfΔ ρ'.
   Proof.
-    intros ???? heq1 heqF1 hA.
-    pose (wk_to_ren_inj _ _ _ _ heq1 heqF1) as e.
+    intros ???? heq hA.
+    pose (wk_to_ren_inj _ _ _ _ heq) as e.
     now destruct e.
   Qed.
 
@@ -308,15 +297,13 @@ Section Sheaves.
 
   #[projections(primitive)] Record Split@{i} {Γ} (A : PSh@{i} Γ) : Type@{i} := {
     wfc_Split : [|-Γ];
-    dtree :> DTree;
-    wdtree : well_DTree Γ dtree;
-    cover : forall (Δ : context) (wfΔ : [|-Δ]) (ρ : Δ ≤ Γ), overtree ρ dtree -> A Δ wfΔ ρ
+    dtree :> DTree Γ;
+    cover : forall (Δ : context) (wfΔ : [|-Δ]) (ρ : Δ ≤ Γ), overtree dtree ρ -> A Δ wfΔ ρ
   }.
 
   Arguments Build_Split {_ _}.
   Arguments wfc_Split {_ _}.
   Arguments dtree {_ _}.
-  Arguments wdtree {_ _}.
   Arguments cover {_ _}.
 
   (* Definition Split_PSh {Γ} : PSh Γ -> PSh Γ:=
@@ -325,7 +312,7 @@ Section Sheaves.
   Lemma Split_hom_PSh {Γ} {A B : PSh Γ} : hom A B -> Split A -> Split B.
   Proof.
     intros hhom hA.
-    refine (Build_Split hA.(wfc_Split) hA hA.(wdtree) _).
+    refine (Build_Split hA.(wfc_Split) hA _).
     intros Δ wfΔ ρ odA.
     apply hhom.
     now apply hA.
@@ -335,11 +322,10 @@ Section Sheaves.
     forall {Δ} (wfΔ : [|-Δ]) ρ, Split (fun Ξ wfΞ (ρΞ : Ξ ≤ Δ) => A Ξ wfΞ (ρΞ ∘w ρ)).
   Proof.
     intros hA Δ wfΔ ρ.
-    refine (Build_Split wfΔ (DTree_PSh ρ hA hA.(wdtree)) _ _).
-    + eapply well_DTree_PSh.
-    + intros Ξ wfΞ ρΞ ohA.
-      apply hA; tea.
-    now eapply over_DTree_PSh.
+    refine (Build_Split wfΔ (DTree_PSh ρ hA) _).
+    intros Ξ wfΞ ρΞ ohA.
+    apply hA; tea.
+    now eapply over_DTree_PSh_inv.
   Defined.
 
   Lemma Split_wkn_inv {Γ} {wfΓ : [|-Γ]} {A : PSh Γ} :
@@ -348,74 +334,179 @@ Section Sheaves.
   Proof.
     intros hA.
     specialize (hA Γ wfΓ wk_id).
-    eapply Split_hom_PSh.
-    2: apply hA.
+    eapply Split_hom_PSh, hA.
     intros Δ wfΔ ρ a.
-    refine (PSh_rew A _ _ _ _ a).
-    bsimpl.
-    reflexivity.
+    refine (PSh_rew A _ _ _ _ a); eapply wk_comp_runit_pointwise.
   Qed.
 
-  Definition shf {Γ} (A : PSh Γ) := forall Δ wfΔ (ρ : Δ ≤ Γ) new,
-      A (Δ,,new↦true) (wfc_consF wfΔ) (wk_Fstep _ _ ρ) ->
-      A (Δ,,new↦false) (wfc_consF wfΔ) (wk_Fstep _ _ ρ) ->
+  Definition shf {Γ} (A : PSh Γ) := forall Δ wfΔ (ρ : Δ ≤ Γ) i new,
+      A (Δ,, i : new ↦ true) (wfc_consF wfΔ) (wk_Fstep _ _ _ ρ) ->
+      A (Δ,, i : new ↦ false) (wfc_consF wfΔ) (wk_Fstep _ _ _ ρ) ->
       A Δ wfΔ ρ.
 
   Lemma shf_PSh {Γ A} : shf A -> forall {Δ} {ρ : Δ ≤ Γ}, shf (PSh_PSh ρ A).
   Proof.
-    intros hAshf ?? Ξ wfΞ ρΞ new hAt hAf.
+    intros hAshf ?? Ξ wfΞ ρΞ i new hAt hAf.
     unfold PSh_PSh, shf in *.
-    now eapply hAshf.
+    eapply hAshf.
+    - refine (PSh_rew A _ _ _ _ hAt); constructor; reflexivity.
+    - refine (PSh_rew A _ _ _ _ hAf); constructor; reflexivity.
   Qed.
+
+  Fixpoint DTree0_fusion d d' {struct d} := match d with
+    | leaf => d'
+    | node n dt df => node n (DTree0_fusion dt d') (DTree0_fusion df d')
+    end.
+  Fixpoint DTree_fusion {L} : DTree L -> DTree L -> DTree L :=
+    match L as l return DTree l -> DTree l -> DTree l with
+    | nil => fun _ _ => tt
+    | cons F L => fun '(dl0, dl') '(dr0, dr') => (DTree0_fusion dl0 dr0, DTree_fusion dl' dr')
+    end.
+  Definition DTree_node L i new : DTree (Fcons L i new true) -> DTree (Fcons L i new false) ->
+    DTree L.
+  Proof.
+    intros dt df.
+    induction i; cbn in *.
+    + destruct dt as [dt0 dt'], df as [df0 df'].
+      exact (pair (node new dt0 df0) (DTree_fusion dt' df')).
+    + destruct dt as [dt0 dt'], df as [df0 df'].
+      exact (pair (DTree0_fusion dt0 df0) (IHi new dt' df')).
+  Defined.
+  Lemma overtree0_fusion_inv {L dl dr} :
+    overtree0 (DTree0_fusion dl dr) L -> SAnd (overtree0 dl L) (overtree0 dr L).
+  Proof.
+    intros ofusion.
+    induction dl as [| n dll IHdll dlr IHdlr]; cbn in *.
+    - repeat constructor. exact ofusion.
+    - destruct (decide_in L n) as [[] hin| hnotin].
+      + specialize (IHdll ofusion) as []; repeat constructor; auto.
+      + specialize (IHdlr ofusion) as []; repeat constructor; auto.
+      + destruct ofusion.
+  Qed.
+  Lemma overtree_fusion_inv {L L' ρε} (wρε : well_Fweakening ρε L' L) dl dr :
+    overtree (DTree_fusion dl dr) wρε -> SAnd (overtree dl wρε) (overtree dr wρε).
+  Proof.
+    intros ofusion.
+    induction wρε.
+    + repeat constructor.
+    + eapply IHwρε, ofusion.
+    + destruct dl as [dl0 dl'], dr as [dr0 dr'].
+      destruct ofusion as [h0 ofusion'].
+      repeat constructor.
+      - now eapply overtree0_fusion_inv in h0.
+      - now eapply IHwρε in ofusion'.
+      - now eapply overtree0_fusion_inv in h0.
+      - now eapply IHwρε in ofusion'.
+  Qed.
+
+  Lemma overtree_node_inv {L L' ρε} (wρε : well_Fweakening ρε L' L) {i} {new : newnat (list_at L i)} b {dt df}
+    (hin : in_Fctx (list_at L' (ren_index wρε i)) new b) :
+    overtree (DTree_node L i new dt df) wρε ->
+    overtree (if b return (DTree (Fcons L i new b)) then dt else df) (εwk_new i new b wρε hin).
+  Proof.
+    intros onode.
+    induction wρε.
+    - inversion i.
+    - eapply IHwρε, onode.
+    - revert f wρε hin onode IHwρε.
+      induction i using index_caseS; intros.
+      * destruct dt as [dt0 dt'], df as [df0 df'], onode as [hF [odt' odf']%overtree_fusion_inv].
+        cbn in hF, hin.
+        rewrite (decide_in_in _ _ _ hin) in hF.
+        replace (εwk_new (index_0 F' L') new b (well_upF F F' ρ wρε f) hin)
+          with (well_upF F (Fcons' F' new b) ρ wρε (Fwk_new new b f hin))
+          by eapply well_Fwk_irr.
+        destruct b; constructor; tea.
+      * destruct dt as [dt0 dt'], df as [df0 df'], onode as [[odt0 odf0]%overtree0_fusion_inv ofusion].
+        cbn in hin.
+        replace (εwk_new (index_S F' L' i) new b (well_upF F F' ρ wρε f) hin)
+          with (well_upF _ _ _ (εwk_new i new b wρε hin) f)
+          by eapply well_Fwk_irr.
+        destruct b; constructor; eauto.
+  Qed.
+
+  Lemma overtree0_node_in F n dl dr : overtree0 (node n dl dr) F -> not_in_Fctx F n -> SFalse.
+  Proof.
+    intros h0 hnotin.
+    cbn in h0.
+    destruct (decide_in F n) as [[] hin| hnotin']; tea.
+    all : now eapply notin_is_not_in.
+  Qed.
+  Lemma overtree_node_in {L L' ρε} (wρε : well_Fweakening ρε L' L) {i} {new : newnat (list_at L i)} {dt df} :
+    overtree (DTree_node L i new dt df) wρε -> not_in_Fctx (list_at L' (ren_index wρε i)) new -> SFalse.
+  Proof.
+    intros onode.
+    induction wρε.
+    + inversion i.
+    + eapply IHwρε, onode.
+    + revert f wρε onode IHwρε.
+      induction i using index_caseS; intros.
+      - destruct dt as [dt0 dt'], df as [df0 df'], onode as [h0 onode'].
+        now eapply overtree0_node_in.
+      - destruct dt as [dt0 dt'], df as [df0 df'], onode as [h0 onode']; eauto.
+  Qed.
+
 
   Lemma Split_shf {Γ} {A : PSh Γ} : shf (fun Δ wfΔ ρ => Split (fun Ξ wfΞ ρΞ => A Ξ wfΞ (ρΞ ∘w ρ))).
   Proof.
-    intros Δ wfΔ ρ new [wft dAt hAt] [wff dAf hAf].
-    refine (Build_Split wfΔ (node dAt dAf) _).
+    intros Δ wfΔ ρ i new [wft dAt hAt] [wff dAf hAf].
+    refine (Build_Split wfΔ (DTree_node Δ i new dAt dAf) _).
     intros Ξ wfΞ ρΞ oA.
-    cbn in oA.
-    destruct (decide_in Ξ new) as [[] hin|hnotin].
-    - specialize (hAt Ξ wfΞ (wk_new new true ρΞ hin) oA).
-      refine (PSh_rew A _ _ _ _ hAt).
-      bsimpl. reflexivity.
-    - specialize (hAf Ξ wfΞ (wk_new new false ρΞ hin) oA).
-      refine (PSh_rew A _ _ _ _ hAf).
-      bsimpl. reflexivity.
-    - destruct oA.
+    destruct (decide_in (list_at Ξ (ren_index ρΞ i)) new) as [[] hin|hnotin].
+    - specialize (hAt Ξ wfΞ (wk_new i new true ρΞ hin)).
+      refine (PSh_rew A _ _ _ _ _).
+      2: eapply hAt, (overtree_node_inv ρΞ true), oA.
+      constructor; reflexivity.
+    - specialize (hAf Ξ wfΞ (wk_new i new false ρΞ hin)).
+      refine (PSh_rew A _ _ _ _ _).
+      2: eapply hAf, (overtree_node_inv ρΞ false), oA.
+      constructor; reflexivity.
+    - destruct (overtree_node_in _ oA hnotin).
   Qed.
 
 
 
 Definition over {Γ : context} (d : DTree Γ) (A: PSh Γ) :=
-  forall Δ (wfΔ : [|-Δ]) (ρ : Δ ≤ Γ), overtree d Δ -> A Δ wfΔ ρ.
+  forall Δ (wfΔ : [|-Δ]) (ρ : Δ ≤ Γ), overtree d ρ -> A Δ wfΔ ρ.
 
 
 Lemma over_PSh {Γ: context} {d : DTree Γ} {A: PSh Γ} : over d A ->
   forall Δ (ρ : Δ ≤ Γ) (d' : DTree Δ),
-    (forall Ξ (wfΞ : [|-Ξ]) (ρ' : Ξ ≤ Δ), overtree d' Ξ -> overtree d Ξ) ->
+    (forall Ξ (wfΞ : [|-Ξ]) (ρΞ : Ξ ≤ Δ), overtree d' ρΞ -> overtree d (ρΞ ∘w ρ)) ->
     over d' (PSh_PSh ρ A).
 Proof.
   intros od ??? hdd' Ξ wfΞ ρΞ od'.
   now apply od.
 Qed.
 
-Lemma over_new : forall {Γ} (A : PSh Γ) {new} (b:bool) {dt df}, over (node dt df) A ->
-  over (Γ:=Γ,,new↦b) (if b return _ then dt else df) (PSh_PSh (wk_Fstep new b wk_id) A).
+(* Lemma over_new : forall {Γ} (A : PSh Γ) {i new} (b:bool) {dt df}, over (DTree_node _ i new dt df) A ->
+  over (Γ:=Γ,, i : new ↦ b) (if b return _ then dt else df) (PSh_PSh (wk_Fstep i new b wk_id) A).
 Proof.
   intros * hA.
   eapply over_PSh; [apply hA|].
   intros Δ wfΔ ρ hover.
+  eapply over_DTree_PSh_inv.
   cbn.
   rewrite (decide_in_in _  new b (Fwk ρ new b (in_hereF _ new b))).
   now destruct b.
-Qed.
+Qed. *)
 
 Lemma Split_bind_alg@{i j} : forall {Γ} {A : PSh@{i} Γ} {B: PSh@{j} Γ},
   shf@{j} B -> forall (hA : Split@{i} A),
-  (forall Δ (wfΔ : [|-Δ]) (ρ : Δ ≤ Γ), overtree hA Δ -> B Δ wfΔ ρ)->
+  (forall Δ (wfΔ : [|-Δ]) (ρ : Δ ≤ Γ), overtree hA ρ -> B Δ wfΔ ρ)->
   forall Δ (wfΔ : [|-Δ]) (ρ : Δ ≤ Γ), B Δ wfΔ ρ.
 Proof.
-  intros [Γ L] ?? hBshf [wfΓ dA hA] hB; cbn in *.
+  intros [Γ L] ?? hBshf [wfΓ dA hA] hB [Δ L'] wfΔ [ρε wρε ρ wρ]; cbn in *.
+  induction wρε.
+  - cbn in *.
+    eapply hB.
+    constructor.
+  - eapply (IHwρε (PSh_PSh (wk_alphastep wk_id) A)).
+
+
+
+
+
   induction dA as [L |L new dt ihAt df ihAf].
   - intros Δ wfΔ ρ; cbn in *.
     now apply hB, ρ.

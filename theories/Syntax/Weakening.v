@@ -786,14 +786,24 @@ Lemma wk_idElim {A x P hr y e Δ Γ} (ρ : Δ ≤ Γ) :
   tIdElim A⟨ρ⟩ x⟨ρ⟩ P⟨wk_up (tId A⟨@wk1 Γ A⟩ x⟨@wk1 Γ A⟩ (tRel 0)) (wk_up A ρ)⟩ hr⟨ρ⟩ y⟨ρ⟩ e⟨ρ⟩ = (tIdElim A x P hr y e)⟨ρ⟩.
 Proof. reflexivity. Qed.
 
+Record wk_eq {Γ Δ} (ρ ρ' : Δ ≤ Γ) := {
+  wk_eq1 : ρ =1 ρ';
+  Fwk_eq1 : ρ.(Fwk) =1 ρ'.(Fwk);
+  }.
 
+Notation "ρ =₁ ρ'" := (wk_eq ρ ρ') (at level 60).
 
+Goal forall {Γ Δ} (ρ ρ' : Δ ≤ Γ) (t : term), ρ =₁ ρ' -> t⟨ρ⟩ = t⟨ρ'⟩.
+Proof.
+  intros * [e eε].
+  bsimpl. unfold funcomp. now rewrite e, eε.
+Qed.
 
 Lemma wk_to_ren_inj : forall Γ Δ (ρ1 ρ2 : Γ ≤ Δ),
-  wk_to_ren ρ1 =1 wk_to_ren ρ2 -> wk_to_ren (Fwk ρ1) =1 wk_to_ren (Fwk ρ2) ->
+  ρ1 =₁ ρ2 ->
   ρ1 = ρ2.
 Proof.
-  intros * Heq HFeq; apply wk_well_wk_wk_eq.
+  intros * [Heq HFeq]; apply wk_well_wk_wk_eq.
   1:{
   destruct ρ1 as [Fρ1 wFρ1 ρ1 wρ1], ρ2 as [Fρ2 wFρ2 ρ2 wρ2]; cbn in *.
 (*   revert Γ Δ wρ1 Fρ1 wFρ1 Fρ2 wFρ2 ρ2 wρ2 Heq. *)
@@ -845,24 +855,36 @@ Proof.
       now injection HFeq. }
 Qed.
 
+Lemma _wk_comp_lunit {A} {Γ :list A} ρ : wk_compose (_wk_id Γ) ρ =1 ρ.
+Proof. now bsimpl. Qed.
 
-
+Lemma wk_comp_lunit_pointwise {Γ Δ} (ρ : Δ ≤ Γ) : wk_id ∘w ρ =₁ ρ.
+Proof. constructor; eapply _wk_comp_lunit. Qed.
 Lemma wk_comp_lunit {Γ Δ} (ρ : Δ ≤ Γ) : wk_id ∘w ρ = ρ.
 Proof.
-apply wk_to_ren_inj; now bsimpl.
+  apply wk_to_ren_inj; eapply wk_comp_lunit_pointwise.
 Qed.
 
+Lemma _wk_comp_runit {A} {Γ :list A} ρ : wk_compose ρ (_wk_id Γ) =1 ρ.
+Proof. now bsimpl. Qed.
+Lemma wk_comp_runit_pointwise {Γ Δ} (ρ : Δ ≤ Γ) : ρ ∘w wk_id =₁ ρ.
+Proof. constructor; eapply _wk_comp_runit. Qed.
 Lemma wk_comp_runit {Γ Δ} (ρ : Δ ≤ Γ) : ρ ∘w wk_id = ρ.
 Proof.
-apply wk_to_ren_inj; now bsimpl.
+  apply wk_to_ren_inj; eapply wk_comp_runit_pointwise.
 Qed.
 
+Lemma _wk_comp_assoc(*  {A} {Γ Δ Ξ ζ : list A} *) ρ ρ' ρ'' :
+  wk_compose (wk_compose ρ'' ρ') ρ =1 wk_compose ρ'' (wk_compose ρ' ρ).
+Proof. now bsimpl. Qed.
 
-
+Lemma wk_comp_assoc_pointwise {Γ Δ Ξ ζ} (ρ : Δ ≤ Γ) (ρ' : Ξ ≤ Δ) (ρ'' : ζ ≤ Ξ) :
+  (ρ'' ∘w ρ') ∘w ρ =₁ ρ'' ∘w (ρ' ∘w ρ).
+Proof. constructor; eapply _wk_comp_assoc. Qed.
 Lemma wk_comp_assoc {Γ Δ Ξ ζ} (ρ : Δ ≤ Γ) (ρ' : Ξ ≤ Δ) (ρ'' : ζ ≤ Ξ) :
   (ρ'' ∘w ρ') ∘w ρ = ρ'' ∘w (ρ' ∘w ρ).
 Proof.
-apply wk_to_ren_inj; now bsimpl.
+  apply wk_to_ren_inj; eapply wk_comp_assoc_pointwise.
 Qed.
 
 Lemma wk1_irr {Γ Γ' A A'} {t : term} : t⟨@wk1 Γ A⟩ = t⟨@wk1 Γ' A'⟩.
@@ -897,21 +919,26 @@ Proof.
   - now apply Fρ.
 Defined.
 
+Lemma εwk_new {L L' : list Fcontext} i (new : newnat (list_at L i)) b {ρε} (wρε : well_Fweakening ρε L' L) :
+  in_Fctx (list_at L' (ren_index wρε i)) new b -> well_Fweakening ρε L' (Fcons L i new b).
+Proof.
+  intros hin.
+  induction wρε; cbn in *.
+  + inversion i.
+  + constructor. eapply IHwρε, hin.
+  + revert wρε f hin IHwρε.
+    induction i using index_case; cbn; intros.
+    * constructor; tea.
+      now eapply Fwk_new.
+    * constructor; tea. eapply IHwρε, hin.
+Defined.
+
 Lemma wk_new : forall {Γ Δ: context} i (new : newnat (list_at Γ i)) b (ρ : Δ ≤ Γ),
   in_Fctx (list_at Δ (ren_index ρ i)) new b -> Δ ≤ (Γ,, i : new ↦ b).
 Proof.
   intros Γ Δ i new b ρ hin.
   refine (Build_wk_well_wk _ _ (Fwk ρ) _ (wk ρ) _).
-  + destruct Γ as [Γ L], Δ as [Δ L'], ρ as [ρε wρε ρ wρ]; cbn in *.
-    clear ρ wρ.
-    induction wρε; cbn in *.
-    - inversion i.
-    - constructor. eapply IHwρε, hin.
-    - revert wρε f hin IHwρε.
-      induction i using index_case; cbn; intros.
-      * constructor; tea.
-        now eapply Fwk_new.
-      * constructor; tea. eapply IHwρε, hin.
+  + now eapply εwk_new.
   + apply ρ.
 Defined.
 
@@ -980,6 +1007,7 @@ Proof.
     - cbn; constructor; tea.
       eapply IHwρε.
 Defined.
+
 
 Lemma wk_Fstep_ren_on {Γ Δ} i new b (ρ : Γ ≤ Δ) (t : term) : t⟨wk_Fstep i new b ρ⟩ = t⟨ρ⟩.
 Proof.
