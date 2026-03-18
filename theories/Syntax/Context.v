@@ -175,8 +175,14 @@ Arguments SOr_introl {_ _}.
 Arguments SOr_intror {_ _}.
 Arguments or_tricho : clear implicits. *)
 
+Definition SIsNil {A} (L : list A) : SProp :=
+  match L with
+  | nil => STrue
+  | cons _ _ => SFalse
+  end.
+
 Inductive decide_in_type L n : Type :=
-  | is_in b : (in_Fctx L n b) -> decide_in_type L n
+  | is_in b : in_Fctx L n b -> decide_in_type L n
   | is_notin : not_in_Fctx L n -> decide_in_type L n.
 
 Arguments is_in {_ _}.

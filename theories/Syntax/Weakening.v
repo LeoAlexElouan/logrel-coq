@@ -101,7 +101,7 @@ Inductive well_Fweakening : Fweakening -> list Fcontext -> list Fcontext -> Type
 
 Derive Signature for well_Fweakening.
 
-Lemma well_Fwk_irr : forall ρ L L' (w1 w2 : well_Fweakening ρ L L'), w1 = w2.
+Lemma well_Fwk_irr : forall {ρ L L'} (w1 w2 : well_Fweakening ρ L L'), w1 = w2.
 Proof.
   intros ρ L L' w1 w2.
   induction w1.
@@ -110,6 +110,11 @@ Proof.
   - depelim w2.
     now specialize (IHw1 w2) as [].
 Qed.
+
+Lemma well_Fwk_eqdec {ρ L L'} : EqDec (well_Fweakening ρ L L').
+Proof. left. eapply well_Fwk_irr. Qed.
+Local Existing Instance well_Fwk_eqdec.
+
 
 Fixpoint ren_index {L L' ρε} (wρε : well_Fweakening ρε L L')
   {struct wρε} : list_index L' -> list_index L :=
@@ -200,14 +205,14 @@ Definition well_Fwk_compose {ρ ρ' : Fweakening} {L L' L'' : list Fcontext}:
 Proof.
   intros hρ hρ'.
   induction hρ as [| | ? ? ? ν] in ρ', L'', hρ' |- *.
-  all: cbn.
+  1,2: cbn.
   - tea.
   - econstructor. auto.
   - inversion hρ' as [| | ? ? A' ν']; subst ; clear hρ'.
     1: now econstructor ; auto.
     constructor; auto.
     now eapply Fwk_compose.
-Qed.
+Defined.
 
 
 Lemma well_wk_compose {ρε ρε'} {ρ ρ' : weakening} {Δ Δ' Δ'' : Tcontext} :
