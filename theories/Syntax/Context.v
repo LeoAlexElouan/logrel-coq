@@ -36,7 +36,7 @@ Record newnat L := {
 Definition Fcons' (L:Fcontext) (new : newnat L) b : Fcontext
   := Build_Fcontext (cons (newnat_nat _ new,b) (preFctx L)) (wf_cons (wfF L) new).
 
-Definition Fnil := Build_Fcontext nil wf_nil.
+Notation Fnil := (Build_Fcontext nil wf_nil).
 
 Inductive list_index {A} : list A -> Set :=
   | index_0 h t : list_index (cons h t)
@@ -48,7 +48,7 @@ Proof.
   pattern h, t, i.
   change (?A h t i) with (match cons h t as l return list_index l -> Type with nil => fun i => unit | cons h' t' => fun i => A h' t' i end i).
   destruct i; auto.
-Qed.
+Defined.
 Lemma index_caseS {A : Set} {h: A} {t} (P : forall h t i, SProp) : (P h t (index_0 h t)) -> (forall i, P h t (index_S h t i)) -> forall i, P h t i.
 Proof.
   intros h0 hS i.
@@ -106,7 +106,7 @@ Definition fromFctx L := Build_context nil L.
 Notation "'ε'" := nilctx.
 Notation " Γ ,, d " := (Build_context (cons d (Tctx Γ)) (Fctx Γ)) (at level 20, d at next level).
 Notation " Γ ,, i : new ↦ b " := (Build_context (Tctx Γ) (Fcons (Fctx Γ) i new b)) (at level 20, new at next level, b at next level).
-Notation " Γ ,, ↦ " := (Build_context (List.map (ren_alpha S) (Tctx Γ)) (cons (Build_Fcontext nil wf_nil) (Fctx Γ))).
+Notation " Γ ,, ↦ F" := (Build_context (List.map (ren_alpha S) (Tctx Γ)) (cons F (Fctx Γ))).
 Notation " Γ ,,, Δ " := (appctx Δ Γ) (at level 25, Δ at next level, left associativity).
 
 Lemma cons_Fcons Γ A i new b : Γ,, i : new ↦ b ,, A = Γ,, A ,, i : new ↦ b. 
@@ -160,6 +160,10 @@ Qed.
 Inductive SFalse : SProp := .
 Inductive STrue : SProp := SI.
 Inductive SAnd (A B : SProp) : SProp := Sconj (a : A) (b : B).
+Definition Spr1 {A B} (p : SAnd A B) : A.
+Proof. now destruct p. Qed.
+Definition Spr2 {A B} (p : SAnd A B) : B.
+Proof. now destruct p. Qed.
 (* Inductive or_tricho {P Q R : SProp} : Type :=
   | in_left (p :P)
   | in_mid (q : Q)

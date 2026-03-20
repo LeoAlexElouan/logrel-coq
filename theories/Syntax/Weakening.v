@@ -972,12 +972,11 @@ Proof.
       eapply IHwρε, e.
 Defined.
 
-Lemma wk_alphaup {Γ Δ} (ρ : Δ ≤ Γ) : Δ,,↦ ≤ Γ,,↦.
+Lemma wk_alphaup {Γ Δ F F'} (ρ : Δ ≤ Γ) (ρF : F' ≤ε F) : Δ,,↦F' ≤ Γ,,↦ F.
 Proof.
   destruct ρ as [ρε wρε ρ wρ]; cbn.
-  refine (Build_wk_well_wk (Δ,, ↦ ) (Γ,,↦) (_wk_up ρε) _ ρ _).
+  refine (Build_wk_well_wk (Δ,, ↦ F') (Γ,,↦ F) (_wk_up ρε) _ ρ _).
   + constructor; tea.
-    eapply Fwk_id.
   + induction wρ; cbn in *.
     - constructor.
     - now constructor.
@@ -1014,10 +1013,10 @@ Proof.
   reflexivity.
 Qed.
 
-Definition wk_alphastep {Γ Δ} (ρ : Γ ≤ Δ) : (Γ,, ↦ ) ≤ Δ.
+Definition wk_alphastep {Γ Δ} F (ρ : Γ ≤ Δ) : (Γ,, ↦ F) ≤ Δ.
 Proof.
   destruct ρ as [ρε wρε ρ wρ]; cbn.
-  refine (Build_wk_well_wk (Γ,, ↦ ) Δ (_wk_step ρε) _ ρ _).
+  refine (Build_wk_well_wk (Γ,, ↦ F) Δ (_wk_step ρε) _ ρ _).
   + now constructor.
   + induction wρ; cbn in *.
     - constructor.
@@ -1027,11 +1026,61 @@ Proof.
       now constructor.
 Defined.
 
-Lemma wk_alphastep_ren_on {Γ Δ} (ρ : Γ ≤ Δ) (t : term) : t⟨wk_alphastep ρ⟩ = ren_alpha S t⟨ρ⟩.
+Lemma wk_alphastep_ren_on {Γ Δ F} (ρ : Γ ≤ Δ) (t : term) : t⟨wk_alphastep F ρ⟩ = ren_alpha S t⟨ρ⟩.
 Proof.
   bsimpl. cbn. bsimpl.
   now rewrite <- compRen_alpha_pointwise.
 Qed.
+
+
+
+
+Lemma wk_induction Γ Δ (P : forall Γ Δ, Δ ≤ Γ -> Type) :
+  P ε ε wk_empty ->
+  (forall Γ Δ A ρ, P Γ Δ ρ -> P _ _ (wk_step A ρ)) ->
+  (forall Γ Δ A ρ, P Γ Δ ρ -> P _ _ (wk_up A ρ)) ->
+(*   (forall L L' ρ i new b,
+    P (fromFctx L) (fromFctx L') ρ -> P _ _ (wk_Fstep i new b ρ)) -> *)
+  (forall L L' F ρ,
+    P (fromFctx L) (fromFctx L') ρ -> P _ _ (wk_alphastep F ρ)) ->
+  (forall L L' F F' ρ (ρF : F' ≤ε F),
+    P (fromFctx L) (fromFctx L') ρ -> P _ _ (wk_alphaup ρ ρF)) ->
+  forall (ρ : Δ ≤ Γ), P Γ Δ ρ.
+Proof. revert Γ Δ.
+  intros [Γ L] [Δ L'] Hempty Hstep Hup (* HFstep *) Halphastep Halphaup [ρε wρε ρ wρ].
+  cbn in *.
+  induction wρ in Γ, Δ, ρ, wρ |-*; cbn in *.
+  + induction wρε.
+    * eapply Hempty.
+    * now eapply Halphastep in IHwρε.
+    * now eapply Halphaup in IHwρε.
+  + now eapply Hstep in IHwρ.
+  + now eapply Hup in IHwρ.
+Qed.
+
+
+Lemma wk_induction' (P : forall Γ Δ, Δ ≤ Γ -> Type) :
+  P ε ε wk_empty ->
+  (forall Γ Δ A ρ, P Γ Δ ρ -> P _ _ (wk_step A ρ)) ->
+  (forall Γ Δ A ρ, P Γ Δ ρ -> P _ _ (wk_up A ρ)) ->
+  (forall L L' ρ i new b,
+    P (fromFctx L) (fromFctx L') ρ -> P _ _ (wk_Fstep i new b ρ)) ->
+  (forall L L' ρ,
+    P (fromFctx L) (fromFctx L') ρ -> P _ _ (wk_alphastep Fnil ρ)) ->
+  (forall L L' F F' ρ (ρF : F' ≤ε F),
+    P (fromFctx L) (fromFctx L') ρ -> P _ _ (wk_alphaup ρ ρF)) ->
+  forall Γ Δ ρ, P Γ Δ ρ.
+Proof.
+  intros Hempty Hstep Hup HFstep Halphastep Halphaup ???.
+  cbn in *.
+  induction ρ using wk_induction; auto.
+  destruct F as [F wfF].
+  induction F as [| [n b] F].
+  + now eapply Halphastep.
+  + exact (HFstep _ _ (wk_alphastep (Build_Fcontext F (wfFcons_wfF wfF)) ρ)
+      (index_0 _ _) (wfFcons_new wfF) b (IHF (wfFcons_wfF wfF))).
+Qed.
+
 
 Lemma wk_new_notin {L L':Fcontext} (new : newnat L') : L' ≤ε L -> not_in_Fctx L new.
 Proof.
@@ -1042,4 +1091,4 @@ Proof.
   eapply new.
 Qed.
 
-
+Opaque wk_alphastep.

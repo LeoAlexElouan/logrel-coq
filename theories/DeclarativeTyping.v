@@ -24,7 +24,7 @@ Section Definitions.
   Inductive WfContextDecl : context -> Type :=
       | connil : [ |- ε ]
       | connew {Γ i new b} : [|-Γ] -> [|-Γ ,, i : new ↦ b]
-      | conalpha {Γ} : [|-Γ] -> [|- Γ ,, ↦ ]
+      | conalpha {Γ} : [|-Γ] -> [|- Γ ,, ↦ Fnil]
       | concons {Γ A} :
           [ |- Γ ] ->
           [ Γ |- A ] ->

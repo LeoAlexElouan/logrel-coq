@@ -225,7 +225,7 @@ Section GenericTyping.
     wfc_nil : [|- ε ] ;
     wfc_cons {Γ} {A} : [|- Γ] -> [Γ |- A] -> [|- Γ,,A];
     wfc_consF {Γ} {i new} {b} : [|- Γ] -> [|- Γ,, i : new ↦ b];
-    wfc_alpha {Γ} : [|- Γ] -> [|- Γ,, ↦];
+    wfc_alpha {Γ} : [|- Γ] -> [|- Γ,, ↦ Fnil];
     wfc_wft {Γ A} : [Γ |- A] -> [|- Γ];
     wfc_ty {Γ A t} : [Γ |- t : A] -> [|- Γ];
     wfc_convty {Γ A B} : [Γ |- A ≅ B] -> [|- Γ];
