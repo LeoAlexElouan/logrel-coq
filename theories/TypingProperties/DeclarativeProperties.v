@@ -502,7 +502,7 @@ Section Boundaries.
       inversion eΓA; subst.
       destruct typing_wk as (_ & ? & _).
       rewrite <- (wk_id_ren_on (Build_context Γ' L') A'),
-        <- (wk_alphastep_ren_on (Γ:=(Build_context Γ' L'))).
+        <- (wk_alphastep_ren_on (F:=Fnil) (Γ:=(Build_context Γ' L'))).
       eapply w.
       + now eapply IHWfContextDecl.
       + constructor. eapply boundary_ctx_ctx, H.

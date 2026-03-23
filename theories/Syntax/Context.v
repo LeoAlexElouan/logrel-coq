@@ -38,10 +38,48 @@ Definition Fcons' (L:Fcontext) (new : newnat L) b : Fcontext
 
 Notation Fnil := (Build_Fcontext nil wf_nil).
 
+Inductive list_index' {X : Set} : Set :=
+  | index_0 : list_index'
+  | index_S (i : X) : list_index'.
+
+Fixpoint list_index {A} (l : list A) : Set :=
+  match l with
+  | nil => False
+  | cons h t => @list_index' (list_index t)
+  end.
+
+Fixpoint index_induction {A} (P : forall (l : list A), list_index l -> Type)
+  (h0 : forall h t, P (cons h t) index_0)
+  (hS : forall h t (i : list_index t), P t i -> P (cons h t) (index_S i))
+  (l : list A) {struct l}: forall i : list_index l, P l i :=
+  match l as l' return forall i' : list_index l', P l' i' with
+  | nil => fun i : False => match i with end 
+  | cons h t => fun i =>
+    match i with
+    | index_0 => h0 _ _
+    | index_S i' => hS _ _ i' (index_induction P h0 hS t i')
+    end
+  end.
+
+Fixpoint Sindex_induction {A} (P : forall (l : list A), list_index l -> SProp)
+  (h0 : forall h t, P (cons h t) index_0)
+  (hS : forall h t (i : list_index t), P t i -> P (cons h t) (index_S i))
+  (l : list A) {struct l}: forall i : list_index l, P l i :=
+  match l as l' return forall i' : list_index l', P l' i' with
+  | nil => fun i : False => match i with end 
+  | cons h t => fun i =>
+    match i with
+    | index_0 => h0 _ _
+    | index_S i' => hS _ _ i' (Sindex_induction P h0 hS t i')
+    end
+  end.
+
+
+(* 
 Inductive list_index {A} : list A -> Set :=
   | index_0 h t : list_index (cons h t)
-  | index_S h t (i : list_index t) : list_index (cons h t).
-Lemma index_case {A : Set} {h: A} {t} P : (P h t (index_0 h t)) -> (forall i, P h t (index_S h t i)) -> forall i, P h t i.
+  | index_S h t (i : list_index t) : list_index (cons h t). *)
+(* Lemma index_case {A : Set} {h: A} {t} P : (P h t (index_0 h t)) -> (forall i, P h t (index_S h t i)) -> forall i, P h t i.
 Proof.
   intros h0 hS i.
   revert h0 hS.
@@ -56,37 +94,31 @@ Proof.
   pattern h, t, i.
   change (?A h t i) with (match cons h t as l return list_index l -> SProp with nil => fun i => sUnit | cons h' t' => fun i => A h' t' i end i).
   destruct i; auto.
-Qed.
+Qed. *)
 
-Fixpoint index_to_nat {A} {l : list A} (i : list_index l) {struct i} := match i with
-  | index_0 h t => 0
-  | index_S h t i => S (index_to_nat i)
-  end.
+Definition index_to_nat {A}  : forall {l : list A}, list_index l -> nat := index_induction _ (fun _ _ => 0) (fun _ _ _ => S).
+
+(* Fixpoint index_to_nat {A} {l : list A} (i : list_index l) (* {struct l} *) := match l as l' return list_index l' -> nat with
+  | nil => fun i => match i with end
+  | cons h t => fun i => match i with index_0 => 0 | index_S i' => S (index_to_nat i') end
+  end i. *)
 Lemma index_to_nat_inj {A}  {l : list A} {i i': list_index l} (ei : index_to_nat i = index_to_nat i') : i = i'.
 Proof.
-  induction i.
-  + induction i' using index_case.
-    - reflexivity.
-    - inversion ei.
-  + revert i ei IHi. induction i' using index_case; intros.
-    - inversion ei.
-    - inversion ei.
-      f_equal; auto.
+  induction l, i using index_induction; destruct i';
+  cbn in *; inversion ei.
+  - reflexivity.
+  - f_equal. auto.
 Qed.
 
 Coercion index_to_nat : list_index >-> nat.
 
-Fixpoint list_at {A} (l : list A ) (i : list_index l) {struct i} := match i with
-  | index_0 h t => h
-  | index_S h t i => list_at t i
-  end.
+Definition list_at {A} : forall (l : list A ) (i : list_index l), A := index_induction (fun _ _ => A) (fun h _ => h) (fun _ _ _ a => a).
 
-Fixpoint Fcons (L : list Fcontext) i {struct i} : forall (new : newnat (list_at L i)) (b : bool), list Fcontext :=
-  match i with
-  |index_0 h t => fun new b => cons (Fcons' h new b) t
-  |index_S h t i => fun new b => cons h (Fcons t i new b)
-  end.
-
+Definition Fcons (L : list Fcontext) (i : list_index L) :
+  forall (new : newnat (list_at L i)) (b : bool), list Fcontext :=
+  index_induction (fun (L : list Fcontext) i => forall (new : newnat (list_at L i)) (b : bool), list Fcontext)
+    (fun h t new b => cons (Fcons' h new b) t)
+    (fun h t i IH new b => cons h (IH new b)) L i.
 
 Record context := {
   Tctx :> Tcontext;
