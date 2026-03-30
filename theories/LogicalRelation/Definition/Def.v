@@ -151,7 +151,7 @@ End Weak_LogRel.
 
 Notation "[ Γ ||-< l > A ≅ B ]" := (WLRAdequate Γ l A B).
 Notation "[ Γ ||-< l > A ]" := [ Γ ||-<l> A ≅ A].
-Notation "[ Γ ||-< l > t ≅ u : A | RA ]" := (RA.(LRPack.eqTm) t u).
+Notation "[ Γ ||-< l > t ≅ u : A | RA ]" := (RA.(@LRPack.eqTm Γ A _) t u).
 Notation "[ Γ ||-< l > t : A | RA ]" := [ Γ ||-< l > t ≅ t : A | RA].
 
 Lemma WAdrefold `{GenericTypingProperties} :
@@ -166,14 +166,13 @@ Proof.
 Qed.
 
 Lemma WAd_split `{GenericTypingProperties}
-  {Γ l A B new} :
-  [Γ,, new ↦ true ||-< l > A ≅ B] -> [Γ,, new ↦ false ||-< l > A ≅ B] -> [Γ ||-< l >A ≅ B].
+  {Γ l A B i new} : [|-Γ] ->
+  [Γ,, i : new ↦ true ||-< l > A ≅ B] -> [Γ,, i : new ↦ false ||-< l > A ≅ B] -> [Γ ||-< l >A ≅ B].
 Proof.
-  intros ht hf.
-  assert (wftrue : [|-Γ,, new ↦ true]) by apply ht.
-  assert (wffalse : [|-Γ,, new ↦ false]) by apply hf.
-  assert (wfΓ : [|-Γ]) by now eapply wfc_split.
-  epose proof (Split_shf (A:= fun Δ _ ρ => [Δ ||-S< l > A⟨ρ⟩ ≅ B⟨ρ⟩]) Γ wfΓ wk_id new _ _) as hsplit.
+  intros wfΓ ht hf.
+  assert (wftrue : [|-Γ,, i : new ↦ true]) by apply ht.
+  assert (wffalse : [|-Γ,, i : new ↦ false]) by apply hf.
+  epose proof (Split_shf (A:= fun Δ _ ρ => [Δ ||-S< l > A⟨ρ⟩ ≅ B⟨ρ⟩]) Γ wfΓ wk_id i new _ _) as hsplit.
   eapply Split_hom_PSh, hsplit.
   intros ??? RAB.
   now rewrite wk_comp_runit in RAB.

@@ -35,14 +35,15 @@ Lemma instKripkeFam {Γ A A' B B' l} (wfΓ : [|-Γ])
   {hA : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), [Δ ||-S<l> A⟨ρ⟩ ≅ A'⟨ρ⟩]}
   (hB : forall Δ a b (ρ : Δ ≤ Γ) (wfΔ : [|-Δ])
     (hab : [hA Δ ρ wfΔ | Δ ||- a ≅ b : _]),
-    [Δ ||-<l> B[a .: ρ >> tRel] ≅ B'[b .: ρ >> tRel]])
+    [Δ ||-<l> B⟨wk_up A ρ⟩[a ..] ≅ B'⟨wk_up A' ρ⟩[b ..]])
   : [ Γ,,A ||-<l> B ≅ B'].
 Proof.
   pose proof (SinstKripke wfΓ hA) as RAA'.
   escape. assert (wfΓA : [|- Γ ,, A]) by gen_typing.
   unshelve epose proof (hinst := hB (Γ ,, A) (tRel 0) (tRel 0) (@wk1 Γ A) wfΓA _).
   1: eapply Svar0; tea; now bsimpl.
-  now rewrite 2!var0_wk1_id in hinst.
+  change B'⟨wk_up A' (wk1 A)⟩ with B'⟨wk_up (Γ := Γ,,A') A' (wk1 A')⟩ in hinst.
+  now rewrite !wk1_eta in hinst.
 Qed.
 
 
@@ -50,10 +51,10 @@ Lemma instKripkeFamTm {Γ A A' B B' t u l} (wfΓ : [|-Γ])
   {hA : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), [Δ ||-S<l> A⟨ρ⟩ ≅ A'⟨ρ⟩]}
   {hB : forall Δ a b (ρ : Δ ≤ Γ) (wfΔ : [|-Δ])
     (hab : [hA Δ ρ wfΔ | Δ ||- a ≅ b : _]),
-    [Δ ||-<l> B[a .: ρ >> tRel] ≅ B'[b .: ρ >> tRel]]}
+    [Δ ||-<l> B⟨wk_up A ρ⟩[a ..] ≅ B'⟨wk_up A' ρ⟩[b ..]]}
   (eq : forall Δ a b (ρ : Δ ≤ Γ) (wfΔ : [|-Δ])
     (hab : [hA Δ ρ wfΔ | Δ ||- a ≅ b : _]),
-    [hB Δ a b ρ wfΔ hab | Δ ||- t[a .: ρ >> tRel] ≅ u[b .: ρ >> tRel] : _])
+    [hB Δ a b ρ wfΔ hab | Δ ||- t⟨wk_up A ρ⟩[a ..] ≅ u⟨wk_up A' ρ⟩[b ..] : _])
   : [ instKripkeFam wfΓ hB |  Γ ,, A ||- t ≅ u : _].
 Proof.
   pose proof (SinstKripke wfΓ hA).
@@ -61,15 +62,16 @@ Proof.
   unshelve epose proof (hinst := eq (Γ ,, A) (tRel 0) (tRel 0) (@wk1 Γ A) wfΓA _).
   1: eapply Svar0; tea; now bsimpl.
   eapply irrLREq in hinst.
-  rewrite 2!var0_wk1_id in hinst; tea.
-  eapply var0_wk1_id.
+  change u⟨wk_up A' (wk1 A)⟩ with u⟨wk_up (Γ := Γ,,A') A' (wk1 A')⟩ in hinst.
+  rewrite !wk1_eta in hinst; tea.
+  eapply wk1_eta.
 Qed.
 
 Lemma instKripkeFamConv {Γ A A' B B' l} (wfΓ : [|-Γ])
   {hA : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), [Δ ||-S<l> A⟨ρ⟩ ≅ A'⟨ρ⟩]}
   (hB : forall Δ a b (ρ : Δ ≤ Γ) (wfΔ : [|-Δ])
     (hab : [hA Δ ρ wfΔ | Δ ||- a ≅ b : _]),
-    [Δ ||-<l> B[a .: ρ >> tRel] ≅ B'[b .: ρ >> tRel]])
+    [Δ ||-<l> B⟨wk_up A ρ⟩[a ..] ≅ B'⟨wk_up A' ρ⟩[b ..]])
   : [ Γ,,A' ||-<l> B ≅ B'].
 Proof.
   unshelve eapply instKripkeFam.
@@ -85,10 +87,10 @@ Lemma instKripkeFamConvTm {Γ A A' B B' t u l} (wfΓ : [|-Γ])
   {hA : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), [Δ ||-S<l> A⟨ρ⟩ ≅ A'⟨ρ⟩]}
   {hB : forall Δ a b (ρ : Δ ≤ Γ) (wfΔ : [|-Δ])
     (hab : [hA Δ ρ wfΔ | Δ ||- a ≅ b : _]),
-    [Δ ||-<l> B[a .: ρ >> tRel] ≅ B'[b .: ρ >> tRel]]}
+    [Δ ||-<l> B⟨wk_up A ρ⟩[a ..] ≅ B'⟨wk_up A' ρ⟩[b ..]]}
   (eq : forall Δ a b (ρ : Δ ≤ Γ) (wfΔ : [|-Δ])
     (hab : [hA Δ ρ wfΔ | Δ ||- a ≅ b : _]),
-    [hB Δ a b ρ wfΔ hab | Δ ||- t[a .: ρ >> tRel] ≅ u[b .: ρ >> tRel] : _])
+    [hB Δ a b ρ wfΔ hab | Δ ||- t⟨wk_up A ρ⟩[a ..] ≅ u⟨wk_up A' ρ⟩[b ..] : _])
   : [ instKripkeFamConv wfΓ hB |  Γ ,, A' ||- t ≅ u : _].
 Proof.
   eapply irrLR.
@@ -103,22 +105,25 @@ Lemma instKripkeSubst {Γ A A' B B' l}
   {hA : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), [Δ ||-S<l> A⟨ρ⟩ ≅ A'⟨ρ⟩]}
   (hB : forall Δ a b (ρ : Δ ≤ Γ) (wfΔ : [|-Δ])
     (hab : [hA Δ ρ wfΔ | Δ ||- a ≅ b : _]),
-    [Δ ||-<l> B[a .: ρ >> tRel] ≅ B'[b .: ρ >> tRel]])
+    [Δ ||-<l> B⟨wk_up A ρ⟩[a ..] ≅ B'⟨wk_up A' ρ⟩[b ..]])
   (RA : [Γ ||-S<l> A ≅ A'])
   [t t']
   (ht : [_ ||-S<l> t ≅ t' : _ | RA])
   : [ Γ ||-<l> B[t..] ≅ B'[t'..]].
 Proof.
   assert (wfΓ: [|-Γ]) by (escape; gtyping).
-  erewrite 2!eq_subst_scons; unshelve eapply hB; tea.
-  eapply SirrLREq; [eapply eq_sym, wk_id_ren_on|]; rewrite 2! wk_id_ren_on; eapply ht.
+  specialize (hB Γ t t' wk_id wfΓ).
+  rewrite 2wk_up_wk_id, 2wk_id_ren_on in hB.
+  eapply hB.
+  eapply SirrLREq, ht.
+  now rewrite wk_id_ren_on.
 Qed.
 
 Lemma instKripkeSubst' {Γ A A' B B' l}
   {hA : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), [Δ ||-S<l> A⟨ρ⟩ ≅ A'⟨ρ⟩]}
   (hB : forall Δ a b (ρ : Δ ≤ Γ) (wfΔ : [|-Δ])
     (hab : [hA Δ ρ wfΔ | Δ ||- a ≅ b : _]),
-    [Δ ||-<l> B[a .: ρ >> tRel] ≅ B'[b .: ρ >> tRel]])
+    [Δ ||-<l> B⟨wk_up A ρ⟩[a ..] ≅ B'⟨wk_up A' ρ⟩[b ..]])
   (RA : [Γ ||-<l> A ≅ A'])
   [t t']
   (ht : [_ ||-<l> t ≅ t' : _ | RA])
@@ -127,7 +132,8 @@ Proof.
   eapply (dSplit_bind ht).
   intros ??? oRA oht.
   eapply WAdrefold.
-  rewrite 2!subst_ren_subst_mixed.
+  specialize (hB _ t⟨ρ⟩ t'⟨ρ⟩ ρ wfΔ).
+  rewrite <- !subst_ren_wk_up in hB.
   now unshelve eapply hB, SirrLR, ht.
 Qed.
 
@@ -135,20 +141,22 @@ Lemma instKripkeSubstTm {Γ A A' B B' u u' l}
   {hA : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), [Δ ||-S<l> A⟨ρ⟩ ≅ A'⟨ρ⟩]}
   {hB : forall Δ a b (ρ : Δ ≤ Γ) (wfΔ : [|-Δ])
     (hab : [hA Δ ρ wfΔ | Δ ||- a ≅ b : _]),
-    [Δ ||-<l> B[a .: ρ >> tRel] ≅ B'[b .: ρ >> tRel]]}
+    [Δ ||-<l> B⟨wk_up A ρ⟩[a ..] ≅ B'⟨wk_up A' ρ⟩[b ..]]}
   (eq : forall Δ a b (ρ : Δ ≤ Γ) (wfΔ : [|-Δ])
     (hab : [hA Δ ρ wfΔ | Δ ||- a ≅ b : _]),
-    [hB Δ a b ρ wfΔ hab | Δ ||- u[a .: ρ >> tRel] ≅ u'[b .: ρ >> tRel] : _])
+    [hB Δ a b ρ wfΔ hab | Δ ||- u⟨wk_up A ρ⟩[a ..] ≅ u'⟨wk_up A' ρ⟩[b ..] : _])
   (RA : [Γ ||-S<l> A ≅ A'])
   [t t' ]
   (ht : [_ ||-S<l> t ≅ t' : _ | RA])
   : [ _ ||-<l> u[t..] ≅ u'[t'..] : _ | instKripkeSubst hB RA ht].
 Proof.
   assert (wfΓ: [|-Γ]) by (escape; gtyping).
-  eapply irrLREq; [eapply eq_sym, eq_subst_scons|].
-  erewrite 2!eq_subst_scons.
-  unshelve eapply eq; tea.
-  eapply SirrLREq; [eapply eq_sym, wk_id_ren_on|]; now rewrite 2!wk_id_ren_on.
+  specialize (eq Γ t t' wk_id wfΓ).
+  rewrite (@wk_up_wk_id Γ A u), (@wk_up_wk_id Γ A' u'),
+    (wk_id_ren_on _ u), (wk_id_ren_on _ u') in eq.
+  unshelve eapply irrLREq, eq; [|now rewrite wk_up_wk_id, wk_id_ren_on].
+  eapply SirrLREq, ht.
+  now rewrite wk_id_ren_on.
 Qed.
 
 End InstKripke.

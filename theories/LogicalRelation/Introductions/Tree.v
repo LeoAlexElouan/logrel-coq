@@ -100,31 +100,32 @@ Proof.
   3: now eapply treeRedTy.
   tea.
   + unshelve eapply SirrLR, Rn; tea.
-    1,2: now eapply overtree_PSh, overtree_PSh.
-  + unshelve eapply SirrLR, Rtl; tea.
+    1,2: now eapply overtree_PSh.
+  + unshelve eapply SirrLR, Rtl; tea;
+      rewrite wk_comp_assoc; tea.
     now eapply overtree_PSh.
-  + unshelve eapply SirrLR, Rtr; tea.
+  + unshelve eapply SirrLR, Rtr; tea;
+      rewrite wk_comp_assoc; tea.
 Qed.
 
-Lemma elimLeafHypTy_subst {P} σ :
-  elimLeafHypTy P[up_term_term σ] = (elimLeafHypTy P)[σ].
+Lemma elimLeafHypTy_subst {Γ Δ P} (σ : substitution) :
+  elimLeafHypTy' Γ P[up_subst σ] = (elimLeafHypTy' Δ P)[σ].
 Proof.
-  unfold elimLeafHypTy.
-  cbn. f_equal.
-  erewrite liftSubstComm'.
-  now rewrite up_liftSubst_eq.
+  rewrite <- subst_prod. f_equal.
+  rewrite subst_ren_subst_up. f_equal.
+  rewrite 2up_wk1_ren_on. now bsimpl.
 Qed.
 
 
-Lemma liftSubst_can {t u} : t[u]⇑ = t⟨upRen_term_term ↑⟩[u..].
+(* Lemma liftSubst_can {t u} : t[u]⇑ = t⟨upRen_term_term ↑⟩[u..].
 Proof.
   rewrite <- up_single_subst.
   f_equal.
   rewrite rinstInst'_term.
   now bsimpl.
-Qed.
+Qed. *)
 
-Lemma up_shift_up_eq t σ : t⟨upRen_term_term ↑⟩[up_term_term (up_term_term σ)] = t[up_term_term σ]⟨upRen_term_term ↑⟩.
+(* Lemma up_shift_up_eq t σ : t⟨upRen_term_term ↑⟩[up_term_term (up_term_term σ)] = t[up_term_term σ]⟨upRen_term_term ↑⟩.
 Proof.
   now bsimpl.
 Qed.
@@ -132,21 +133,26 @@ Qed.
 Lemma up_shift_one_eq t a : t⟨upRen_term_term ↑⟩[up_term_term a..] = t.
 Proof.
   now bsimpl.
-Qed.
+Qed. *)
 
-Lemma elimNodeHypTy_subst {P} σ :
-  elimNodeHypTy P[up_term_term σ] = (elimNodeHypTy P)[σ].
+Lemma elimNodeHypTy_subst {Γ Δ P} σ :
+  elimNodeHypTy' Δ P[up_subst σ] = (elimNodeHypTy' Γ P)[σ].
 Proof.
-  unfold elimNodeHypTy.
-  cbn. do 4 f_equal; [|f_equal]. 
-  + now rewrite shift_up_eq, up_shift_up_eq.
-  + now rewrite shift_up_eq, 2 up_shift_up_eq.
-  + now rewrite 2 liftSubst_can, 2 shift_upRen_eq,
-    2 shift_up_eq, singleSubstComm', 3 up_shift_up_eq.
+  rewrite <- 3subst_prod. f_equal. f_equal. f_equal.
+  erewrite <- 2subst_arr'. f_equal.
+  { erewrite <- subst_up_wk1. f_equal.
+    rewrite up_wk1_ren_on. now bsimpl. }
+  erewrite <- subst_up_wk1. rewrite 2wk1_ren_on. f_equal.
+  f_equal.
+  { rewrite !up_wk1_ren_on. now bsimpl. }
+  rewrite 2wk1_ren_on. f_equal.
+  rewrite subst_ren_subst_up. f_equal.
+  rewrite !up_wk1_ren_on. now bsimpl.
+  Unshelve. all: tea.
 Qed.
-
+(* 
 Lemma liftSubst_singleSubst_eq {t u v: term} : t[u]⇑[v..] = t[u[v..]..].
-Proof. now bsimpl. Qed.
+Proof. now bsimpl. Qed. *)
 
 Section STreeElimRedEq.
   Context {Γ l P Q hl hl' hn hn'}
@@ -157,9 +163,9 @@ Section STreeElimRedEq.
     (eqPQ : [Γ,, tTree |- P ≅ Q])
     (RPQext : forall n n' (Rn : [Γ ||-S<l> n ≅ n' : _ | RT]),
       [Γ ||-<l> P[n..] ≅ Q[n'..]])
-    (RPQl : [Γ ||-<l> elimLeafHypTy P ≅ elimLeafHypTy Q])
+    (RPQl : [Γ ||-<l> elimLeafHypTy' Γ P ≅ elimLeafHypTy' Γ Q])
     (Rhl : [Γ ||-<l> hl ≅ hl' : _ | RPQl])
-    (RPQn : [Γ ||-<l> elimNodeHypTy P ≅ elimNodeHypTy Q])
+    (RPQn : [Γ ||-<l> elimNodeHypTy' Γ P ≅ elimNodeHypTy' Γ Q])
     (Rhn : [Γ ||-<l> hn ≅ hn' : _ | RPQn ]) .
 
   Let RPext : forall n n' (Rn : [Γ ||-S<l> n ≅ n' : _ | RT]),
@@ -191,10 +197,15 @@ Section STreeElimRedEq.
       + escape; eapply redtm_treeElimLeaf; tea.
         1,2: now eapply ty_conv.
       + eapply Wpack_return in Rn as WRn.
+        eassert (Hcod : forall P n, P⟨wk_up tTree (wk1 tNat)⟩[(tLeaf (tRel 0))..][n..] = P[(tLeaf n)..]).
+        { clear dependent P. clear dependent n. intros.
+          rewrite to_subst_sound, subst_ren_subst_up. f_equal.
+          rewrite up_wk1_ren_on, <- up_to_subst, <- to_subst_sound. now bsimpl. }
         eapply irrLREq, appcongTerm, WRn.
         2: eapply Rhl.
-        now bsimpl. Unshelve.
-        now rewrite 2 liftSubst_singleSubst_eq.
+        eapply Hcod.
+        Unshelve.
+        now rewrite 2Hcod.
     - change [Γ ||-S<l> n ≅ n' : _ | LRNat_ l (natRedTy wfΓ)] in Rn.
       change [Γ ||-S<l> tl ≅ tl' : _ | RT] in Rtl.
       change [Γ ||-S<l> tr ≅ tr' : _ | RT] in Rtr.
@@ -221,7 +232,8 @@ Section STreeElimRedEq.
         12: cbn; reflexivity.
         9: cbn; reflexivity.
         4:{ cbn; f_equal; [|f_equal].
-          * now rewrite 2 shift_up_eq, shift_one_eq, up_shift_one_eq.
+          * rewrite 2 shift_up_eq.
+            now rewrite 2 shift_up_eq, shift_one_eq, up_shift_one_eq.
           * now rewrite 3 shift_up_eq, up_shift_up_eq, 2 up_shift_one_eq.
           * rewrite 2 shift_upRen_eq, 6 shift_up_eq, liftSubst_can, 3 singleSubstComm'.
             rewrite 3 up_shift_up_eq, 3 up_shift_one_eq.

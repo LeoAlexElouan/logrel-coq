@@ -64,7 +64,7 @@ Section Symmetry.
     Definition symIsLRFun {t} : isLRFun ΠA t <≈> isLRFun symΠ t.
     Proof.
       split.
-      - intros [???? Rbody|].
+      - intros [????? Rbody|].
         * constructor; tea.
           1: etransitivity; tea; eapply ParamRedTy.eqdom.
           intros.
@@ -73,7 +73,7 @@ Section Symmetry.
           intros Ξ wfΞ ρΞ oha' oRbody ohA; cbn in *.
           now unshelve eapply SirrLR, ihcod, Rbody.
         * constructor; eapply convneu_conv; tea; eapply ParamRedTy.eq.
-      - intros [???? Rbody|].
+      - intros [????? Rbody|].
         * constructor; tea.
           1: etransitivity; tea; eapply ParamRedTy.eqdom.
           intros ??????.
@@ -178,10 +178,10 @@ Section Symmetry.
           + etransitivity; tea.
             assert [|-Γ] as wfΓ by gtyping.
             set (hΣA := PolyRed.posRed ΣA wk_id wfΓ (r1 _ wk_id _)).
+            rewrite 2wk_up_wk_id, 3 wk_id_ren_on in hΣA.
             unshelve eapply (Split_bind_convty hΣA).
             intros Δ wfΔ ρ ohΣA.
-            erewrite 2!eq_subst_scons.
-            symmetry; now eapply escapeEq, hΣA.
+            now symmetry; eapply escapeEq, hΣA.
           + intros; cbn.
             specialize (r2 _ ρ h).
             eapply (dSplit_bind_return r2).
@@ -195,9 +195,9 @@ Section Symmetry.
           + etransitivity; tea.
             assert [|-Γ] as wfΓ by gtyping.
             set (hsymΣ := PolyRed.posRed symΣ wk_id wfΓ (r1 _ wk_id _)).
+            rewrite 2wk_up_wk_id, 3wk_id_ren_on in hsymΣ.
             unshelve eapply (Split_bind_convty hsymΣ).
             intros Δ wfΔ ρ ohsymΣ.
-            erewrite 2!eq_subst_scons.
             symmetry; now eapply escapeEq, hsymΣ.
           + intros; cbn.
             specialize (r2 _ ρ h).

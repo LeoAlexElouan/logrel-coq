@@ -60,7 +60,7 @@ same. Both need to be proven simultaneously, because of contravariance in the pr
     ((forall {Δ} (ρ : Δ ≤ Γ) (wfΔ : [ |- Δ]), P (HAad.(PolyRedPack.shpAd) ρ wfΔ)) ->
       (forall {Δ a b} (ρ : Δ ≤ Γ) (wfΔ : [ |- Δ ])
         (ha : [ ΠA.(PolyRedPack.shpRed) ρ wfΔ | Δ ||- a ≅ b: _ ])
-         Ξ wfΞ (ρΞ : Ξ ≤ Δ) (oΠA : overtree (ΠA.(PolyRedPack.posRed) ρ wfΔ ha) Ξ), 
+         Ξ wfΞ (ρΞ : Ξ ≤ Δ) (oΠA : overtree (ΠA.(PolyRedPack.posRed) ρ wfΔ ha) ρΞ), 
           P (HAad.(PolyRedPack.posAd) ρ wfΔ ha Ξ wfΞ ρΞ oΠA)) -> G).
 
   Theorem LR_rect@{i j k o}
@@ -120,7 +120,7 @@ same. Both need to be proven simultaneously, because of contravariance in the pr
     ((forall {Δ} (ρ : Δ ≤ Γ) (wfΔ : [ |- Δ]), P (ΠA.(PolyRed.shpRed) ρ wfΔ).(LRAd.adequate)) ->
     (forall {Δ a b} (ρ : Δ ≤ Γ) (wfΔ : [ |- Δ ])
       (ha : [ Δ ||-S< _ > a ≅ b : _ |  ΠA.(PolyRed.shpRed) ρ wfΔ ])
-      Ξ wfΞ (ρΞ : Ξ ≤ Δ) (oΠA : overtree (ΠA.(PolyRed.posRed) ρ wfΔ ha) Ξ),
+      Ξ wfΞ (ρΞ : Ξ ≤ Δ) (oΠA : overtree (ΠA.(PolyRed.posRed) ρ wfΔ ha) ρΞ),
       P (LRAd.adequate (cover (ΠA.(PolyRed.posRed) ρ wfΔ ha) Ξ wfΞ ρΞ oΠA))) -> G).
 
 
@@ -169,7 +169,7 @@ same. Both need to be proven simultaneously, because of contravariance in the pr
     ((forall {Δ} (ρ : Δ ≤ Γ) (wfΔ : [ |- Δ]), P (ΠA.(PolyRed.shpRed) ρ wfΔ)) ->
     (forall {Δ a b} (ρ : Δ ≤ Γ) (wfΔ : [ |- Δ ])
       (ha : [ ΠA.(PolyRed.shpRed) ρ wfΔ | Δ ||- a ≅ b : _ ])
-      Ξ wfΞ (ρΞ : Ξ ≤ Δ) (oΠA : overtree (ΠA.(PolyRed.posRed) ρ wfΔ ha) Ξ),
+      Ξ wfΞ (ρΞ : Ξ ≤ Δ) (oΠA : overtree (ΠA.(PolyRed.posRed) ρ wfΔ ha) ρΞ),
       P (cover (ΠA.(PolyRed.posRed) ρ wfΔ ha) Ξ wfΞ ρΞ oΠA)) -> G).
 
   Theorem LR_rect_TyUr@{i j k l o}

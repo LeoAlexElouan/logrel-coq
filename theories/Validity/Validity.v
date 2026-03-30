@@ -44,7 +44,7 @@ Ltac substitution := eauto with substitution.
 
   Definition VRel@{i j | i < j +} `{ta : tag} `{!WfContext ta} :=
   forall (Γ Γ' : context)
-    (eqSubst : forall (Δ : context) (wfΔ : [|- Δ ]) (σ σ' : nat -> term) , Type@{i})
+    (eqSubst : forall (Δ : context) (wfΔ : [|- Δ ]) (σ σ' : substitution) , Type@{i})
     , Type@{j}.
 
 (* A VPack contains the data corresponding to the codomain of VRel seen as a functional relation *)
@@ -53,7 +53,7 @@ Module VPack.
 
   Record VPack@{i} `{ta : tag} `{!WfContext ta} {Γ Γ' : context} :=
   {
-    eqSubst : forall (Δ : context) (wfΔ : [|- Δ ]) (σ σ' : nat -> term) , Type@{i} ;
+    eqSubst : forall (Δ : context) (wfΔ : [|- Δ ]) (σ σ' : substitution) , Type@{i} ;
   }.
 
   Arguments VPack : clear implicits.
@@ -107,7 +107,7 @@ Record StypeValidity@{u i j k l} `{ta : tag} `{!WfContext ta}
   {l : TypeLevel} {A A' : term} :=
   {
     SvalidTyExt : forall {Δ : context} (wfΔ : [|- Δ ])
-      {σ σ' : nat -> term}
+      {σ σ' : substitution}
       (vσσ' : [ VΓ | Δ ||-v σ ≅ σ' : Γ | wfΔ ])
       , [LogRel@{i j k l} l | Δ ||- A [ σ ] ≅ A' [ σ' ] ]
   }.
@@ -122,7 +122,7 @@ Record typeValidity@{u i j k l} `{ta : tag} `{!WfContext ta}
   {l : TypeLevel} {A A' : term} :=
   {
     validTyExt : forall {Δ : context} (wfΔ : [|- Δ ])
-      {σ σ' : nat -> term}
+      {σ σ' : substitution}
       (vσσ' : [ VΓ | Δ ||-v σ ≅ σ' : Γ | wfΔ ]),
       WLRAdequate@{i j k l} Δ l A[σ] A'[σ']
   }.
@@ -144,12 +144,37 @@ Proof.
 Qed.
 
 
-Inductive emptyEqSubst@{u} `{ta : tag} `{!WfContext ta} (L L' : Fcontext) (eq : L =ε L')
-  (Δ : context) (wfΔ : [|- Δ]) (σ σ' : nat -> term): Type@{u} :=
-    eqleq (ρε : Δ ≤ε L).
+Definition emptyEqSubst@{u} `{ta : tag} `{!WfContext ta}
+  (Δ : context) (wfΔ : [|- Δ]) (σ σ' : substitution): Type@{u} :=
+    unit.
 
-Definition emptyVPack `{ta : tag} `{!WfContext ta} {L L'} (eq : L =ε L'): VPack (fromFctx L) (fromFctx L') :=
-  Build_VPack _ _ (emptyEqSubst L L' eq).
+Definition emptyVPack `{ta : tag} `{!WfContext ta} : VPack ε ε :=
+  Build_VPack _ _ emptyEqSubst.
+
+Section εsnocValid.
+  Universe u k l.
+  Context `{ta : tag} `{!WfContext ta}
+  `{!WfType ta} `{!Typing ta} `{!ConvType ta}
+  `{!ConvTerm ta} `{!ConvNeuConv ta} `{!RedType ta} `{!RedTerm ta}
+  {L L': list Fcontext} (Γ := fromFctx L) (Γ' := fromFctx L') {VΓ : VPack@{u} Γ Γ'} {F F' : Fcontext} (* {l : TypeLevel} *).
+(*   {vA : typeValidity@{u i j k l} Γ Γ' VΓ l A A' (* [ VΓ | Γ ||-v< l > A ] *)}. *)
+
+
+  Record εsnocEqSubst (VF : F =ε F') {Δ : context} {wfΔ : [|- Δ]} {σ σ' : substitution} : Type := {
+      εeqTail : [ VΓ | Δ ||-v εtail_subst σ ≅ εtail_subst σ' : Γ | wfΔ ] ;
+      εeqHedIndex : list_index Δ.(Fctx) ; 
+      εeqHeadIn : (subst_alpha σ 0) = index_to_nat εeqHedIndex ;
+      εeqHead : list_at Δ.(Fctx) εeqHedIndex ≤ε F ;
+    }.
+
+  Definition εsnocVPack (VF : F =ε F') := Build_VPack@{u} (Γ ,, ↦ F) (Γ',, ↦ F') (@εsnocEqSubst VF).
+End εsnocValid.
+
+Arguments εsnocEqSubst : clear implicits.
+Arguments εsnocEqSubst {_ _}.
+
+Arguments εsnocVPack : clear implicits.
+Arguments εsnocVPack {_ _}.
 
 Section snocValid.
   Universe u i j k l.
@@ -160,10 +185,10 @@ Section snocValid.
   {vA : typeValidity@{u i j k l} Γ Γ' VΓ l A A' (* [ VΓ | Γ ||-v< l > A ] *)}.
 
 
-  Record snocEqSubst {Δ : context} {wfΔ : [|- Δ]} {σ σ' : nat -> term} : Type :=
+  Record snocEqSubst {Δ : context} {wfΔ : [|- Δ]} {σ σ' : substitution} : Type :=
     {
-      eqTail : [ VΓ | Δ ||-v ↑ >> σ ≅ ↑ >> σ' : Γ | wfΔ ] ;
-      eqHead : [ Δ ||-< l > σ var_zero ≅ σ' var_zero : A[↑ >> σ] | validTyExt vA wfΔ eqTail ]
+      eqTail : [ VΓ | Δ ||-v tail_subst σ ≅ tail_subst σ' : Γ | wfΔ ] ;
+      eqHead : [ Δ ||-< l > (subst_subst σ) var_zero ≅ (subst_subst σ') var_zero : A[tail_subst σ] | validTyExt vA wfΔ eqTail ]
     }.
 
   Definition snocVPack := Build_VPack@{u (* max(u,k) *)} (Γ ,, A) (Γ',,A') (@snocEqSubst).
@@ -181,7 +206,12 @@ Inductive VR@{i j k l} `{ta : tag}
   `{WfContext ta} `{WfType ta} `{Typing ta}
   `{ConvType ta} `{ConvTerm ta} `{ConvNeuConv ta}
   `{RedType ta} `{RedTerm ta} : VRel@{k l} :=
-  | VREmpty {L L'} (eq : L =ε L') : VR (fromFctx L) (fromFctx L') (emptyEqSubst@{k} L L' eq)
+  | VREmpty : VR ε ε emptyEqSubst@{k}
+  | VRSnocε : forall {L L' : list Fcontext} (Γ:= fromFctx L) (Γ' := fromFctx L') {F F'}
+    (VΓ : VPack@{k} Γ Γ')
+    (VΓad : VPackAdequate@{k l} VR VΓ)
+     (VF : F =ε F'), (* let ΓF := (Γ ,, ↦ F) in *)
+    VR (Γ ,, ↦ F) (Γ' ,, ↦ F') (εsnocEqSubst@{k k l} Γ Γ' VΓ F F' VF)
   | VRSnoc : forall {Γ Γ':context} {A A' l}
     (VΓ : VPack@{k} Γ Γ')
     (VΓad : VPackAdequate@{k l} VR VΓ)
@@ -205,13 +235,18 @@ Section MoreDefs.
   Context `{ta : tag} `{WfContext ta} `{WfType ta} `{Typing ta}
   `{ConvType ta} `{ConvTerm ta} `{ConvNeuConv ta} `{RedType ta} `{RedTerm ta}.
 
-  Definition validEmpty@{i j k l} {L L'} (eq : L =ε L') : [VR@{i j k l}| ||-v fromFctx L ≅ fromFctx L' ] :=
-    Build_VAdequate (emptyVPack@{k} eq) (VREmpty eq).
+  Definition validEmpty@{i j k l} : [VR@{i j k l}| ||-v ε ≅ ε ] :=
+    Build_VAdequate emptyVPack@{k} VREmpty.
 
   Definition validSnoc@{i j k l} {Γ Γ' : context} {A A' l}
     (VΓ : [VR@{i j k l}| ||-v Γ ≅ Γ']) (VA : [Γ ||-v< l > A ≅ A' | VΓ])
     : [||-v Γ ,, A ≅ Γ' ,, A'] :=
     Build_VAdequate (snocVPack Γ Γ' VΓ A A' l VA) (VRSnoc VΓ VΓ VA).
+
+  Definition validSnocε@{i j k l} {L L' : list Fcontext} (Γ:= fromFctx L) (Γ' := fromFctx L') {F F'}
+    (VΓ : [VR@{i j k l}| ||-v Γ ≅ Γ']) (VF : F =ε F')
+    : [||-v Γ ,, ↦ F ≅ Γ' ,, ↦ F'] :=
+    Build_VAdequate (εsnocVPack Γ Γ' VΓ F F' VF) (VRSnocε VΓ VΓ VF).
 
 
   Record StermEqValidity@{i j k l} {Γ Γ' : context} {l} {A A' : term}
@@ -303,23 +338,28 @@ Section Inductions.
 
   Theorem VR_rect
     (P : forall {Γ Γ' vSubstExt}, VR Γ Γ' vSubstExt -> Type)
-    (hε : forall {L L'} (eq : L =ε L'), P (VREmpty (L:=L) (L':=L') eq))
+    (hε : P VREmpty)
+    (hsnocε : forall {L L' : list Fcontext} (Γ:= fromFctx L) (Γ' := fromFctx L') {F F' VΓ VΓad VF},
+      P VΓad -> P (VRSnocε (L := L) (L':=L') (F := F) (F':=F') VΓ VΓad VF))
     (hsnoc : forall {Γ Γ' A A' l VΓ VΓad VA},
       P VΓad -> P (VRSnoc (Γ := Γ) (Γ':=Γ') (A := A) (A':=A') (l := l) VΓ VΓad VA)) :
     forall {Γ Γ' : context} {vSubstExt} (VΓ : VR Γ Γ' vSubstExt), P VΓ.
   Proof.
-    fix ih 4; destruct VΓ; [apply hε | apply hsnoc; apply ih].
+    fix ih 4; destruct VΓ; [apply hε | apply hsnocε; apply ih | apply hsnoc; apply ih].
   Defined.
 
   Theorem validity_rect
     (P : forall {Γ Γ' : context}, [||-v Γ ≅ Γ'] -> Type)
-    (hε : forall {L L'} (eq : L =ε L'), P (validEmpty eq))
+    (hε : P validEmpty)
+    (hsnocε : forall {L L' : list Fcontext} (Γ:= fromFctx L) (Γ' := fromFctx L') {F F'}
+      (VΓ : [||-v Γ ≅ Γ']) (VF : F =ε F'), P VΓ -> P (validSnocε VΓ VF))
     (hsnoc : forall {Γ Γ' : context}  {A A' l} (VΓ : [||-v Γ ≅ Γ']) (VA : [Γ ||-v< l > A ≅ A' | VΓ]), P VΓ -> P (validSnoc VΓ VA)) :
     forall {Γ Γ' : context} (VΓ : [||-v Γ ≅ Γ']), P VΓ.
   Proof.
     intros Γ Γ' [[eq] VΓad]; revert Γ Γ' eq VΓad.
     apply VR_rect with (P:= fun Γ Γ' eq VΓ => P Γ Γ' (Build_VAdequate (Build_VPack _ _ eq) VΓ)).
     - apply hε.
+    - intros * ?? * ?. cbn in *. apply hsnocε with (1:=X).
     - intros *; apply hsnoc.
   Defined.
 
@@ -345,24 +385,36 @@ Section Inductions.
   (* Example check_uip_context : UIP context. Proof. typeclasses eauto. Qed. *)
   Lemma invValidity {Γ Γ' : context} (VΓ : [||-v Γ ≅ Γ']) :
     match Γ as Γ return forall Γ', [||-v Γ ≅ Γ'] -> Type with
-    | Build_context nil L => fun Γ₀ VΓ₀ => ∑ (L' : Fcontext) (eq : L =ε L') (e : Γ₀ = fromFctx L'),
-        rew [fun Γ₀ => [||-v fromFctx L ≅ Γ₀]] e in VΓ₀ = (validEmpty eq)
+    | Build_context nil nil => fun Γ₀ VΓ₀ => ∑ (e : Γ₀ = ε),
+        rew [fun Γ₀ => [||-v ε ≅ Γ₀]] e in VΓ₀ = validEmpty
+    | Build_context nil (F :: L)%list => fun Γ₀ VΓ₀ =>
+      ∑ F' L' (VΓ : [||-v fromFctx L ≅ fromFctx L']) (VF : F =ε F') (e : Γ₀ = (fromFctx L' ,, ↦ F')),
+        rew [fun Γ₀ => [||-v (fromFctx L),,↦ F ≅ Γ₀]] e in VΓ₀ = validSnocε VΓ VF
     | Build_context (A :: Γ)%list L => fun Γ₀ VΓ₀ =>
       ∑ l A' Γ' (VΓ : [||-v Build_context Γ L ≅ Γ']) (VA : [Build_context Γ L ||-v< l > A ≅ A' | VΓ]) (e : Γ₀ = (Γ' ,, A')),
         rew [fun Γ₀ => [||-v (Build_context Γ L),,A ≅ Γ₀]] e in VΓ₀ = validSnoc VΓ VA
     end Γ' VΓ.
   Proof.
     pattern Γ, Γ', VΓ; apply validity_rect; intros.
-    - eexists; exists eq, eq_refl; reflexivity.
+    - exists eq_refl; reflexivity.
+    - do 4 eexists; exists eq_refl; reflexivity.
     - do 5 eexists; exists eq_refl; reflexivity.
   Defined.
 
-  Lemma invValidityEmpty {L L'} (VΓ : [||-v fromFctx L ≅ fromFctx L']) : ∑ eq, VΓ = (validEmpty eq).
+  Lemma invValidityEmpty (VΓ : [||-v ε ≅ ε]) : VΓ = validEmpty.
   Proof.
-    destruct (invValidity VΓ) as (?&?&e&h).
-    pose proof (f_equal Fctx e) as e'; cbn in e'; destruct e'.
+    destruct (invValidity VΓ) as (e&h).
+    now rewrite (uip e eq_refl) in h.
+  Qed.
+
+  Lemma invValiditySnocε {L L' F F'} (VΓ₀ : [||-v fromFctx L,,↦ F ≅ fromFctx L',,↦ F']) :
+    ∑ (VΓ : [||-v fromFctx L ≅ fromFctx L']) (VF : F =ε F') , VΓ₀ = validSnocε VΓ VF.
+  Proof.
+    destruct (invValidity VΓ₀) as (F''&L''&VΓ&VF&e&h); cbn in *.
+    pose proof (f_equal Fctx e) as e'; cbn in e'.
+    inversion e'; subst.
     rewrite (uip e eq_refl) in h.
-    eexists; apply h.
+    now do 2 eexists.
   Qed.
 
   Lemma invValiditySnoc {Γ Γ' A A'} (VΓ₀ : [||-v Γ ,, A ≅ Γ',, A' ]) :

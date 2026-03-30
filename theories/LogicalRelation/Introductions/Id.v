@@ -80,14 +80,17 @@ Section IdRed.
     intros Ξ wfΞ ρΞ oRt.
     eapply (dSplit_wk_bind_return Ru wfΞ (ρΞ ∘w ρ)).
     intros Θ wfΘ ρΘ oRA' oRu oRU.
-    cbn -[wk_well_wk_compose].
+    rewrite <- 2wk_Id.
     unshelve eapply SIdCongRedU.
-    + now unshelve now eapply SUnivEq, RA, overtree_PSh, overtree_PSh.
-    + now unshelve now eapply RA, overtree_PSh, overtree_PSh.
-    + unshelve eapply SirrLRCum, Rt, overtree_PSh, oRt; tea.
-      now eapply lrefl, RA'.
-    + unshelve eapply SirrLRCum, Ru, oRu; tea.
-      now eapply lrefl, RA'.
+    + (unshelve now eapply SUnivEq, RA, overtree_PSh); tea.
+    + (unshelve now eapply RA, overtree_PSh); tea.
+    + unshelve eapply SirrLRCum, Rt; tea.
+      2: eapply lrefl, RA'; tea.
+      all: rewrite wk_comp_assoc; tea.
+      now eapply overtree_PSh.
+    + unshelve eapply SirrLRCum, Ru; tea.
+      2: eapply lrefl, RA'; tea.
+      all: rewrite wk_comp_assoc; tea.
 Qed.
 
 Lemma SreflCongRed0 {Γ l A A0 A' B x x'}
@@ -302,8 +305,7 @@ Proof.
     eapply wft_Id.
     + eapply wft_wk; escape; gtyping.
     + eapply ty_wk; escape; gtyping.
-    + rewrite wk1_ren_on.
-      eapply ty_var0; escape; gtyping. }
+    + eapply ty_var0; escape; gtyping. }
   assert [Θ |-[ ta ] A'⟨ρ⟩]
     by (escape; now eapply wft_wk).
   assert ([ |-[ ta ] Θ,, (A'⟨ρ⟩)])
@@ -314,11 +316,10 @@ Proof.
     eapply wft_Id.
     + eapply wft_wk; escape; gtyping.
     + eapply ty_wk; escape; gtyping.
-    + rewrite wk1_ren_on.
-      eapply ty_var0; escape; gtyping. }
+    + eapply ty_var0; escape; gtyping. }
   unshelve eapply irrLREq, SidElimCongRed.
   + eapply RA; tea.
-    eapply (overtree_PSh _ oRA).
+    now eapply overtree_PSh.
   + clear dependent y.
     clear dependent y'.
     clear dependent e.
@@ -329,28 +330,26 @@ Proof.
     eapply Wpack_return.
     exact Ree'.
   + eapply Ryy'.
-    eapply (overtree_PSh _ oRyy').
+    now eapply overtree_PSh.
   + shelve.
   + now eapply Ree'.
   + eapply Rxx'.
-    unshelve eapply (overtree_PSh _ oRxx').
-    eapply Fwk_compose, ρΞ; eapply ρΘ.
+    now eapply overtree_PSh, overtree_PSh.
   + eapply SIdRed.
-    all: unshelve (eapply Rxx', (overtree_PSh _ oRxx')); tea.
-    1: eapply (overtree_PSh _ oRA).
-    all: eapply (ρΘ ∘w ρΞ).
+    all: unshelve (eapply Rxx', overtree_PSh, overtree_PSh); tea.
+    1: now eapply overtree_PSh.
   + now rewrite 2 (wk_comp_ren_on P[e .: y..]), <- subst_ren_wk_up2.
   + eapply wft_wkEq, RP0.
-    2: now bsimpl.
+    2: now rewrite <- wk_Id, 2wk_up_wk1.
     tea.
   + eapply wft_wkEq, RP0'.
-    2: now bsimpl.
+    2: now rewrite <- wk_Id, 2wk_up_wk1.
     tea.
   + refine (convty_wkEq _ _ _ RPP0).
-    2: now bsimpl.
+    2: now rewrite <- wk_Id, 2wk_up_wk1.
     tea.
   + eapply irrLREq, wkLRTm, Rhrhr'.
-    now bsimpl.
+    now erewrite subst_ren_wk_up2.
   Unshelve. all: tea.
   eapply irrLR, Wpack_return, Ryy'.
 Qed.

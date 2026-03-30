@@ -477,6 +477,91 @@ Ltac bsimpl := check_no_evars;
                   Subst_alpha, substitute, wk_substitution, ren_alpha_substitution, ren_substitution
                   in *; bsimpl'; minimize.
 
+Record wk_eq {Γ Δ : context} (ρ ρ' : Δ ≤ Γ) : Prop := Build_wk_eq
+  { wk_eq1 : ρ =1 ρ';  Fwk_eq1 : ρ.(Fwk) =1 ρ'.(Fwk) }.
+  
+Notation "ρ =₁ ρ'" := (wk_eq ρ ρ') (at level 60).
+
+Goal forall {Γ Δ} (ρ ρ' : Δ ≤ Γ) (t : term), ρ =₁ ρ' -> t⟨ρ⟩ = t⟨ρ'⟩.
+Proof.
+  intros * [e eε].
+  bsimpl. unfold funcomp. now rewrite e, eε.
+Qed.
+
+Lemma wf_eq1_eq  {L L' ρε ρε'}
+  (wρε : well_Fweakening ρε L' L) (wρε' : well_Fweakening ρε' L' L) :
+  ρε =1 ρε' -> ρε = ρε'.
+Proof.
+  intros heq1.
+  induction wρε in ρε', wρε', heq1 |- *.
+  - inversion wρε'; now subst.
+  - inversion wρε'; subst.
+    + f_equal. eapply IHwρε; tea.
+      intros x. specialize (heq1 x); cbn in heq1.
+      now inversion heq1.
+    + specialize (heq1 0). cbn in heq1. inversion heq1.
+  - inversion wρε'; subst.
+    + specialize (heq1 0). cbn in heq1. inversion heq1.
+    + f_equal. eapply IHwρε; tea.
+      intros x. specialize (heq1 (S x)); cbn in heq1.
+      now inversion heq1.
+Qed.
+
+Lemma wk_to_ren_inj : forall Γ Δ (ρ1 ρ2 : Γ ≤ Δ),
+  ρ1 =₁ ρ2 ->
+  ρ1 = ρ2.
+Proof.
+  intros * [Heq HFeq]; apply wk_well_wk_wk_eq.
+  1:{
+  destruct Γ as [Γ L], Δ as [Δ L'], ρ1 as [Fρ1 wFρ1 ρ1 wρ1], ρ2 as [Fρ2 wFρ2 ρ2 wρ2]; cbn in *. clear wFρ2 wFρ1.
+  induction wρ1 in Γ, Δ, wρ1, Fρ2, ρ2, wρ2, Heq |-*; cbn in *.
+  + inversion wρ2; now subst.
+  + inversion wρ2; subst.
+    - f_equal.
+      eapply IHwρ1; tea.
+      intros x.
+      specialize (Heq x); cbn in Heq; unfold funcomp in Heq.
+      now inversion Heq.
+    - specialize (Heq 0); discriminate Heq.
+  + inversion wρ2; subst.
+    - specialize (Heq 0); discriminate Heq.
+    - f_equal. eapply IHwρ1; tea.
+      intros n; specialize (Heq (S n)); cbn in Heq.
+      now injection Heq. }
+  eapply (wf_eq1_eq ρ1 ρ2 HFeq); tea.
+Qed.
+
+Lemma _wk_comp_lunit {A} {Γ :list A} ρ : wk_compose (_wk_id Γ) ρ =1 ρ.
+Proof. now bsimpl. Qed.
+
+Lemma wk_comp_lunit_pointwise {Γ Δ} (ρ : Δ ≤ Γ) : wk_id ∘w ρ =₁ ρ.
+Proof. constructor; eapply _wk_comp_lunit. Qed.
+Lemma wk_comp_lunit {Γ Δ} (ρ : Δ ≤ Γ) : wk_id ∘w ρ = ρ.
+Proof.
+  apply wk_to_ren_inj; eapply wk_comp_lunit_pointwise.
+Qed.
+
+Lemma _wk_comp_runit {A} {Γ :list A} ρ : wk_compose ρ (_wk_id Γ) =1 ρ.
+Proof. now bsimpl. Qed.
+Lemma wk_comp_runit_pointwise {Γ Δ} (ρ : Δ ≤ Γ) : ρ ∘w wk_id =₁ ρ.
+Proof. constructor; eapply _wk_comp_runit. Qed.
+Lemma wk_comp_runit {Γ Δ} (ρ : Δ ≤ Γ) : ρ ∘w wk_id = ρ.
+Proof.
+  apply wk_to_ren_inj; eapply wk_comp_runit_pointwise.
+Qed.
+
+Lemma _wk_comp_assoc(*  {A} {Γ Δ Ξ ζ : list A} *) ρ ρ' ρ'' :
+  wk_compose (wk_compose ρ'' ρ') ρ =1 wk_compose ρ'' (wk_compose ρ' ρ).
+Proof. now bsimpl. Qed.
+
+Lemma wk_comp_assoc_pointwise {Γ Δ Ξ ζ} (ρ : Δ ≤ Γ) (ρ' : Ξ ≤ Δ) (ρ'' : ζ ≤ Ξ) :
+  (ρ'' ∘w ρ') ∘w ρ =₁ ρ'' ∘w (ρ' ∘w ρ).
+Proof. constructor; eapply _wk_comp_assoc. Qed.
+Lemma wk_comp_assoc {Γ Δ Ξ ζ} (ρ : Δ ≤ Γ) (ρ' : Ξ ≤ Δ) (ρ'' : ζ ≤ Ξ) :
+  (ρ'' ∘w ρ') ∘w ρ = ρ'' ∘w (ρ' ∘w ρ).
+Proof.
+  apply wk_to_ren_inj; eapply wk_comp_assoc_pointwise.
+Qed.
 (** ** Weakenings play well with context access *)
 
 Lemma ren2_alpha_shift t ρ ρε : t⟨ρ >> S; ρε⟩ = t⟨ρ; ρε⟩⟨↑⟩.
@@ -681,6 +766,11 @@ Proof. bsimpl. unfold _wk_id. now bsimpl. Qed.
 Lemma wk1_ren_on Γ F (H : term) : H⟨@wk1 Γ F⟩ = H⟨↑⟩.
 Proof. now bsimpl. Qed.
 
+Lemma up_wk1_ren_on {Γ} (A B t : term) : t⟨wk_up A (@wk1 Γ B)⟩ = t⟨upRen_term_term ↑⟩.
+Proof. now bsimpl. Qed.
+(* Lemma upup_wk1_ren_on {Γ} (A B C t : term) : t⟨wk_up A (wk_up B (@wk1 (Γ,, A,, B) C))⟩ = t⟨upRen_term_term (upRen_term_term ↑)⟩.
+Proof. now bsimpl. Qed. *)
+
 Lemma shift_subst1 {Γ A B a} : B⟨@wk1 Γ A⟩[a..] = B.
 Proof. now rewrite wk1_ren_on, shift_subst1'. Qed.
 
@@ -691,25 +781,56 @@ Proof. reflexivity. Qed.
 Proof. now bsimpl. Qed.
  *)
 
-
 Lemma wk_step_wk1 {A Γ Δ} {t : term} (ρ : Δ ≤ Γ) :  t⟨ρ⟩⟨@wk1 Δ A⟩ = t⟨wk_step A ρ⟩.
 Proof.  now bsimpl. Qed.
 
+Lemma wk_up_wk1' {A Γ Δ} (ρ : Δ ≤ Γ) : @wk1 Δ A⟨ρ⟩ ∘w ρ = wk_up A ρ ∘w @wk1 Γ A.
+Proof.
+  eapply wk_to_ren_inj.
+  constructor.
+  - bsimpl; reflexivity.
+  - now bsimpl.
+Qed.
+
 Lemma wk_up_wk1 {A Γ Δ} {t : term} (ρ : Δ ≤ Γ) :  t⟨ρ⟩⟨@wk1 Δ A⟨ρ⟩⟩ = t⟨@wk1 Γ A⟩⟨wk_up A ρ⟩.
-Proof. now bsimpl. Qed.
+Proof. now rewrite 2wk_comp_ren_on, wk_up_wk1'. Qed.
 
 Lemma wk1_eta {Γ A t} : t⟨wk_up A (@wk1 Γ A)⟩[(tRel 0)..] = t.
 Proof. now bsimpl. Qed.
 
+Lemma wk_up_wk_id {Γ A} {t : term} : t⟨wk_up A (@wk_id Γ)⟩ = t⟨@wk_id (Γ,,A)⟩.
+Proof. reflexivity. Qed.
+
+Lemma wk_up_wk_comp {Γ Δ Ξ A} {t : term} (ρ : Δ ≤ Γ) (ρΞ : Ξ ≤ Δ) :
+  t⟨(wk_up _ ρΞ) ∘w (wk_up A ρ)⟩ = t⟨wk_up A (ρΞ ∘w ρ)⟩.
+Proof. reflexivity. Qed.
+
+
+
 
 Notation eta_expand' Γ A f := (tApp f⟨@wk1 Γ A⟩ (tRel 0)) (only parsing).
+Notation arr' Γ A B := (tProd A B⟨@wk1 Γ A⟩).
+Notation elimSuccHypTy' Γ P :=
+  (tProd tNat (arr' (Γ,, tNat) P P⟨wk_up tNat (@wk1 Γ tNat)⟩[(tSucc (tRel 0))..])).
+Notation elimLeafHypTy' Γ P :=
+  (tProd tNat P⟨wk_up tTree (@wk1 Γ tNat)⟩[(tLeaf (tRel 0))..]).
+
+Notation elimNodeHypTyCod Γ P := (arr' (Γ,, tNat ,, tTree,,tTree) (P⟨wk_up tTree (@wk1 Γ tNat)⟩⟨@wk1 (Γ,, tNat,, tTree) tTree⟩)
+    (arr' (Γ,, tNat ,, tTree,,tTree) (P⟨wk_up tTree (@wk1 Γ tNat)⟩⟨wk_up tTree (@wk1 (Γ,,tNat) tTree)⟩)
+      (P⟨wk_up tTree (@wk1 Γ tNat)⟩⟨wk_up tTree (@wk1 (Γ,,tNat) tTree)⟩⟨wk_up tTree (@wk1 (Γ,,tNat,,tTree) tTree)⟩
+      [(tNode (tRel 2) (tRel 1) (tRel 0))..]))).
+Notation elimNodeHypTy' Γ P :=
+  (tProd tNat (tProd tTree (tProd tTree (elimNodeHypTyCod Γ P)))).
+(*     (arr' (Γ,, tNat ,, tTree,,tTree) (P⟨wk_up tTree (@wk1 Γ tNat)⟩⟨@wk1 (Γ,, tNat,, tTree) tTree⟩)
+    (arr' (Γ,, tNat ,, tTree,,tTree) (P⟨wk_up tTree (@wk1 Γ tNat)⟩⟨wk_up tTree (@wk1 (Γ,,tNat) tTree)⟩)
+      (P⟨wk_up tTree (@wk1 Γ tNat)⟩⟨wk_up tTree (@wk1 (Γ,,tNat) tTree)⟩⟨wk_up tTree (@wk1 (Γ,,tNat,,tTree) tTree)⟩
+      [(tNode (tRel 2) (tRel 1) (tRel 0))..])))))). *)
 
 Lemma wk_prod {A B Γ Δ} (ρ : Δ ≤ Γ) : tProd A⟨ρ⟩ B⟨wk_up A ρ⟩ = (tProd A B)⟨ρ⟩.
 Proof. reflexivity. Qed.
 
 Lemma wk_arr {A B Γ Δ} (ρ : Δ ≤ Γ) : arr A⟨ρ⟩ B⟨ρ⟩ = (arr A B)⟨ρ⟩.
 Proof. now bsimpl. Qed.
-Notation arr' Γ A B := (tProd A B⟨@wk1 Γ A⟩).
 Lemma wk_arr' {A B Γ Δ} (ρ : Δ ≤ Γ) : arr' Δ A⟨ρ⟩ B⟨ρ⟩ = (arr' Γ A B)⟨ρ⟩.
 Proof. now rewrite wk_up_wk1. Qed.
 
@@ -752,6 +873,15 @@ Lemma wk_elimSuccHypTy {P Γ Δ} A (ρ : Δ ≤ Γ) :
 Proof.
   unfold elimSuccHypTy; cbn; f_equal; f_equal. now bsimpl.
 Qed.
+Lemma wk_elimSuccHypTy' {P Γ Δ} (ρ : Δ ≤ Γ) :
+  elimSuccHypTy' Δ P⟨wk_up tNat ρ⟩ = (elimSuccHypTy' Γ P)⟨ρ⟩.
+Proof.
+  rewrite <- wk_prod, <- wk_arr'. f_equal. f_equal.
+  erewrite (subst_ren_wk_up (wk_up tNat ρ)).
+  f_equal. f_equal. change (wk_up tNat (@wk1 Δ tNat)) with (wk_up tNat⟨ρ⟩ (@wk1 Δ tNat)).
+  now rewrite 2wk_comp_ren_on, wk_up_wk_comp, (wk_up_wk_comp (A:=tNat) ρ (wk1 tNat)),
+   <- wk_up_wk1'.
+Qed.
 Lemma wk_natElim {Γ Δ P hz hs n} (ρ : Δ ≤ Γ) :
   tNatElim P⟨wk_up tNat ρ⟩ hz⟨ρ⟩ hs⟨ρ⟩ n⟨ρ⟩ = (tNatElim P hz hs n)⟨ρ⟩.
 Proof. reflexivity. Qed.
@@ -759,9 +889,43 @@ Proof. reflexivity. Qed.
 Lemma wk_elimLeafHypTy {P Γ Δ} A (ρ : Δ ≤ Γ) :
   elimLeafHypTy P⟨wk_up A ρ⟩ = (elimLeafHypTy P)⟨ρ⟩.
 Proof. unfold elimLeafHypTy; cbn. f_equal ; now bsimpl. Qed.
+Lemma wk_elimLeafHypTy' {P Γ Δ} (ρ : Δ ≤ Γ) :
+  elimLeafHypTy' Δ P⟨wk_up tTree ρ⟩ = (elimLeafHypTy' Γ P)⟨ρ⟩.
+Proof.
+  rewrite <- wk_prod. f_equal.
+  erewrite (subst_ren_wk_up (* (A:= tTree⟨ρ⟩) *) (wk_up tNat ρ)). f_equal.
+  change (wk_up tTree (@wk1 Δ tNat)) with (wk_up tTree⟨ρ⟩ (@wk1 Δ tNat)).
+  now rewrite 2wk_comp_ren_on, wk_up_wk_comp, (wk_up_wk_comp (A:=tTree) ρ (wk1 tNat)),
+    <- wk_up_wk1'.
+Qed.
+
 Lemma wk_elimNodeHypTy {P Γ Δ} A (ρ : Δ ≤ Γ) :
   elimNodeHypTy P⟨wk_up A ρ⟩ = (elimNodeHypTy P)⟨ρ⟩.
 Proof. unfold elimNodeHypTy; cbn; f_equal; f_equal; f_equal; f_equal; [ | f_equal]; now bsimpl. Qed.
+Lemma elimNodeHypTy_to_typed {P Γ} : elimNodeHypTy' Γ P = elimNodeHypTy P.
+Proof.
+  unfold elimNodeHypTy.
+  eapply (f_equal (tProd tNat)), (f_equal (tProd tTree)), (f_equal (tProd tTree)),
+    f_equal2.
+  1:{ rewrite wk1_ren_on; f_equal.
+    apply up_wk1_ren_on. }
+  rewrite wk1_ren_on.
+  f_equal.
+  eapply f_equal2.
+  1:{ etransitivity; [apply up_wk1_ren_on|f_equal].
+    apply up_wk1_ren_on. }
+  rewrite wk1_ren_on. f_equal. f_equal.
+  etransitivity; [apply up_wk1_ren_on|f_equal].
+  etransitivity; [apply up_wk1_ren_on|f_equal].
+  apply up_wk1_ren_on.
+Qed.
+Lemma wk_elimNodeHypTy' {P Γ Δ} (ρ : Δ ≤ Γ) :
+  elimNodeHypTy' Δ P⟨wk_up tTree ρ⟩ = (elimNodeHypTy' Γ P)⟨ρ⟩.
+Proof.
+  rewrite 2elimNodeHypTy_to_typed.
+  eapply wk_elimNodeHypTy.
+Qed.
+
 Lemma wk_treeElim {Γ Δ P hl hn t} (ρ : Δ ≤ Γ) :
   tTreeElim P⟨wk_up tTree ρ⟩ hl⟨ρ⟩ hn⟨ρ⟩ t⟨ρ⟩ = (tTreeElim P hl hn t)⟨ρ⟩.
 Proof. reflexivity. Qed.
@@ -780,94 +944,14 @@ Lemma wk_idElim {A x P hr y e Δ Γ} (ρ : Δ ≤ Γ) :
   tIdElim A⟨ρ⟩ x⟨ρ⟩ P⟨wk_up (tId A⟨@wk1 Γ A⟩ x⟨@wk1 Γ A⟩ (tRel 0)) (wk_up A ρ)⟩ hr⟨ρ⟩ y⟨ρ⟩ e⟨ρ⟩ = (tIdElim A x P hr y e)⟨ρ⟩.
 Proof. reflexivity. Qed.
 
-Record wk_eq {Γ Δ} (ρ ρ' : Δ ≤ Γ) := {
-  wk_eq1 : ρ =1 ρ';
-  Fwk_eq1 : ρ.(Fwk) =1 ρ'.(Fwk);
-  }.
 
-Notation "ρ =₁ ρ'" := (wk_eq ρ ρ') (at level 60).
-
-Goal forall {Γ Δ} (ρ ρ' : Δ ≤ Γ) (t : term), ρ =₁ ρ' -> t⟨ρ⟩ = t⟨ρ'⟩.
-Proof.
-  intros * [e eε].
-  bsimpl. unfold funcomp. now rewrite e, eε.
-Qed.
-
-Lemma wf_eq1_eq  {L L' ρε ρε'}
-  (wρε : well_Fweakening ρε L' L) (wρε' : well_Fweakening ρε' L' L) :
-  ρε =1 ρε' -> ρε = ρε'.
-Proof.
-  intros heq1.
-  induction wρε in ρε', wρε', heq1 |- *.
-  - inversion wρε'; now subst.
-  - inversion wρε'; subst.
-    + f_equal. eapply IHwρε; tea.
-      intros x. specialize (heq1 x); cbn in heq1.
-      now inversion heq1.
-    + specialize (heq1 0). cbn in heq1. inversion heq1.
-  - inversion wρε'; subst.
-    + specialize (heq1 0). cbn in heq1. inversion heq1.
-    + f_equal. eapply IHwρε; tea.
-      intros x. specialize (heq1 (S x)); cbn in heq1.
-      now inversion heq1.
-Qed.
-
-Lemma wk_to_ren_inj : forall Γ Δ (ρ1 ρ2 : Γ ≤ Δ),
-  ρ1 =₁ ρ2 ->
-  ρ1 = ρ2.
-Proof.
-  intros * [Heq HFeq]; apply wk_well_wk_wk_eq.
-  1:{
-  destruct Γ as [Γ L], Δ as [Δ L'], ρ1 as [Fρ1 wFρ1 ρ1 wρ1], ρ2 as [Fρ2 wFρ2 ρ2 wρ2]; cbn in *. clear wFρ2 wFρ1.
-  induction wρ1 in Γ, Δ, wρ1, Fρ2, ρ2, wρ2, Heq |-*; cbn in *.
-  + inversion wρ2; now subst.
-  + inversion wρ2; subst.
-    - f_equal.
-      eapply IHwρ1; tea.
-      intros x.
-      specialize (Heq x); cbn in Heq; unfold funcomp in Heq.
-      now inversion Heq.
-    - specialize (Heq 0); discriminate Heq.
-  + inversion wρ2; subst.
-    - specialize (Heq 0); discriminate Heq.
-    - f_equal. eapply IHwρ1; tea.
-      intros n; specialize (Heq (S n)); cbn in Heq.
-      now injection Heq. }
-  eapply (wf_eq1_eq ρ1 ρ2 HFeq); tea.
-Qed.
+Lemma subst_arr' {A B Γ Δ} (σ : nat -> term) : arr' Δ A[σ] B[σ] = (arr' Γ A B)[σ].
+Proof. cbn. f_equal. now rewrite 2wk1_ren_on, shift_up_eq. Qed.
 
 
-Lemma _wk_comp_lunit {A} {Γ :list A} ρ : wk_compose (_wk_id Γ) ρ =1 ρ.
-Proof. now bsimpl. Qed.
 
-Lemma wk_comp_lunit_pointwise {Γ Δ} (ρ : Δ ≤ Γ) : wk_id ∘w ρ =₁ ρ.
-Proof. constructor; eapply _wk_comp_lunit. Qed.
-Lemma wk_comp_lunit {Γ Δ} (ρ : Δ ≤ Γ) : wk_id ∘w ρ = ρ.
-Proof.
-  apply wk_to_ren_inj; eapply wk_comp_lunit_pointwise.
-Qed.
 
-Lemma _wk_comp_runit {A} {Γ :list A} ρ : wk_compose ρ (_wk_id Γ) =1 ρ.
-Proof. now bsimpl. Qed.
-Lemma wk_comp_runit_pointwise {Γ Δ} (ρ : Δ ≤ Γ) : ρ ∘w wk_id =₁ ρ.
-Proof. constructor; eapply _wk_comp_runit. Qed.
-Lemma wk_comp_runit {Γ Δ} (ρ : Δ ≤ Γ) : ρ ∘w wk_id = ρ.
-Proof.
-  apply wk_to_ren_inj; eapply wk_comp_runit_pointwise.
-Qed.
 
-Lemma _wk_comp_assoc(*  {A} {Γ Δ Ξ ζ : list A} *) ρ ρ' ρ'' :
-  wk_compose (wk_compose ρ'' ρ') ρ =1 wk_compose ρ'' (wk_compose ρ' ρ).
-Proof. now bsimpl. Qed.
-
-Lemma wk_comp_assoc_pointwise {Γ Δ Ξ ζ} (ρ : Δ ≤ Γ) (ρ' : Ξ ≤ Δ) (ρ'' : ζ ≤ Ξ) :
-  (ρ'' ∘w ρ') ∘w ρ =₁ ρ'' ∘w (ρ' ∘w ρ).
-Proof. constructor; eapply _wk_comp_assoc. Qed.
-Lemma wk_comp_assoc {Γ Δ Ξ ζ} (ρ : Δ ≤ Γ) (ρ' : Ξ ≤ Δ) (ρ'' : ζ ≤ Ξ) :
-  (ρ'' ∘w ρ') ∘w ρ = ρ'' ∘w (ρ' ∘w ρ).
-Proof.
-  apply wk_to_ren_inj; eapply wk_comp_assoc_pointwise.
-Qed.
 
 Lemma wk1_irr {Γ Γ' A A'} {t : term} : t⟨@wk1 Γ A⟩ = t⟨@wk1 Γ' A'⟩.
 Proof. intros; now rewrite 2!wk1_ren_on. Qed.

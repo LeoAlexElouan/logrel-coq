@@ -40,7 +40,7 @@ with dnf_tm : context -> term -> term -> Type :=
     dnf_tm Γ U tEmpty
 | termDeepFun {Γ f A B} :
     whnf f ->
-    dnorm_tm (Γ,,A) B (eta_expand f) ->
+    dnorm_tm (Γ,,A) B (eta_expand' Γ A f) ->
     dnf_tm Γ (tProd A B) f
 | termDeepSig {Γ A B} :
     dnorm_tm Γ U A ->
@@ -78,12 +78,12 @@ with dneu : context -> term -> term -> Type :=
   dnorm_tm Γ P[tZero..] hz ->
   dnorm_tm Γ (elimSuccHypTy P) hs ->
   dneu Γ P[n..] (tNatElim P hz hs n)
-| neuDeepBoolElim {Γ n P ht hf} :
-  dneu_red Γ tBool n ->
+| neuDeepBoolElim {Γ b P ht hf} :
+  dneu_red Γ tBool b ->
   dnorm_ty (Γ,,tBool) P ->
   dnorm_tm Γ P[tTrue..] ht ->
   dnorm_tm Γ P[tFalse..] hf ->
-  dneu Γ P[n..] (tBoolElim P ht hf n)
+  dneu Γ P[b..] (tBoolElim P ht hf b)
 | neuDeepEmptyElim {Γ P n} :
   dneu_red Γ tEmpty n ->
   dnorm_ty (Γ,,tEmpty) P ->
@@ -201,7 +201,8 @@ Proof.
   all: intros ; prod_splitter ; prod_hyp_splitter ;
     try solve [eauto using isPosType_isType, isFun_whnf, isPair_whnf | econstructor ; eauto].
 Qed.
-
+(* Lemma whnf_wk : forall Γ Δ (ρ : Δ ≤ Γ) (t : term), whnf t⟨ρ⟩ <~> whnf t.
+Proof. intros; eapply whnf_ren. Qed. *)
 Lemma dnf_ren :
   DeepNormInductionConcl
   (fun (Γ : context) (A t : term) => forall Δ (ρ : Δ ≤ Γ), dnorm_tm Δ A⟨ρ⟩ t⟨ρ⟩)
@@ -214,16 +215,30 @@ Proof.
   apply DeepNormInduction.
   all: try (intros ; solve [now econstructor ; eauto using credalg_Fwk]).
   all: try solve [econstructor ; eauto ; cbn ; now erewrite <- !wk_up_ren_on].
+  - intros * _ IHA _ IHB *.
+    rewrite <- wk_prod.
+    econstructor; [eapply IHA | eapply IHB].
+  - intros * _ IH *.
+    rewrite wk_succ.
+    econstructor; eapply IH.
   - intros * ?? IH **.
+    rewrite <- wk_prod.
     econstructor.
     1: now apply whnf_ren.
-    epose proof (IH _ (wk_up _ _)) as IH' ; cbn in IH'.
-    assert (forall t, t⟨ρ⟩⟨↑⟩ = t⟨↑⟩⟨up_ren ρ⟩) as ->
-      by (now asimpl).
-    now rewrite wk_up_ren_on in IH'.
-  - econstructor ; eauto.
+    specialize (IH _ (wk_up _ ρ)).
+    now rewrite <- wk_app, <- wk_up_wk1 in IH.
+  - intros * _ IHA _ IHB *.
+    rewrite <- wk_sig.
+    econstructor; [eapply IHA | eapply IHB].
+  - intros * Hp _ IHA _ IHB *.
+    rewrite <- wk_sig.
+    econstructor; eauto.
     1: now apply whnf_ren.
-    erewrite <- wk_up_ren_on, wk_fst, <- subst_ren_wk_up; eauto.
+    now rewrite wk_fst, <- subst_ren_wk_up.
+  - intros * _ IHA _ IHx _ IHy *.
+    rewrite <- wk_Id.
+    econstructor; eauto.
+    eapply IHA.
   - econstructor ; eauto.
     now apply isPosType_ren.
   - intros.
@@ -233,34 +248,41 @@ Proof.
     erewrite subst_ren_wk_up.
     econstructor ; eauto.
     now rewrite wk_prod.
-  - intros.
-    erewrite subst_ren_wk_up.
+  - intros * _ IHn _ IHP _ IHhz _ IHhs *.
+    erewrite subst_ren_wk_up, <- wk_natElim.
     econstructor ; eauto.
-    + now erewrite <- wk_up_ren_on.
-    + now erewrite <- (wk_up_ren_on _ _ _ tNat), <- (subst_ren_wk_up (n := tZero) ρ).
-    + now erewrite <- wk_up_ren_on, wk_elimSuccHypTy.
-  - intros.
-    erewrite subst_ren_wk_up.
+    + eapply IHn.
+    + change tZero with tZero⟨ρ⟩.
+      now rewrite <- subst_ren_wk_up.
+    + now rewrite wk_elimSuccHypTy.
+  - intros * _ IHb _ IHP _ IHht _ IHhf *.
+    erewrite subst_ren_wk_up, <- wk_boolElim.
     econstructor ; eauto.
-    + now erewrite <- wk_up_ren_on.
-    + now erewrite <- (wk_up_ren_on _ _ _ tBool), <- (subst_ren_wk_up (n := tTrue) ρ).
-    + now erewrite <- (wk_up_ren_on _ _ _ tBool), <- (subst_ren_wk_up (n := tFalse) ρ).
-  - intros.
-    erewrite subst_ren_wk_up.
+    + eapply IHb.
+    + change tTrue with tTrue⟨ρ⟩.
+      now rewrite <- subst_ren_wk_up.
+    + change tFalse with tFalse⟨ρ⟩.
+      now rewrite <- subst_ren_wk_up.
+  - intros * _ IHe _ IHP *.
+    erewrite subst_ren_wk_up, <- wk_emptyElim.
     econstructor ; eauto.
-  - intros.
-    erewrite subst_ren_wk_up.
+    eapply IHe.
+  - intros * _ IHn *.
+    erewrite <- wk_fst.
     econstructor ; eauto.
-    now rewrite wk_sig.
-  - intros * ?? ? IHP ? IHr **.
+    eapply IHn.
+  - intros * _ IHn *.
+    rewrite (subst_ren_wk_up (A:=A)), <- wk_snd.
+    econstructor ; eauto.
+    eapply IHn.
+  - intros * ? IHn _ IHP _ IHr **.
     erewrite <- !wk_idElim, subst_ren_wk_up2.
     econstructor ; eauto.
+    + eapply IHn.
     + now erewrite !wk_up_wk1.
     + now rewrite wk_refl, <- subst_ren_wk_up2.
   - econstructor ; eauto using credalg_Fwk.
     now apply whnf_ren.
-    Unshelve.
-    all: assumption.
 Qed.
 
 Lemma dnf_det :

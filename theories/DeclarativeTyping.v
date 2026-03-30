@@ -97,7 +97,7 @@ Section Definitions.
       | wfTermNatElim {Γ P hz hs n} :
         [Γ ,, tNat |- P ] ->
         [Γ |- hz : P[tZero..]] ->
-        [Γ |- hs : elimSuccHypTy P] ->
+        [Γ |- hs : elimSuccHypTy' Γ P] ->
         [Γ |- n : tNat] ->
         [Γ |- tNatElim P hz hs n : P[n..]]
       | wfTermBool {Γ} :
@@ -138,8 +138,8 @@ Section Definitions.
           [Γ |- tNode n tl tr : tTree]
       | wfTermTreeElim {Γ P hl hn t} :
         [Γ ,, tTree |- P ] ->
-        [Γ |- hl : elimLeafHypTy P] ->
-        [Γ |- hn : elimNodeHypTy P] ->
+        [Γ |- hl : elimLeafHypTy' Γ P] ->
+        [Γ |- hn : elimNodeHypTy' Γ P] ->
         [Γ |- t : tTree] ->
         [Γ |- tTreeElim P hl hn t : P[t..]]
       | wfTermSig {Γ} {A B} :
@@ -251,18 +251,18 @@ Section Definitions.
       | TermNatElimCong {Γ P P' hz hz' hs hs' n n'} :
           [Γ ,, tNat |- P ≅ P'] ->
           [Γ |- hz ≅ hz' : P[tZero..]] ->
-          [Γ |- hs ≅ hs' : elimSuccHypTy P] ->
+          [Γ |- hs ≅ hs' : elimSuccHypTy' Γ P] ->
           [Γ |- n ≅ n' : tNat] ->
           [Γ |- tNatElim P hz hs n ≅ tNatElim P' hz' hs' n' : P[n..]]
       | TermNatElimZero {Γ P hz hs} :
           [Γ ,, tNat |- P ] ->
           [Γ |- hz : P[tZero..]] ->
-          [Γ |- hs : elimSuccHypTy P] ->
+          [Γ |- hs : elimSuccHypTy' Γ P] ->
           [Γ |- tNatElim P hz hs tZero ≅ hz : P[tZero..]]
       | TermNatElimSucc {Γ P hz hs n} :
           [Γ ,, tNat |- P ] ->
           [Γ |- hz : P[tZero..]] ->
-          [Γ |- hs : elimSuccHypTy P] ->
+          [Γ |- hs : elimSuccHypTy' Γ P] ->
           [Γ |- n : tNat] ->
           [Γ |- tNatElim P hz hs (tSucc n) ≅ tApp (tApp hs n) (tNatElim P hz hs n) : P[(tSucc n)..]]
       | TermBoolElimCong {Γ P P' ht ht' hf hf' n n'} :
@@ -301,21 +301,21 @@ Section Definitions.
           [Γ |- tNode n tl tr ≅ tNode n' tl' tr' : tTree]
       | TermTreeElimCong {Γ P P' hl hl' hn hn' t t'} :
           [Γ ,, tTree |- P ≅ P'] ->
-          [Γ |- hl ≅ hl' : elimLeafHypTy P] ->
-          [Γ |- hn ≅ hn' : elimNodeHypTy P] ->
+          [Γ |- hl ≅ hl' : elimLeafHypTy' Γ P] ->
+          [Γ |- hn ≅ hn' : elimNodeHypTy' Γ P] ->
           [Γ |- t ≅ t' : tTree] ->
           [Γ |- tTreeElim P hl hn t ≅ tTreeElim P' hl' hn' t' : P[t..]]
       | TermTreeElimLeaf {Γ P hl hn n} :
           [Γ ,, tTree |- P ] ->
           [Γ |- n : tNat] ->
-          [Γ |- hl : elimLeafHypTy P] ->
-          [Γ |- hn : elimNodeHypTy P] ->
+          [Γ |- hl : elimLeafHypTy' Γ P] ->
+          [Γ |- hn : elimNodeHypTy' Γ P] ->
           [Γ |- tTreeElim P hl hn (tLeaf n) ≅ tApp hl n: P[(tLeaf n)..]]
       | TermTreeElimNode {Γ P hl hn tl tr n} :
           [Γ ,, tTree |- P ] ->
           [Γ |- n : tNat] ->
-          [Γ |- hl : elimLeafHypTy P] ->
-          [Γ |- hn : elimNodeHypTy P] ->
+          [Γ |- hl : elimLeafHypTy' Γ P] ->
+          [Γ |- hn : elimNodeHypTy' Γ P] ->
           [Γ |- tl : tTree] ->
           [Γ |- tr : tTree] ->
           [Γ |- tTreeElim P hl hn (tNode n tl tr) ≅
@@ -461,7 +461,7 @@ Section Definitions.
       [Γ |- n ~ n' : tNat] ->
       [Γ ,, tNat |- P ≅ P'] ->
       [Γ |- hz ≅ hz' : P[tZero..]] ->
-      [Γ |- hs ≅ hs' : elimSuccHypTy P] ->
+      [Γ |- hs ≅ hs' : elimSuccHypTy' Γ P] ->
       [Γ |- tNatElim P hz hs n ~ tNatElim P' hz' hs' n' : P[n..]]
 
   | neuConvBool {P P' ht ht' hf hf' n n'} :
@@ -483,8 +483,8 @@ Section Definitions.
   | neuConvTree {P P' hl hl' hn hn' t t'} :
       [Γ |- t ~ t' : tTree] ->
       [Γ ,, tTree |- P ≅ P'] ->
-      [Γ |- hl ≅ hl' : elimLeafHypTy P] ->
-      [Γ |- hn ≅ hn' : elimLeafHypTy P] ->
+      [Γ |- hl ≅ hl' : elimLeafHypTy' Γ P] ->
+      [Γ |- hn ≅ hn' : elimLeafHypTy' Γ P] ->
       [Γ |- tTreeElim P hl hn t ~ tTreeElim P' hl' hn' t' : P[t..]]
 
   | neuConvFst {A B p p'} :

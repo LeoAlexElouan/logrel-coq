@@ -91,13 +91,13 @@ Section TypingWk.
     - intros ?? Hn IHn ?? wfΔ.
       rewrite wk_succ.
       constructor. now apply IHn.
-    - intros * ? ihP ? ihhz ? ihhs ? ihn **; cbn.
-      erewrite subst_ren_wk_up; eapply wfTermNatElim.
+    - intros * ? ihP ? ihhz ? ihhs ? ihn **.
+      erewrite <- wk_natElim, subst_ren_wk_up; eapply wfTermNatElim.
       * eapply ihP; econstructor; tea; now econstructor.
       * eapply typing_meta_conv.
         1: now eapply ihhz.
-        now bsimpl.
-      * rewrite wk_elimSuccHypTy.
+        now erewrite subst_ren_wk_up.
+      * rewrite wk_elimSuccHypTy'.
         now eapply ihhs.
       * now eapply ihn.
     - intros; now constructor.
@@ -129,12 +129,12 @@ Section TypingWk.
       * now eapply IHn.
       * now eapply IHtl.
       * now eapply IHtr.
-    - intros * ? ihP ? ihhl ? ihhn ? iht **; cbn.
-      erewrite subst_ren_wk_up; eapply wfTermTreeElim.
+    - intros * ? ihP ? ihhl ? ihhn ? iht **.
+      erewrite <- wk_treeElim, subst_ren_wk_up; eapply wfTermTreeElim.
       * eapply ihP; econstructor; tea; now econstructor.
-      * rewrite wk_elimLeafHypTy.
+      * rewrite wk_elimLeafHypTy'.
         now eapply ihhl.
-      * rewrite wk_elimNodeHypTy.
+      * rewrite wk_elimNodeHypTy'.
         now eapply ihhn.
       * now eapply iht.
     - intros ???? ih1 ? ih2 ** ; rewrite <- wk_sig; cbn.
@@ -273,26 +273,26 @@ Section TypingWk.
         1: now eapply ihhz.
         2: reflexivity.
         now bsimpl.
-      * rewrite wk_elimSuccHypTy.
+      * rewrite wk_elimSuccHypTy'.
         now eapply ihhs.
       * now eapply ihn.
     - intros * ? ihP ? ihhz ? ihhs **.
-      erewrite subst_ren_wk_up.
+      erewrite <- wk_natElim, subst_ren_wk_up.
       eapply TermNatElimZero; fold ren_term.
       * eapply ihP; constructor; tea; now constructor.
       * eapply typing_meta_conv.
         1: now eapply ihhz.
-        now bsimpl.
-      * rewrite wk_elimSuccHypTy.
+        now erewrite subst_ren_wk_up.
+      * rewrite wk_elimSuccHypTy'.
         now eapply ihhs.
     - intros * ? ihP ? ihhz ? ihhs ? ihn **.
-      erewrite subst_ren_wk_up.
+      rewrite <- 2wk_app, <- 2wk_natElim, (subst_ren_wk_up (A:= tNat)), wk_succ.
       eapply TermNatElimSucc; fold ren_term.
       * eapply ihP; constructor; tea; now constructor.
       * eapply typing_meta_conv.
         1: now eapply ihhz.
-        now bsimpl.
-      * rewrite wk_elimSuccHypTy.
+        now erewrite subst_ren_wk_up.
+      * rewrite wk_elimSuccHypTy'.
         now eapply ihhs.
       * now eapply ihn.
     - intros * ? ihP ? ihht ? ihhf ? ihn **; cbn.
@@ -345,32 +345,34 @@ Section TypingWk.
       * now eapply IHn.
       * now eapply IHtl.
       * now eapply IHtr.
-    - intros * ? ihP ? ihhl ? ihhn ? iht **; cbn.
-      erewrite subst_ren_wk_up.
+    - intros * ? ihP ? ihhl ? ihhn ? iht **.
+      rewrite <- 2wk_treeElim, (subst_ren_wk_up (A:=tTree)).
       eapply TermTreeElimCong.
       * eapply ihP; constructor; tea; now constructor.
-      * rewrite wk_elimLeafHypTy.
+      * rewrite wk_elimLeafHypTy'.
         now eapply ihhl.
-      * rewrite wk_elimNodeHypTy.
+      * rewrite wk_elimNodeHypTy'.
         now eapply ihhn.
       * now eapply iht.
     - intros * ? ihP ? ihn ? ihhl ? ihhn **.
-      erewrite subst_ren_wk_up.
-      eapply TermTreeElimLeaf; fold ren_term.
+      rewrite <- wk_app, <- wk_treeElim, (subst_ren_wk_up (A:=tTree)).
+      change (tLeaf n)⟨ρ⟩ with (tLeaf n⟨ρ⟩).
+      eapply TermTreeElimLeaf.
       * eapply ihP; constructor; tea; now constructor.
       * now eapply ihn.
-      * rewrite wk_elimLeafHypTy.
+      * rewrite wk_elimLeafHypTy'.
         now eapply ihhl.
-      * rewrite wk_elimNodeHypTy.
+      * rewrite wk_elimNodeHypTy'.
         now eapply ihhn.
     - intros * ? ihP ? ihn ? ihhl ? ihhn ? ihtl ? ihtr **.
-      erewrite subst_ren_wk_up.
+      rewrite <- !wk_app, <- !wk_treeElim, (subst_ren_wk_up (A:=tTree)).
+      change (tNode n tl tr)⟨ρ⟩ with (tNode n⟨ρ⟩ tl⟨ρ⟩ tr⟨ρ⟩).
       eapply TermTreeElimNode; fold ren_term.
       * eapply ihP; constructor; tea; now constructor.
       * now eapply ihn.
-      * rewrite wk_elimLeafHypTy.
+      * rewrite wk_elimLeafHypTy'.
         now eapply ihhl.
-      * rewrite wk_elimNodeHypTy.
+      * rewrite wk_elimNodeHypTy'.
         now eapply ihhn.
       * now eapply ihtl.
       * now eapply ihtr.

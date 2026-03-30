@@ -121,7 +121,7 @@ Section Irrelevance.
     (ihdom: forall Δ (ρ : Δ ≤ Γ) (h : [|- Δ]) B2 (R2 : [Δ ||-S< l2 > (ParamRedTy.domL ΣA)⟨ρ⟩ ≅ B2]), Sirr (PolyRed.shpRed ΣA ρ h) R2)
     (ihcod: forall Δ a b (ρ : Δ ≤ Γ) (h : [|- Δ]) (ha : [PolyRed.shpRed ΣA ρ h | Δ ||- a ≅ b : _ ]),
     dover (PolyRed.posRed ΣA ρ h ha)
-    (fun Ξ wfΞ ρΞ hSplit => forall B2 (R2 : [Ξ ||-S< l2 > (ParamRedTy.codL ΣA)[a .: ρ >> tRel]⟨ρΞ⟩ ≅ B2]), Sirr hSplit R2))
+    (fun Ξ wfΞ ρΞ hSplit => forall B2 (R2 : [Ξ ||-S< l2 > (ParamRedTy.codL ΣA)⟨wk_up _ ρ⟩[a..]⟨ρΞ⟩ ≅ B2]), Sirr hSplit R2))
     (eqdom: ParamRedTy.domL ΣA' = ParamRedTy.domL ΣA)
     (eqcod: ParamRedTy.codL ΣA' = ParamRedTy.codL ΣA).
 
@@ -234,7 +234,7 @@ Lemma cumPolyRed@{h h'} {lA}
     [LogRel@{i' j' k' l'} lA | Δ ||- shp⟨ρ⟩ ≅ shp'⟨ρ⟩])
   (IHpos : forall (Δ : context) (a b : term) (ρ : Δ ≤ Γ) (wfΔ : [ |-[ ta ] Δ]),
           [ PolyRed.shpRed PA ρ wfΔ | Δ ||- a ≅ b : shp⟨ρ⟩] ->
-          WLRAdequate@{i' j' k' l'} Δ lA pos[a .: (ρ >> tRel)] pos'[b .: (ρ >> tRel)]) :
+          WLRAdequate@{i' j' k' l'} Δ lA pos⟨wk_up shp ρ⟩[a..] pos'⟨wk_up shp' ρ⟩[b..]) :
   PolyRed@{i' j' k' l'} Γ lA shp shp' pos pos'.
 Proof.
   unshelve econstructor.

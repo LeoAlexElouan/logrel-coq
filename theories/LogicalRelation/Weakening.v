@@ -54,12 +54,13 @@ Section Weakenings.
   Proof.
     intros []; opector.
     - intros ? ρ' ?; rewrite 2!wk_comp_ren_on; now eapply shpRed.
-    - intros ? a b ρ' **; rewrite <-2!wk_up_ren_subst.
+    - intros Ξ a b ρΞ wfΞ Hab.
+      rewrite wk_comp_ren_on, (wk_comp_ren_on pos'), 2wk_up_wk_comp.
       unshelve eapply posRed; tea; eapply SirrLREq; tea; now rewrite wk_comp_ren_on.
   Qed.
 
   Lemma wkParamTy {T Γ A shp pos Δ} (ρ : Δ ≤ Γ) (wfΔ : [|-Δ])
-    (wkT : forall A B, (T A B)⟨ρ⟩ = T A⟨ρ⟩ B⟨wk_up A ρ⟩) :
+    (wkT : forall (A B : term), (T A B : term)⟨ρ⟩ = T A⟨ρ⟩ B⟨wk_up A ρ⟩) :
     ParamRedTyPack.ParamTy (T:=T) Γ A shp pos -> ParamRedTyPack.ParamTy (T:=T) Δ A⟨ρ⟩ shp⟨ρ⟩ pos⟨wk_up shp ρ⟩.
   Proof.
     intros []; econstructor.
@@ -69,7 +70,7 @@ Section Weakenings.
   Qed.
 
   Lemma wkParamRedTy {T Γ l A B Δ} (ρ : Δ ≤ Γ) (wfΔ : [|-Δ])
-    (wkT : forall A B, (T A B)⟨ρ⟩ = T A⟨ρ⟩ B⟨wk_up A ρ⟩) :
+    (wkT : forall A B : term, (T A B : term)⟨ρ⟩ = T A⟨ρ⟩ B⟨wk_up A ρ⟩) :
     ParamRedTy T Γ l A B -> ParamRedTy T Δ l A⟨ρ⟩ B⟨ρ⟩.
   Proof.
     intros []; econstructor.
@@ -90,7 +91,7 @@ Section Weakenings.
   Lemma wk_isLRFun {Γ l A B} (ΠA : [Γ ||-Π< l > A ≅ B]) {t Δ} (ρ : Δ ≤ Γ) (wfΔ : [|- Δ]) :
     isLRFun ΠA t -> isLRFun (wkΠ ρ wfΔ ΠA) t⟨ρ⟩.
   Proof.
-    intros * [A' t' wtdom convtydom Ht|]; rewrite <-?wk_lam; constructor; tea; refold.
+    intros * [? A' t' wtdom convtydom Ht|]; rewrite <-?wk_lam; constructor; tea; refold.
     + now eapply wft_wk.
     + now eapply convty_wk.
     + intros Ξ a b ρΞ wfΞ *; cbn in *.
@@ -99,8 +100,9 @@ Section Weakenings.
       specialize (Ht _ _ _ (ρΞ∘w ρ) wfΞ ha').
       eapply (dSplit_bind_return Ht).
       intros Θ wfΘ ρΘ oha' oHt owk; cbn in *.
-      rewrite <-2!wk_up_ren_subst ; eapply SirrLREq.
-      1: now rewrite <-wk_up_ren_subst.
+      change t'⟨wk_up A' ρ⟩ with t'⟨wk_up (ParamRedTy.domL ΠA) ρ⟩.
+      rewrite wk_comp_ren_on, wk_up_wk_comp; eapply SirrLREq.
+      1: now rewrite wk_comp_ren_on, wk_up_wk_comp.
       unshelve eapply Ht; tea.
     + cbn; rewrite wk_prod; now eapply convneu_wk.
   Qed.
@@ -121,13 +123,17 @@ Section Weakenings.
     - cbn ; intros * []; unshelve econstructor.
       1,2: now apply wkPiRedTerm.
       1: cbn; rewrite wk_prod; now eapply convtm_wk.
-      intros Ξ a b ρΞ wfΞ hab; cbn in *; rewrite 2!wk_comp_ren_on.
+      intros Ξ a b ρΞ wfΞ hab. (* rewrite 2!wk_comp_ren_on. *)
       eassert ([_ |_||- _≅ _ : (ParamRedTy.domL ΠA)⟨ρΞ∘w ρ⟩ ≅ _]) as hab'
         by (eapply SirrLREq; [eapply wk_comp_ren_on| eapply hab]).
       specialize (eqApp Ξ a b (ρΞ∘w ρ) wfΞ hab').
       unshelve eapply (dSplit_bind_return eqApp); tea.
       intros Θ wfΘ ρΘ ohab' oeqApp owk.
-      eapply SirrLREq; [now rewrite <-wk_up_ren_subst| unshelve eapply eqApp; tea].
+      unfold wkPiRedTerm; cbn[PiRedTmEq.nf].
+      rewrite 2wk_comp_ren_on.
+      eapply SirrLREq.
+      1: cbn; now rewrite wk_comp_ren_on, wk_up_wk_comp.
+      unshelve eapply eqApp; tea.
   Qed.
 
   Lemma wk_up_subst1 {Γ Δ F} t a (ρ : Γ ≤ Δ) : t⟨wk_up F ρ⟩[(a⟨ρ⟩)..] = t[a..]⟨ρ⟩.
@@ -136,22 +142,23 @@ Section Weakenings.
   Lemma wk_isLRPair {Γ l A B} (ΣA : [Γ ||-Σ< l > A ≅ B]) {t Δ} (ρ : Δ ≤ Γ) (wfΔ : [|- Δ]) :
     isLRPair ΣA t -> isLRPair (wkΣ ρ wfΔ ΣA) t⟨ρ⟩.
   Proof.
-  intros * [A' B' a b wtydom convtydom wtycod convtycod Hfst Hsnd|]; unshelve econstructor; tea; refold.
+  intros * [A' B' a b wtydom convtydom wtycod convtycod Hfst Hsnd|];
+    [change (tPair A' B' a b)⟨ρ⟩ with (tPair A'⟨ρ⟩ B'⟨wk_up A' ρ⟩ a⟨ρ⟩ b⟨ρ⟩)|]; unshelve econstructor; tea; refold.
   all: try first [now eapply wft_wk| now eapply convty_wk].
-  + refold; intros Ξ ρ' wfΞ.
+  + intros Ξ ρΞ wfΞ.
     rewrite wk_comp_ren_on; eapply SirrLREq; [|now unshelve eapply Hfst].
     cbn; now rewrite wk_comp_ren_on.
-  + erewrite <- (wk_up_ren_on _ _ _ A'), wk_up_subst1.
+  + rewrite <- subst_ren_wk_up.
     now eapply wft_wk.
-  + cbn; erewrite <- (wk_up_ren_on _ _ _ A'), 2!wk_up_subst1.
+  + cbn. rewrite <- 2subst_ren_wk_up.
     now eapply convty_wk.
-  + refold; intros Ξ ρΞ wfΞ.
+  + intros Ξ ρΞ wfΞ.
     specialize (Hsnd Ξ (ρΞ ∘w ρ) wfΞ).
     eapply (dSplit_bind_return Hsnd).
     intros Θ wfΘ ρΘ ofst osnd oirr.
     eapply SirrLREq; clear oirr.
     2:rewrite (wk_comp_ren_on b); now unshelve apply Hsnd.
-    cbn; now rewrite <-wk_up_ren_subst, wk_comp_ren_on.
+    cbn. now rewrite 2wk_comp_ren_on.
   + cbn; rewrite wk_sig; now eapply convneu_wk.
   Qed.
 
@@ -179,7 +186,7 @@ Section Weakenings.
         intros Θ wfΘ ρΘ oeqFst oeqSnd oirr; cbn in *.
         eapply SirrLREq; clear oirr.
         2: rewrite 2!wk_comp_ren_on; now unshelve eapply eqSnd.
-        cbn; now rewrite <-wk_up_ren_subst, wk_comp_ren_on.
+        cbn; now rewrite 2wk_comp_ren_on.
   Qed.
 
   Lemma wkNat {Γ A B Δ} (ρ : Δ ≤ Γ) (wfΔ : [|- Δ]) : [Γ ||-Nat A ≅ B] -> [Δ ||-Nat A⟨ρ⟩ ≅ B⟨ρ⟩].
@@ -283,7 +290,7 @@ Section Weakenings.
       + intros * [????? prop]; econstructor; cbn; rewrite ?wk_Id.
         1,2: now eapply redtmwf_wk.
         1: now eapply convtm_wk.
-        destruct prop; constructor; refold; cbn; rewrite ?wk_Id.
+        destruct prop; [rewrite <- 2wk_refl|]; constructor; cbn; rewrite ?wk_Id.
         1-4: gtyping.
         1,2: now eapply convty_wk.
         5: now eapply wkNeNfEq.

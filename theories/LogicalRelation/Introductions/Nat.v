@@ -74,14 +74,6 @@ Proof.
   all: tea.
 Qed.
 
-Lemma elimSuccHypTy_subst {P} σ :
-  elimSuccHypTy P[up_term_term σ] = (elimSuccHypTy P)[σ].
-Proof.
-  unfold elimSuccHypTy.
-  cbn. rewrite shift_up_eq.
-  erewrite liftSubstComm'.
-  now rewrite up_liftSubst_eq.
-Qed.
 
 Lemma liftSubst_singleSubst_eq {t u v: term} : t[u]⇑[v..] = t[u[v..]..].
 Proof. now bsimpl. Qed.
@@ -97,7 +89,7 @@ Section SNatElimRedEq.
       [Γ ||-<l> P[n..] ≅ Q[n'..]])
     (RPQz := RPQext _ _ SzeroRed)
     (Rhz : [Γ ||-<l> hz ≅ hz' : _ | RPQz])
-    (RPQs : [Γ ||-<l> elimSuccHypTy P ≅ elimSuccHypTy Q])
+    (RPQs : [Γ ||-<l> elimSuccHypTy' Γ P ≅ elimSuccHypTy' Γ Q])
     (Rhs : [Γ ||-<l> hs ≅ hs' : _ | RPQs ]) .
 
   Let RPext : forall n n' (Rn : [Γ ||-S<l> n ≅ n' : _ | RN]),
@@ -132,13 +124,18 @@ Section SNatElimRedEq.
       + escape; eapply redtm_natElimSucc; tea.
       + escape; eapply redtm_natElimSucc; tea.
         1,2: now eapply ty_conv.
-      + assert [Γ ||-<l> arr P[n..] P[(tSucc n)..] ≅ arr Q[n'..] Q[(tSucc n')..]].
+      + assert [Γ ||-<l> arr' Γ P[n..] P[(tSucc n)..] ≅ arr' Γ Q[n'..] Q[(tSucc n')..]].
         1: now eapply ArrRedTy; eapply RPQext;[|eapply SsuccRed].
         unshelve eapply simple_appcongTerm; [..| eauto]; tea.
         eapply Wpack_return in Rn as WRn.
-        unshelve (eapply irrLREq, appcongTerm; tea;
-          now rewrite subst_arr, liftSubst_singleSubst_eq); tea.
-        now rewrite 2!subst_arr, 2!liftSubst_singleSubst_eq.
+        assert (Hcod : forall P n, (arr' (Γ,, tNat) P P⟨@wk_up _ Γ tNat (wk1 tNat)⟩[(tSucc (tRel 0))..])[n..] =
+          arr' Γ P[n..] P[(tSucc n)..]).
+        { clear dependent P. clear dependent n. intros P n.
+          erewrite <- Weakening.subst_arr'. f_equal; f_equal;
+          rewrite to_subst_sound, subst_ren_subst_up; f_equal.
+          rewrite <- up_to_subst, <- to_subst_sound. now bsimpl. }
+        unshelve (eapply irrLREq, appcongTerm; tea);
+          now rewrite !Hcod.
     - intros n n' Rn RP0.
       epose proof (SneNfTermEq RN Rn).
       escape.
@@ -183,7 +180,7 @@ Section NatElimRedEq.
   Context {hs hs' hz hz'}
     (RPQz := RPQextnow _ _ (zeroRed wfΓ))
     (Rhz : [Γ ||-<l> hz ≅ hz' : _ | RPQz])
-    (RPQs : [Γ ||-<l> elimSuccHypTy P ≅ elimSuccHypTy Q])
+    (RPQs : [Γ ||-<l> elimSuccHypTy' Γ P ≅ elimSuccHypTy' Γ Q])
     (Rhs : [Γ ||-<l> hs ≅ hs' : _ | RPQs ]).
 
   Let RPext : forall Δ (wfΔ : [|-Δ]) (ρ : Δ ≤ Γ) n n' (Rn : [Δ ||-<l> n ≅ n' : _ | natRed (l:=l) wfΔ]),
@@ -210,13 +207,13 @@ Section NatElimRedEq.
     + unshelve eapply irrLREq, wkLRTm, Rhz; tea.
       exact (subst_ren_wk_up _).
     + unshelve eapply irrLREq, wkLRTm, Rhs; tea.
-      symmetry; eapply wk_elimSuccHypTy.
+      symmetry; eapply wk_elimSuccHypTy'.
     + easy.
     + now eapply natRedTy.
     + clear dependent n; clear n'; intros n n' Rnn'.
       eapply (RPQext _ wfΔ), Wpack_return, SirrLR, Rnn'.
     + now unshelve now eapply SirrLREq, Rnn'.
-    + rewrite 2 wk_elimSuccHypTy.
+    + rewrite 2 wk_elimSuccHypTy'.
       now eapply wkLRTy.
   Qed.
 

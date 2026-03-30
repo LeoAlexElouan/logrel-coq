@@ -21,8 +21,8 @@ Proof.
   eapply instKripkeSubst, SirrLR, Ruu'.
   intros; eapply RΠ'.(PolyRed.posRed); eapply SirrLR, hab.
   Unshelve.
-  3: eapply SinstKripke.
-  2,4: eapply RΠ'.(PolyRed.shpRed).
+  2: eapply SinstKripke.
+  1,3: eapply RΠ'.(PolyRed.shpRed).
   1:escape; gtyping.
   easy.
 Qed.
@@ -57,10 +57,10 @@ Proof.
   set (RΠ' :=normRedΠ RΠ).
   assert [LRPi' RΠ' | _ ||- t ≅ t' : _ ] as [Rt Rt' ? app] by now eapply SirrLREq.
   eapply redSubstTmEq.
-  + unshelve (eapply irrLREqCum, app; cbn; now erewrite eq_subst_scons).
-    3: rewrite wk_id_ren_on; eapply SirrLREqCum; tea; now rewrite wk_id_ren_on.
+  + unshelve (eapply irrLREqCum, app; cbn; now rewrite wk_up_wk_id, wk_id_ren_on).
+    3: eapply SirrLREqCum; tea; now rewrite wk_id_ren_on.
     escape; gtyping.
-  + rewrite 2!wk_id_ren_on; eapply redtm_app; [now destruct (PiRedTmEq.red Rt)| now escape].
+  + rewrite !wk_id_ren_on; eapply redtm_app; [now destruct (PiRedTmEq.red Rt)| now escape].
   + rewrite wk_id_ren_on; eapply redtm_app.
     2: eapply ty_conv; now escape.
     1: eapply redtm_conv; [now destruct (PiRedTmEq.red Rt')| now escape].

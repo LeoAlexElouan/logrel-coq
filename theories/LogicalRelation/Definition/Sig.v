@@ -33,7 +33,7 @@ Inductive isLRPair `{ta : tag} `{WfContext ta}
   (rsnd : forall {Δ} (ρ : Δ ≤ Γ) (h : [ |- Δ ]),
       dSplit (fun Ξ wfΞ ρΞ hSplit =>
         [hSplit | Ξ ||- b⟨ρ⟩⟨ρΞ⟩ ≅ b⟨ρ⟩⟨ρΞ⟩ :
-          (SigRedTyPack.codL ΣA)[a⟨ρ⟩ .: (ρ >> tRel)]⟨ρΞ⟩])
+          (SigRedTyPack.codL ΣA)⟨wk_up _ ρ⟩[a⟨ρ⟩..]⟨ρΞ⟩])
         (ΣA.(PolyRedPack.posRed) ρ h (rfst ρ h))),
 
   isLRPair ΣA (tPair A' B' a b)

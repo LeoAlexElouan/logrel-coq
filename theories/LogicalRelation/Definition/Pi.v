@@ -22,14 +22,15 @@ Module PiRedTyPack := ParamRedTyPack.
 Inductive isLRFun `{ta : tag} `{WfContext ta}
   `{WfType ta} `{ConvType ta} `{RedType ta} `{Typing ta} `{ConvTerm ta} `{ConvNeuConv ta}
   {Γ : context} {A B : term} (ΠA : PiRedTyPack Γ A B) : term -> Type :=
-| LamLRFun : forall A' t : term,
+| LamLRFun : let ΠAL := ΠA.(PiRedTyPack.domL) in
+    forall A' t : term,
     [Γ |- A'] ->
-    [Γ |-  ΠA.(PiRedTyPack.domL) ≅ A'] ->
+    [Γ |-  ΠAL ≅ A'] ->
     (forall {Δ a b} (ρ : Δ ≤ Γ) (wfΔ : [ |- Δ ])
-      (ha : [ ΠA.(PolyRedPack.shpRed) ρ wfΔ | Δ ||- a ≅ b : ΠA.(PiRedTyPack.domL)⟨ρ⟩ ]),
+      (ha : [ ΠA.(PolyRedPack.shpRed) ρ wfΔ | Δ ||- a ≅ b : ΠAL⟨ρ⟩ ]),
         dSplit (fun Ξ wfΞ ρΞ hSplit =>
-          [hSplit | Ξ ||- t[a .: (ρ >> tRel)]⟨ρΞ⟩ ≅ t[b .: (ρ >> tRel)]⟨ρΞ⟩ :
-            ΠA.(PiRedTyPack.codL)[a .: (ρ >> tRel)]⟨ρΞ⟩])
+          [hSplit | Ξ ||- t⟨wk_up ΠAL ρ⟩[a ..]⟨ρΞ⟩ ≅ t⟨wk_up ΠAL ρ⟩[b ..]⟨ρΞ⟩ :
+            ΠA.(PiRedTyPack.codL)⟨wk_up ΠAL ρ⟩[a ..]⟨ρΞ⟩])
         (ΠA.(PolyRedPack.posRed) ρ wfΔ ha)) ->
   isLRFun ΠA (tLambda A' t)
 | NeLRFun : forall f : term, [Γ |- f ~ f : PiRedTyPack.outTy ΠA] -> isLRFun ΠA f.

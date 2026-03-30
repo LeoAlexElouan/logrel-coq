@@ -108,8 +108,9 @@ Definition Split_Rel@{i} :
     (forall Γ A B, Type@{i}) -> (forall Γ A B, Type@{i}) :=
   fun R Γ A B => Split@{i} (fun Δ wfΔ (ρ : Δ ≤ Γ) => R Δ A⟨ρ⟩ B⟨ρ⟩).
 
-Definition Rel_PSh_root (R : forall Γ (wfΓ : [|-Γ]) A B, Type) Γ wfΓ A B : (forall Δ wfΔ (ρ : Δ ≤ Γ), R Δ wfΔ A⟨ρ⟩ B⟨ρ⟩) -> R Γ wfΓ A B.
-Proof. intros hPSh; specialize (hPSh Γ wfΓ wk_id); erewrite 2!wk_id_ren_on in hPSh; tea. Qed.
+Definition Rel_PSh_root (R : forall Γ (wfΓ : [|-Γ]) A B, Type) Γ wfΓ (A B : term) :
+  (forall Δ wfΔ (ρ : Δ ≤ Γ), R Δ wfΔ A⟨ρ⟩ B⟨ρ⟩) -> R Γ wfΓ A B.
+Proof. intros hPSh; specialize (hPSh Γ wfΓ wk_id); rewrite 2wk_id_ren_on in hPSh; tea. Qed.
 
 
 Lemma wft_wk_inv : forall {Γ} {wfΓ : [|-Γ]} {A},(forall Δ (wfΔ : [|-Δ]) (ρ : Δ ≤ Γ), [Δ |- A⟨ρ⟩]) -> [Γ |- A].
@@ -121,12 +122,12 @@ Qed.
 
 Lemma wft_shf {Γ A} : shf (fun Δ wfΔ (ρ : Δ ≤ Γ) => [Δ |- A⟨ρ⟩]).
 Proof.
-  intros ???? ht hf.
-  eapply wft_split; [eapply ht| eapply hf]; now eapply wfc_consF.
+  intros ????? ht hf.
+  eapply wft_split; tea.
 Qed.
 
 Lemma Split_bind_wft@{i} {Γ A} {C : PSh@{i} Γ} (hC : Split C) :
-  (forall Δ (wfΔ : [|-Δ]) (ρ : Δ ≤ Γ), overtree hC Δ -> [Δ |- A⟨ρ⟩]) -> [Γ |- A].
+  (forall Δ (wfΔ : [|-Δ]) (ρ : Δ ≤ Γ), overtree hC ρ -> [Δ |- A⟨ρ⟩]) -> [Γ |- A].
 Proof.
   intros hA.
   assert ([|-Γ]) by apply hC.
@@ -135,7 +136,7 @@ Qed.
 
 Lemma dSplit_bind_wft {Γ A} {C : PSh Γ} {P}
   {hC : Split C} (hP : dSplit P hC): 
-  (forall Δ (wfΔ : [|-Δ]) (ρ : Δ ≤ Γ), overtree hC Δ -> overtree hP Δ -> [Δ |- A⟨ρ⟩])
+  (forall Δ (wfΔ : [|-Δ]) (ρ : Δ ≤ Γ), overtree hC ρ -> overtree hP ρ -> [Δ |- A⟨ρ⟩])
   -> [Γ |- A ].
 Proof.
   intros ht.
@@ -153,11 +154,11 @@ Qed.
 Lemma convty_shf {Γ A B} : shf (fun Δ wfΔ (ρ : Δ ≤ Γ) => [Δ |- A⟨ρ⟩ ≅ B⟨ρ⟩]).
 Proof.
   intros ???? ht hf.
-  eapply convty_split; [eapply ht| eapply hf]; now eapply wfc_consF.
+  eapply convty_split; tea.
 Qed.
 
 Lemma Split_bind_convty {Γ A B} {C : PSh Γ} (hC : Split C) :
-  (forall Δ (wfΔ : [|-Δ]) (ρ : Δ ≤ Γ), overtree hC Δ -> [Δ |- A⟨ρ⟩ ≅ B⟨ρ⟩]) -> [Γ |- A ≅ B].
+  (forall Δ (wfΔ : [|-Δ]) (ρ : Δ ≤ Γ), overtree hC ρ -> [Δ |- A⟨ρ⟩ ≅ B⟨ρ⟩]) -> [Γ |- A ≅ B].
 Proof.
   intros hAB.
   assert ([|-Γ]) by apply hC.
@@ -166,7 +167,7 @@ Qed.
 
 Lemma dSplit_bind_convty {Γ A B} {C : PSh Γ} {P}
   {hC : Split C} (hP : dSplit P hC): 
-  (forall Δ (wfΔ : [|-Δ]) (ρ : Δ ≤ Γ), overtree hC Δ -> overtree hP Δ -> [Δ |- A⟨ρ⟩ ≅ B⟨ρ⟩])
+  (forall Δ (wfΔ : [|-Δ]) (ρ : Δ ≤ Γ), overtree hC ρ -> overtree hP ρ -> [Δ |- A⟨ρ⟩ ≅ B⟨ρ⟩])
   -> [Γ |- A ≅ B ].
 Proof.
   intros ht.
@@ -185,11 +186,11 @@ Qed.
 Lemma ty_shf {Γ t A} : shf (fun Δ wfΔ (ρ : Δ ≤ Γ) => [Δ |- t⟨ρ⟩ : A⟨ρ⟩]).
 Proof.
   intros ???? ht hf.
-  eapply ty_split; [eapply ht| eapply hf]; now eapply wfc_consF.
+  eapply ty_split; tea.
 Qed.
 
 Lemma Split_bind_ty {Γ t A} {C : PSh Γ} (hC : Split C) :
-  (forall Δ (wfΔ : [|-Δ]) (ρ : Δ ≤ Γ), overtree hC Δ -> [Δ |- t⟨ρ⟩ : A⟨ρ⟩]) -> [Γ |- t : A].
+  (forall Δ (wfΔ : [|-Δ]) (ρ : Δ ≤ Γ), overtree hC ρ -> [Δ |- t⟨ρ⟩ : A⟨ρ⟩]) -> [Γ |- t : A].
 Proof.
   intros ht.
   assert ([|-Γ]) by apply hC.
@@ -198,7 +199,7 @@ Qed.
 
 Lemma dSplit_bind_ty {Γ t A} {C : PSh Γ} {P}
   {hC : Split C} (hP : dSplit P hC): 
-  (forall Δ (wfΔ : [|-Δ]) (ρ : Δ ≤ Γ), overtree hC Δ -> overtree hP Δ -> [Δ |- t⟨ρ⟩ : A⟨ρ⟩])
+  (forall Δ (wfΔ : [|-Δ]) (ρ : Δ ≤ Γ), overtree hC ρ -> overtree hP ρ -> [Δ |- t⟨ρ⟩ : A⟨ρ⟩])
   -> [Γ |- t : A ].
 Proof.
   intros ht.
@@ -217,11 +218,11 @@ Qed.
 Lemma convtm_shf {Γ t u A} : shf (fun Δ wfΔ (ρ : Δ ≤ Γ) => [Δ |- t⟨ρ⟩ ≅ u⟨ρ⟩ : A⟨ρ⟩]).
 Proof.
   intros ???? ht hf.
-  eapply convtm_split; [eapply ht| eapply hf]; now eapply wfc_consF.
+  eapply convtm_split; tea.
 Qed.
 
 Lemma Split_bind_convtm {Γ t u A} {C : PSh Γ} (hC : Split C) :
-  (forall Δ (wfΔ : [|-Δ]) (ρ : Δ ≤ Γ), overtree hC Δ -> [Δ |- t⟨ρ⟩ ≅ u⟨ρ⟩ : A⟨ρ⟩]) -> [Γ |- t ≅ u : A].
+  (forall Δ (wfΔ : [|-Δ]) (ρ : Δ ≤ Γ), overtree hC ρ -> [Δ |- t⟨ρ⟩ ≅ u⟨ρ⟩ : A⟨ρ⟩]) -> [Γ |- t ≅ u : A].
 Proof.
   intros htu.
   assert ([|-Γ]) by apply hC.
@@ -230,7 +231,7 @@ Qed.
 
 Lemma dSplit_bind_convtm {Γ t u A} {C : PSh Γ} {P}
   {hC : Split C} (hP : dSplit P hC): 
-  (forall Δ (wfΔ : [|-Δ]) (ρ : Δ ≤ Γ), overtree hC Δ -> overtree hP Δ -> [Δ |- t⟨ρ⟩ ≅ u⟨ρ⟩ : A⟨ρ⟩])
+  (forall Δ (wfΔ : [|-Δ]) (ρ : Δ ≤ Γ), overtree hC ρ -> overtree hP ρ -> [Δ |- t⟨ρ⟩ ≅ u⟨ρ⟩ : A⟨ρ⟩])
   -> [Γ |- t ≅ u : A ].
 Proof.
   intros htu.

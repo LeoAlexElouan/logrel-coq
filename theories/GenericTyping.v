@@ -296,7 +296,7 @@ Section GenericTyping.
     ty_natElim {Γ P hz hs n} :
       [Γ ,, tNat |- P ] ->
       [Γ |- hz : P[tZero..]] ->
-      [Γ |- hs : elimSuccHypTy P] ->
+      [Γ |- hs : elimSuccHypTy' Γ P] ->
       [Γ |- n : tNat] ->
       [Γ |- tNatElim P hz hs n : P[n..]] ;
     ty_bool {Γ} :
@@ -337,8 +337,8 @@ Section GenericTyping.
         [Γ |- tNode n tl tr : tTree] ;
     ty_treeElim {Γ P hl hn t} :
       [Γ ,, tTree |- P ] ->
-      [Γ |- hl : elimLeafHypTy P] ->
-      [Γ |- hn : elimNodeHypTy P] ->
+      [Γ |- hl : elimLeafHypTy' Γ P] ->
+      [Γ |- hn : elimNodeHypTy' Γ P] ->
       [Γ |- t : tTree] ->
       [Γ |- tTreeElim P hl hn t : P[t..]] ;
     ty_sig {Γ} {A B} :
@@ -521,7 +521,7 @@ Section GenericTyping.
     convneu_natElim {Γ P P' hz hz' hs hs' n n'} :
         [Γ ,, tNat |- P ≅ P'] ->
         [Γ |- hz ≅ hz' : P[tZero..]] ->
-        [Γ |- hs ≅ hs' : elimSuccHypTy P] ->
+        [Γ |- hs ≅ hs' : elimSuccHypTy' Γ P] ->
         [Γ |- n ~ n' : tNat] ->
         [Γ |- tNatElim P hz hs n ~ tNatElim P' hz' hs' n' : P[n..]] ;
     convneu_boolElim {Γ P P' ht ht' hf hf' n n'} :
@@ -539,8 +539,8 @@ Section GenericTyping.
         [Γ |- tEmptyElim P e ~ tEmptyElim P' e' : P[e..]] ;
     convneu_treeElim {Γ P P' hl hl' hn hn' t t'} :
         [Γ ,, tTree |- P ≅ P'] ->
-        [Γ |- hl ≅ hl' : elimLeafHypTy P] ->
-        [Γ |- hn ≅ hn' : elimNodeHypTy P] ->
+        [Γ |- hl ≅ hl' : elimLeafHypTy' Γ P] ->
+        [Γ |- hn ≅ hn' : elimNodeHypTy' Γ P] ->
         [Γ |- t ~ t' : tTree] ->
         [Γ |- tTreeElim P hl hn t ~ tTreeElim P' hl' hn' t' : P[t..]] ;
     convneu_fst {Γ A B p p'} :
@@ -596,12 +596,12 @@ Section GenericTyping.
     redtm_natElimZero {Γ P hz hs} :
         [Γ ,, tNat |- P ] ->
         [Γ |- hz : P[tZero..]] ->
-        [Γ |- hs : elimSuccHypTy P] ->
+        [Γ |- hs : elimSuccHypTy' Γ P] ->
         [Γ |- tNatElim P hz hs tZero ⤳* hz : P[tZero..]] ;
     redtm_natElimSucc {Γ P hz hs n} :
         [Γ ,, tNat |- P ] ->
         [Γ |- hz : P[tZero..]] ->
-        [Γ |- hs : elimSuccHypTy P] ->
+        [Γ |- hs : elimSuccHypTy' Γ P] ->
         [Γ |- n : tNat] ->
         [Γ |- tNatElim P hz hs (tSucc n) ⤳* tApp (tApp hs n) (tNatElim P hz hs n) : P[(tSucc n)..]] ;
     redtm_boolElimTrue {Γ P ht hf} :
@@ -616,15 +616,15 @@ Section GenericTyping.
         [Γ |- tBoolElim P ht hf tFalse ⤳* hf : P[tFalse..]] ;
     redtm_treeElimLeaf {Γ P hl hn n} :
         [Γ ,, tTree |- P ] ->
-        [Γ |- hl : elimLeafHypTy P] ->
-        [Γ |- hn : elimNodeHypTy P] ->
+        [Γ |- hl : elimLeafHypTy' Γ P] ->
+        [Γ |- hn : elimNodeHypTy' Γ P] ->
         [Γ |- n : tNat] ->
         [Γ |- tTreeElim P hl hn (tLeaf n) ⤳* tApp hl n : P[(tLeaf n)..]] ;
     redtm_treeElimNode {Γ P hl hn tl tr n} :
         [Γ ,, tTree |- P ] ->
         [Γ |- n : tNat] ->
-        [Γ |- hl : elimLeafHypTy P] ->
-        [Γ |- hn : elimNodeHypTy P] ->
+        [Γ |- hl : elimLeafHypTy' Γ P] ->
+        [Γ |- hn : elimNodeHypTy' Γ P] ->
         [Γ |- tl : tTree] ->
         [Γ |- tr : tTree] ->
         [Γ |- tTreeElim P hl hn (tNode n tl tr) ⤳*
@@ -637,7 +637,7 @@ Section GenericTyping.
     redtm_natelim {Γ P hz hs n n'} :
       [ Γ,, tNat |- P ] ->
       [ Γ |- hz : P[tZero..] ] ->
-      [ Γ |- hs : elimSuccHypTy P ] ->
+      [ Γ |- hs : elimSuccHypTy' Γ P ] ->
       [ Γ |- n ⤳* n' : tNat ] ->
       [ Γ |- tNatElim P hz hs n ⤳* tNatElim P hz hs n' : P[n..] ];
     redtm_boolelim {Γ P ht hf n n'} :
@@ -658,8 +658,8 @@ Section GenericTyping.
       [ Γ |- tEmptyElim P n ⤳* tEmptyElim P n' : P[n..] ];
     redtm_treeelim {Γ P hl hn t t'} :
       [ Γ,, tTree |- P ] ->
-      [ Γ |- hl : elimLeafHypTy P ] ->
-      [ Γ |- hn : elimNodeHypTy P ] ->
+      [ Γ |- hl : elimLeafHypTy' Γ P ] ->
+      [ Γ |- hn : elimNodeHypTy' Γ P ] ->
       [ Γ |- t ⤳* t' : tTree ] ->
       [ Γ |- tTreeElim P hl hn t ⤳* tTreeElim P hl hn t' : P[t..] ];
     redtm_fst_beta {Γ A B a b} :
@@ -1039,7 +1039,7 @@ Section GenericConsequences.
   Lemma redtmwf_natElimZero {Γ P hz hs} :
     [Γ ,, tNat |- P ] ->
     [Γ |- hz : P[tZero..]] ->
-    [Γ |- hs : elimSuccHypTy P] ->
+    [Γ |- hs : elimSuccHypTy' Γ P] ->
     [Γ |- tNatElim P hz hs tZero :⤳*: hz : P[tZero..]].
   Proof.
     intros ???; constructor; tea; gen_typing.
@@ -1087,12 +1087,20 @@ Section GenericConsequences.
 
   (** *** Derived typing, reduction and conversion judgements *)
 
+  Lemma ty_var0' {Γ A} :
+    [|- Γ,, A] ->
+    [Γ ,, A |- tRel 0 : A⟨@wk1 Γ A⟩].
+  Proof.
+    intros.
+    rewrite wk1_ren_on.
+    intros; refine (ty_var H7 (in_here _ _ : in_ctx (Γ,,A) _ _)).
+  Qed.
   Lemma ty_var0 {Γ A} :
     [Γ |- A] ->
     [Γ ,, A |- tRel 0 : A⟨@wk1 Γ A⟩].
   Proof.
-    rewrite wk1_ren_on.
-    intros; refine (ty_var _ (in_here _ _ : in_ctx (Γ,,A) _ _)); gen_typing.
+    intros.
+    eapply ty_var0'; gtyping.
   Qed.
 
   Lemma wft_simple_arr {Γ A B} :

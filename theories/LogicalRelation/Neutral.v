@@ -107,10 +107,10 @@ Proof.
   1,2: now apply funred.
   * cbn; eapply convtm_eta ; tea.
     1-4: first [now eapply ty_conv| constructor; now eapply convneu_conv].
-    rewrite <-(@var0_wk1_id Γ RA.(ParamRedTy.domL) RA.(ParamRedTy.codL)).
+    rewrite <-(@wk1_eta Γ RA.(ParamRedTy.domL) RA.(ParamRedTy.codL)).
     assert [Γ,, PiRedTy.domL RA |-[ ta ] tRel 0 : (PiRedTy.domL RA)⟨@wk1 Γ (PiRedTy.domL RA)⟩]
       as h0
-      by (rewrite wk1_ren_on; eapply ty_var0; now destruct RA as [???? []]).
+      by ( eapply ty_var0; now destruct RA as [???? []]).
     assert [|- Γ,, PiRedTy.domL RA] as hΓA by gtyping.
     eassert ([PolyRed.shpRed RA (wk1 _) hΓA | _ ||- tRel 0 ≅ tRel 0 : _]) as hvar0.
     1: { eapply reflect_diag.
@@ -123,13 +123,10 @@ Proof.
     5 : apply ohvar0.
     1 : apply wfΔ.
     + apply ty_wk; [tea|].
-      rewrite <- !(wk1_ren_on Γ (ParamRedTy.domL RA)).
       eapply ty_app_ren; tea.
     + apply ty_wk; [tea|].
-      rewrite <- !(wk1_ren_on Γ (ParamRedTy.domL RA)).
       eapply ty_app_ren; tea.
     + apply convneu_wk; [tea|].
-      rewrite <- !(wk1_ren_on Γ (ParamRedTy.domL RA)).
       eapply convneu_app_ren; tea.
       eapply escapeTm, ihdom; tea; now apply convneu_var.
       Unshelve. all:gtyping.
@@ -190,7 +187,7 @@ Definition hconv_snd
   (hfst := hconv_fst ihdom ρ h tyn tyn' convnn') :
   dover (PolyRed.posRed RA ρ h hfst) (fun Ξ _ ρΞ hSplit => [ hSplit | Ξ ||- tSnd n⟨ρ⟩⟨ρΞ⟩ ≅ tSnd n'⟨ρ⟩⟨ρΞ⟩ : _]).
 Proof.
-  intros Ξ wfΞ ρΞ ohfst; eapply ihcod; rewrite !wk_fst, !wk_snd, <-subst_ren_subst_mixed.
+  intros Ξ wfΞ ρΞ ohfst; eapply ihcod; rewrite !wk_fst, !wk_snd, <- subst_ren_wk_up.
   1,2: eapply ty_wk; tea.
   * now eapply ty_wk, ty_snd, ty_conv.
   * eapply ty_wk, ty_conv; tea; clear Δ ρ h hfst Ξ wfΞ ρΞ ohfst.
@@ -198,7 +195,7 @@ Proof.
     assert (wfΓ : [|-Γ]) by gtyping.
     pose (hfst' := hconv_fst ihdom wk_id wfΓ tyn tyn' convnn').
     unshelve epose proof (kr := kripkeLRlrefl (PolyRed.posRed RA) wk_id wfΓ hfst'); tea.
-    rewrite 2!wk_fst,<-2!eq_subst_scons in kr; symmetry.
+    rewrite wk_up_wk_id, 3 wk_id_ren_on in kr; symmetry.
     unshelve eapply Split_bind_convty; tea.
     intros Δ ρ hover hΔ.
     now eapply escapeTy, kr.
@@ -226,14 +223,30 @@ Proof.
     intros Δ wfΔ ρ ohconv_fst.
     specialize (hsnd Δ wfΔ ρ ohconv_fst).
     cbn in hsnd; escape.
-    rewrite !wk_fst,<-?eq_subst_scons,!wk_id_ren_on, !(subst_ren_wk_up (A:=ParamRedTy.codL RA)) in *.
-    cbn.
-    apply convtm_eta_sig ; cbn in * ; tea.
-    now eapply wft_wk.
-    eapply (wft_wk (wk_up (ParamRedTy.domL RA) ρ)), codTy; eapply wfc_cons, wft_wk, domTy; tea.
-    1,3:eapply (ty_wk (A:= outTy RA)); tea; now eapply ty_conv.
-    1,2: constructor; eapply (convneu_wk (A:= outTy RA)); tea; now eapply convneu_conv.
-    now eapply (convtm_wk (t:=tFst n) (u:= tFst n')).
+    rewrite !wk_up_wk_id, !wk_id_ren_on in *.
+    unfold sigred, SigRedTyPack.outTy; cbn[SigRedTmEq.nf].
+    rewrite <- wk_sig.
+    apply convtm_eta_sig; tea.
+    + now eapply wft_wk.
+    + eapply wft_wk, codTy.
+      eapply wfc_cons, wft_wk, domTy; tea.
+    + rewrite wk_sig.
+      eapply ty_wk ; tea.
+      now eapply ty_conv.
+    + constructor.
+      rewrite wk_sig.
+      eapply convneu_wk; tea.
+      now eapply convneu_conv.
+    + rewrite wk_sig.
+      eapply ty_wk ; tea.
+      now eapply ty_conv.
+    + constructor.
+      rewrite wk_sig.
+      eapply convneu_wk; tea.
+      now eapply convneu_conv.
+    + rewrite 2 wk_fst.
+      eapply convtm_wk; tea.
+    + now rewrite wk_fst, <- subst_ren_wk_up.
   * intros Δ ρ hΔ.
     eapply Split_return; tea.
     intros Ξ wfΞ ρΞ ofst.
@@ -353,7 +366,7 @@ Proof.
 Qed.
 
 Lemma var0conv {l Γ A A' B'} (RAB : [ Γ,,A||-<l> A' ≅ B']) :
-  [Γ,, A |- A⟨↑⟩ ≅ A'] ->
+  [Γ,, A |- A⟨@wk1 Γ A⟩ ≅ A'] ->
   [Γ ,, A ||-<l> tRel 0 : A' | RAB].
 Proof.
   intros convA.
@@ -361,7 +374,7 @@ Proof.
   1: now eapply wfc_convty.
   intros Δ wfΔ ρ oRAB.
   assert ([Γ,, A |-[ ta ] tRel 0 : A'])
-    by (eapply ty_conv, convA; eapply ty_var, in_here; gtyping).
+    by (eapply ty_conv, convA; eapply ty_var0'; gtyping).
   eapply reflectLR.
   + now eapply ty_wk.
   + now eapply ty_wk.
@@ -369,7 +382,7 @@ Proof.
 Qed.
 
 Lemma var0 {l Γ A A' B'} (RA : [ Γ,,A  ||-<l> A' ≅ B']) :
-  A⟨↑⟩ = A' ->
+  A⟨@wk1 Γ A⟩ = A' ->
   [Γ ,, A ||-<l> tRel 0 : A' | RA].
 Proof.
   intros <-; eapply var0conv; tea.

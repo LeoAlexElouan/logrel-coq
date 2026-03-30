@@ -23,7 +23,7 @@ Module PolyRedPack.
     shpRed {Δ} (ρ : Δ ≤ Γ) : [ |- Δ ] -> LRPack@{i} Δ shp⟨ρ⟩ shp'⟨ρ⟩ ;
     posRed {Δ} (ρ : Δ ≤ Γ) {a b} (wfΔ : [ |- Δ ]) :
         [ shpRed ρ wfΔ | Δ ||- a ≅ b : shp⟨ρ⟩ ≅ shp'⟨ρ⟩] ->
-        Split@{j} (fun Ξ wfΞ (ρΞ : Ξ ≤ Δ) => LRPack@{i} Ξ pos[a .: (ρ >> tRel)]⟨ρΞ⟩ pos'[b .: (ρ >> tRel)]⟨ρΞ⟩);
+        Split@{j} (fun Ξ wfΞ (ρΞ : Ξ ≤ Δ) => LRPack@{i} Ξ pos⟨wk_up shp ρ⟩[a ..]⟨ρΞ⟩ pos'⟨wk_up shp' ρ⟩[b ..]⟨ρΞ⟩);
   }.
 
   Arguments PolyRedPack {_ _ _ _}.

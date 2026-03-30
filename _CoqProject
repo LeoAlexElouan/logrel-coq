@@ -16,6 +16,7 @@ theories/Syntax/Context.v
 theories/Syntax/TermNotations.v
 theories/Syntax/NormalForms.v
 theories/Syntax/Weakening.v
+theories/Syntax/Substitution.v
 theories/Syntax/UntypedReduction.v
 theories/Syntax/Sections.v
 theories/Syntax/Computations.v

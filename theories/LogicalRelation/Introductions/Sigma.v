@@ -99,7 +99,7 @@ Proof.
   pose proof (instKripkeSubst RΣ.(PolyRed.posRed) _ Ra).
   epose proof (hb := rsnd _ wk_id wfΓ).
   eapply (irrLREq _ X) in hb.
-  2: symmetry; etransitivity; [symmetry; eapply wk_id_ren_on|eapply subst_ren_subst_mixed].
+  2: now rewrite wk_up_wk_id, 2wk_id_ren_on.
   rewrite !(wk_id_ren_on _ b) in hb.
   escape.
   econstructor; tea.
@@ -244,7 +244,7 @@ Proof.
   + erewrite <-wk_id_ren_on, <-(wk_id_ren_on _ (tSnd (nf (redL _)))).
     eassert (wfΓ: [|-Γ]) by (escape; gtyping).
     eapply irrLRConv, (SigRedTmEq.eqSnd Rp wk_id wfΓ).
-    erewrite wk_fst, <- eq_subst_scons.
+    erewrite wk_up_wk_id, 2wk_id_ren_on.
     eassert (RF : [Γ ||-< l> F ≅ F'])
       by (eapply Split_return; tea; intros;
       now eapply (normRedΣ RΣ).(PolyRed.shpRed)).
@@ -253,7 +253,7 @@ Proof.
     eapply (dSplit_bind fstRed).
     intros ??? oRF ofstRed.
     eapply WAdrefold.
-    rewrite 2!subst_ren_subst_mixed.
+    erewrite !subst_ren_wk_up.
     eapply kripkeLRlrefl.
     - clear dependent Δ. intros ????? RAA'.
       now eapply (normRedΣ RΣ).(PolyRed.posRed).
@@ -272,12 +272,11 @@ Proof.
   intros ??? oRΣ oRp.
   unshelve eapply Wpackrefold; tea.
   rewrite <- 2 wk_snd.
-  unshelve (eapply irrLREq, SsndRed, Rp; tea); tea; refold.
-  2: now bsimpl.
-  change G⟨upRen_term_term ρ⟩ with G⟨wk_up F ρ⟩;
-  change G'⟨upRen_term_term ρ⟩ with G'⟨wk_up F' ρ⟩.
-  rewrite 2wk_fst, <-2 subst_ren_wk_up.
-  now eapply wkLRTy, RGfstp.
+  unshelve eapply irrLREq, (SsndRed (F:=F⟨ρ⟩) (F':=F'⟨ρ⟩) (G:=G⟨wk_up F ρ⟩) (G':=G'⟨wk_up F' ρ⟩)),
+    Rp; tea.
+  all: rewrite !wk_fst, <- !subst_ren_wk_up.
+  + now eapply wkLRTy, RGfstp.
+  + easy.
 Qed.
 
 
@@ -388,24 +387,26 @@ Proof.
   unshelve eapply SsigEtaRed.
   1: exact A'⟨(ρΘ ∘w ρΞ) ∘w ρ⟩.
   1: exact B'⟨wk_up A' ((ρΘ ∘w ρΞ) ∘w ρ)⟩.
-  + now eapply RA, overtree_PSh, overtree_PSh.
+  + now eapply RA, overtree_PSh.
   + rewrite 2wk_fst, <- 2subst_ren_wk_up.
     now eapply wkLRTy, RBfst.
   + eapply SirrLREq.
     1: symmetry; eapply wk_sig.
-    now eapply Rp, overtree_PSh.
+    eapply Rp.
+    rewrite wk_comp_assoc; now eapply overtree_PSh.
   + eapply SirrLREq.
     1: symmetry; eapply wk_sig.
-    now eapply Rp'.
+    now eapply Rp'; rewrite wk_comp_assoc.
   + rewrite 2wk_fst.
-    unshelve (now eapply Rfstpp', overtree_PSh, overtree_PSh); tea.
+    now eapply Rfstpp', overtree_PSh.
   + rewrite 2wk_snd.
     eapply irrLREq.
     1: rewrite wk_fst; eapply subst_ren_wk_up.
     eapply wkLRTm, Rsndpp'.
   Unshelve. all: tea.
   rewrite 2 wk_sig.
-  now eapply RΣ.
+  eapply RΣ; tea.
+  all: now rewrite wk_comp_assoc.
 Qed.
 
 Lemma mkPair_isLRPair {Γ A A' A1 B B' B1 a1 b1 l}
@@ -420,7 +421,8 @@ Proof.
   escape.
   unshelve eapply PairLRPair; tea; intros.
   - now unshelve now eapply SirrLR, SwkLR.
-  - now unshelve now eapply irrLREq, wkLR; tea; rewrite subst_ren_subst_mixed.
+  - unshelve (eapply irrLREq, wkLR; tea); tea.
+    now rewrite <- subst_ren_wk_up.
 Qed.
 
 Definition pairSigRedTm {Γ A A' A1 B B' B1 a1 b1 l}
@@ -428,7 +430,7 @@ Definition pairSigRedTm {Γ A A' A1 B B' B1 a1 b1 l}
   (RΣ1 : [Γ ||-S<l> tSig A B ≅ tSig A1 B1])
   (RΣ := normRedΣ RΣ0)
   (Ra1 : [Γ ||-S<l> a1 : _ | SredΣdom RΣ0])
-  (Rb1 : [wfΓ ||-<l> b1 : _ | SredΣcodfst RΣ0 Ra1])
+  (Rb1 : [Γ ||-<l> b1 : _ | SredΣcodfst RΣ0 Ra1])
 : SigRedTm RΣ (tPair A1 B1 a1 b1).
 Proof.
   exists (tPair A1 B1 a1 b1); pose proof (RA := SredΣdom RΣ1);

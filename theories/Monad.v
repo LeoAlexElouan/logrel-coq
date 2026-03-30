@@ -7,7 +7,7 @@ Inductive DTree (L : list Fcontext) : Set :=
     DTree (Fcons L i new true) ->
     DTree (Fcons L i new false) ->
     DTree L.
-Derive NoConfusion EqDec for DTree.
+Derive NoConfusion for DTree.
 
 
 
