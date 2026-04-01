@@ -815,12 +815,11 @@ Notation elimSuccHypTy' Γ P :=
 Notation elimLeafHypTy' Γ P :=
   (tProd tNat P⟨wk_up tTree (@wk1 Γ tNat)⟩[(tLeaf (tRel 0))..]).
 
-Notation elimNodeHypTyCod Γ P := (arr' (Γ,, tNat ,, tTree,,tTree) (P⟨wk_up tTree (@wk1 Γ tNat)⟩⟨@wk1 (Γ,, tNat,, tTree) tTree⟩)
-    (arr' (Γ,, tNat ,, tTree,,tTree) (P⟨wk_up tTree (@wk1 Γ tNat)⟩⟨wk_up tTree (@wk1 (Γ,,tNat) tTree)⟩)
-      (P⟨wk_up tTree (@wk1 Γ tNat)⟩⟨wk_up tTree (@wk1 (Γ,,tNat) tTree)⟩⟨wk_up tTree (@wk1 (Γ,,tNat,,tTree) tTree)⟩
-      [(tNode (tRel 2) (tRel 1) (tRel 0))..]))).
-Notation elimNodeHypTy' Γ P :=
-  (tProd tNat (tProd tTree (tProd tTree (elimNodeHypTyCod Γ P)))).
+Definition elimNodeHypTyCod Γ P := (arr' (Γ,, tNat ,, tTree,,tTree) P[(tRel 1)..]
+    (arr' (Γ,, tNat ,, tTree,,tTree) P[(tRel 0)..]
+      (P[(tNode (tRel 2) (tRel 1) (tRel 0))..]))).
+Definition elimNodeHypTy' Γ P :=
+  (tProd tNat (tProd tTree (tProd tTree (elimNodeHypTyCod Γ P⟨wk_up tTree (@wk1 Γ tNat)⟩⟨wk_up tTree (@wk1 (Γ,,tNat) tTree)⟩⟨wk_up tTree (@wk1 (Γ,,tNat,,tTree) tTree)⟩)))).
 (*     (arr' (Γ,, tNat ,, tTree,,tTree) (P⟨wk_up tTree (@wk1 Γ tNat)⟩⟨@wk1 (Γ,, tNat,, tTree) tTree⟩)
     (arr' (Γ,, tNat ,, tTree,,tTree) (P⟨wk_up tTree (@wk1 Γ tNat)⟩⟨wk_up tTree (@wk1 (Γ,,tNat) tTree)⟩)
       (P⟨wk_up tTree (@wk1 Γ tNat)⟩⟨wk_up tTree (@wk1 (Γ,,tNat) tTree)⟩⟨wk_up tTree (@wk1 (Γ,,tNat,,tTree) tTree)⟩
@@ -899,10 +898,44 @@ Proof.
     <- wk_up_wk1'.
 Qed.
 
-Lemma wk_elimNodeHypTy {P Γ Δ} A (ρ : Δ ≤ Γ) :
+(* Lemma wk_elimNodeHypTy {P Γ Δ} A (ρ : Δ ≤ Γ) :
   elimNodeHypTy P⟨wk_up A ρ⟩ = (elimNodeHypTy P)⟨ρ⟩.
-Proof. unfold elimNodeHypTy; cbn; f_equal; f_equal; f_equal; f_equal; [ | f_equal]; now bsimpl. Qed.
-Lemma elimNodeHypTy_to_typed {P Γ} : elimNodeHypTy' Γ P = elimNodeHypTy P.
+Proof. unfold elimNodeHypTy; cbn; f_equal; f_equal; f_equal; f_equal; [ | f_equal]; now bsimpl. Qed. *)
+Lemma wk_elimNodeHypTyCod {P Γ Δ} (ρ : Δ ≤ Γ) (ρ' := wk_up tTree (wk_up tTree (wk_up tNat ρ))):
+  elimNodeHypTyCod Δ P⟨wk_up tTree ρ'⟩ = (elimNodeHypTyCod Γ P)⟨ρ'⟩.
+Proof.
+  unfold elimNodeHypTyCod.
+  etransitivity; [|eapply wk_arr'].
+  etransitivity; [|eapply (f_equal (fun varP => arr' _ _ varP)), wk_arr'].
+  eapply (f_equal2 tProd).
+  { now rewrite (subst_ren_wk_up (A:=tTree)). }
+  rewrite wk1_ren_on, wk1_ren_on with (F:= P[(tRel 1)..]⟨ρ'⟩).
+  f_equal. eapply (f_equal2 tProd).
+  { now rewrite (subst_ren_wk_up (A:= tTree)). }
+  rewrite 2wk1_ren_on. f_equal.
+  { now rewrite (subst_ren_wk_up (A:= tTree)). }
+Qed.
+
+Lemma up_wk_up_wk1 {A B Γ Δ} {t : term} (ρ : Δ ≤ Γ) :
+  t⟨wk_up A ρ⟩⟨wk_up A⟨ρ⟩ (@wk1 Δ B⟨ρ⟩)⟩ = t⟨wk_up A (@wk1 Γ B)⟩⟨wk_up A⟨@wk1 Γ B⟩ (wk_up B ρ)⟩.
+Proof. now rewrite 2wk_comp_ren_on, 2wk_up_wk_comp, wk_up_wk1'. Qed.
+
+Lemma wk_elimNodeHypTy' {P Γ Δ} (ρ : Δ ≤ Γ) :
+  elimNodeHypTy' Δ P⟨wk_up tTree ρ⟩ = (elimNodeHypTy' Γ P)⟨ρ⟩.
+Proof.
+  unfold elimNodeHypTy'.
+  etransitivity; [|eapply wk_prod]; f_equal.
+  etransitivity; [|eapply wk_prod]; f_equal.
+  etransitivity; [|eapply wk_prod]; f_equal.
+  etransitivity; [|eapply wk_elimNodeHypTyCod]; f_equal.
+  etransitivity.
+  { eapply f_equal, f_equal, (up_wk_up_wk1 (B:=tNat)). }
+  cbn. etransitivity.
+  { eapply f_equal, (up_wk_up_wk1 (B:=tTree)). }
+  cbn. eapply (up_wk_up_wk1 (B:=tTree)).
+Qed.
+
+(* Lemma elimNodeHypTy_to_typed {P Γ} : elimNodeHypTy' Γ P = elimNodeHypTy P.
 Proof.
   unfold elimNodeHypTy.
   eapply (f_equal (tProd tNat)), (f_equal (tProd tTree)), (f_equal (tProd tTree)),
@@ -924,7 +957,7 @@ Lemma wk_elimNodeHypTy' {P Γ Δ} (ρ : Δ ≤ Γ) :
 Proof.
   rewrite 2elimNodeHypTy_to_typed.
   eapply wk_elimNodeHypTy.
-Qed.
+Qed. *)
 
 Lemma wk_treeElim {Γ Δ P hl hn t} (ρ : Δ ≤ Γ) :
   tTreeElim P⟨wk_up tTree ρ⟩ hl⟨ρ⟩ hn⟨ρ⟩ t⟨ρ⟩ = (tTreeElim P hl hn t)⟨ρ⟩.

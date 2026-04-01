@@ -18,11 +18,14 @@ Section PiValidity.
   Proof.
     constructor; intros ? wfΔ ?? Vσ.
     pose proof (RΠ := validTyExt VΠ wfΔ Vσ).
-    rewrite 2!subst_prod in RΠ.
+    rewrite <- 2!subst_prod in RΠ.
     eapply Split_hom_PSh, RΠ.
     intros Ξ wfΞ ρΞ RΠ'.
     eapply (SinstKripke wfΞ (normRedΠ RΠ').(PolyRed.shpRed)).
   Qed.
+
+  Lemma eta_up_single_subst σ : to_subst (subst_subst σ var_zero).. ∘s up_subst (tail_subst σ) =s σ.
+  Proof. constructor; cbn; bsimpl; bsimpl; reflexivity. Qed.
 
   Lemma validΠcod {Γ Γ' F F' G G' l}
     {VΓ : [||-v Γ ≅ Γ']}
@@ -31,7 +34,7 @@ Section PiValidity.
   Proof.
     constructor; intros ? wfΔ ?? [Vσ hd].
     pose proof (RΠ := validTyExt VΠ wfΔ Vσ).
-    rewrite 2!subst_prod in RΠ.
+    rewrite <- 2!subst_prod in RΠ.
     eapply (Split_bind RΠ).
     intros Ξ wfΞ ρΞ oRΠ.
     eapply WAdrefold.
@@ -43,9 +46,12 @@ Section PiValidity.
     set (RΠ' := cover RΠ _ wfΘ (ρΘ ∘w ρΞ) oRΠ). cbn -[ren1] in RΠ'.
     rewrite <- 2!wk_prod in RΠ'.
     set (hd' := cover hd _ wfΘ (ρΘ ∘w ρΞ) ohd oVΠ). cbn in hd'.
-    rewrite <- 1!(eta_up_single_subst G), <- (eta_up_single_subst G').
-    generalize (instKripkeSubst (normRedΠ RΠ').(PolyRed.posRed) _ hd').
-    cbn -[wk1 ren_term]. now rewrite <- 2!subst_ren_wk_up, 2!eta_up_single_subst.
+(*     rewrite <- 1!(eta_up_single_subst G), <- (eta_up_single_subst G'). *)
+    pose proof (RG := instKripkeSubst (normRedΠ RΠ').(PolyRed.posRed) _ hd').
+    cbn -[wk1 ren_term] in RG. rewrite <- 2!subst_ren_wk_up in RG.
+    rewrite 2to_subst_sound, 2subst_comp_on in RG.
+    eapply RG.
+     2!eta_up_single_subst.
   Qed.
 
   Lemma substSΠ {Γ Γ' F F' G G' t u l}

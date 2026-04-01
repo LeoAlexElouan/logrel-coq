@@ -162,8 +162,9 @@ Section εsnocValid.
 
   Record εsnocEqSubst (VF : F =ε F') {Δ : context} {wfΔ : [|- Δ]} {σ σ' : substitution} : Type := {
       εeqTail : [ VΓ | Δ ||-v εtail_subst σ ≅ εtail_subst σ' : Γ | wfΔ ] ;
-      εeqHedIndex : list_index Δ.(Fctx) ; 
-      εeqHeadIn : (subst_alpha σ 0) = index_to_nat εeqHedIndex ;
+      εeqHedIndex : list_index Δ.(Fctx) ;
+      εeqHeadEq : subst_alpha σ 0 = subst_alpha σ' 0 ;
+      εeqHeadIn : subst_alpha σ 0 = index_to_nat εeqHedIndex ;
       εeqHead : list_at Δ.(Fctx) εeqHedIndex ≤ε F ;
     }.
 
@@ -390,9 +391,9 @@ Section Inductions.
     | Build_context nil (F :: L)%list => fun Γ₀ VΓ₀ =>
       ∑ F' L' (VΓ : [||-v fromFctx L ≅ fromFctx L']) (VF : F =ε F') (e : Γ₀ = (fromFctx L' ,, ↦ F')),
         rew [fun Γ₀ => [||-v (fromFctx L),,↦ F ≅ Γ₀]] e in VΓ₀ = validSnocε VΓ VF
-    | Build_context (A :: Γ)%list L => fun Γ₀ VΓ₀ =>
-      ∑ l A' Γ' (VΓ : [||-v Build_context Γ L ≅ Γ']) (VA : [Build_context Γ L ||-v< l > A ≅ A' | VΓ]) (e : Γ₀ = (Γ' ,, A')),
-        rew [fun Γ₀ => [||-v (Build_context Γ L),,A ≅ Γ₀]] e in VΓ₀ = validSnoc VΓ VA
+    | Build_context (A :: Γ)%list L => let ΓL := Build_context Γ L in fun Γ₀ VΓ₀ =>
+      ∑ l A' Γ' (VΓ : [||-v ΓL ≅ Γ']) (VA : [ΓL ||-v< l > A ≅ A' | VΓ]) (e : Γ₀ = (Γ' ,, A')),
+        rew [fun Γ₀ => [||-v ΓL,,A ≅ Γ₀]] e in VΓ₀ = validSnoc VΓ VA
     end Γ' VΓ.
   Proof.
     pattern Γ, Γ', VΓ; apply validity_rect; intros.

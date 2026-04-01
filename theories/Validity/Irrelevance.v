@@ -15,8 +15,8 @@ Universes u1 u2 u3 u4 v1 v2 v3 v4.
 
 Set Printing Universes.
 Lemma VRirrelevant@{} (Γ Γ':context) 
-  {veqsubst : forall Δ (h :[|-Δ]) (σ σ' : nat -> term), Type@{u3}}
-  {veqsubst' : forall Δ (h :[|-Δ]) (σ σ' : nat -> term), Type@{v3}}
+  {veqsubst : forall Δ (h :[|-Δ]) (σ σ' : substitution), Type@{u3}}
+  {veqsubst' : forall Δ (h :[|-Δ]) (σ σ' : substitution), Type@{v3}}
   (vr : VR@{u1 u2 u3 u4} Γ Γ' veqsubst) (vr' : VR@{v1 v2 v3 v4} Γ Γ'  veqsubst') :
   (forall (Δ:context) wfΔ wfΔ' σ σ', veqsubst Δ wfΔ σ σ' <~> veqsubst' Δ wfΔ' σ σ').
 Proof.
@@ -24,7 +24,11 @@ Proof.
   apply VR_rect; clear Γ Γ' veqsubst vr.
   - intros * h. inversion h; subst.
     intros; split; intros []; now constructor.
-  - intros [Γ L] [Γ' L'] ?????? ih ? h; inversion h as [|?????? VΓad' VA' ]; subst.
+  - intros L L' ??????? ih ? h; inversion h as [|??????? VΓad' VF'|]; subst.
+    specialize (ih _ VΓad').
+    intros; split; intros [];
+     econstructor; tea; now eapply ih.
+  - intros [Γ L] [Γ' L'] ?????? ih ? h; inversion h as [| |?????? VΓad' VA' ]; subst.
     specialize (ih _ VΓad').
     intros; split; intros []; unshelve econstructor.
     1,2: now eapply ih.
@@ -58,9 +62,14 @@ Lemma symSubst@{u1 u2 u3 u4} {Γ Γ'}
   [Δ ||-v σ ≅ σ' : Γ | VΓ | wfΔ ] -> [Δ ||-v σ' ≅ σ : _ | VΓ' | wfΔ'].
 Proof.
   revert VΓ'; induction Γ, Γ', VΓ using validity_rect; intros VΓ'.
-  - pose proof (invValidityEmpty VΓ') as ([]&->).
-    intros * []; constructor; tea.
-    now eapply Fwk_compose.
+  - pose proof (invValidityEmpty VΓ') as ->.
+    intros *; constructor.
+  - pose proof (invValiditySnocε VΓ') as (VΓ''&[]&->).
+    intros * [htail i hhead hi hleq]; econstructor; tea.
+    + eapply IHVΓ, htail.
+    + now symmetry.
+    + rewrite <- hhead. eapply hi.
+    + now eapply Fwk_compose.
   - pose proof (x := invValiditySnoc VΓ').
     destruct x as [lA'[ VΓ'' [VA' ->]]].
     intros ????? [tleq hdeq].
@@ -80,7 +89,8 @@ Qed.
 Lemma symValid {Γ Γ'} : [||-v Γ ≅ Γ'] -> [||-v Γ' ≅ Γ].
 Proof.
   intros VΓ; induction Γ, Γ', VΓ using validity_rect.
-  - apply validEmpty; now symmetry.
+  - apply validEmpty.
+  - apply (validSnocε IHVΓ); now symmetry.
   - now eapply (validSnoc IHVΓ), symValidTy.
 Qed.
 
@@ -92,9 +102,15 @@ Lemma convSubst {Γ Γ' Γ''}
   [Δ ||-v σ ≅ σ' : _ | VΓ' | wfΔ ].
 Proof.
   revert Γ' VΓ; indValid VΓ'.
-  - intros *. pose proof (invValidity VΓ) as (?&?&e&h); subst; cbn in h; subst.
+  - intros *. pose proof (invValidity VΓ) as (e&h); subst; cbn in h; subst.
     intros []; now constructor.
-  - intros * ih *. pose proof (invValidity VΓ0) as (?&?&?&?&?&e&h); subst; cbn in h; subst.
+  - intros * ih *. pose proof (invValidity VΓ0) as (?&?&?&?&e&h); subst;
+      cbn in h; subst.
+    intros [htl i hhd hi hin].
+    econstructor; tea.
+    eapply ih, htl.
+  - intros * ih *. pose proof (invValidity VΓ0) as (?&?&?&?&?&e&h); subst;
+      cbn in h; subst.
     intros [tl hd]; pose proof (tl' := ih _ _ _ _ _ _ tl).
     exists tl'; now eapply irrLREqCum.
 Qed.
@@ -135,8 +151,15 @@ Lemma transSubst {Γ Γ' Γ''}
     [Δ ||-v σ ≅ σ'' : _ | VΓ'' | wfΔ ].
 Proof.
   revert  Γ' VΓ VΓ'; indValid VΓ''.
-  - intros *. pose proof (invValidity VΓ) as (?&?&e&h); subst; cbn in h; subst.
+  - intros *. pose proof (invValidity VΓ) as (e&h); subst; cbn in h; subst.
     intros [] _; now constructor.
+  - intros ?????? VΓ VF ih ? VΓ'0.
+    pose proof (invValidity VΓ'0) as (F''&?&?&?&e&?); subst; cbn in projT3; subst.
+    intros VΓ'; pose proof (invValiditySnocε VΓ') as (?&?&?); subst.
+    intros ???? wfΔ [htl i hhd hi hin] [htl' i' hhd' hi' hin'].
+    econstructor; tea.
+    + eapply ih; tea.
+    + etransitivity; [eapply hhd|eapply hhd'].
   - intros ????? VΓ VA ih ? VΓ'0.
     pose proof (invValidity VΓ'0) as (?&?&?&?&?&e&?); subst; cbn in *.
     intros VΓ'; pose proof (invValiditySnoc VΓ') as (?&?&?&?); subst.
@@ -158,9 +181,10 @@ Qed.
 
 Lemma ureflValid {Γ Γ'} (VΓ : [||-v Γ ≅ Γ']) : [||-v Γ' ≅ Γ'].
 Proof.
-  indValid VΓ; [intros; eapply validEmpty; reflexivity|].
-  intros ????? ? VA ih; eapply (validSnoc ih).
-  now eapply ureflValidTy.
+  indValid VΓ; [intros; eapply validEmpty; reflexivity| |].
+  + intros ??????? VF ih; eapply (validSnocε ih); reflexivity.
+  + intros ????? ? VA ih; eapply (validSnoc ih).
+    now eapply ureflValidTy.
 Qed.
 
 Lemma irrLvlValidTy {Γ Γ' l l' A B C} (VΓ : [||-v Γ ≅ Γ']) :
@@ -188,9 +212,12 @@ Qed.
 Lemma transValid {Γ Γ' Γ''} : [||-v Γ ≅ Γ'] -> [||-v Γ' ≅ Γ''] -> [||-v Γ ≅ Γ''].
 Proof.
   intros VΓ; revert Γ''; indValid VΓ.
-  - intros ???? VL'.
-    pose proof (invValidity VL') as (?&?&e&?); subst; cbn in *; subst.
-    eapply validEmpty; now etransitivity.
+  - intros ? Vε.
+    pose proof (invValidity Vε) as (e&?); subst; cbn in *; subst.
+    eapply validEmpty.
+  - intros * VL VF ih ? VΓ0.
+    pose proof (invValidity VΓ0) as (?&?&VΓ'&?&e&?); subst; cbn in *; subst.
+    eapply (validSnocε (ih _ VΓ')); now etransitivity.
   - intros * VA ih ? VΓ0.
     pose proof (invValidity VΓ0) as (?&?&?&VΓ'&?&e&?); subst; cbn in *; subst.
      eapply (validSnoc (ih _ VΓ')), transValidTy; tea.
@@ -336,19 +363,34 @@ Proof.
   Unshelve. 1: now eapply lrefl. now symmetry.
 Qed.
 
+Lemma subst_subst_eq (t : term) σ σ' : σ =s σ' -> t[σ] = t[σ'].
+Proof.
+  intros [eq αeq].
+  bsimpl. unfold funcomp. now rewrite eq, αeq.
+Qed.
 
 Lemma irrelevanceSubstEqExt {Γ Γ'} (VΓ : [||-v Γ ≅ Γ']) {σ1 σ1' σ2 σ2' Δ}
-  (wfΔ : [|- Δ]) (eq1 : σ1 =1 σ1') (eq2 : σ2 =1 σ2') :
+  (wfΔ : [|- Δ]) (eq1 : σ1 =s σ1') (eq2 : σ2 =s σ2') :
   [Δ ||-v σ1 ≅ σ2 : Γ | VΓ | wfΔ ] ->
   [Δ ||-v σ1' ≅ σ2' : Γ | VΓ | wfΔ ].
 Proof.
   revert Δ wfΔ σ1 σ1' σ2 σ2' eq1 eq2; indValid VΓ.
   - intros * ?? []. now constructor.
-  - intros ??????? ih ?????? eq1 eq2 [tl hd].
+  - intros ???????? ih ?????? [eq1 αeq1] [eq2 αeq2] [htl i hd hi hin].
+    econstructor; tea.
+    + eapply ih, htl; constructor; cbn; tea;
+      [rewrite αeq1 | rewrite αeq2]; reflexivity.
+    + now rewrite <- αeq1, <- αeq2.
+    + now rewrite <- αeq1.
+  - intros ??????? ih ?????? [eq1 αeq1] [eq2 αeq2] [tl hd].
+    rewrite eq1, eq2 in hd.
     unshelve eexists (ih _ _ _ _ _ _ _ _ tl).
-    1,2: red; intros; eauto.
-    rewrite <- (eq1 var_zero); rewrite <- (eq2 var_zero).
-    eapply irrLREq; tea; now rewrite eq1.
+    1,2: constructor; cbn; tea.
+    {now rewrite eq1. } {now rewrite eq2. }
+    eapply irrLREq, hd.
+    eapply subst_subst_eq.
+    constructor; tea.
+    cbn. now rewrite eq1.
 Qed.
 
 End Irrelevances.

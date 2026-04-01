@@ -76,27 +76,32 @@ Section RedDefinitions.
 
   (** *** Lifting of typing and conversion to contexts and substitutions *)
 
-  Inductive WellSubst (Γ : context) : context -> (nat -> term) -> Type :=
-    | well_sempty (σ : nat -> term) L : [Γ |-s σ : fromFctx L]
-    | well_scons (σ : nat -> term) (Δ : context) A :
-      [Γ |-s ↑ >> σ : Δ] -> [Γ |- σ var_zero : A[↑ >> σ]] ->
+  Inductive WellSubst (Γ : context) : context -> substitution -> Type :=
+    | well_sempty (σ : substitution) : [Γ |-s σ : ε]
+    | well_sconsε (σ : substitution) L F : [Γ |-s εtail_subst σ : fromFctx L] ->
+      [Γ |-s σ : fromFctx L,, ↦ F]
+    | well_scons (σ : substitution) (Δ : context) A :
+      [Γ |-s tail_subst σ : Δ] -> [Γ |- subst_subst σ var_zero : A[tail_subst σ]] ->
       [Γ |-s σ : Δ,, A]
   where "[ Γ '|-s' σ : Δ ]" := (WellSubst Γ Δ σ).
 
-  Inductive ConvSubst (Γ : context) : context -> (nat -> term) -> (nat -> term) -> Type :=
-  | conv_sempty (σ τ : nat -> term) L : [Γ |-s σ ≅ τ : fromFctx L ]
-  | conv_scons (σ τ : nat -> term) (Δ : context) A :
-    [Γ |-s ↑ >> σ ≅ ↑ >> τ : Δ] -> [Γ |- σ var_zero ≅ τ var_zero: A[↑ >> σ]] ->
+  Inductive ConvSubst (Γ : context) : context -> substitution -> substitution -> Type :=
+  | conv_sempty (σ τ : substitution) : [Γ |-s σ ≅ τ : ε ]
+  | conv_sconsε (σ τ: substitution) L F : [Γ |-s εtail_subst σ ≅ εtail_subst τ : fromFctx L] ->
+      [Γ |-s σ ≅ τ: fromFctx L,, ↦ F]
+  | conv_scons (σ τ : substitution) (Δ : context) A :
+    [Γ |-s tail_subst σ ≅ tail_subst τ : Δ] -> [Γ |- subst_subst σ var_zero ≅ subst_subst τ var_zero: A[tail_subst σ]] ->
     [Γ |-s σ ≅ τ : Δ,,A ]
   where "[ Γ '|-s' σ ≅ τ : Δ ]" := (ConvSubst Γ Δ σ τ).
 
-  Inductive ConvCtx : context -> context -> Type :=
-  | conv_cempty L L': [ fromFctx L ≅ fromFctx L']
+(*   Inductive ConvCtx : context -> context -> Type :=
+  | conv_cempty: [ ε ≅ ε ]
+  | conv_cconsε L F L' F' : [ fromFctx L ≅ fromFctx L' ] -> F =ε F' -> [ fromFctx L,,↦ F ≅ fromFctx L',,↦ F' ]
   | conv_ccons Γ A Δ B : [ Γ ≅ Δ ] -> [Γ |- A ≅ B] -> [ Γ,,A ≅ Δ,,B ]
-  where "[ Γ ≅ Δ ]" := (ConvCtx Γ Δ).
+  where "[ Γ ≅ Δ ]" := (ConvCtx Γ Δ). *)
 
 
-  Lemma well_subst_ext Γ Δ (σ σ' : nat -> term) :
+(*   Lemma well_subst_ext Γ Δ (σ σ' : substitution) :
     σ =1 σ' ->
     [Γ |-s σ : Δ] ->
     [Γ |-s σ' : Δ].
@@ -109,7 +114,7 @@ Section RedDefinitions.
     - rewrite <- Heq.
       now replace A[↑ >> σ'] with A[↑ >> σ]
         by (now rewrite Heq).
-  Qed.
+  Qed. *)
 
   Definition WellClass (Γ : context) (A : class) (t : term) :=
     match A with
@@ -194,8 +199,8 @@ Notation "[ Γ '|-s' σ : A ]" := (WellSubst Γ A σ) (only parsing) : typing_sc
 Notation "[ Γ |-[ ta ']s' σ : A ]" := (WellSubst (ta := ta) Γ A σ) : typing_scope.
 Notation "[ Γ '|-s' σ ≅ τ : A ]" := (ConvSubst Γ A σ τ) (only parsing) : typing_scope.
 Notation "[ Γ |-[ ta ']s' σ ≅ τ : A ]" := (ConvSubst (ta := ta) Γ A σ τ) : typing_scope.
-Notation "[ L | Γ ≅ Δ ]" := (ConvCtx L Γ Δ) (only parsing) : typing_scope.
-Notation "[ L |[ ta  ] Γ ≅ Δ ]" := (ConvCtx (ta := ta) L Γ Δ) : typing_scope.
+(* Notation "[ L | Γ ≅ Δ ]" := (ConvCtx L Γ Δ) (only parsing) : typing_scope. *)
+(* Notation "[ L |[ ta  ] Γ ≅ Δ ]" := (ConvCtx (ta := ta) L Γ Δ) : typing_scope. *)
 Notation "[ Γ |- t ∈ A ]" := (WellClass Γ A t) : typing_scope.
 Notation "[ Γ |-[ ta  ] t ∈ A ]" := (WellClass (ta := ta) Γ A t) : typing_scope.
 Notation "[ Γ |- t ≅ t' ∈ A ]" := (ConvClass Γ A t t') : typing_scope.
@@ -1086,6 +1091,18 @@ Section GenericConsequences.
     end) (well_formed_typed _ _ w).
 
   (** *** Derived typing, reduction and conversion judgements *)
+
+  Lemma wfc_consε {Γ F} : [|-Γ] -> [|-Γ,,↦ F].
+  Proof.
+    intros wfΓ. destruct F as [F].
+    induction F as [ | [n b] F IHF].
+    + now eapply wfc_alpha.
+    + rename wfF into wfFn.
+      set (wfF := wfFcons_wfF wfFn).
+      specialize (IHF wfF). 
+      set (ΓF := Γ,, ↦ Build_Fcontext F wfF) in *.
+      eapply (wfc_consF (Γ := ΓF) (new := wfFcons_new wfFn) (i:=index_0) IHF).
+  Qed.
 
   Lemma ty_var0' {Γ A} :
     [|- Γ,, A] ->

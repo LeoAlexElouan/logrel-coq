@@ -135,24 +135,66 @@ Proof.
   now bsimpl.
 Qed. *)
 
+Lemma wk1_irr {Γ Δ A B t u} : t = u :> term -> t⟨@wk1 Γ A⟩ = u⟨@wk1 Δ B⟩.
+Proof. intros <-. now rewrite 2wk1_ren_on. Qed.
+
+Lemma elimNodeHypTyCod_subst {Γ Δ P} σ (σ' := up_subst (up_subst (up_subst σ))):
+  elimNodeHypTyCod Δ P[up_subst σ'] = (elimNodeHypTyCod Γ P)[σ'].
+Proof.
+  unfold elimNodeHypTyCod.
+  erewrite <- 2(subst_arr' (Δ:= (((Δ,, tNat),, tTree),, tTree))).
+  f_equal.
+  { now rewrite subst_ren_subst_up. }
+  eapply wk1_irr.
+  f_equal.
+  { now rewrite subst_ren_subst_up. }
+  eapply wk1_irr.
+  { now rewrite subst_ren_subst_up. }
+Qed.
+Lemma up_subst_wk1 Γ Δ A B t σ :
+ t[up_subst σ⟨@wk1 Γ A⟩] = t⟨wk_up B (@wk1 Δ A)⟩[up_subst (up_subst σ)].
+Proof. rewrite up_wk1_ren_on. bsimpl. cbn. now bsimpl. Qed.
 Lemma elimNodeHypTy_subst {Γ Δ P} σ :
   elimNodeHypTy' Δ P[up_subst σ] = (elimNodeHypTy' Γ P)[σ].
 Proof.
+  unfold elimNodeHypTy'.
   rewrite <- 3subst_prod. f_equal. f_equal. f_equal.
-  erewrite <- 2subst_arr'. f_equal.
-  { erewrite <- subst_up_wk1. f_equal.
-    rewrite up_wk1_ren_on. now bsimpl. }
-  erewrite <- subst_up_wk1. rewrite 2wk1_ren_on. f_equal.
+  rewrite <- (elimNodeHypTyCod_subst (Δ:=Δ)).
   f_equal.
-  { rewrite !up_wk1_ren_on. now bsimpl. }
-  rewrite 2wk1_ren_on. f_equal.
-  rewrite subst_ren_subst_up. f_equal.
-  rewrite !up_wk1_ren_on. now bsimpl.
-  Unshelve. all: tea.
+  now repeat erewrite subst_ren_wk, eq_upwk, up_subst_wk1.
 Qed.
 (* 
 Lemma liftSubst_singleSubst_eq {t u v: term} : t[u]⇑[v..] = t[u[v..]..].
 Proof. now bsimpl. Qed. *)
+
+Lemma elimNodeHypTyCod_subst_terms_aux t n tl tr :
+  t[up_term_term (up_term_term n..)][up_term_term tl..][tr..] = t[tr .: (tl .: n..)].
+Proof. intros. now asimpl. Qed.
+
+Lemma elimNodeHypTyCod_subst_terms_aux' {Γ P n tl tr } :
+  P⟨wk_up tTree (@wk1 Γ tNat)⟩⟨wk_up tTree (@wk1 (Γ,,tNat) tTree)⟩⟨wk_up tTree (@wk1 (Γ,,tNat,,tTree) tTree)⟩[up_term_term (tr .: (tl .: n..))] = P.
+Proof. rewrite !up_wk1_ren_on. bsimpl. cbn. now bsimpl. Qed.
+
+Lemma elimNodeHypTyCod_subst_terms {Γ P n tl tr } :
+  (elimNodeHypTyCod Γ 
+    P⟨wk_up tTree (@wk1 Γ tNat)⟩⟨wk_up tTree (@wk1 (Γ,,tNat) tTree)⟩⟨wk_up tTree (@wk1 (Γ,,tNat,,tTree) tTree)⟩)[tr .: (tl .: n..)] =
+  arr' Γ P[tl..] (arr' Γ P[tr..] P[(tNode n tl tr)..]).
+Proof.
+  rewrite to_subst_sound.
+  unfold elimNodeHypTyCod.
+  erewrite <- (subst_arr' (Δ:=Γ)).
+  eapply (f_equal2 tProd).
+  { rewrite subst_ren_subst_up. f_equal.
+    now rewrite <- up_to_subst, <- to_subst_sound, elimNodeHypTyCod_subst_terms_aux'. }
+  erewrite <- (subst_arr' (Δ:=Γ)).
+  eapply wk1_irr, (f_equal2 tProd).
+  { rewrite subst_ren_subst_up. f_equal.
+    now rewrite <- up_to_subst, <- to_subst_sound, elimNodeHypTyCod_subst_terms_aux'. }
+  eapply wk1_irr.
+  { rewrite subst_ren_subst_up. f_equal.
+    now rewrite <- up_to_subst, <- to_subst_sound, elimNodeHypTyCod_subst_terms_aux'. }
+Qed.
+
 
 Section STreeElimRedEq.
   Context {Γ l P Q hl hl' hn hn'}
@@ -175,6 +217,7 @@ Section STreeElimRedEq.
   Qed.
 
 (*   Lemma redΠcod Γ F F' G G'  *)
+
 
   Lemma StreeElimRedEq :
     (forall t t' (Rt : [Γ ||-S<l> t ≅ t' : _ | RT]),
@@ -215,30 +258,26 @@ Section STreeElimRedEq.
         1,2: now eapply ty_conv.
       + unshelve eapply simple_appcongTerm, ihr.
         1: now eapply RPQext.
-        1: now eapply ArrRedTy; eapply RPQext; [..| eapply (SnodeRed (NN:=natRedTy wfΓ))].
+        1: now eapply ArrRedTy; eapply RPQext;
+          [..| eapply (SnodeRed (NN:=natRedTy wfΓ))].
         unshelve eapply simple_appcongTerm, ihl.
         1: now eapply RPQext.
-        1: now eapply ArrRedTy, ArrRedTy; eapply RPQext; [..| eapply (SnodeRed (NN:=natRedTy wfΓ))].
+        1: now eapply ArrRedTy, ArrRedTy; eapply RPQext;
+          [..| eapply (SnodeRed (NN:=natRedTy wfΓ))].
         eapply Wpack_return in Rn as WRn.
         eapply Wpack_return in Rtl as WRtl.
         eapply Wpack_return in Rtr as WRtr.
-        epose proof (codSubst RPQn WRn) as RPQnn; cbn in RPQnn.
-        epose proof (codSubst RPQnn WRtl) as RPQnntl; cbn in RPQnntl.
-        epose proof (codSubst RPQnntl WRtr) as RPQnntltr; cbn in RPQnntltr.
+        epose proof (codSubst RPQn WRn) as RPQnn.
+        epose proof (codSubst RPQnn WRtl) as RPQnntl. refold.
+        epose proof (codSubst RPQnntl WRtr) as RPQnntltr. refold.
         eapply irrLREq, appcongTerm, WRtr; [shelve|..].
         eapply irrLREq, appcongTerm, WRtl;  [shelve|..].
         eapply irrLREq, appcongTerm, WRn;  [shelve|..].
         eapply Rhn. Unshelve.
-        12: cbn; reflexivity.
-        9: cbn; reflexivity.
-        4:{ cbn; f_equal; [|f_equal].
-          * rewrite 2 shift_up_eq.
-            now rewrite 2 shift_up_eq, shift_one_eq, up_shift_one_eq.
-          * now rewrite 3 shift_up_eq, up_shift_up_eq, 2 up_shift_one_eq.
-          * rewrite 2 shift_upRen_eq, 6 shift_up_eq, liftSubst_can, 3 singleSubstComm'.
-            rewrite 3 up_shift_up_eq, 3 up_shift_one_eq.
-            do 4 f_equal. cbn.
-            now rewrite shift_up_eq, 3 shift_one_eq. }
+        12: rewrite Extra.subst_prod; reflexivity.
+        9: rewrite 2Extra.subst_prod; reflexivity.
+        4:{ rewrite elimNodeHypTyCod_subst_terms_aux.
+          eapply elimNodeHypTyCod_subst_terms. }
         6,7: eapply RPQnn.
         3,4: eapply RPQnntl.
         1: eapply RPQnntltr.
@@ -279,9 +318,9 @@ Section TreeElimRedEq.
   Qed.
 
   Context {hl hl' hn hn'}
-    (RPQl : [Γ ||-<l> elimLeafHypTy P ≅ elimLeafHypTy Q])
+    (RPQl : [Γ ||-<l> elimLeafHypTy' Γ P ≅ elimLeafHypTy' Γ Q])
     (Rhl : [Γ ||-<l> hl ≅ hl' : _ | RPQl ])
-    (RPQn : [Γ ||-<l> elimNodeHypTy P ≅ elimNodeHypTy Q])
+    (RPQn : [Γ ||-<l> elimNodeHypTy' Γ P ≅ elimNodeHypTy' Γ Q])
     (Rhn : [Γ ||-<l> hn ≅ hn' : _ | RPQn ]).
 
   Let RPext : forall Δ (wfΔ : [|-Δ]) (ρ : Δ ≤ Γ) t t' (Rn : [Δ ||-<l> t ≅ t' : _ | treeRed (l:=l) wfΔ]),
@@ -306,17 +345,17 @@ Section TreeElimRedEq.
     + now eapply wft_wk.
     + now eapply convty_wk.
     + unshelve eapply irrLREq, wkLRTm, Rhl; tea.
-      symmetry; eapply wk_elimLeafHypTy.
+      symmetry; eapply wk_elimLeafHypTy'.
     + unshelve eapply irrLREq, wkLRTm, Rhn; tea.
-      symmetry; eapply wk_elimNodeHypTy.
+      symmetry; eapply wk_elimNodeHypTy'.
     + easy.
     + now eapply treeRedTy.
     + clear dependent t; clear t'; intros t t' Rt.
       eapply (RPQext _ wfΔ), Wpack_return, SirrLR, Rt.
     + now unshelve now eapply SirrLREq, Rt.
-    + rewrite 2 wk_elimLeafHypTy.
+    + rewrite 2 wk_elimLeafHypTy'.
       now eapply wkLRTy.
-    + rewrite 2 wk_elimNodeHypTy.
+    + rewrite 2 wk_elimNodeHypTy'.
       now eapply wkLRTy.
   Qed.
 

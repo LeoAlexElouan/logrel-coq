@@ -154,7 +154,7 @@ Definition in_ctx Γ := in_Tctx (Tctx Γ).
 Lemma in_ctx_induction : forall P : forall Γ n A, in_ctx Γ n A -> Type,
   (forall Γ A, P (Γ,, A) 0 A⟨↑⟩ (in_here Γ A)) ->
   (forall Γ A A' n (hin : in_ctx Γ n A),
-    P Γ n A hin -> P (Γ,, A') (S n) (ren_term ↑ A) (in_there Γ A A' n hin)) ->
+    P Γ n A hin -> P (Γ,, A') (S n) A⟨↑⟩ (in_there Γ A A' n hin)) ->
   forall Γ n A (hin : in_ctx Γ n A), P Γ n A hin.
 Proof.
   intros ? hhere hthere *. change Γ with (Build_context Γ Γ). induction hin.
