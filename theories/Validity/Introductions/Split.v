@@ -1,30 +1,41 @@
 From Stdlib Require Import ssrbool.
 From LogRel Require Import Utils Syntax.All GenericTyping LogicalRelation Monad.
 From LogRel.LogicalRelation Require Import Properties.
-From LogRel.LogicalRelation.Introductions Require Import Poly Pi Nat Bool.
-From LogRel.Validity Require Import Validity Irrelevance Properties Universe Poly ValidityTactics Nat Bool.
+From LogRel.LogicalRelation.Introductions Require Import Poly Pi Nat Bool SimpleArr.
+From LogRel.Validity Require Import Validity Irrelevance Properties Universe Poly ValidityTactics Nat Bool Lambda.
 
 Section FSnoc.
   Context `{GenericTypingProperties}.
 
-  Lemma FequivValid {Γ Γ' : context} (VΓ : [||-v Γ ≅ Γ']) : Γ =ε Γ'.
+  Lemma FequivValid {Γ Γ' : context} (VΓ : [||-v Γ ≅ Γ']) i i' : index_to_nat i = index_to_nat i' -> list_at Γ i =ε list_at Γ' i'.
   Proof.
+    intros eqi.
     induction Γ, Γ', VΓ using validity_rect; tea.
+    + destruct i.
+    + destruct i, i'; cbn in eqi; inversion eqi.
+      - eapply VF.
+      - now eapply IHVΓ.
+    + now eapply IHVΓ.
   Qed.
 
 (*   Lemma FSnocValidTy {Γ} {new} A . *)
 
-  Lemma validFSnoc {Γ Γ' : context} (VΓ : [||-v Γ ≅ Γ']) {new : newnat Γ} {new' : newnat Γ'} {b}:
-    new = new' :> nat -> [||-v Γ,, new ↦ b ≅ Γ',, new' ↦ b].
+  Lemma validFSnoc {Γ Γ' : context} (VΓ : [||-v Γ ≅ Γ']) {i i'} {new : newnat (list_at Γ i)} {new' : newnat (list_at Γ' i')} {b}:
+    i = i' :> nat -> new = new' :> nat -> [||-v Γ,, i : new ↦ b ≅ Γ',, i' : new' ↦ b].
   Proof.
-    intros.
+    intros eqi eqnew.
     induction Γ, Γ', VΓ using validity_rect.
-    + eapply validEmpty, Fequiv_Fup; now symmetry.
-    + change [||-v Γ,, new ↦ b,,A ≅ Γ',, new' ↦ b,,A'].
+    + destruct i.
+    + destruct i, i'; cbn in *; [|inversion eqi..|].
+      - eapply validSnocε; tea.
+        now eapply Fequiv_Fup.
+      - eapply validSnocε; tea.
+        now eapply IHVΓ.
+    + change [||-v Γ,, i : new ↦ b,,A ≅ Γ',, i' : new' ↦ b,,A'].
       eapply validSnoc.
       constructor.
       intros * h.
-      eapply (wkValidTy (wk_Fstep (new : newnat Γ) b wk_id)) in VA.
+      eapply (wkValidTy (wk_Fstep (i :list_index Γ) (new : newnat (list_at Γ i)) b wk_id)) in VA.
       rewrite 2!wk_Fstep_ren_on,  2!wk_id_ren_on in VA.
       eapply VA, h.
       Unshelve.
@@ -41,49 +52,109 @@ Section FSnoc.
     eapply convSubst.
   Qed.
 
-  Lemma validFSnocSubst_in {Γ Γ' : context} (VΓ : [||-v Γ ≅ Γ']) {new : newnat Γ} {new' : newnat Γ'} {b σ σ'} {Δ wfΔ}
-    ( e: new = new' :> nat) :
-    [Δ ||-v σ ≅ σ' : _ | VΓ | wfΔ] -> in_Fctx Δ new b -> [Δ ||-v σ  ≅ σ' : Γ,, new ↦ b | validFSnoc VΓ e | wfΔ].
+  Lemma validFSnocSubst_in {Γ Γ' : context} (VΓ : [||-v Γ ≅ Γ']) i i' {new : newnat (list_at Γ i)} {new' : newnat (list_at Γ' i')} {b σ σ'} {Δ wfΔ}
+    j (eqj :(index_to_nat j) =  σ.(subst_alpha) i) (eqi : i = i' :>nat) (eqnew: new = new' :> nat) :
+    [Δ ||-v σ ≅ σ' : _ | VΓ | wfΔ] -> in_Fctx (list_at Δ j) new b -> [Δ ||-v σ  ≅ σ' : Γ,, i : new ↦ b | validFSnoc VΓ eqi eqnew | wfΔ].
   Proof.
-    revert σ σ'.
-    induction Γ, Γ', VΓ using validity_rect; intros σ σ' [] hin.
-    + constructor.
-      now eapply Fwk_new.
-    + econstructor.
-      now eapply irrLR.
-      Unshelve.
+    revert σ σ' eqj.
+    induction Γ, Γ', VΓ using validity_rect; intros σ σ' eqj [] hin.
+    + destruct i.
+    + destruct i, i'; cbn in *; [ |inversion eqi..  ].
+      - econstructor; tea; cbn.
+        eapply Fwk_new; tea.
+        rewrite <- eqj in εeqHeadIn.
+        eapply index_to_nat_inj in εeqHeadIn.
+        now destruct εeqHeadIn.
+      - econstructor; tea.
+        unshelve (eapply irrelevanceSubst, IHVΓ; tea); tea.
+    + unshelve econstructor.
       now unshelve now eapply irrelevanceSubst, IHVΓ.
+      now eapply irrLR.
   Qed.
 
-  Lemma FSnocSubst {Γ Γ' : context} (VΓ : [||-v Γ ≅ Γ']) :
-  forall {σ σ' Δ new b} (wfΔ : [|- Δ]) (wfΔnew : [|- Δ,, new ↦ b]),
-  [Δ ||-v σ ≅ σ' : Γ | VΓ | wfΔ ] ->
-  [Δ,,new ↦ b ||-v σ ≅ σ' : Γ | VΓ | wfΔnew ].
+
+  Lemma ren_index_wk_Fstep {Γ Δ} {ρ : Δ ≤ Γ} {i new b j} : ren_index ρ j = ren_index (wk_Fstep i new b ρ) j :> nat.
   Proof.
-    intros ???????. revert σ σ'.
-    induction Γ, Γ', VΓ using validity_rect; intros ?? [].
+    revert i new b j.
+    induction ρ using wk_induction.
+    + intros. destruct j.
+    + intros.
+      eapply IHρ.
+    + intros. eapply IHρ.
+    + intros.
+      destruct i.
+      - cbn. reflexivity.
+      - cbn. erewrite IHρ. reflexivity.
+    + intros.
+      destruct i.
+      - reflexivity.
+      - destruct j.
+        * cbn. reflexivity.
+        * cbn. erewrite IHρ. reflexivity.
+  Qed.
+
+  Lemma ren_index_wk_id L (i : list_index L) : i = index_to_nat (ren_index well_Fwk_id i) :> nat.
+  Proof.
+    induction L; destruct i.
+    + reflexivity.
+    + cbn. now rewrite IHL.
+  Qed.
+
+  Lemma ren_index_Fwk1 {Δ} {i new b j}: index_to_nat j =
+    index_to_nat (ren_index (well_Fwk (wk_Fstep i new b (@wk_id Δ))) j).
+  Proof. now rewrite <- ren_index_wk_Fstep, ren_index_wk_id. Qed.
+
+
+  Lemma FSnocSubst {Γ Γ' : context} (VΓ : [||-v Γ ≅ Γ']) :
+  forall {σ σ' Δ i new b} (wfΔ : [|- Δ]) (wfΔnew : [|- Δ,, i : new ↦ b]),
+  [Δ ||-v σ ≅ σ' : Γ | VΓ | wfΔ ] ->
+  [Δ,, i : new ↦ b ||-v σ ≅ σ' : Γ | VΓ | wfΔnew ].
+  Proof.
+    intros ????????. revert σ σ'.
+    induction Γ, Γ', VΓ using validity_rect; intros ?? Vσσ'.
     + constructor.
-      now eapply Fwk_Fstep.
-    + unshelve econstructor.
+    + destruct Vσσ' as [htl j hd hj hin].
+      unshelve econstructor; tea.
+      exact (ren_index (wk_Fstep i new b wk_id) j).
       now eapply IHVΓ.
-      eapply (irrLREq (A:= A[↑ >> σ]⟨wk_Fstep new b wk_id⟩)).
+      * now rewrite <- ren_index_Fwk1.
+      * intros n' b' hin'. eapply well_Fwk_in, hin, hin'.
+    + destruct Vσσ' as [htl hhd].
+      unshelve opector.
+      now eapply IHVΓ.
+      eapply (irrLREq (A:= A[tail_subst σ]⟨wk_Fstep i new b wk_id⟩)).
       etransitivity; [eapply wk_Fstep_ren_on | eapply wk_id_ren_on].
-      rewrite <- (wk_id_ren_on Δ (σ var_zero)), <- (wk_id_ren_on Δ (σ' var_zero)),
-        <- 2(wk_Fstep_ren_on new b).
+      rewrite <- (wk_id_ren_on Δ (subst_subst σ var_zero)), <- (wk_id_ren_on Δ (subst_subst σ' var_zero)),
+        <- 2(wk_Fstep_ren_on i new b).
       eapply wkLR, eqHead.
       Unshelve.
       now eapply wfc_consF.
+      7:{ econstructor. eapply hhd. }
   Qed.
 
-  Lemma validFSnocSubst_notin {Γ Γ' : context} (VΓ : [||-v Γ ≅ Γ']) {new : newnat Γ} {new' : newnat Γ'} {b σ σ'} {Δ wfΔ}
-    ( e: new = new' :> nat) (Vσσ' : [Δ ||-v σ ≅ σ' : _ | VΓ | wfΔ]) (notinΔ : not_in_Fctx Δ new) :
-      let newΔ := Build_newnat Δ new notinΔ in [Δ,,newΔ ↦ b ||-v σ  ≅ σ' : Γ,, new ↦ b | validFSnoc VΓ e | wfc_consF wfΔ].
+  Lemma in_Fcons {L i new b i'} : index_to_nat i = index_to_nat i' :>nat ->
+    in_Fctx (list_at (Fcons L i new b) i') new b.
+  Proof.
+    intros eqi.
+    induction L as [|F L]; destruct i, i';  [|inversion eqi..|].
+    + cbn. eapply in_hereF.
+    + eapply IHL. cbn in eqi.
+      now inversion eqi.
+  Qed.
+
+  Lemma validFSnocSubst_notin {Γ Γ' : context} (VΓ : [||-v Γ ≅ Γ']) {b σ σ'} {Δ wfΔ}
+    i i' j {new : newnat (list_at Γ i)} {new' : newnat (list_at Γ' i')}
+    (eqi : i = i' :> nat) (eqj : index_to_nat j = subst_alpha σ i :> nat) (eqnew: new = new' :> nat)
+      (Vσσ' : [Δ ||-v σ ≅ σ' : _ | VΓ | wfΔ]) (notinΔ : not_in_Fctx (list_at Δ j) new) :
+      let newΔ := Build_newnat _ new notinΔ in
+      [Δ,, j : newΔ ↦ b ||-v σ  ≅ σ' : Γ,, i : new ↦ b | validFSnoc VΓ eqi eqnew | wfc_consF wfΔ].
   Proof.
     intros ?.
-    eapply validFSnocSubst_in.
-    now eapply FSnocSubst.
-    cbn.
-    eapply in_hereF.
+    unshelve eapply validFSnocSubst_in.
+    { exact (ren_index (wk_Fstep j newΔ b wk_id) j). }
+    + now rewrite <- ren_index_Fwk1.
+    + now eapply FSnocSubst.
+    + exact (in_Fcons ren_index_Fwk1).
   Qed.
 
 (*   Lemma validTy_shf {Γ} {wfΓ : [|-Γ]} {VΓ : [||-v Γ]} {l A B} :
@@ -123,34 +194,50 @@ End FSnoc.
 Section Split.
 Context `{GenericTypingProperties}.
 
-Lemma validTySplit {Γ l A B} {new}
-  {VΓ : [||-v Γ]} {VΓt : [||-v Γ,,new ↦ true]} {VΓf : [||-v Γ,,new ↦ false]}:
-  [Γ,,new ↦ true ||-v<l> A ≅ B| VΓt] ->
-  [Γ,,new ↦ false  ||-v<l> A ≅ B| VΓf] ->
+Lemma subst_index {Γ Γ'} {VΓ : [||-v Γ ≅ Γ']} {Δ wfΔ σ σ'} (Vσσ' : [VΓ | Δ ||-v σ ≅ σ' : Γ ≅ Γ' | wfΔ]) (i : list_index Γ) :
+  ∑ (j : list_index Δ), j = subst_alpha σ i :> nat × j = subst_alpha σ' i :> nat.
+Proof.
+  revert σ σ' Vσσ'; induction Γ, Γ', VΓ using validity_rect; intros σ σ' Vσσ'.
+  + destruct i.
+  + destruct i.
+    - destruct Vσσ' as [htl j hd hj hin].
+      exists j. split.
+      * now symmetry.
+      * etransitivity; tea; now symmetry.
+    - destruct Vσσ' as [htl j hd hj hin].
+      eapply IHVΓ with (1:=htl).
+  + destruct Vσσ' as [htl hhd].
+    eapply IHVΓ with (1:=htl).
+Qed.
+
+Lemma validTySplit {Γ l A B} {i new}
+  {VΓ : [||-v Γ]} {VΓt : [||-v Γ,, i : new ↦ true]} {VΓf : [||-v Γ,, i : new ↦ false]}:
+  [Γ,, i : new ↦ true ||-v<l> A ≅ B| VΓt] ->
+  [Γ,, i : new ↦ false  ||-v<l> A ≅ B| VΓf] ->
   [Γ ||-v<l> A ≅ B| VΓ].
 Proof.
   intros VAt VAf.
   econstructor.
   intros Δ wfΔ σ σ' Vσσ'.
-  destruct (decide_in Δ new) as [[] hin|hnotin].
+  destruct (subst_index Vσσ' i) as (j&eqj&eqj').
+  destruct (decide_in (list_at Δ j) new) as [[] hin|hnotin].
   + now unshelve now eapply VAt, convSubst, validFSnocSubst_in.
   + now unshelve now eapply VAf, convSubst, validFSnocSubst_in.
-  + eapply WAd_split.
+  + eapply WAd_split; tea.
     - now unshelve now eapply VAt, convSubst, validFSnocSubst_notin.
     - now unshelve now eapply VAf, convSubst, validFSnocSubst_notin.
 Qed.
 
 
-Lemma Wpack_split {Γ l A B t u new}
-  {RAt : [Γ,, new ↦ true ||-< l > A ≅ B]} {RAf : [Γ,, new ↦ false ||-< l > A ≅ B]} :
-  [Γ,, new ↦ true ||-< l > t ≅ u  : A | RAt] -> [Γ,, new ↦ false ||-< l > t ≅ u  : A | RAf] ->
-  [Γ ||-< l > t ≅ u : A | WAd_split RAt RAf].
+Lemma Wpack_split {Γ wfΓ l A B t u i new}
+  {RAt : [Γ,, i : new ↦ true ||-< l > A ≅ B]} {RAf : [Γ,, i : new ↦ false ||-< l > A ≅ B]} :
+  [Γ,, i : new ↦ true ||-< l > t ≅ u  : A | RAt] -> [Γ,, i : new ↦ false ||-< l > t ≅ u  : A | RAf] ->
+  [Γ ||-< l > t ≅ u : A | WAd_split wfΓ RAt RAf].
 Proof.
   intros Rtt Rtf.
-  assert (wftrue : [|-Γ,, new ↦ true]) by apply RAt.
-  assert (wffalse : [|-Γ,, new ↦ false]) by apply RAf.
-  assert (wfΓ : [|-Γ]) by now eapply wfc_split.
-  epose proof (Split_shf Γ wfΓ wk_id new).
+  assert (wftrue : [|-Γ,, i : new ↦ true]) by apply RAt.
+  assert (wffalse : [|-Γ,, i : new ↦ false]) by apply RAf.
+  epose proof (Split_shf Γ wfΓ wk_id i new).
   cbn in X.
   eapply Split_hom_PSh.
   2: eapply X; clear X.
@@ -169,22 +256,23 @@ Proof.
     now rewrite <- wk_comp_ren_on, wk_Fstep_ren_on, wk_id_ren_on.
 Qed.
 
-Lemma validTmSplit {Γ l A t u} {new}
-  {VΓ : [||-v Γ]} {VΓt : [||-v Γ,,new ↦ true]} {VΓf : [||-v Γ,,new ↦ false]}
-  {VAt : [Γ,,new ↦ true ||-v<l> A | VΓt]} {VAf : [Γ,,new ↦ false ||-v<l> A| VΓf]}:
-  [Γ,,new ↦ true ||-v<l> t ≅ u : A | VΓt | VAt] ->
-  [Γ,,new ↦ false  ||-v<l> t ≅ u : A | VΓf | VAf] ->
+Lemma validTmSplit {Γ l A t u} {i new}
+  {VΓ : [||-v Γ]} {VΓt : [||-v Γ,, i : new ↦ true]} {VΓf : [||-v Γ,, i : new ↦ false]}
+  {VAt : [Γ,, i : new ↦ true ||-v<l> A | VΓt]} {VAf : [Γ,, i : new ↦ false ||-v<l> A| VΓf]}:
+  [Γ,, i : new ↦ true ||-v<l> t ≅ u : A | VΓt | VAt] ->
+  [Γ,, i : new ↦ false  ||-v<l> t ≅ u : A | VΓf | VAf] ->
   [Γ ||-v<l> t ≅ u : A | VΓ | validTySplit VAt VAf].
 Proof.
   intros Vtt Vtf.
   econstructor.
   intros ?????.
-  destruct (decide_in Δ new) as [[] hin|hnotin].
+  destruct (subst_index Vσσ' i) as (j&eqj&eqj').
+  destruct (decide_in (list_at Δ j) new) as [[] hin|hnotin].
   + unshelve eapply irrLR, Vtt; tea.
     now unshelve now eapply convSubst, validFSnocSubst_in.
   + unshelve eapply irrLR, Vtf; tea.
     now unshelve now eapply convSubst, validFSnocSubst_in.
-  + eapply irrLR, Wpack_split.
+  + eapply irrLR, (Wpack_split (wfΓ:=wfΔ)).
     - unshelve eapply Vtt.
       1: now eapply wfc_consF.
       now unshelve now eapply convSubst, validFSnocSubst_notin.
@@ -193,7 +281,7 @@ Proof.
       now unshelve now eapply convSubst, validFSnocSubst_notin.
 Qed.
 
-Lemma validCtxSplit {Γ new} :
+(* Lemma validCtxSplit {Γ i new} :
   [||-v Γ,,new ↦ true] -> [||-v Γ,,new ↦ false] -> [||-v Γ].
 Proof.
   intros VΓt VΓf.
@@ -209,7 +297,7 @@ Proof.
     eapply cons_eq_inversion; clear dependent Af'; clear Γf'.
     intros; cbn in ef'; subst.
     now unshelve now eapply validSnoc, validTySplit; eapply embValidTyOne.
-Qed.
+Qed. *)
 
   Section Strong.
 
@@ -269,30 +357,30 @@ Inductive NatPropEqInst : term -> term -> Set :=
   | neReqInst n neL neR : [Γ ||-NeNf neL ≅ neR : tNat] ->
       NatPropEqInst (nSucc n neL) (nSucc n neR).
 
-Record NatRedTmEqInst tL tR : Set :=
+Record NatRedTmEqInst i tL tR : Set :=
   {
     nfLInst : term ;
     nfRInst : term ;
-    redLInst : forall n, [Γ |- tAlpha (nSucc n tL) :⤳*: tAlpha (nSucc n nfLInst) : tBool] ;
-    redRInst : forall n, [Γ |- tAlpha (nSucc n tR) :⤳*: tAlpha (nSucc n nfRInst) : tBool ] ;
+    redLInst : forall n, [Γ |- tApp (tAlpha i) (nSucc n tL) :⤳*: tApp (tAlpha i) (nSucc n nfLInst) : tBool] ;
+    redRInst : forall n, [Γ |- tApp (tAlpha i) (nSucc n tR) :⤳*: tApp (tAlpha i) (nSucc n nfRInst) : tBool ] ;
 (*     eqInst : [Γ |- nfL ≅ nfR : tBool] ; *)
     propInst : NatPropEqInst nfLInst nfRInst
   }.
 
 
-Lemma redtmwf_alphaSubst {t u n} :
+Lemma redtmwf_alphaSubst {i : list_index Γ} {t u n} :
   [ Γ |- t :⤳*: u : tNat ] ->
-  [ Γ |- tAlpha (nSucc n t) :⤳*: tAlpha (nSucc n u) : tBool ].
+  [ Γ |- tApp (tAlpha i) (nSucc n t) :⤳*: tApp (tAlpha i) (nSucc n u) : tBool ].
 Proof.
   intros ht.
   econstructor.
-  + eapply ty_alpha, ty_nSucc, ht.
+  + eapply ty_simple_app, ty_nSucc, ht ; gtyping.
   + eapply redtm_alphaSubst, ht.
 Qed.
 
-Definition natRed_toInst :
-  (forall tL tR (Rt : [Γ ||-Nat tL ≅ tR :Nat]), NatRedTmEqInst tL tR) ×
-  (forall tL tR (propt : NatPropEq Γ tL tR), NatRedTmEqInst tL tR).
+Definition natRed_toInst {i : list_index Γ} :
+  (forall tL tR (Rt : [Γ ||-Nat tL ≅ tR :Nat]), NatRedTmEqInst i tL tR) ×
+  (forall tL tR (propt : NatPropEq Γ tL tR), NatRedTmEqInst i tL tR).
 Proof.
   apply NatRedEqInduction.
   + intros tL tR ???? _ _ [dnfL dnfR redL' redR' prop].
@@ -301,7 +389,7 @@ Proof.
     all: now etransitivity; [eapply redtmwf_alphaSubst |].
   + econstructor.
     3: eapply (natReqInst 0).
-    all: now intros n; eapply redtmwf_refl; eapply ty_alpha, ty_nSucc, ty_zero.
+    all: intros n; eapply redtmwf_refl, ty_simple_app, ty_nSucc; gtyping.
   + intros tL tR Rt [dnfL dnfR redL redR prop].
     eexists (tSucc dnfL) (tSucc dnfR).
     - intros n. rewrite 2nSuccswap.
@@ -313,13 +401,14 @@ Proof.
       * now eapply (neReqInst (S n)).
   + intros neL neR Rne.
     exists neL neR.
-    1,2: intros; eapply redtmwf_refl, ty_alpha, ty_nSucc, Rne.
+    1,2: intros n; eapply redtmwf_refl, ty_simple_app, ty_nSucc, Rne ; gtyping.
     now eapply (neReqInst 0).
 Defined.
 
 
-Lemma SAlphaRedEq (tL tR: term):
-  [Γ ||-S< l > tL ≅ tR: tNat | SnatRed (l:=l) wfΓ] -> [Γ ||-< l > tAlpha tL ≅ tAlpha tR: tBool|boolRed (l:=l) wfΓ].
+Lemma SAlphaRedEq' (i : list_index Γ) (tL tR: term):
+  [Γ ||-S< l > tL ≅ tR: tNat | SnatRed (l:=l) wfΓ] ->
+  [Γ ||-< l > tApp (tAlpha i) tL ≅ tApp (tAlpha i) tR: tBool|boolRed (l:=l) wfΓ].
 Proof.
   intros.
   eapply natRed_toInst in X.
@@ -328,25 +417,29 @@ Proof.
   + specialize (redL 0); specialize (redR 0); cbn in redL, redR.
     destruct redL, redR.
     eapply redSubstTmEq; tea.
-    destruct (decide_in Γ n) as [b hin | hnotin].
+    destruct (decide_in (list_at Γ i) n) as [b hin | hnotin].
     - eapply redSubstTmEq.
       2,3: now eapply redtm_alpha.
       destruct b.
       eapply trueRed.
       eapply falseRed.
     - set (new := Build_newnat _ n hnotin).
-      eassert (wfΓt :[ |-[ ta ] Γ,, new ↦ true])
+      eassert (wfΓt :[ |-[ ta ] Γ,, i : new ↦ true])
          by now eapply wfc_consF.
-      eassert (wfΓf :[ |-[ ta ] Γ,, new ↦ false])
+      eassert (wfΓf :[ |-[ ta ] Γ,, i : new ↦ false])
          by now eapply wfc_consF.
       eapply irrLR, (Wpack_split (new:=new)).
-      * eapply redSubstTmEq.
-        2,3: now eapply redtm_alpha, in_hereF.
+      * replace (tAlpha i) with (tAlpha (ren_index (wk_Fstep i new true wk_id) i))
+          by now rewrite <- ren_index_Fwk1.
+        eapply redSubstTmEq.
+        2,3: eapply redtm_alpha; tea; refine (in_Fcons ren_index_Fwk1).
         now unshelve eapply trueRed.
-      * eapply redSubstTmEq.
-        2,3: now eapply redtm_alpha, in_hereF; eapply wfc_consF.
+      * replace (tAlpha i) with (tAlpha (ren_index (wk_Fstep i new false wk_id) i))
+          by now rewrite <- ren_index_Fwk1.
+        eapply redSubstTmEq.
+        2,3: eapply redtm_alpha; tea; refine (in_Fcons ren_index_Fwk1).
         now unshelve eapply falseRed.
-      Unshelve. tea.
+      Unshelve. all: tea.
   + specialize (redL 0); specialize (redR 0); cbn in redL, redR.
     destruct redL, redR.
     eapply redSubstTmEq; tea.
@@ -357,32 +450,86 @@ Qed.
 End Strong.
 
 
-Lemma AlphaRedEq {Γ : context} {wfΓ : [|-Γ]} {l} (n n': term):
-  [Γ ||-< l > n ≅ n': tNat | natRed (l:=l) wfΓ] -> [Γ ||-< l > tAlpha n ≅ tAlpha n': tBool|boolRed (l:=l) wfΓ].
+Lemma AlphaRedEq' {Γ : context} {wfΓ : [|-Γ]} {l} {i : list_index Γ} (n n': term) (RN : [Γ ||-< l> tNat ≅ tNat]):
+  [Γ ||-< l > n ≅ n': tNat | RN] -> [Γ ||-< l > tApp (tAlpha i) n ≅ tApp (tAlpha i) n': tBool|boolRed (l:=l) wfΓ].
 Proof.
   intros Rnn'.
   eapply (dSplit_bind Rnn').
   intros ??? onatRed oRnn'.
   eapply Wpackrefold.
-  change (tAlpha ?n)⟨?ρ⟩ with (tAlpha n⟨ρ⟩).
-  eapply irrLR, SAlphaRedEq.
+  change (tApp (tAlpha i) ?n)⟨?ρ⟩ with (tApp (tAlpha (wk_to_ren ρ.(Fwk) i)) n⟨ρ⟩).
+  rewrite <- ren_index_to_ren with (wρε := ρ).
+  eapply irrLR, SAlphaRedEq'.
   now unshelve now eapply SirrLR, Rnn'.
   Unshelve. all:tea.
 Qed.
 
-Lemma validAlpha (Γ : context) (VΓ : [||-v Γ ≅ Γ])  (n n': term) l:
-  [Γ ||-v< l > n ≅ n': tNat | VΓ| natValid VΓ] -> [Γ ||-v< l > tAlpha n ≅ tAlpha n': tBool |VΓ|boolValid VΓ].
+Lemma SAlphaRedEqTy {Γ : context} (wfΓ : [|-Γ]) {l} : [Γ ||-S< l > arr' Γ tNat tBool ].
+Proof.
+  eapply SArrRedTy.
+  + intros. eapply SnatRed; tea.
+  + intros. eapply SboolRed; tea.
+Qed.
+
+Lemma SAlphaRedEq {Γ : context} {wfΓ : [|-Γ]} {l} {i : list_index Γ} :
+  [Γ ||-S< l > tAlpha i ≅ tAlpha i : arr' Γ tNat tBool|SAlphaRedEqTy wfΓ].
+Proof.
+  eapply canonPi_inv. cbn.
+  assert (HN : [Γ |- tNat]) by eapply wft_term, ty_nat, wfΓ.
+  assert (wfΓN : [|-Γ,,tNat]) by now eapply wfc_cons.
+  assert ([Γ |- tProd tNat tBool ≅ tProd tNat tBool]).
+  { eapply convty_prod; tea; eapply convty_term.
+    * now eapply convtm_nat.
+    * now eapply convtm_bool. }
+  unshelve econstructor.
+  + exists (tAlpha i); cbn.
+    { eapply redtmwf_refl, ty_alpha, wfΓ. }
+    now constructor.
+  + exists (tAlpha i); cbn.
+    { eapply redtmwf_refl, ty_alpha, wfΓ. }
+    now constructor.
+  + cbn. now eapply convtm_alpha.
+  + intros Δ n n' ρ wfΔ Rnn'. cbn[PiRedTmEq.nf].
+    apply Wpack_return in Rnn' as WRnn'.
+    apply (@AlphaRedEq' _ wfΔ _ (ren_index ρ i) n n') in WRnn'.
+    apply (dSplit_bind_return WRnn').
+    intros Ξ wfΞ ρΞ oRB oWRnn' oirr.
+    change (tAlpha i)⟨?ρ⟩ with (tAlpha (ρ.(Fwk) i)).
+    rewrite <- (ren_index_to_ren ρ).
+    unshelve eapply SirrLR, WRnn'; tea.
+Qed.
+
+
+Lemma AlphaRedEq {Γ : context} {wfΓ : [|-Γ]} {l} {i : list_index Γ} {A} (RNB : [Γ ||-< l > arr' Γ tNat tBool ≅ A]):
+  [Γ ||-< l > tAlpha i ≅ tAlpha i : arr' Γ tNat tBool|RNB].
+Proof. now unshelve now eapply irrLREq, Wpack_return, SAlphaRedEq. Qed.
+
+Lemma validAlpha' (Γ : context) (VΓ : [||-v Γ ≅ Γ]) {i : list_index Γ} (n n': term) l:
+  [Γ ||-v< l > n ≅ n': tNat | VΓ| natValid VΓ] -> [Γ ||-v< l > tApp (tAlpha i) n ≅ tApp (tAlpha i) n': tBool |VΓ|boolValid VΓ].
 Proof.
   intros Vn.
   econstructor.
   intros.
   instValid Vσσ'.
-  change (tAlpha ?n)[?σ] with (tAlpha n[σ]).
-  now eapply irrLR, AlphaRedEq.
+  change (tApp (tAlpha i) ?n)[?σ] with (tApp (tAlpha (subst_alpha σ i)) n[σ]).
+  destruct (subst_index Vσσ' i) as (j&eqj&eqj').
+  rewrite <- eqj, <- eqj'.
+  now unshelve now eapply irrLR, AlphaRedEq'.
 Qed.
 
-Lemma digammaRedEq (Γ : context) (n : nat) (b : bool) (wfΓ :[ |- Γ]) l:
-  in_Fctx Γ n b ->  [Γ ||-<l> tAlpha (nat_to_term n) ≅ bool_to_term b : tBool | boolRed (l:=l) wfΓ].
+Lemma validAlpha (Γ : context) (VΓ : [||-v Γ ≅ Γ]) {i : list_index Γ} l (VNB : [Γ ||-v< l > arr' Γ tNat tBool | VΓ]):
+  [Γ ||-v< l > tAlpha i : arr' Γ tNat tBool |VΓ|VNB].
+Proof.
+  constructor.
+  intros.
+  destruct (subst_index Vσσ' i) as (j&eqj&eqj').
+  change (tAlpha i)[?σ] with (tAlpha (subst_alpha σ i)).
+  rewrite <- eqj, <- eqj'.
+  now unshelve eapply AlphaRedEq.
+Qed.
+
+Lemma digammaRedEq (Γ : context) {i : list_index Γ} (n : nat) (b : bool) (wfΓ :[ |- Γ]) l:
+  in_Fctx (list_at Γ i) n b ->  [Γ ||-<l> tApp (tAlpha i) (nat_to_term n) ≅ bool_to_term b : tBool | boolRed (l:=l) wfΓ].
 Proof.
   intros hin.
   eapply redSubstLeftTmEq.
@@ -407,29 +554,39 @@ Proof. induction b; reflexivity. Qed.
 
 Inductive Box (P : SProp) : Type := box (p : P) : Box P.
 
-Lemma validSubst_ε  {Γ Γ' σ σ' Δ} (VΓ : [||-v Γ ≅ Γ' ]) (wfΔ : [|- Δ]) :
-  [Δ ||-v σ ≅ σ' : Γ | VΓ | wfΔ] -> Δ ≤ε Γ.
+Lemma validSubst_ε  {Γ Γ' σ σ' Δ} (VΓ : [||-v Γ ≅ Γ' ]) (wfΔ : [|- Δ]) i j:
+  index_to_nat j = subst_alpha σ (index_to_nat i) ->
+  [Δ ||-v σ ≅ σ' : Γ | VΓ | wfΔ] -> list_at Δ j ≤ε list_at Γ i.
 Proof.
-  intros. enough (Box (Δ ≤ε Γ)) as [] by tea.
-  revert σ σ' X.
+  intros eqj Vσσ'. enough (Box (list_at (Fctx Δ) j ≤ε list_at (Fctx Γ) i)) as [] by tea.
+  revert σ σ' i j eqj Vσσ'.
   indValid VΓ.
-  + intros * [].
-    now constructor.
-  + intros *.
-    intros IH σ σ' [].
-    eapply IH, eqTail.
+  + intros. destruct i.
+  + intros * IHVΓ * ??.
+    destruct i.
+    * cbn. destruct Vσσ' as [htl j' hhd hj' hin].
+      cbn in eqj; rewrite <- eqj in hj'.
+      eapply index_to_nat_inj in hj'; destruct hj'.
+      now constructor.
+    * now eapply IHVΓ, Vσσ'.
+  + intros * IHVΓ * ??.
+    destruct Vσσ' as [htl hhd].
+    now eapply IHVΓ, htl.
 Qed.
 
-Lemma validDigamma  (Γ : context) (VΓ : [||-v Γ ≅ Γ])  (n : nat) (b:bool) l:
-  in_Fctx Γ n b -> [Γ ||-v< l > tAlpha (nat_to_term n) ≅ bool_to_term b : tBool |VΓ|boolValid VΓ].
+Lemma validDigamma (Γ : context) {i : list_index Γ}  (VΓ : [||-v Γ ≅ Γ]) (n : nat) (b:bool) l:
+  in_Fctx (list_at Γ i) n b -> [Γ ||-v< l > tApp (tAlpha i) (nat_to_term n) ≅ bool_to_term b : tBool |VΓ|boolValid VΓ].
 Proof.
   intros hin.
   econstructor.
   intros.
   change (tAlpha ?n)[?σ] with (tAlpha n[σ]).
+  change (tApp (tAlpha i) ?n)[?σ] with (tApp (tAlpha (subst_alpha σ i)) n[σ]).
+  destruct (subst_index Vσσ' i) as (j&eqj&eqj').
+  rewrite <- eqj.
   rewrite nat_to_term_subst, bool_to_term_subst.
   eapply irrLR, digammaRedEq.
-  eapply validSubst_ε in Vσσ'.
+  eapply validSubst_ε in Vσσ'; tea.
   now eapply Vσσ'.
   Unshelve. all: tea.
 Qed.

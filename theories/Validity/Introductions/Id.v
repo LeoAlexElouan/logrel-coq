@@ -87,14 +87,17 @@ Context `{GenericTypingProperties}.
     (Vy : [Γ ||-v<l> y ≅ y' : _ | _ | VA])
     (VId : [Γ ||-v<l> tId A x y ≅ tId A' x' y' | VΓ])
     (Ve : [_ ||-v<l> e ≅ e' : _ | _ | VId])
-    (VΓext : idElimMotiveCtxEqStmt Γ Γ' A A' x x')
+    (VΓext := idElimMotiveCtxEq VΓ VA Vx : idElimMotiveCtxEqStmt Γ Γ' A A' x x')
     Δ (wfΔ: [ |-[ ta ] Δ]) {σ σ'} (Vσσ': [VΓ | Δ ||-v σ ≅ σ' : _ | wfΔ]) :
-      [VΓext | Δ ||-v (e[σ] .: (y[σ] .: σ)) ≅ (e'[σ'] .: (y'[σ'] .: σ')) : _ | wfΔ].
+      [VΓext | Δ ||-v σ ∘s to_subst (e.: y..) ≅ σ' ∘s to_subst (e' .: y'..) : _ | wfΔ].
   Proof.
-    epose (Vσy := consValidSubst Vσσ' Vy).
-    unshelve epose (consSubst _ _ Vσy (idElimMotiveCtxIdValid VΓ VA Vx) _).
-    4: now eapply irrelevanceSubst.
-    instValid Vσσ'; eapply irrLREq; tea; now bsimpl.
+    opector.
+    + rewrite tail_double_subst.
+      eapply consValidSubst; tea.
+    + revert e0; rewrite tail_double_subst; intros htl.
+      unshelve eapply irrLREq, validTmExt, Ve; tea.
+      change (tId ?A ?x ?y)[?σ] with (tId A[σ] x[σ] y[σ]).
+      now rewrite <- !subst_comp_on, <- !to_subst_sound, !shift_subst1.
   Qed.
 
   Lemma substIdElimMotive {Γ Γ' l A A' x x' P P' y y' e e'}
@@ -109,18 +112,20 @@ Context `{GenericTypingProperties}.
     [_ ||-v<l> P[e .: y ..] ≅ P'[e' .: y' ..] | VΓ].
   Proof.
     constructor; intros.
-    rewrite 2!subst_scons2; eapply validTyExt; tea.
-    now eapply idElimMotiveScons2Valid.
+    rewrite 2to_subst_sound, 2subst_comp_on.
+    unshelve (eapply validTyExt; tea); tea.
+    now unshelve now eapply irrelevanceSubst, idElimMotiveScons2Valid.
   Qed.
 
   Lemma up_twice_subst t a b σ :
-    t[up_term_term (up_term_term σ)][a[σ] .: b[σ]..] =
+    t[up_subst (up_subst σ)][a[σ] .: b[σ]..] =
     t[a .: b..][σ].
   Proof. now bsimpl. Qed.
 
   Lemma idElimMotive_Idsubst_eq {Γ Δ A x σ} :
-    tId A[σ]⟨@wk1 Δ A[σ]⟩ x[σ]⟨@wk1 Δ A[σ]⟩ (tRel 0) = (tId A⟨@wk1 Γ A⟩ x⟨@wk1 Γ A⟩ (tRel 0))[up_term_term σ].
-  Proof. now bsimpl. Qed.
+    tId A[σ]⟨@wk1 Δ A[σ]⟩ x[σ]⟨@wk1 Δ A[σ]⟩ (tRel 0) =
+      (tId A⟨@wk1 Γ A⟩ x⟨@wk1 Γ A⟩ (tRel 0))[up_subst σ].
+  Proof. change (tId ?A ?x ?y)[?σ] with (tId A[σ] x[σ] y[σ]); f_equal; eapply subst_up_wk1. Qed.
 
   Lemma idElimMotiveScons2Red {Γ Γ' l A A' x x' y y' e e'}
     {VΓ : [||-v Γ ≅ Γ']}
@@ -133,13 +138,21 @@ Context `{GenericTypingProperties}.
     (Ry : [ RVA |  _ ||- y ≅ y' : _])
     {RId : [Δ ||-<l> tId A[σ] x[σ] y ≅ tId A'[σ'] x'[σ'] y']}
     (Re : [RId | _ ||- e ≅ e' : _]) :
-      [VΓext | Δ ||-v (e .: (y .: σ)) ≅ (e' .: (y' .: σ')) : _ | wfΔ].
+      [VΓext | Δ ||-v to_subst (e .: y ..) ∘s up_subst (up_subst σ) ≅ to_subst (e' .: y' ..) ∘s up_subst (up_subst σ') : _ | wfΔ].
   Proof.
     pose proof (invValiditySnoc VΓext) as (?&VΓA& VIdA &->).
     pose proof (invValiditySnoc VΓA) as (?&?& ? &->).
-    unshelve eapply consSubst.
-    1: unshelve eapply consSubst; [now eapply irrelevanceSubst|now eapply irrLR].
-    eapply irrLREqCum; tea; now bsimpl.
+    eapply irrelevanceSubstEqExt,
+      (consSubst (t:=e) (u:=e') (σ:= to_subst y.. ∘s (up_subst σ)) (σ':= to_subst y'.. ∘s (up_subst σ'))).
+    { destruct σ as [σ ρ]. constructor; try reflexivity. intros [| []]. cbn. reflexivity. cbn. now bsimpl. cbn. now bsimpl. }
+    { destruct σ as [σ ρ]. constructor; try reflexivity. intros [| []]. cbn. reflexivity. cbn. now bsimpl. cbn. now bsimpl. }
+    eapply irrLREqCum, Re.
+    change (tId ?A ?x ?y)[?σ] with (tId A[σ] x[σ] y[σ]).
+    now erewrite <- !subst_comp_on, <-!to_subst_sound, <- !subst_up_wk1, !shift_subst1.
+    Unshelve.
+    { eapply consSubst, irrLREqCum, Ry. reflexivity. }
+    all: tea.
+    Unshelve. now eapply irrelevanceSubst.
   Qed.
 
   Lemma IdElimValid {Γ Γ' l A A' x x' P P' hr hr' y y' e e'}
@@ -157,17 +170,18 @@ Context `{GenericTypingProperties}.
     (VPye := substIdElimMotive VΓ VA Vx VΓext VP Vy VId Ve) :
     [_ ||-v<l> tIdElim A x P hr y e ≅ tIdElim A' x' P' hr' y' e' : _ | _ | VPye].
   Proof.
-    constructor; intros; cbn -[Wpack].
+    constructor; intros.
     instValid Vσσ'.
     pose proof (Vuu0 := liftSubst' (idElimMotiveCtxIdValid VΓ VA Vx) (liftSubst' VA Vσσ')).
     set (wfΔ' := wfc_cons _ _) in Vuu0.
     epose proof (Vuu := irrelevanceSubst _ VΓext _ wfΔ' Vuu0).
     instValid Vuu.
-    eapply irrLREq; [now rewrite <-up_twice_subst|].
+    eapply irrLREq; [now rewrite <- up_twice_subst|].
+    change (tIdElim ?A ?x ?P ?hr ?y ?e)[?σ] with (tIdElim A[σ] x[σ] P[up_subst (up_subst σ)] hr[σ] y[σ] e[σ]).
     (unshelve (eapply idElimCongRed; tea)); tea.
     - intros ???? Ry Re.
       epose proof (Vext := idElimMotiveScons2Red Vx VΓext Vσσ' Ry Re).
-      instValid Vext; now rewrite 2!subst_upup_scons2.
+      instValid Vext; now rewrite 2to_subst_sound, 2subst_comp_on.
     - eapply irrLR, RVe.
     - erewrite idElimMotive_Idsubst_eq; now eapply escapeSplit.
     - erewrite idElimMotive_Idsubst_eq.
@@ -177,7 +191,11 @@ Context `{GenericTypingProperties}.
       now unshelve eapply (escapeSplit (validTyExt (symValidTy' VP) _ (irrelevanceSubst _ _ _ _ Vuu1))).
     - erewrite idElimMotive_Idsubst_eq; now eapply escapeSplitTy.
     - intros Ξ wfΞ ρΞ z z' f f' ? Rz Rf.
-      rewrite 2eq_upupren', 2!subst_upup_scons2.
+      replace P[_]⟨_⟩ with P[up_subst (up_subst σ⟨ρΞ⟩)]
+        by now rewrite subst_ren_wk, 2eq_upwk.
+      replace P'[_]⟨_⟩ with P'[up_subst (up_subst σ'⟨ρΞ⟩)]
+        by now rewrite subst_ren_wk, 2eq_upwk.
+      rewrite !to_subst_sound, !subst_comp_on.
       eapply validTyExt; tea.
       unshelve eapply wkSubst in Vσσ' as VρΞ; tea.
       eapply idElimMotiveScons2Red.
@@ -219,11 +237,13 @@ Context `{GenericTypingProperties}.
     [_ ||-v<l> tIdElim A x P hr y (tRefl B z) ≅ hr : _ | _ | VPye].
   Proof.
     eapply redSubstValid.
-    + constructor; intros; cbn; rewrite <-up_twice_subst.
+    + constructor; intros; rewrite <-up_twice_subst.
       pose proof (Vuu0 := liftSubst' (idElimMotiveCtxIdValid VΓ VA Vxy) (liftSubst' VA Vσσ')).
       set (wfΔ' := wfc_cons _ _) in Vuu0.
       epose proof (Vuu := irrelevanceSubst _ VΓext _ wfΔ' Vuu0).
       instValid (lrefl Vσσ') ; instValid Vuu ; escape.
+      change (tIdElim ?A ?x ?P ?hr ?y ?e)[?σ] with (tIdElim A[σ] x[σ] P[up_subst (up_subst σ)] hr[σ] y[σ] e[σ]).
+      change (tRefl ?B ?z)[?σ] with (tRefl B[σ] z[σ]).
       eapply redtm_idElimRefl; tea.
       - now erewrite idElimMotive_Idsubst_eq.
       - now rewrite <-subst_refl, up_twice_subst.

@@ -85,42 +85,42 @@ Section TreeElimValid.
 
   Lemma elimLeafHypTyValid {P Q}
     (VP : [Γ ,, tTree ||-v<l> P ≅ Q| VΓT]) :
-    [Γ ||-v<l> elimLeafHypTy P  ≅ elimLeafHypTy Q | VΓ].
+    [Γ ||-v<l> elimLeafHypTy' Γ P  ≅ elimLeafHypTy' Γ Q | VΓ].
   Proof.
-    unfold elimLeafHypTy.
     unshelve eapply PiValid.
     1: eapply natValid.
-    eapply substLiftS; tea. cbn.
+    eapply substLiftS; tea.
     eapply leafValid'; [easy|].
-    change tNat with tNat⟨↑⟩.
-    eapply var0Valid'.
+    exact (var0Valid' _ _).
   Qed.
 
   Lemma elimNodeHypTyValid {P Q}
     (VP : [Γ ,, tTree ||-v<l> P ≅ Q| VΓT]) :
-    [Γ ||-v<l> elimNodeHypTy P  ≅ elimNodeHypTy Q | VΓ].
+    [Γ ||-v<l> elimNodeHypTy' Γ P  ≅ elimNodeHypTy' Γ Q | VΓ].
   Proof.
-    unfold elimNodeHypTy.
     unshelve eapply PiValid.
     1: eapply natValid.
     unshelve eapply PiValid.
     1: eapply treeValid.
     unshelve eapply PiValid.
     1: eapply treeValid.
-    eapply simpleArrValid.
-    erewrite <- 2wk1_ren_on.
+    eapply simpleArr'Valid.
+    { rewrite !wk_comp_ren_on with (H:=Q), !wk_comp_ren_on with (H:=P).
+      unshelve eapply substS, var1Valid'; [ |eapply treeValid |].
+      eapply wkValidTy, VP. }
+(*     rewrite 2to_subst_sound, !wk_subst_comp_on.
     eapply wkValidTy.
     replace P⟨upRen_term_term ↑⟩ with P⟨wk_up (Δ:=Γ) tTree (wk1 tNat)⟩ by now bsimpl.
     replace Q⟨upRen_term_term ↑⟩ with Q⟨wk_up (Δ:=Γ) tTree (wk1 tNat)⟩ by now bsimpl.
     now eapply wkValidTy.
-    eassert (hupup : forall t, t⟨upRen_term_term ↑⟩⟨upRen_term_term ↑⟩ = t⟨wk_up (Δ:=Γ) tTree (wk1 tNat)⟩⟨wk_up (Δ:=Γ,,tNat) tTree (wk1 tTree)⟩) by (intros; now bsimpl).
-    eapply simpleArrValid.
-    rewrite 2 hupup.
-    now do 2 eapply wkValidTy.
-    eapply substLiftS.
-    rewrite 2 hupup.
-    now do 2 eapply wkValidTy.
-    eapply nodeValid'; [easy|..].
+    eassert (hupup : forall t, t⟨upRen_term_term ↑⟩⟨upRen_term_term ↑⟩ = t⟨wk_up (Δ:=Γ) tTree (wk1 tNat)⟩⟨wk_up (Δ:=Γ,,tNat) tTree (wk1 tTree)⟩) by (intros; now bsimpl). *)
+    eapply simpleArr'Valid.
+    { rewrite !wk_comp_ren_on with (H:=Q), !wk_comp_ren_on with (H:=P).
+      unshelve eapply substS, var0Valid'; [ |eapply treeValid |].
+      eapply wkValidTy, VP. }
+    eapply substS, nodeValid.
+    { rewrite !wk_comp_ren_on with (H:=Q), !wk_comp_ren_on with (H:=P).
+      eapply wkValidTy, VP. }
     + eapply varnValid.
       change tNat with tNat⟨↑⟩⟨↑⟩.
       repeat constructor.
@@ -129,11 +129,6 @@ Section TreeElimValid.
       repeat constructor.
     + eapply varnValid.
       constructor.
-    Unshelve.
-    2,4,8: unshelve eapply validSnoc, treeValid.
-    3,6,9: unshelve eapply validSnoc, natValid.
-    14: unshelve eapply treeValid.
-    all: tea.
   Qed.
 
   Lemma treeElimCongValid {P P' hl hl' hn hn'}
@@ -148,18 +143,20 @@ Section TreeElimValid.
     pose proof (elimLeafHypTyValid VP).
     pose proof (elimNodeHypTyValid VP).
     constructor; intros; instValid Vσσ'; epose proof (Vuσ := liftSubst' VT Vσσ').
-    instValid Vuσ; cbn -[elimLeafHypTy elimLeafHypTyValid elimNodeHypTy elimNodeHypTyValid Wpack] in *.
-    eapply irrLREq. 1: now rewrite singleSubstComm'.
+    instValid Vuσ.
+    change (tTreeElim ?P ?hl ?hn ?t)[?σ] with (tTreeElim P[up_subst σ] hl[σ] hn[σ] t[σ]).
+    eapply irrLREq. 1: now rewrite subst_ren_subst_up.
     unshelve eapply treeElimRedEq; tea.
     4-6: now escape.
     + clear dependent t; clear dependent t'; intros Ξ wfΞ ρΞ ???.
-      rewrite 2eq_upren', 2!up_single_subst; eapply validTyExt; tea.
-      unshelve eapply wkSubst in Vσσ' as VρΞ; tea.
-      now unshelve econstructor.
-    + now rewrite 2!elimLeafHypTy_subst.
-    + now rewrite 2!elimNodeHypTy_subst.
-    + eapply irrLREq; tea; now rewrite elimLeafHypTy_subst.
-    + eapply irrLREq; tea; now rewrite elimNodeHypTy_subst.
+      rewrite 2subst_ren_wk, 2to_subst_sound, 2subst_comp_on, 2eq_upwk.
+      unshelve (eapply validTyExt; tea); tea.
+      unshelve eapply consWkSubst; tea.
+      eapply irrLR, Rt.
+    + now erewrite 2!subst_elimLeafHypTy'.
+    + now erewrite 2!subst_elimNodeHypTy'.
+    + eapply irrLREq; tea; now erewrite subst_elimLeafHypTy'.
+    + eapply irrLREq; tea; now erewrite subst_elimNodeHypTy'.
   Qed.
 End TreeElimValid.
 
@@ -192,17 +189,18 @@ Section TreeElimRedValid.
     [Γ ||-v<l> tTreeElim P hl hn (tLeaf n) ≅ tApp hl n : _ | VΓ | VPLn].
   Proof.
     eapply redSubstValid.
-    * constructor; intros; rewrite singleSubstComm'.
+    * constructor; intros; rewrite subst_ren_subst_up.
       instValid Vσσ'; instValid (liftSubst' VT Vσσ'); escape.
+      rewrite <- subst_app.
+      change (tTreeElim ?P ?hl ?hn ?t)[?σ] with (tTreeElim P[up_subst σ] hl[σ] hn[σ] t[σ]).
+      change (tLeaf ?n)[?σ] with (tLeaf n[σ]).
       eapply redtm_treeElimLeaf; tea; refold.
-      + now rewrite elimLeafHypTy_subst.
-      + now rewrite elimNodeHypTy_subst.
-    * eapply lrefl, appcongValid'.
-      1: eapply Vhl.
-      2: now bsimpl.
-      unshelve eapply irrValidTm, Vn; tea.
-      2: eapply irrValidTy; tea.
-      all: now eapply lrefl.
+      + now erewrite subst_elimLeafHypTy'.
+      + now erewrite subst_elimNodeHypTy'.
+    * eapply lrefl, appcongValid'; tea.
+      1: unshelve (eapply irrValidTm; tea; now eapply natValid); tea; now eapply lrefl.
+      rewrite to_subst_sound with (σ:=n..), subst_ren_subst_up. f_equal.
+      rewrite <- up_to_subst, <- to_subst_sound. rewrite up_wk1_ren_on. now bsimpl.
   Qed.
 
   Lemma substSΠ' { F F' G G' t u}
@@ -227,38 +225,38 @@ Section TreeElimRedValid.
        _ | VΓ | VPnode].
   Proof.
     eapply redSubstValid.
-    * constructor; intros; rewrite singleSubstComm'.
+    * constructor; intros; rewrite subst_ren_subst_up.
       instValid Vσσ'; instValid (liftSubst' VT Vσσ'); escape.
+      rewrite <-! subst_app.
+      change (tTreeElim ?P ?hl ?hn ?t)[?σ] with (tTreeElim P[up_subst σ] hl[σ] hn[σ] t[σ]).
+      change (tNode ?n ?tl ?tr)[?σ] with (tNode n[σ] tl[σ] tr[σ]).
       eapply redtm_treeElimNode; tea; refold.
-      + now rewrite elimLeafHypTy_subst.
-      + now rewrite elimNodeHypTy_subst.
-    * epose proof (VPn := substSΠ' (elimNodeHypTyValid VΓ VP) Vn); cbn in VPn.
-      epose proof (VPtl := substSΠ' VPn Vtl); cbn in VPtl.
-      epose proof (VPtr := substSΠ' VPtl Vtr); cbn in VPtr.
-      eapply lrefl, simple_appValid.
+      + now erewrite subst_elimLeafHypTy'.
+      + now erewrite subst_elimNodeHypTy'.
+    * epose proof (VPn := substSΠ' (elimNodeHypTyValid VΓ VP) Vn).
+      rewrite 4 Extra.subst_prod in VPn.
+      epose proof (VPtl := substSΠ' VPn Vtl).
+      rewrite 2 Extra.subst_prod in VPtl.
+      epose proof (VPtr := substSΠ' VPtl Vtr).
+      eapply lrefl, simple_app'Valid.
       2: now unshelve now eapply treeElimCongValid.
-      eapply simple_appValid.
+      eapply simple_app'Valid.
       2: now unshelve now eapply treeElimCongValid.
       eapply appcongValid'; [|shelve..].
       eapply appcongValid'; [|shelve..].
       now eapply appcongValid'; [|shelve..].
       Unshelve.
-      21: reflexivity.
-      16: reflexivity. all: refold.
-      8:{ cbn. f_equal; [|f_equal].
-          + now rewrite 2shift_up_eq, shift_one_eq, up_shift_one_eq.
-          + now rewrite 3shift_up_eq, up_shift_up_eq, 2up_shift_one_eq.
-          + rewrite 2shift_upRen_eq, 6shift_up_eq, liftSubst_can, 3singleSubstComm', 3up_shift_up_eq, 3 up_shift_one_eq.
-            do 4 f_equal. cbn.
-            now rewrite shift_up_eq, 3shift_one_eq. }
-      cbn in *.
+      21: now rewrite Extra.subst_prod.
+      16: now rewrite 2 Extra.subst_prod.
+      8:{ now rewrite <- elimNodeHypTyCod_subst_terms,
+            elimNodeHypTyCod_subst_terms_aux. }
       14:{ (unshelve now eapply irrValidTm, Vn; eapply natValid); tea; now eapply lrefl. }
       12:{ (unshelve now eapply irrValidTm, Vtl; eapply treeValid); tea; now eapply lrefl. }
       7:{ (unshelve now eapply irrValidTm, Vtr; eapply treeValid); tea; now eapply lrefl. }
       8: eapply VPn.
       5: eapply VPtl.
-      2: eapply simpleArrValid, simpleArrValid, VPnode; eapply substS; tea.
-      1: eapply simpleArrValid, VPnode; eapply substS; tea.
+      2: eapply simpleArr'Valid, simpleArr'Valid, VPnode; eapply substS; tea.
+      1: eapply simpleArr'Valid, VPnode; eapply substS; tea.
   Qed.
 
 

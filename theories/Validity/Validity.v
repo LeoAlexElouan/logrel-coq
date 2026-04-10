@@ -35,7 +35,7 @@ Ltac substitution := eauto with substitution.
   Proof. apply eq. Qed.
 
   Lemma Fequiv_Fup {L L'} {b} (eq : L =ε L') {new : newnat L} {new' : newnat L'} :
-   new = new' :> nat -> (Fcons' L' new' b) =ε (Fcons' L new b).
+   new = new' :> nat -> (Fcons' L new b) =ε (Fcons' L' new' b).
   Proof.
     destruct eq.
     intros e; split; eapply Fwk_Fup; tea.
@@ -463,3 +463,5 @@ Ltac instValid vσ :=
     try (let X := fresh "Rr" H in pose (X := validTmExt H wfΔ (urefl vσ))) ;
     block H
   end; unblock.
+
+

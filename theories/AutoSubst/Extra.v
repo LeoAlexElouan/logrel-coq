@@ -101,7 +101,7 @@ Proof. now asimpl. Qed.
 
 
 Lemma up_liftSubst_eq {σ t u} : t[up_term_term σ][u]⇑ = t[u .: ↑ >> up_term_term σ].
-Proof. Search upRen_term_term.
+Proof.
   asimpl. cbn. now rewrite rinstInst'_term_pointwise.
 Qed.
 

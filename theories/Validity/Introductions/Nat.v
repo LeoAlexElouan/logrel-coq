@@ -56,15 +56,13 @@ Section NatElimValid.
 
   Lemma elimSuccHypTyValid {P Q}
     (VP : [Γ ,, tNat ||-v<l> P ≅ Q| VΓN]) :
-    [Γ ||-v<l> elimSuccHypTy P  ≅ elimSuccHypTy Q | VΓ].
+    [Γ ||-v<l> elimSuccHypTy' Γ P  ≅ elimSuccHypTy' Γ Q | VΓ].
   Proof.
-    unfold elimSuccHypTy.
     unshelve eapply PiValid.
     1: exact VN.
-    eapply simpleArrValid; tea.
+    eapply simpleArr'Valid; tea.
     eapply substLiftS; tea.
-    eapply succValid'; [now rewrite wk1_ren_on|].
-    eapply var0Valid.
+    now eapply succValid', var0Valid.
   Qed.
 
   Lemma natElimCongValid {P P' hz hz' hs hs'}
@@ -79,17 +77,19 @@ Section NatElimValid.
   Proof.
     pose proof (elimSuccHypTyValid VP).
     constructor; intros; instValid Vσσ'; epose proof (Vuσ := liftSubst' VN Vσσ').
-    instValid Vuσ; cbn -[elimSuccHypTy elimSuccHypTyValid Wpack] in *.
-    eapply irrLREq. 1: now rewrite singleSubstComm'.
+    instValid Vuσ.
+    change (tNatElim ?P ?hz ?hs ?n)[?σ] with (tNatElim P[up_subst σ] hz[σ] hs[σ] n[σ]).
+    eapply irrLREq. 1: now rewrite subst_ren_subst_up.
     unshelve eapply natElimRedEq; tea.
     3-5: now escape.
     + clear dependent n; clear dependent n'; intros Ξ wfΞ ρΞ ???.
-      rewrite 2eq_upren', 2!up_single_subst; eapply validTyExt; tea.
-      unshelve eapply wkSubst in Vσσ' as VρΞ; tea.
-      now unshelve econstructor.
-    + now rewrite 2!elimSuccHypTy_subst.
-    + eapply irrLREq; tea; now rewrite singleSubstComm'.
-    + eapply irrLREq; tea; now rewrite elimSuccHypTy_subst.
+      rewrite 2subst_ren_wk, 2to_subst_sound, 2subst_comp_on, 2eq_upwk.
+      unshelve (eapply validTyExt; tea); tea.
+      unshelve eapply consWkSubst; tea.
+      eapply irrLR, Rn.
+    + now erewrite 2!subst_elimSuccHypTy'.
+    + eapply irrLREq; tea; now rewrite subst_ren_subst_up.
+    + eapply irrLREq; tea; now erewrite subst_elimSuccHypTy'.
   Qed.
 End NatElimValid.
 
@@ -121,11 +121,13 @@ Section NatElimRedValid.
     [Γ ||-v<l> tNatElim P hz hs tZero ≅ hz : _ | VΓ | VPz].
   Proof.
     eapply redSubstValid. 2: now eapply lrefl.
-    constructor; intros; cbn; rewrite singleSubstComm'.
+    constructor; intros.
+    change (tNatElim ?P ?hz ?hs ?n)[?σ] with (tNatElim P[up_subst σ] hz[σ] hs[σ] n[σ]).
+    rewrite subst_ren_subst_up.
     instValid Vσσ'; instValid (liftSubst' VN Vσσ'); escape.
     eapply redtm_natElimZero; tea.
-    + now rewrite <- (singleSubstComm' _ tZero σ).
-    + now rewrite elimSuccHypTy_subst.
+    + now rewrite <- (subst_ren_subst_up _ tZero σ).
+    + now erewrite subst_elimSuccHypTy'.
   Qed.
 
   Lemma natElimSuccValid {n}
@@ -134,18 +136,23 @@ Section NatElimRedValid.
     [Γ ||-v<l> tNatElim P hz hs (tSucc n) ≅ tApp (tApp hs n) (tNatElim P hz hs n) : _ | VΓ | VPSn].
   Proof.
     eapply redSubstValid.
-    * constructor; intros; rewrite singleSubstComm'.
+    * constructor; intros; rewrite subst_ren_subst_up.
       instValid Vσσ'; instValid (liftSubst' VN Vσσ'); escape.
+      rewrite <-2 subst_app.
+      change (tNatElim ?P ?hz ?hs ?n)[?σ] with (tNatElim P[up_subst σ] hz[σ] hs[σ] n[σ]).
+      change (tSucc ?n)[?σ] with (tSucc n[σ]).
       eapply redtm_natElimSucc; tea; refold.
-      + now rewrite <- (singleSubstComm' _ tZero σ).
-      + now rewrite elimSuccHypTy_subst.
-    * eapply lrefl, simple_appValid.
-      2: now eapply natElimCongValid.
+      + now rewrite <- (subst_ren_subst_up _ tZero σ).
+      + now erewrite subst_elimSuccHypTy'.
+    * eapply lrefl, simple_app'Valid.
+      2: unshelve (now eapply natElimCongValid); tea.
       eapply appcongValid'; tea.
-      1: eapply irrValidTm; tea; now eapply natValid.
-      now rewrite subst_arr, liftSubst_singleSubst_eq.
-      Unshelve. 2,4: tea. 2: now eapply lrefl.
-        eapply simpleArrValid; tea; now eapply substS.
+      1: unshelve (eapply irrValidTm; tea; now eapply natValid); tea; now eapply lrefl.
+      erewrite <- WeakeningCompute.subst_arr'. do 2 f_equal.
+      rewrite to_subst_sound with (σ:=n..), subst_ren_subst_up. f_equal.
+      rewrite <- up_to_subst, <- to_subst_sound. rewrite up_wk1_ren_on. now bsimpl.
+      Unshelve.
+      eapply simpleArr'Valid; tea; now eapply substS.
   Qed.
 
 End NatElimRedValid.

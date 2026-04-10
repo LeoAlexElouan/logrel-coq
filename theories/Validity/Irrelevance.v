@@ -1,4 +1,5 @@
 From Stdlib Require Import CRelationClasses.
+From Stdlib Require Import Setoid Morphisms Relation_Definitions.
 From LogRel Require Import Utils Syntax.All GenericTyping LogicalRelation.
 From LogRel.LogicalRelation Require Import Properties.
 From LogRel.Validity Require Import Validity.
@@ -13,7 +14,7 @@ Context `{GenericTypingProperties}.
 Section VRIrrelevant.
 Universes u1 u2 u3 u4 v1 v2 v3 v4.
 
-Set Printing Universes.
+
 Lemma VRirrelevant@{} (Γ Γ':context) 
   {veqsubst : forall Δ (h :[|-Δ]) (σ σ' : substitution), Type@{u3}}
   {veqsubst' : forall Δ (h :[|-Δ]) (σ σ' : substitution), Type@{v3}}
@@ -53,7 +54,7 @@ Proof.
   eapply VRirrelevant; eapply VAd.adequate.
 Qed.
 
-Unset Printing Notations.
+
 Lemma symSubst@{u1 u2 u3 u4} {Γ Γ'}
                      (VΓ  : VAdequate@{u3 u4} VR@{u1 u2 u3 u4} Γ Γ')
                      (VΓ'  : VAdequate@{u3 u4} VR@{u1 u2 u3 u4} Γ' Γ) :
@@ -363,11 +364,8 @@ Proof.
   Unshelve. 1: now eapply lrefl. now symmetry.
 Qed.
 
-Lemma subst_subst_eq (t : term) σ σ' : σ =s σ' -> t[σ] = t[σ'].
-Proof.
-  intros [eq αeq].
-  bsimpl. unfold funcomp. now rewrite eq, αeq.
-Qed.
+
+
 
 Lemma irrelevanceSubstEqExt {Γ Γ'} (VΓ : [||-v Γ ≅ Γ']) {σ1 σ1' σ2 σ2' Δ}
   (wfΔ : [|- Δ]) (eq1 : σ1 =s σ1') (eq2 : σ2 =s σ2') :
@@ -382,15 +380,12 @@ Proof.
       [rewrite αeq1 | rewrite αeq2]; reflexivity.
     + now rewrite <- αeq1, <- αeq2.
     + now rewrite <- αeq1.
-  - intros ??????? ih ?????? [eq1 αeq1] [eq2 αeq2] [tl hd].
+  - intros ??????? ih ?????? eq1 eq2 [tl hd].
     rewrite eq1, eq2 in hd.
     unshelve eexists (ih _ _ _ _ _ _ _ _ tl).
-    1,2: constructor; cbn; tea.
-    {now rewrite eq1. } {now rewrite eq2. }
+    { now rewrite eq1. } { now rewrite eq2. }
     eapply irrLREq, hd.
-    eapply subst_subst_eq.
-    constructor; tea.
-    cbn. now rewrite eq1.
+    now rewrite eq1.
 Qed.
 
 End Irrelevances.

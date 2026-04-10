@@ -1,6 +1,6 @@
 
 From LogRel Require Import Utils AutoSubst.Extra Notations.
-From LogRel.Syntax Require Import BasicAst Context NormalForms Computations Weakening.
+From LogRel.Syntax Require Import BasicAst Context NormalForms Computations Weakening WeakeningCompute.
 
 Definition to_subst σ : substitution := mk_subst σ (fun n => n).
 Lemma to_subst_sound t σ : t[σ] = t[to_subst σ].
@@ -16,137 +16,87 @@ Notation "ρ >>s σ" := (wk_subst_comp ρ σ) (at level 50).
 Lemma wk_subst_comp_on {Γ Δ} (ρ : Δ ≤ Γ) σ (t : term) : t⟨ρ⟩[σ] = t[ρ >>s σ].
 Proof. unfold wk_subst_comp. now bsimpl. Qed.
 
-(* Definition wk_to_subst {Γ Δ} (ρ : Δ ≤ Γ) : substitution :=
-  mk_subst (ρ.(wk) >> tRel) ρ.(Fwk). *)
-
-(* Lemma wk_to_subst_sound {Γ Δ} (ρ : Δ ≤ Γ) (t : term) : t⟨ρ⟩ = t[wk_to_subst ρ]. *)
 
 
 Lemma subst_ren_subst_up P n (σ : substitution) :
   P[n..][σ] = P[up_subst σ][(n[σ])..].
 Proof. now bsimpl. Qed.
 
-
+Lemma subst_ren_wk {Γ Δ A} {σ : substitution} (ρ : Δ ≤ Γ) : A[σ]⟨ρ⟩ = A[σ⟨ρ⟩].
+Proof. now bsimpl. Qed.
 Lemma subst_up_wk1 {A Γ Δ} {t : term} (σ : substitution) :
    t[σ]⟨@wk1 Δ A[σ]⟩ = t⟨@wk1 Γ A⟩[up_subst σ].
 Proof. rewrite 2wk1_ren_on. now bsimpl. Qed.
 
+Lemma up_subst_wk1 Γ Δ A B t σ :
+  t[up_subst σ⟨@wk1 Γ A⟩] = t⟨wk_up B (@wk1 Δ A)⟩[up_subst (up_subst σ)].
+Proof. rewrite up_wk1_ren_on. bsimpl. bsimpl. reflexivity. Qed.
+
 Lemma subst_prod {A B} (σ : substitution) : tProd A[σ] B[up_subst σ] = (tProd A B)[σ].
 Proof. reflexivity. Qed.
-
-(* Lemma wk_arr {A B Γ Δ} (ρ : Δ ≤ Γ) : arr A⟨ρ⟩ B⟨ρ⟩ = (arr A B)⟨ρ⟩.
-Proof. now bsimpl. Qed. *)
 Lemma subst_arr' {A B Γ Δ} (σ : substitution) : arr' Δ A[σ] B[σ] = (arr' Γ A B)[σ].
 Proof. rewrite <- subst_prod. f_equal. eapply subst_up_wk1. Qed.
-
 Lemma subst_lam {A t} (σ : substitution) : tLambda A[σ] t[up_subst σ] = (tLambda A t)[σ].
 Proof. reflexivity. Qed.
-
-(* Lemma wk_app {t u Γ Δ} (ρ : Δ ≤ Γ) : tApp t⟨ρ⟩ u⟨ρ⟩ = (tApp t u)⟨ρ⟩.
+Lemma subst_app {t u} (σ : substitution) : tApp t[σ] u[σ] = (tApp t u)[σ].
 Proof. reflexivity. Qed.
 
-Lemma wk_sig {A B Γ Δ} (ρ : Δ ≤ Γ) : tSig A⟨ρ⟩ B⟨wk_up A ρ⟩ = (tSig A B)⟨ρ⟩.
+Lemma subst_sig {A B} (σ : substitution) : tSig A[σ] B[up_subst σ] = (tSig A B)[σ].
+Proof. reflexivity. Qed.
+Lemma subst_pair {A B a b} (σ : substitution) : tPair A[σ] B[up_subst σ] a[σ] b[σ] = (tPair A B a b)[σ].
+Proof. reflexivity. Qed.
+Lemma subst_fst {p} (σ : substitution) : tFst p[σ] = (tFst p)[σ].
+Proof. reflexivity. Qed.
+Lemma subst_snd {p} (σ : substitution) : tSnd p[σ] = (tSnd p)[σ].
 Proof. reflexivity. Qed.
 
-Lemma wk_pair {A B a b Γ Δ} (ρ : Δ ≤ Γ) : tPair A⟨ρ⟩ B⟨wk_up A ρ⟩ a⟨ρ⟩ b⟨ρ⟩ = (tPair A B a b)⟨ρ⟩.
-Proof. reflexivity. Qed.
-
-Lemma wk_fst {p Γ Δ} (ρ : Δ ≤ Γ) : tFst p⟨ρ⟩ = (tFst p)⟨ρ⟩.
-Proof. reflexivity. Qed.
-
-Lemma wk_snd {p Γ Δ} (ρ : Δ ≤ Γ) : tSnd p⟨ρ⟩ = (tSnd p)⟨ρ⟩.
-Proof. reflexivity. Qed.
-
-Lemma wk_comp {Γ Δ A f g} (ρ : Δ ≤ Γ) : (comp A f g)⟨ρ⟩ = comp A⟨ρ⟩ f⟨ρ⟩ g⟨ρ⟩.
-Proof. now bsimpl. Qed.
-Notation comp' Γ A f g := (tLambda A (tApp f⟨@wk1 Γ A⟩ (tApp g⟨@wk1 Γ A⟩ (tRel 0)))).
-Lemma wk_comp' {Γ Δ A f g} (ρ : Δ ≤ Γ) : (comp' Γ A f g)⟨ρ⟩ = comp' Δ A⟨ρ⟩ f⟨ρ⟩ g⟨ρ⟩.
-Proof. now rewrite 2wk_up_wk1. Qed.
-
-Lemma wk_emptyElim {Γ Δ P n} (ρ : Δ ≤ Γ) :
-  tEmptyElim P⟨wk_up tEmpty ρ⟩ n⟨ρ⟩ = (tEmptyElim P n)⟨ρ⟩.
-Proof. reflexivity. Qed.
-
-Lemma wk_nSucc {n t Γ Δ} (ρ : Δ ≤ Γ) : (nSucc n t)⟨ρ⟩ = nSucc n t⟨ρ⟩.
-Proof. unfold ren1, Ren1_well_wk. now rewrite nSucc_ren_alpha, nSucc_ren. Qed.
-Lemma wk_nat_to_term {n Γ Δ} (ρ : Δ ≤ Γ) : (nat_to_term n)⟨ρ⟩ = nat_to_term n.
-Proof. eapply (wk_nSucc (t:= tZero)). Qed.
-Lemma wk_succ {n Γ Δ} (ρ : Δ ≤ Γ) : (tSucc n)⟨ρ⟩ = tSucc n⟨ρ⟩.
-Proof. reflexivity. Qed.
-Lemma wk_elimSuccHypTy {P Γ Δ} A (ρ : Δ ≤ Γ) :
-  elimSuccHypTy P⟨wk_up A ρ⟩ = (elimSuccHypTy P)⟨ρ⟩.
-Proof.
-  unfold elimSuccHypTy; cbn; f_equal; f_equal. now bsimpl.
-Qed. *)
-Lemma subst_elimSuccHypTy' {Γ P} (σ : substitution) :
-  elimSuccHypTy' Γ P[up_subst σ] = (elimSuccHypTy' Γ P)[σ].
+Lemma subst_elimSuccHypTy' {Γ Δ P} (σ : substitution) :
+  elimSuccHypTy' Δ P[up_subst σ] = (elimSuccHypTy' Γ P)[σ].
 Proof.
   rewrite <- subst_prod, <- (subst_arr' (Δ:=Γ)). f_equal. f_equal.
   rewrite 2wk1_ren_on; f_equal.
   rewrite subst_ren_subst_up. f_equal.
   rewrite 2up_wk1_ren_on. now bsimpl.
 Qed.
-(* Lemma wk_natElim {Γ Δ P hz hs n} (ρ : Δ ≤ Γ) :
-  tNatElim P⟨wk_up tNat ρ⟩ hz⟨ρ⟩ hs⟨ρ⟩ n⟨ρ⟩ = (tNatElim P hz hs n)⟨ρ⟩.
-Proof. reflexivity. Qed.
 
-Lemma wk_elimLeafHypTy {P Γ Δ} A (ρ : Δ ≤ Γ) :
-  elimLeafHypTy P⟨wk_up A ρ⟩ = (elimLeafHypTy P)⟨ρ⟩.
-Proof. unfold elimLeafHypTy; cbn. f_equal ; now bsimpl. Qed.
-Lemma wk_elimLeafHypTy' {P Γ Δ} (ρ : Δ ≤ Γ) :
-  elimLeafHypTy' Δ P⟨wk_up tTree ρ⟩ = (elimLeafHypTy' Γ P)⟨ρ⟩.
+Lemma subst_elimLeafHypTy' {Γ Δ P} (σ : substitution) :
+  elimLeafHypTy' Δ P[up_subst σ] = (elimLeafHypTy' Γ P)[σ].
 Proof.
-  rewrite <- wk_prod. f_equal.
-  erewrite (subst_ren_wk_up (* (A:= tTree⟨ρ⟩) *) (wk_up tNat ρ)). f_equal.
-  change (wk_up tTree (@wk1 Δ tNat)) with (wk_up tTree⟨ρ⟩ (@wk1 Δ tNat)).
-  now rewrite 2wk_comp_ren_on, wk_up_wk_comp, (wk_up_wk_comp (A:=tTree) ρ (wk1 tNat)),
-    <- wk_up_wk1'.
+  rewrite <- subst_prod. f_equal.
+  rewrite subst_ren_subst_up. f_equal.
+  rewrite 2up_wk1_ren_on. now bsimpl.
 Qed.
 
-Lemma wk_elimNodeHypTy {P Γ Δ} A (ρ : Δ ≤ Γ) :
-  elimNodeHypTy P⟨wk_up A ρ⟩ = (elimNodeHypTy P)⟨ρ⟩.
-Proof. unfold elimNodeHypTy; cbn; f_equal; f_equal; f_equal; f_equal; [ | f_equal]; now bsimpl. Qed.
-Lemma elimNodeHypTy_to_typed {P Γ} : elimNodeHypTy' Γ P = elimNodeHypTy P.
+Lemma subst_elimNodeHypTyCod {P Γ Δ} (σ : substitution) (σ' := up_subst (up_subst (up_subst σ))):
+  elimNodeHypTyCod Δ P[up_subst σ'] = (elimNodeHypTyCod Γ P)[σ'].
 Proof.
-  unfold elimNodeHypTy.
-  eapply (f_equal (tProd tNat)), (f_equal (tProd tTree)), (f_equal (tProd tTree)),
-    f_equal2.
-  1:{ rewrite wk1_ren_on; f_equal.
-    apply up_wk1_ren_on. }
-  rewrite wk1_ren_on.
+  unfold elimNodeHypTyCod.
+  erewrite <-2 subst_arr'. f_equal.
+  { now rewrite subst_ren_subst_up. }
+  erewrite wk1_irr. f_equal. f_equal.
+  { now rewrite subst_ren_subst_up. }
+  erewrite wk1_irr. f_equal.
+  { now rewrite subst_ren_subst_up. }
+  Unshelve. all: tea.
+Qed.
+
+Lemma up_subst_wk_up_wk1 {A B Γ Δ} {t : term} (σ : substitution) :
+  t[up_subst σ]⟨wk_up A[σ] (@wk1 Δ B[σ])⟩ = t⟨wk_up A (@wk1 Γ B)⟩[up_subst (up_subst σ)].
+Proof. rewrite !up_wk1_ren_on. now bsimpl. Qed.
+
+Lemma subst_elimNodeHypTy' {Γ Δ P} (σ : substitution) :
+  elimNodeHypTy' Δ P[up_subst σ] = (elimNodeHypTy' Γ P)[σ].
+Proof.
+  unfold elimNodeHypTy'.
+  rewrite <- 3subst_prod. do 3 f_equal.
+  erewrite <- subst_elimNodeHypTyCod.
   f_equal.
-  eapply f_equal2.
-  1:{ etransitivity; [apply up_wk1_ren_on|f_equal].
-    apply up_wk1_ren_on. }
-  rewrite wk1_ren_on. f_equal. f_equal.
-  etransitivity; [apply up_wk1_ren_on|f_equal].
-  etransitivity; [apply up_wk1_ren_on|f_equal].
-  apply up_wk1_ren_on.
+  etransitivity; [|eapply up_subst_wk_up_wk1].
+  f_equal.
+  etransitivity; [|eapply up_subst_wk_up_wk1].
+  f_equal.
+  eapply up_subst_wk_up_wk1.
 Qed.
-Lemma wk_elimNodeHypTy' {P Γ Δ} (ρ : Δ ≤ Γ) :
-  elimNodeHypTy' Δ P⟨wk_up tTree ρ⟩ = (elimNodeHypTy' Γ P)⟨ρ⟩.
-Proof.
-  rewrite 2elimNodeHypTy_to_typed.
-  eapply wk_elimNodeHypTy.
-Qed.
-
-Lemma wk_treeElim {Γ Δ P hl hn t} (ρ : Δ ≤ Γ) :
-  tTreeElim P⟨wk_up tTree ρ⟩ hl⟨ρ⟩ hn⟨ρ⟩ t⟨ρ⟩ = (tTreeElim P hl hn t)⟨ρ⟩.
-Proof. reflexivity. Qed.
-
-Lemma wk_bool_to_term {n Γ Δ} (ρ : Δ ≤ Γ) : (bool_to_term n)⟨ρ⟩ = bool_to_term n.
-Proof. unfold ren1, Ren1_well_wk. now rewrite bool_to_term_ren_alpha, bool_to_term_ren. Qed.
-Lemma wk_boolElim {Γ Δ P hz hs n} (ρ : Δ ≤ Γ) :
-  tBoolElim P⟨wk_up tBool ρ⟩ hz⟨ρ⟩ hs⟨ρ⟩ n⟨ρ⟩ = (tBoolElim P hz hs n)⟨ρ⟩.
-Proof. reflexivity. Qed.
-
-Lemma wk_Id {A x y Γ Δ} (ρ : Δ ≤ Γ) : tId A⟨ρ⟩ x⟨ρ⟩ y⟨ρ⟩ = (tId A x y)⟨ρ⟩.
-Proof. reflexivity. Qed.
-Lemma wk_refl {A x Γ Δ} (ρ : Δ ≤ Γ) : tRefl A⟨ρ⟩ x⟨ρ⟩ = (tRefl A x)⟨ρ⟩.
-Proof. reflexivity. Qed.
-Lemma wk_idElim {A x P hr y e Δ Γ} (ρ : Δ ≤ Γ) :
-  tIdElim A⟨ρ⟩ x⟨ρ⟩ P⟨wk_up (tId A⟨@wk1 Γ A⟩ x⟨@wk1 Γ A⟩ (tRel 0)) (wk_up A ρ)⟩ hr⟨ρ⟩ y⟨ρ⟩ e⟨ρ⟩ = (tIdElim A x P hr y e)⟨ρ⟩.
-Proof. reflexivity. Qed. *)
 
 Definition tail_subst σ : substitution := mk_subst (↑ >> subst_subst σ) (subst_alpha σ).
 Definition εtail_subst σ : substitution := mk_subst (subst_subst σ) (↑ >> subst_alpha σ).
@@ -168,5 +118,144 @@ Record subst_eq σ σ' := {
   }.
 Notation " σ =s σ' " := (subst_eq σ σ') (at level 50).
 
-  Lemma eta_up_single_subst σ : to_subst (subst_subst σ var_zero).. ∘s up_subst (tail_subst σ) =s σ.
-  Proof. constructor; cbn; bsimpl; bsimpl; reflexivity. Qed.
+Lemma eta_up_single_subst σ : to_subst (subst_subst σ var_zero).. ∘s up_subst (tail_subst σ) =s σ.
+Proof. constructor; cbn; bsimpl; bsimpl; reflexivity. Qed.
+
+From Stdlib Require Import Setoid Morphisms Relation_Definitions.
+
+Instance subst_eq_refl : Reflexive subst_eq.
+Proof. now constructor. Qed.
+Instance subst_eq_sym : Symmetric subst_eq.
+Proof. intros ?? H; constructor; symmetry; apply H. Qed.
+Instance subst_eq_trans : Transitive subst_eq.
+Proof. intros ??? Hl Hr; constructor; etransitivity; first [apply Hl| apply Hr]. Qed.
+Instance subst_eq_equiv : Equivalence subst_eq.
+Proof.
+  constructor.
+  + eapply subst_eq_refl.
+  + eapply subst_eq_sym.
+  + eapply subst_eq_trans.
+Qed.
+Instance wk_eq_equiv {Γ Δ} : Equivalence (@wk_eq Γ Δ).
+Proof.
+  repeat constructor.
+  1,2: destruct H; now symmetry.
+  1,2: destruct H, H0; now etransitivity.
+Qed.
+
+Instance subst_eq_subst : Proper (subst_eq ==> `=1`) subst_subst := eq_subst.
+Instance subst_eq_subst2 : Morphisms.Proper (Morphisms.respectful subst_eq (Morphisms.respectful eq eq)) subst_subst.
+Proof. intros σ σ' eqσ n n' <-. now eapply subst_eq_subst. Qed.
+Instance subst_eq_alpha : Proper (subst_eq ==> `=1`) subst_alpha := eq_alpha.
+Instance subst_eq_alpha2 : Morphisms.Proper (Morphisms.respectful subst_eq (Morphisms.respectful eq eq)) subst_alpha.
+Proof. intros σ σ' eqσ n n' <-. now eapply subst_eq_alpha. Qed.
+Instance Build_subst_eq_eq : Proper (`=1` ==> `=1` ==> subst_eq) mk_subst.
+Proof. intros σ σ' eqσ ρ ρ' eqρ. now constructor. Qed.
+Lemma subst_eq_alpha' : Proper (subst_eq ==> `=1`) subst_alpha.
+Proof. intros σ σ' eq. setoid_rewrite eq. reflexivity. Qed.
+
+
+
+Instance subst_subst_eq : Proper (respectful subst_eq (respectful eq eq)) substitute. (*  σ =s σ' -> t[σ] = t[σ']. *)
+Proof.
+  intros σ σ' eq  t t' <-.
+  unfold substitute, subst1, Subst_term.
+  now rewrite eq.
+Qed.
+
+Instance ren_alpha_substitution_eq : Proper (`=1` ==> subst_eq ==> subst_eq) ren_alpha_substitution.
+Proof.
+  intros ρε ρε' eqρε σ σ' eqσ.
+  eapply Build_subst_eq_eq, funcomp_morphism, subst_eq_alpha; tea.
+  intros n. eapply ren_alpha_morphism, subst_eq_subst; tea.
+Qed.
+
+Instance ren1_subst_eq {Γ Δ} : Proper (@wk_eq Γ Δ ==> subst_eq ==> subst_eq) ren1.
+Proof.
+  intros ρ ρ' [eqρ eqρε] σ σ' eqσ.
+  unfold ren1, ren_substitution.
+  eapply Build_subst_eq_eq, subst_eq_alpha, ren_alpha_substitution_eq; tea.
+  intros n.
+  eapply ren_term_morphism, subst_eq_subst, ren_alpha_substitution_eq; tea.
+Qed.
+
+Instance tail_subst_eq : Proper (subst_eq ==> subst_eq) tail_subst.
+Proof. intros σ σ' eq. unfold tail_subst. now rewrite eq. Qed.
+Instance up_subst_eq : Proper (subst_eq ==> subst_eq) up_subst.
+Proof. intros σ σ' eq. unfold up_subst. now rewrite eq. Qed.
+
+Lemma wk1_tail {Γ A σ} : @wk1 Γ A >>s σ =s tail_subst σ.
+Proof. constructor; unfold wk_subst_comp; bsimpl; reflexivity. Qed.
+Lemma tail_single_subst σ t : tail_subst (σ ∘s to_subst t..) = σ.
+Proof. destruct σ as [σ ρ]. reflexivity. Qed.
+Lemma eq_upwk {Γ Δ} A σ (ρ : Δ ≤ Γ) : (up_subst σ)⟨wk_up A ρ⟩ =s (up_subst σ⟨ρ⟩).
+Proof.
+  eapply Build_subst_eq_eq, Equivalence.pointwise_equivalence, eq_equivalence.
+  cbn. intros [].
+  + cbv. reflexivity.
+  + bsimpl. unfold funcomp. now bsimpl.
+Qed.
+
+Instance subst_comp_eq : Proper (subst_eq ==> subst_eq ==> subst_eq) subst_comp.
+Proof.
+  intros σ σ' eqσ τ τ' eqτ.
+  eapply Build_subst_eq_eq;
+   intros n; now rewrite eqσ, eqτ.
+Qed.
+
+
+Definition CnotCmorphism {A} {R : relation A} (m :A) : Proper R m -> CMorphisms.Proper R m := fun x => x.
+(* Instance subst_eq_subst2 : CMorphisms.Proper (CMorphisms.respectful subst_eq (CMorphisms.respectful eq eq)) subst_subst.
+intros σ σ' eqσ n n' <-. now eapply subst_eq_subst. Qed. *)
+Ltac instantiate_ltac_variable ev term :=
+  let H := fresh in
+  pose ev as H;
+  instantiate (1 := term) in (value of H);
+  clear H.
+
+
+Ltac to_prop_rel R :=
+  match type of R with
+  | CRelationClasses.crelation ?A => let H := fresh in eset (H := _ : relation A); unify H R
+  end. 
+Ltac change_proper := 
+  match goal with
+    |- CMorphisms.Proper (CMorphisms.respectful ?R (CMorphisms.respectful ?R' ?R'')) ?m =>
+      try to_prop_rel R'; try to_prop_rel R'';
+      change (Morphisms.Proper (respectful R (respectful R' R'')) m);
+      apply CnotCmorphism
+    | |- CMorphisms.Proper (CMorphisms.respectful ?R ?R') ?m =>
+      try to_prop_rel R';
+      change (Morphisms.Proper (respectful R R') m);
+      apply CnotCmorphism
+  end.
+
+#[global] Hint Extern 10 (CMorphisms.Proper _ _) => change_proper : typeclass_instances.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

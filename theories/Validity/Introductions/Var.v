@@ -17,14 +17,13 @@ Section Var.
     eapply irrLREq; tea; now bsimpl.
   Qed.
 
+
   Lemma var0Valid' {Γ Γ' l A A'} (VΓ : [||-v Γ,,A ≅ Γ']) (VA : [Γ,,A ||-v<l> A⟨@wk1 Γ A⟩ ≅ A' | VΓ]) :
     [Γ,, A ||-v<l> tRel 0 : _ | VΓ | VA ].
   Proof.
     pose proof (invValidity VΓ) as (?&?&?&?&?&e&h); subst; cbn in h; subst.
     constructor; intros; cbn; eapply irrLREqCum;[| exact (eqHead Vσσ')].
-    rewrite wk_subst_comp_on.
-    eapply subst_subst_eq.
-    constructor; unfold wk_subst_comp; bsimpl; reflexivity.
+    now rewrite wk1_subst.
   Qed.
 
   Lemma in_ctx_valid {Γ : context} {A n} (hin : in_ctx Γ n A)
@@ -54,6 +53,13 @@ Section Var.
   Qed.
 
   Lemma var1Valid {Γ l A B} (VΓ : [||-v (Γ,, A) ,, B]) (VA : [_ ||-v<l> A⟨@wk1 Γ A⟩⟨@wk1 (Γ,,A) B⟩ | VΓ]) :
+    [(Γ,, A) ,, B ||-v<l> tRel 1 : _ | VΓ | VA ].
+  Proof.
+    revert VA; rewrite !wk1_ren_on; intros VA.
+    eapply varnValid; do 2 constructor.
+  Qed.
+
+  Lemma var1Valid' {Γ Γ' l A B A' } (VΓ : [||-v (Γ,, A) ,, B ≅ Γ']) (VA : [_ ||-v<l> A⟨@wk1 Γ A⟩⟨@wk1 (Γ,,A) B⟩ ≅ A' | VΓ]) :
     [(Γ,, A) ,, B ||-v<l> tRel 1 : _ | VΓ | VA ].
   Proof.
     revert VA; rewrite !wk1_ren_on; intros VA.

@@ -41,7 +41,7 @@ Qed.
 
 Lemma reflect_var0 {l Γ A A' B'} (RA : [Γ ,, A ||-S<l> A' ≅ B']) :
   reflect RA ->
-  [Γ ,, A |- A⟨↑⟩ ≅ A'] ->
+  [Γ ,, A |- A⟨@wk1 Γ A⟩ ≅ A'] ->
   [Γ |- A] ->
   [Γ ,, A ||-S<l> tRel 0 : A' | RA].
 Proof.
@@ -49,6 +49,7 @@ Proof.
   assert [Γ ,, A |- tRel 0 : A'].
   1:{
     eapply ty_conv; tea; escape.
+    rewrite wk1_ren_on.
     unshelve eapply (ty_var _ (in_here _ _ : in_ctx (Γ,,A) 0 A⟨↑⟩)).
     now eapply wfc_wft.
   }
@@ -337,7 +338,7 @@ Proof. intros []; now eapply reflectLR. Qed.
 
 
 Lemma Svar0conv {l Γ A A' B'} (RA : [Γ ,, A ||-S<l> A' ≅ B']) :
-  [Γ,, A |- A⟨↑⟩ ≅ A'] ->
+  [Γ,, A |- A⟨@wk1 Γ A⟩ ≅ A'] ->
   [Γ |- A] ->
   [Γ ,, A ||-S<l> tRel 0 : A' | RA].
 Proof.
@@ -345,7 +346,7 @@ Proof.
 Qed.
 
 Lemma Svar0 {l Γ A A' B'} (RA : [Γ ,, A ||-S<l> A' ≅ B']) :
-  A⟨↑⟩ = A' ->
+  A⟨@wk1 Γ A⟩ = A' ->
   [Γ |- A] ->
   [Γ ,, A ||-S<l> tRel 0 : A' | RA].
 Proof.

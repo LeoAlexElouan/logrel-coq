@@ -18,10 +18,12 @@ Lemma appcongValid {Γ Γ' F F' G G' t u a b l}
   (VGa := substSΠ VΠFG Vab) :
   [Γ ||-v<l> tApp t a ≅ tApp u b : G[a..] | VΓ | VGa].
 Proof.
-  constructor; intros; instValid Vσσ'; cbn -[Wpack].
+  constructor; intros; instValid Vσσ'.
+  rewrite <- 2subst_app.
+  change (tProd ?F ?G)[?σ] with (tProd F[σ] G[up_subst σ]) in RVΠFG, RVtu.
   unshelve eapply irrLREq; cycle -1.
   1: eapply (appcongTerm RVΠFG RVtu RVab).
-  all: refold; now rewrite <-!singleSubstComm'.
+  all: now rewrite <- !subst_ren_subst_up.
 Qed.
 
 Lemma appcongValid' {Γ Γ' F F' G G' C C' t u a b l}

@@ -56,7 +56,7 @@ Section SimpleArrow.
     eapply WAdrefold.
     eapply (Split_wk_bind_return RC wfΞ ρΞ).
     intros Θ wfΘ ρΘ oRC.
-    rewrite <- 2wk_arr', <- 2!(Weakening.subst_arr' (Δ:=Δ)), 2!wk_comp_ren_on, <-2!wk_arr'.
+    rewrite <- 2wk_arr', <- 2!(WeakeningCompute.subst_arr' (Δ:=Δ)), 2!wk_comp_ren_on, <-2!wk_arr'.
     eapply SArrRedTy.
     + now eapply RB, overtree_PSh.
     + now eapply RC.

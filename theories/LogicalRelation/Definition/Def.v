@@ -151,8 +151,8 @@ End Weak_LogRel.
 
 Notation "[ Γ ||-< l > A ≅ B ]" := (WLRAdequate Γ l A B).
 Notation "[ Γ ||-< l > A ]" := [ Γ ||-<l> A ≅ A].
-Notation "[ Γ ||-< l > t ≅ u : A | RA ]" := (RA.(@LRPack.eqTm Γ A _) t u).
-Notation "[ Γ ||-< l > t : A | RA ]" := [ Γ ||-< l > t ≅ t : A | RA].
+Notation "[ Γ ||-< l > t ≅ u : A | RA ]" := (RA.(@LRPack.eqTm Γ A _) t u) (only parsing).
+Notation "[ Γ ||-< l > t : A | RA ]" := [ Γ ||-< l > t ≅ t : A | RA] (only parsing).
 
 Lemma WAdrefold `{GenericTypingProperties} :
     forall {Γ l A B Δ} {ρ : Δ≤ Γ}, [Δ ||-<l> A⟨ρ⟩ ≅ B⟨ρ⟩] ->

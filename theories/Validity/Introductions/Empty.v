@@ -35,14 +35,15 @@ Section EmptyElimValid.
     : [Γ ||-v<l> tEmptyElim P n ≅ tEmptyElim P' n' : _ | VΓ | VPn].
   Proof.
     constructor; intros; instValid Vσσ'; epose proof (Vuσ := liftSubst' VN Vσσ').
-    instValid Vuσ; cbn -[Wpack] in *; escape.
-    eapply irrLREq. 1: now rewrite singleSubstComm'.
+    instValid Vuσ; escape.
+    eapply irrLREq. 1: now rewrite subst_ren_subst_up.
+    change (tEmptyElim ?P ?n)[?σ] with (tEmptyElim P[up_subst σ] n[σ]).
     unshelve eapply emptyElimRedEq; rewrite ?elimSuccHypTy_subst; tea.
 (*     + now apply emptyRedTy. *)
     + clear dependent n; clear dependent n'; intros Ξ wfΞ ρΞ ?? Rnn'.
-      rewrite 2eq_upren', 2!up_single_subst; eapply validTyExt; tea.
-      unshelve eapply wkSubst in Vσσ' as VρΞ; tea.
-      now unshelve econstructor.
+      rewrite 2subst_ren_wk, 2to_subst_sound, 2subst_comp_on.
+      unshelve (eapply validTyExt, irrelevanceSubstEqExt, consWkSubstEq; tea); tea.
+      all: now rewrite eq_upwk.
   Qed.
 End EmptyElimValid.
 

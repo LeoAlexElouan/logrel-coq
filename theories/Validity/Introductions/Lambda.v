@@ -11,10 +11,11 @@ Lemma isLRFun_isWfFun `{GenericTypingProperties}
   : isWfFun Γ F G t.
 Proof.
   assert (wfΓ: [|- Γ]) by (escape ; gen_typing).
-  destruct Rt as [?? wtA convtyA eqt|]; cbn in *.
-  2: now constructor.
-  epose proof (instKripkeFamTm wfΓ eqt).
-  escape; now constructor.
+  destruct Rt as [??? wtA convtyA eqt| | ].
+  + epose proof (instKripkeFamTm wfΓ eqt).
+    escape; now constructor.
+  + now constructor.
+  + now constructor.
 Qed.
 
 
@@ -26,8 +27,8 @@ Context `{GenericTypingProperties}.
     (forall (Δ : context) (a b : term) (ρ : Δ ≤ Γ) (wfΔ : [ |- Δ])
       (ha : [Δ ||-S< l > a ≅ b
         : (ParamRedTy.domL ΠA)⟨ρ⟩ | PolyRed.shpRed ΠA ρ wfΔ ]),
-      [Δ ||-< l > t[a .: ρ >> tRel] ≅ t[b .: ρ >> tRel] :
-        (PiRedTyPack.codL ΠA)[a .: ρ >> tRel] | PolyRed.posRed ΠA ρ wfΔ ha]) ->
+      [Δ ||-< l > t⟨wk_up (ParamRedTy.domL ΠA) ρ⟩[a ..] ≅ t⟨wk_up (ParamRedTy.domR ΠA) ρ⟩[b ..] :
+        (PiRedTyPack.codL ΠA)⟨wk_up (ParamRedTy.domL ΠA) ρ⟩[a ..] | PolyRed.posRed ΠA ρ wfΔ ha]) ->
     isLRFun ΠA (tLambda A' t).
   Proof.
     intros ?? HA' HΠA Rtt'.
@@ -50,8 +51,8 @@ Context `{GenericTypingProperties}.
   Proof.
     intros RA isfun.
     pose proof (irrFuneqs ΠA1 ΠA2 RA) as (R&[-> edom1 edom2 ecod1 ecod2]).
-    destruct isfun as [???? app|].
-    2: constructor; eapply convneu_conv; [eapply c |]; cbn;
+    destruct isfun as [????? app| |].
+    2-3 :constructor; first [ eapply convneu_conv; tea | etransitivity; tea; symmetry]; cbn;
       rewrite <- edom1, <- edom2, <- ecod1, <- ecod2;
       eapply R.
     apply LamLRFun'; tea.
@@ -89,10 +90,8 @@ Context `{GenericTypingProperties}.
     now eapply irrisLRFun, Rt.
   Defined.
 
-Lemma consWkEq' {Δ Ξ} σ (ρ : Δ ≤ Ξ) a Z : Z[up_term_term σ][a .: ρ >> tRel] = Z[a .: σ⟨ρ⟩].
-Proof. bsimpl; cbn; now rewrite rinstInst'_term_pointwise. Qed.
-
-
+(* Lemma consWkEq' {Δ Ξ} σ (ρ : Δ ≤ Ξ) a Z : Z[up_term_term σ][a .: ρ >> tRel] = Z[a .: σ⟨ρ⟩].
+Proof. bsimpl; cbn; now rewrite rinstInst'_term_pointwise. Qed. *)
 Lemma lamPiRedTm
   {Γ Γ' F F' G G' l}
   {VΓ : [||-v Γ ≅ Γ']}
@@ -102,18 +101,28 @@ Lemma lamPiRedTm
   {t t'} (Vtt' : [Γ ,, F ||-v<l> t ≅ t' : G | VΓF | VG])
   {Δ} {wfΔ : [|-Δ]} {σ σ'} (Vσσ' : [VΓ | Δ ||-v σ ≅ σ' : Γ | wfΔ])
   (R0 : [Δ ||-S<l> (tProd F G)[σ] ≅ (tProd F' G')[σ']])
-  (R := normRedΠ R0)
+  (R := normRedΠ R0 : [Δ ||-Π< l > (tProd F G)[σ] ≅ (tProd F' G')[σ']])
   : PiRedTm R (tLambda F t)[σ].
 Proof.
-  exists (tLambda F[σ] t[up_term_term σ]);
+  exists (tLambda F[σ] t[up_subst σ]);
   instValid (liftSubst' VF  Vσσ'); instValid Vσσ'; escape.
   1: now eapply redtmwf_refl, ty_lam.
   apply LamLRFun'; tea; [now eapply lrefl|].
-  intros Ξ ?? ρΞ wfΞ ha; rewrite 2!consWkEq'.
-  pose (Vaσ := consWkSubstEq VF (lrefl Vσσ') ρΞ wfΞ (Wpack_return ha)).
-  eapply irrLREq.
-  2: now unshelve eapply (validTmExt (lrefl Vtt')).
-  cbn; now rewrite consWkEq'.
+  change (ParamRedTy.domL R) with F[σ].
+  change (ParamRedTy.domR R) with F'[σ'].
+  change (ParamRedTy.codL R) with G[up_subst σ].
+  change (ParamRedTy.codR R) with G'[up_subst σ'].
+  intros Ξ ?? ρΞ wfΞ ha.
+  rewrite 2(subst_ren_wk (A:=t)),
+    2to_subst_sound with (t:=t[_]),
+    2subst_comp_on.
+  unshelve eapply irrLREq, validTmExt, lrefl, Vtt'; tea.
+  2: now rewrite <- subst_comp_on, <- to_subst_sound, <- subst_ren_wk.
+  unshelve eapply irrelevanceSubstEqExt, consSubst.
+  6,7: rewrite eq_upwk; reflexivity.
+  + eapply wkSubst, lrefl, Vσσ'.
+  + eapply irrLREq, Wpack_return, ha.
+    now rewrite <- subst_ren_wk.
 Defined.
 
 Lemma lamPiRedTm'
@@ -126,11 +135,11 @@ Lemma lamPiRedTm'
   {t t'} (Vtt' : [Γ ,, F ||-v<l> t ≅ t' : G | VΓF | VG])
   {Δ} {wfΔ : [|-Δ]} {σ σ'} (Vσσ' : [VΓ | Δ ||-v σ ≅ σ' : Γ | wfΔ])
   (R0 : [Δ ||-S<l> (tProd F G)[σ] ≅ (tProd F' G')[σ']])
-  (R := normRedΠ R0)
+  (R := normRedΠ R0: [Δ ||-Π< l > (tProd F G)[σ] ≅ (tProd F' G')[σ']])
   : PiRedTm R (tLambda F' t')[σ'].
 Proof.
   eapply irrPiRedTm; [|eapply lamPiRedTm]; refold.
-  + symmetry; now eapply LRPi'. (*  rewrite <-2!subst_prod. now eapply validTyExt. *)
+  + symmetry; eapply LRPi', R. (*  rewrite <-2!subst_prod. now eapply validTyExt. *)
   + now eapply symValidTm.
   + now eapply symSubst.
   Unshelve. 1-3: irrValid.
@@ -230,7 +239,7 @@ Definition Build_PiRedTmEq' {Γ l A B} {ΠA : PiRedTy Γ l A B} {t u : term}
   [Γ |- nfL ≅ nfR : tProd shp pos] ->
   (forall Δ ρ wfΔ a b
     (hab : [Δ ||-S< l > a ≅ b : shp⟨ρ⟩ | PolyRed.shpRed ΠA ρ wfΔ ]), 
-    [Δ ||-< l > tApp nfL⟨ρ⟩ a ≅ tApp nfR⟨ρ⟩ b : pos[a .: ρ >> tRel]
+    [Δ ||-< l > tApp nfL⟨ρ⟩ a ≅ tApp nfR⟨ρ⟩ b : pos⟨wk_up shp ρ⟩[a ..]
       | PolyRed.posRed ΠA ρ wfΔ hab]) ->
   [Γ ||-Π t ≅ u : A | ΠA].
 Proof.
@@ -252,21 +261,21 @@ Proof.
   eapply (PiRedTmEq.eqApp Rtu ρ wfΔ hab).
 Qed.
 
-Lemma consWkEq {Δ Ξ F} σ (ρ : Δ ≤ Ξ) a Z : Z[up_term_term σ]⟨wk_up F[σ] ρ⟩[a..] = Z[a .: σ⟨ρ⟩].
-Proof. bsimpl; cbn; now rewrite rinstInst'_term_pointwise. Qed.
+(* Lemma consWkEq {Δ Ξ F} σ (ρ : Δ ≤ Ξ) a Z : Z[up_term_term σ]⟨wk_up F[σ] ρ⟩[a..] = Z[a .: σ⟨ρ⟩].
+Proof. bsimpl; cbn; now rewrite rinstInst'_term_pointwise. Qed. *)
 
-Lemma eq_subst_3 t a ρ σ : t[up_term_term σ][a .: ρ >> tRel] = t[up_term_term σ⟨ρ⟩][a..].
+(* Lemma eq_subst_3 t a ρ σ : t[up_term_term σ][a .: ρ >> tRel] = t[up_term_term σ⟨ρ⟩][a..].
 Proof.
   bsimpl ; now substify.
-Qed.
+Qed. *)
 
-Lemma eq_subst_4 t a σ : t[up_term_term σ][a..] = t[a .: σ].
+(* Lemma eq_subst_4 t a σ : t[up_term_term σ][a..] = t[a .: σ].
 Proof.
   bsimpl ; now substify.
-Qed.
+Qed. *)
 
-Lemma eq_substren {Γ Δ} t σ (ρ : Γ ≤ Δ) : t[σ]⟨ρ⟩ = t[σ⟨ρ⟩].
-Proof. now asimpl. Qed.
+(* Lemma eq_substren {Γ Δ} t σ (ρ : Γ ≤ Δ) : t[σ]⟨ρ⟩ = t[σ⟨ρ⟩].
+Proof. now asimpl. Qed. *)
 
 Context {Γ Γ' F F' G G' l}
   {VΓ : [||-v Γ ≅ Γ']}
@@ -295,25 +304,35 @@ Proof.
     pose proof (symValidTm' Vtt'); pose proof (symValidTy' VG).
     instValid VσΞ; instValid Vuσ'; instValid Vuσ; escape.
     eapply lambda_cong; tea; now symmetry.
-  + cbn -[Wpack]; refold; intros Θ ρΘ wfΘ *.
+  + intros Θ ρΘ wfΘ *.
     set (RF := PolyRed.shpRed _ _ _) in hab.
     pose proof (VσΘ := wkSubst VΓ wfΞ wfΘ ρΘ VσΞ).
     pose proof (symValidTm' Vtt').
     instValid VσΘ; instValid (liftSubst' VF VσΘ); instValid (liftSubstSym' VF VσΘ).
     instValid (consWkSubstEq VF VσΞ ρΘ wfΘ (Wpack_return hab)).
     escape.
-    eapply irrLREq.
+    unfold lamPiRedTm, lamPiRedTm', irrPiRedTm, lamPiRedTm; cbn [PiRedTmEq.nf].
+    rewrite <- 2wk_lam.
+(*     eapply irrLREq. *)
 (*     unshelve eapply Wpack_return'. cbn; refold. tea. intros. eapply SirrLR, SwkLR. *)
-    1: symmetry; eapply eq_subst_3.
+(*     1: symmetry; eapply eq_subst_3. *)
+    change (ParamRedTy.domL (normRedΠ SRΠFG)) with F[σ⟨ρΞ⟩] in *.
+    change (ParamRedTy.domR (normRedΠ SRΠFG)) with F'[σ'⟨ρΞ⟩] in *.
+    change (ParamRedTy.codL (normRedΠ SRΠFG)) with G[up_subst σ⟨ρΞ⟩].
+    change (ParamRedTy.codR (normRedΠ SRΠFG)) with G'[up_subst σ'⟨ρΞ⟩].
     eapply redSubstTmEq; cycle 1.
-    * eapply redtm_beta; tea.
-      now rewrite eq_upren, eq_substren.
+    * eapply redtm_beta; tea. clear -EscLRVtt'.
+      now rewrite 2subst_ren_wk with (ρ:= wk_up _ _), eq_upwk, subst_ren_wk.
     * eapply redtm_beta.
-      1,3: rewrite eq_substren; tea.
-      1: eapply ty_conv; tea; cbn; now rewrite eq_substren.
-      now rewrite eq_upren, eq_substren.
-      Unshelve. now rewrite 2!eq_subst_4.
-    * now rewrite !eq_upren, !eq_subst_4.
+      1,3: rewrite subst_ren_wk; tea.
+      1: eapply ty_conv; tea; now rewrite subst_ren_wk. clear -EscLRX.
+      now rewrite 2subst_ren_wk with (ρ:= wk_up _ _), eq_upwk, subst_ren_wk.
+    * rewrite (subst_ren_wk (A:=t)), (subst_ren_wk (A:=t')), 
+        to_subst_sound with (t:=t[_]), to_subst_sound with (t:=t'[_]),
+        2subst_comp_on.
+      rewrite 2eq_upwk.
+      eapply irrLREq; tea. clear.
+      now rewrite <-subst_comp_on, <- to_subst_sound, subst_ren_wk, eq_upwk.
   Qed.
 
 
@@ -323,12 +342,12 @@ Proof.
   now eapply lrefl, lamCongValid.
 Qed.
 
-
+(* 
 Lemma singleSubst_subst_eq t a σ : t[a..][σ] = t[up_term_term σ][a[σ]..].
 Proof. now bsimpl. Qed.
 
 Lemma singleSubst_subst_eq' t a σ : t[a..][σ] = t[a[σ] .: σ].
-Proof. now bsimpl. Qed.
+Proof. now bsimpl. Qed. *)
 
 Lemma betaValid {t t' a a'} (Vt : [Γ ,, F ||-v<l> t ≅ t' : G | VΓF | VG])
   (Va : [Γ ||-v<l> a ≅ a' : F | VΓ | VF]) :
@@ -336,8 +355,10 @@ Lemma betaValid {t t' a a'} (Vt : [Γ ,, F ||-v<l> t ≅ t' : G | VΓF | VG])
 Proof.
   eapply redSubstValid.
   2: now eapply lrefl, substSTm.
-  constructor; intros; cbn.
-  rewrite 2!singleSubst_subst_eq.
+  constructor; intros.
+  rewrite <- subst_app, <- subst_lam,
+    2subst_ren_subst_up.
+(*   rewrite 2!singleSubst_subst_eq. *)
   instValid (lrefl Vσσ').
   instValid (liftSubst' VF (lrefl Vσσ')).
   escape; now eapply redtm_beta.
@@ -348,65 +369,66 @@ Lemma redtm_app_helper {Δ Δ' f nf a σ} (ρ : Δ' ≤ Δ) :
   [|- Δ'] ->
   [Δ |- f[σ] ⤳* nf : (tProd F G)[σ]] ->
   [Δ' |- a : F[σ]⟨ρ⟩] ->
-  [Δ' |- tApp f[σ]⟨ρ⟩ a ⤳* tApp nf⟨ρ⟩ a : G[up_term_term σ][a .: ρ >> tRel]].
+  [Δ' |- tApp f[σ]⟨ρ⟩ a ⤳* tApp nf⟨ρ⟩ a : G[up_subst σ]⟨wk_up F[σ] ρ⟩[a ..]].
 Proof.
-  intros red tya.
-  rewrite eq_subst_3; eapply redtm_app; tea.
-  eapply redtm_meta_conv; [now eapply redtm_wk| | reflexivity].
-  cbn; now rewrite eq_upren.
+  intros wfΔ' red tya.
+  eapply redtm_app; tea.
+  eapply redtm_meta_conv; [now eapply redtm_wk|..]; reflexivity.
 Qed.
 
 
 Lemma ηeqEqTermNf {σ Δ f} (ρ := @wk1 Γ F)
   (wfΔ : [|- Δ]) (Vσ : [Δ ||-v σ : Γ | VΓ| wfΔ])
   (RΠFG := (validTyExt VΠFG wfΔ Vσ))
-   Ξ wfΞ (ρΞ : Ξ ≤ Δ) (oRΠFG : overtree RΠFG Ξ)
+   Ξ wfΞ (ρΞ : Ξ ≤ Δ) (oRΠFG : overtree RΠFG ρΞ)
   (SRΠFG := (cover RΠFG Ξ wfΞ ρΞ oRΠFG))
-  (RGσ : [Ξ ,, F[σ⟨ρΞ⟩] ||-<l> G[up_term_term σ⟨ρΞ⟩]])
-  (Rf : [Ξ ||-S< l > f[σ]⟨ρΞ⟩ : (tProd F G)[σ]⟨ρΞ⟩ | LRPi' (normRedΠ SRΠFG) ]) :
-  [RGσ | Ξ ,, F[σ⟨ρΞ⟩] ||- tApp f⟨ρ⟩[up_term_term σ⟨ρΞ⟩] (tRel 0) ≅
-    tApp Rf.(PiRedTmEq.redR).(PiRedTmEq.nf)⟨↑⟩ (tRel 0) : G[up_term_term σ⟨ρΞ⟩]].
+  (SRΠFG' := LRPi' (normRedΠ SRΠFG) : [Ξ ||-S< l > (tProd F G)[σ]⟨ρΞ⟩ ≅ (tProd F' G')[σ]⟨ρΞ⟩])
+  (RGσ : [Ξ ,, F[σ⟨ρΞ⟩] ||-<l> G[up_subst σ⟨ρΞ⟩]])
+  (Rf : [Ξ ||-S< l > f[σ]⟨ρΞ⟩ : (tProd F G)[σ]⟨ρΞ⟩ | SRΠFG' ]) :
+  [RGσ | Ξ ,, F[σ⟨ρΞ⟩] ||- tApp f⟨ρ⟩[up_subst σ⟨ρΞ⟩] (tRel 0) ≅
+    tApp Rf.(PiRedTmEq.redR).(PiRedTmEq.nf)⟨@wk1 Ξ F[σ⟨ρΞ⟩]⟩ (tRel 0) : G[up_subst σ⟨ρΞ⟩]].
 Proof.
-  cbn in SRΠFG; revert Rf; refold; intros Rf.
   unshelve eapply wkSubst in Vσ as VσΞ; tea.
   pose (VσUp :=  liftSubst' VF VσΞ).
   instValid VσΞ; instValid VσUp; escape.
   assert (wfΞF : [|- Ξ,, F[σ⟨ρΞ⟩]]) by gen_typing.
   unshelve epose proof (r := eqApp' Rf wfΞF (@wk1 Ξ F[σ⟨ρΞ⟩]) (Svar0 _ _ _)); tea.
-  1: cbn; symmetry; etransitivity; [eapply wk1_ren_on| eapply f_equal, subst_ren_wk ].
+  1: now rewrite <- subst_ren_wk.
   eapply (dSplit_bind_return r).
   intros Θ wfΘ ρΘ or' or oRGσ.
-  eapply SirrLREq; [ erewrite <-(var0_wk1_id (t:=G[_])); reflexivity|].
   eapply SredSubstLeftTmEq.
-  + erewrite <- wk1_ren_on; eapply SirrLREq.
-    2: now unshelve now eapply r.
-    cbn. do 2 f_equal. eapply eq_upren.
-  + clear dependent r; destruct Rf.(PiRedTmEq.redL) as [? [? red] ?]. cbn -[wk1 ren1] in *.
-    replace f⟨ρ⟩[up_term_term σ⟨ρΞ⟩] with f[σ⟨ρΞ⟩]⟨@wk1 Ξ F[σ⟨ρΞ⟩]⟩.
+  + unshelve eapply SirrLREq, r; tea.
+    apply (f_equal (fun vart => vart⟨ρΘ⟩)).
+    rewrite <- eq_upwk with (A:=F[σ]), <- 2subst_ren_wk.
+    eapply wk1_eta.
+  + clear dependent r; destruct Rf.(PiRedTmEq.redL) as [? [? red] ?].
+    cbn[PiRedTmEq.nf]. unfold ρ in *.
+    rewrite <- (subst_up_wk1 (Δ:=Ξ)),
+      <- @wk1_eta with (Γ := Ξ) (A:= F[σ⟨ρΞ⟩]) (t:=G[_]).
     refine (redtm_wk ρΘ wfΘ _); clear dependent Θ.
     eapply redtm_app_helper; tea.
-    1: now rewrite <- 2subst_ren_wk.
-    1: rewrite wk1_ren_on; now eapply ty_var0.
-    unfold ρ; now bsimpl.
-    Unshelve.
-    2: rewrite var0_wk1_id; now unshelve now eapply RGσ.
+    - now rewrite <- 2subst_ren_wk.
+    - now eapply ty_var0.
 Qed.
 
 
 Lemma ηeqEqTermConvNf {σ Δ f} (ρ := @wk1 Γ F)
   (wfΔ : [|- Δ]) (Vσ : [Δ ||-v σ : Γ | VΓ| wfΔ])
   (RΠFG := (validTyExt VΠFG wfΔ Vσ))
-   Ξ wfΞ (ρΞ : Ξ ≤ Δ) (oRΠFG : overtree RΠFG Ξ)
+   Ξ wfΞ (ρΞ : Ξ ≤ Δ) (oRΠFG : overtree RΠFG ρΞ)
   (SRΠFG := (cover RΠFG Ξ wfΞ ρΞ oRΠFG))
-  (Rf : [Ξ ||-<l> f[σ]⟨ρΞ⟩ : (tProd F G)[σ]⟨ρΞ⟩ | LRPi' (normRedΠ SRΠFG)]) :
-  [Ξ ,, F[σ⟨ρΞ⟩] |- tApp f⟨ρ⟩[up_term_term σ⟨ρΞ⟩] (tRel 0) ≅
-    tApp Rf.(PiRedTmEq.redR).(PiRedTmEq.nf)⟨↑⟩ (tRel 0) : G[up_term_term σ⟨ρΞ⟩]].
+  (SRΠFG' := LRPi' (normRedΠ SRΠFG) : [Ξ ||-S< l > (tProd F G)[σ]⟨ρΞ⟩ ≅ (tProd F' G')[σ]⟨ρΞ⟩])
+  (Rf : [Ξ ||-<l> f[σ]⟨ρΞ⟩ : (tProd F G)[σ]⟨ρΞ⟩ | SRΠFG']) :
+  [Ξ ,, F[σ⟨ρΞ⟩] |- tApp f⟨ρ⟩[up_subst σ⟨ρΞ⟩] (tRel 0) ≅
+    tApp Rf.(PiRedTmEq.redR).(PiRedTmEq.nf)⟨@wk1 Ξ F[σ⟨ρΞ⟩]⟩ (tRel 0) : G[up_subst σ⟨ρΞ⟩]].
 Proof.
   cbn in SRΠFG; revert Rf; refold; intros Rf.
   pose (VσUp :=  liftSubst' VF Vσ); instValid VσUp.
   unshelve eapply escapeSplitEqTerm, ηeqEqTermNf.
   eapply lrefl.
-  rewrite <- subst_ren_wk, <- (eq_upren' F[σ]).
+  replace G[_] with G[up_subst σ]⟨wk_up F[σ] ρΞ⟩
+    by now rewrite <- eq_upwk, <- (subst_ren_wk (A:=G)).
+  rewrite <- subst_ren_wk.
   eapply wkLRTy, RrVG.
   eapply wfc_cons, wft_wk; tea.
   instValid Vσ.
@@ -432,12 +454,14 @@ Proof.
   intros Ξ wfΞ ρΞ oRf.
   eapply (Split_wk_bind_return Rg wfΞ ρΞ).
   intros Θ wfΘ ρΘ oRg oRΠFG.
-  epose proof (Rf' := cover Rf Θ wfΘ (ρΘ∘w ρΞ) (overtree_PSh Rf oRf) oRΠFG); cbn in Rf'.
+  epose proof (Rf' := cover Rf Θ wfΘ (ρΘ∘w ρΞ) (overtree_PSh _ _ Rf oRf) oRΠFG); cbn in Rf'.
   epose proof (Rg' := cover Rg Θ wfΘ (ρΘ∘w ρΞ) oRg oRΠFG); cbn in Rg'.
-  set (RΠ' := (cover RΠFG Θ wfΘ (ρΘ ∘w ρΞ) oRΠFG)) in *; cbn beta in RΠ'.
+  pose (RΠ' := cover RΠFG Θ wfΘ (ρΘ ∘w ρΞ) oRΠFG :
+    [Θ ||-S< l > tProd F[σ]⟨ρΘ ∘w ρΞ⟩ G[up_subst σ]⟨wk_up F[σ] (ρΘ ∘w ρΞ)⟩ ≅
+      tProd F'[σ]⟨ρΘ ∘w ρΞ⟩ G'[up_subst σ]⟨wk_up F[σ] (ρΘ ∘w ρΞ)⟩]).
+  fold RΠ' in Rf', Rg' |-*.
   eapply Pi.canonPi_inv. eapply Pi.canonPi in Rf', Rg'.
   set (RΠ := normRedΠ _) in *.
-  revert RΠ Rf' Rg'; refold; intros.
   pose (Rf0 := Rf'.(PiRedTmEq.redR)); pose (Rg0 := Rg'.(PiRedTmEq.redR)).
   unshelve eapply wkSubst with (ρ:= ρΘ∘w ρΞ) in Vσ as VσΘ; tea.
   eapply (Build_PiRedTmEq' Rf0 Rg0).
@@ -446,29 +470,38 @@ Proof.
     eapply convtm_eta; tea.
     4,6: eapply isLRFun_isWfFun; eapply PiRedTmEq.isfun.
     + now rewrite subst_ren_wk.
-    + now rewrite subst_ren_wk, eq_upren.
+    + now rewrite subst_ren_wk, eq_upwk, subst_ren_wk.
     + destruct Rf0; cbn in *; gtyping.
     + destruct Rg0; cbn in *; gtyping.
-    + rewrite subst_ren_wk, eq_upren.
+    + replace G[_]⟨_⟩ with G[up_subst σ⟨ρΘ ∘w ρΞ⟩]
+       by now rewrite subst_ren_wk, eq_upwk.
+      rewrite subst_ren_wk.
       etransitivity ; [symmetry| etransitivity]; tea;
-      eapply ηeqEqTermConvNf.
+        eapply ηeqEqTermConvNf.
   - intros Ω ρΩ wfΩ ???.
     eassert ([ _ |Ω ||- a ≅ a : F[σ⟨ρΘ ∘w ρΞ⟩]⟨ρΩ⟩ ≅ _]) as haa by
       (eapply Wpack_return, SirrLREq, lrefl, hab; eapply f_equal, subst_ren_wk).
     epose (Vν := consWkSubstEq VF VσΘ ρΩ wfΩ haa); instValid Vν.
-    assert (eq : forall t a τ, t⟨ρ⟩[a .: τ⟨ρΩ⟩] = t[τ]⟨ρΩ⟩) by (intros; unfold ρ; now bsimpl).
-    cbn -[Wpack] in RVfg; rewrite 2!eq in RVfg.
+    assert (eq : forall t a τ, t⟨ρ⟩[(to_subst a ..) ∘s up_subst (τ⟨ρΩ⟩)] = t[τ]⟨ρΩ⟩).
+      { clear. unfold ρ. intros.
+        now rewrite <- subst_comp_on, <- (subst_up_wk1 (Δ:=Ω)), <- to_subst_sound, shift_subst1, subst_ren_wk. }
+    rewrite <- 2subst_app, 2eq in RVfg.
+    change (ParamRedTy.domL RΠ) with F[σ]⟨ρΘ ∘w ρΞ⟩.
+    change (ParamRedTy.domR RΠ) with F'[σ]⟨ρΘ ∘w ρΞ⟩.
+    change (ParamRedTy.codL RΠ) with G[up_subst σ]⟨wk_up F[σ] (ρΘ ∘w ρΞ)⟩.
+    change (ParamRedTy.codR RΠ) with G'[up_subst σ]⟨wk_up F[σ] (ρΘ ∘w ρΞ)⟩.
     etransitivity; [| etransitivity].
     + symmetry; eapply redSubstLeftTmEq.
       1: pose proof (urefl (PiRedTmEq.eqApp Rf' ρΩ wfΩ (lrefl hab))); now eapply irrLREq.
-      cbn -[wk_well_wk_compose]; rewrite eq_upren.
-      eapply redtm_app_helper; tea; [| now escape].
+      rewrite @subst_ren_wk with (A:=G), eq_upwk.
+      eapply redtm_app_helper; tea; [|now escape].
       rewrite <- 2(subst_ren_wk (σ:=σ) (ρΘ ∘w ρΞ)).
       now destruct (PiRedTmEq.redR Rf') as [? []].
-    + eapply irrLREq; tea. cbn -[wk_well_wk_compose]. now rewrite eq_upren, Poly.eq_subst_2.
+    + eapply irrLREq; tea.
+      now rewrite <- subst_comp_on, <- to_subst_sound, <- 2eq_upwk, <-2 subst_ren_wk.
     + eapply redSubstLeftTmEq.
       1: pose proof (rg := eqApp' Rg' wfΩ ρΩ hab); now eapply irrLREq.
-      cbn -[wk_well_wk_compose]; rewrite eq_upren.
+      rewrite @subst_ren_wk with (A:=G), eq_upwk.
       eapply redtm_app_helper; tea; [| now escape].
       rewrite <- 2(subst_ren_wk (σ:=σ) (ρΘ ∘w ρΞ)).
       now destruct (PiRedTmEq.redL Rg') as [? []].
@@ -491,21 +524,17 @@ Qed.
 
 Lemma etaExpandValid {f} (ρ := @wk1 Γ F)
   (Vf : [Γ ||-v<l> f : tProd F G | VΓ | VΠFG ]) :
-  [Γ ,, F ||-v<l> eta_expand f : G | VΓF | VG].
+  [Γ ,, F ||-v<l> eta_expand' Γ F f : G | VΓF | VG].
 Proof.
   unshelve epose (VF' := wkValidTy ρ _ _ VF); [|tea|].
   unshelve epose (wkValidTy ρ _ _ VΠFG); [|tea|].
   unshelve epose (wkValidTm ρ _ _ _ Vf); [|tea|].
   eapply irrValidTmRfl; cycle 1.
-  + eapply appcongValid; erewrite <-wk1_ren_on.
-    eapply irrValidTmRfl; tea; reflexivity.
-  + refold; unfold ρ; now erewrite <-wk_up_ren_on, <-subst1_ren_wk_up, var0_wk1_id.
-  Unshelve.
-  1: tea.
-  3: tea.
-  all: refold.
-  1: pose (var0Valid _ VF); now eapply irrValidTmRfl.
-  tea.
+  + unshelve (eapply appcongValid, irrValidTmRfl; tea; symmetry; eapply wk_prod).
+    4: unshelve (eapply irrValidTmRfl, var0Valid; reflexivity); tea.
+    3: eapply wkValidTy with (1:= VΠFG).
+  + eapply wk1_eta.
+  Unshelve. tea.
 Qed.
 
 End LambdaValid.
@@ -526,7 +555,7 @@ Proof. now bsimpl. Qed.
 
 Lemma etaValid {f} (ρ := @wk1 Γ F)
   (Vf : [Γ ||-v<l> f : tProd F G | VΓ | VΠFG ]) :
-  [Γ ||-v<l> (tLambda F (eta_expand f)) ≅ f : tProd F G | VΓ | VΠFG].
+  [Γ ||-v<l> (tLambda F (eta_expand' Γ F f)) ≅ f : tProd F G | VΓ | VΠFG].
 Proof.
   assert [||-v Γ,, F] by now eapply validSnoc.
   unshelve epose (wkValidTm ρ _ _ _ Vf); [|tea|].
@@ -536,16 +565,16 @@ Proof.
   unshelve epose (wkValidTy ρ _ _ VΠFG); [|tea|].
   eapply etaeqValid; tea.
   1: now eapply lamValid, etaExpandValid.
-  unshelve epose (x := betaValid VF'  VG' (t:=(eta_expand f⟨ρ⟩)) (t':=(eta_expand f⟨ρ⟩)) (a:=(tRel 0)) (a':=(tRel 0)) _ _).
+  unshelve epose (x :=
+    betaValid VF'  VG' (t:=(eta_expand' (Γ,,F) F⟨ρ⟩ f⟨ρ⟩)) (t':=(eta_expand' (Γ,,F) F⟨ρ⟩ f⟨ρ⟩))
+      (a:=(tRel 0)) (a':=(tRel 0)) _ _).
   3: eapply irrValidTmRfl; cycle 1.
   + eapply etaExpandValid; now eapply irrValidTmRfl.
   + pose (var0Valid _ VF); now eapply irrValidTmRfl.
-  + cbn -[wk1] in x |- *.
-    rewrite subst_rel0 in x.
-    replace f⟨↑⟩⟨upRen_term_term (wk1 F)⟩ with f⟨ρ⟩⟨↑⟩.
-    2: clear; unfold ρ; now bsimpl.
+  + rewrite to_subst_sound, <- subst_app, <- to_subst_sound, shift_subst1 in x.
+    rewrite <- wk_lam, <- wk_app, <- wk_up_wk1.
     apply x.
-  + rewrite wk_up_wk1_ren_on; now bsimpl.
+  + eapply wk1_eta.
 Qed.
 
 End EtaValid.

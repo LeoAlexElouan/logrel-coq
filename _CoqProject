@@ -16,6 +16,7 @@ theories/Syntax/Context.v
 theories/Syntax/TermNotations.v
 theories/Syntax/NormalForms.v
 theories/Syntax/Weakening.v
+theories/Syntax/WeakeningCompute.v
 theories/Syntax/Substitution.v
 theories/Syntax/UntypedReduction.v
 theories/Syntax/Sections.v
@@ -83,6 +84,7 @@ theories/Validity/Validity.v
 theories/Validity/Irrelevance.v
 theories/Validity/Properties.v
 theories/Validity/ValidityTactics.v
+theories/Validity/Introductions/Context.v
 theories/Validity/Introductions/Universe.v
 theories/Validity/Introductions/Var.v
 theories/Validity/Introductions/Poly.v

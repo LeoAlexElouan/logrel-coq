@@ -157,6 +157,7 @@ Section RedDefinitions.
   Inductive isWfFun (Γ : context) (A B : term) : term -> Set :=
     LamWfFun : forall A' t : term,
       [Γ |- A'] -> [Γ |- A ≅ A'] -> [Γ,, A |- t : B] (*-> [Γ,, A' |- t : B] *) -> isWfFun Γ A B (tLambda A' t)
+  | AlphaWfFun : forall i, [Γ |- tProd A B ≅ arr' Γ tNat tBool ] -> isWfFun Γ A B (tAlpha i)
   | NeWfFun : forall f : term, [Γ |- f ~ f : tProd A B] -> isWfFun Γ A B f.
 
   Inductive isWfPair (Γ : context) (A B : term) : term -> Set :=
@@ -319,7 +320,7 @@ Section GenericTyping.
       [Γ |- hf : P[tFalse..]] ->
       [Γ |- n : tBool] ->
       [Γ |- tBoolElim P ht hf n : P[n..]] ;
-    ty_alpha {Γ i} :
+    ty_alpha {Γ : context} {i : list_index Γ} :
       [|- Γ] ->
       [Γ |- tAlpha i : arr' Γ tNat tBool];
     ty_empty {Γ} :
@@ -469,7 +470,9 @@ Section GenericTyping.
       [|-Γ] -> [Γ |- tTrue ≅ tTrue : tBool] ;
     convtm_false {Γ} :
       [|-Γ] -> [Γ |- tFalse ≅ tFalse : tBool] ;
-    convtm_alpha {Γ i n b} :
+    convtm_alpha {Γ : context} {i : list_index Γ} :
+      [|-Γ] -> [Γ |- tAlpha i ≅ tAlpha i : arr' Γ tNat tBool] ;
+    convtm_digamma {Γ i n b} :
       [|-Γ] ->
       in_Fctx (list_at Γ i) n b -> [Γ |- tApp (tAlpha i) (nat_to_term n) ≅ bool_to_term b : tBool] ;
     convtm_empty {Γ} :
@@ -535,7 +538,7 @@ Section GenericTyping.
         [Γ |- hf ≅ hf' : P[tFalse..]] ->
         [Γ |- n ~ n' : tBool] ->
         [Γ |- tBoolElim P ht hf n ~ tBoolElim P' ht' hf' n' : P[n..]] ;
-    convneu_alpha {Γ t u i n} :
+    convneu_alpha {Γ : context} {i : list_index Γ} {t u n} :
       [ Γ |- t ~ u : tNat ] ->
       [ Γ |- tApp (tAlpha i) (nSucc n t) ~ tApp (tAlpha i) (nSucc n u) : tBool ];
     convneu_emptyElim {Γ P P' e e'} :
@@ -651,7 +654,7 @@ Section GenericTyping.
       [ Γ |- hf : P[tFalse..] ] ->
       [ Γ |- n ⤳* n' : tBool ] ->
       [ Γ |- tBoolElim P ht hf n ⤳* tBoolElim P ht hf n' : P[n..] ];
-    redtm_alphaSubst {Γ t u i n} :
+    redtm_alphaSubst {Γ : context} {i : list_index Γ} {t u n} :
       [ Γ |- t ⤳* u : tNat ] ->
       [ Γ |- tApp (tAlpha i) (nSucc n t) ⤳* tApp (tAlpha i) (nSucc n u) : tBool ] ;
     redtm_alpha {Γ} {i n b} :
@@ -1547,7 +1550,7 @@ Section GenericConsequences.
 
   Lemma isWfFun_isFun : forall Γ A B t, isWfFun Γ A B t -> isFun t.
   Proof.
-  intros * []; constructor; now eapply convneu_whne.
+  intros * []; constructor. now eapply convneu_whne.
   Qed.
 
   Lemma isWfPair_isPair : forall Γ A B t, isWfPair Γ A B t -> isPair t.

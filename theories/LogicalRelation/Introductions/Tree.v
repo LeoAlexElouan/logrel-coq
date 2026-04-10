@@ -151,9 +151,7 @@ Proof.
   eapply wk1_irr.
   { now rewrite subst_ren_subst_up. }
 Qed.
-Lemma up_subst_wk1 Γ Δ A B t σ :
- t[up_subst σ⟨@wk1 Γ A⟩] = t⟨wk_up B (@wk1 Δ A)⟩[up_subst (up_subst σ)].
-Proof. rewrite up_wk1_ren_on. bsimpl. cbn. now bsimpl. Qed.
+
 Lemma elimNodeHypTy_subst {Γ Δ P} σ :
   elimNodeHypTy' Δ P[up_subst σ] = (elimNodeHypTy' Γ P)[σ].
 Proof.

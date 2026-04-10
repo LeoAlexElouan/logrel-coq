@@ -135,7 +135,7 @@ Section Transitivity.
     Definition piRedTmLeft {t} : PiRedTm ΠAB t -> PiRedTm transΠ t.
     Proof.
       intros [?? isfun]; cbn in *; econstructor; tea.
-      destruct isfun as [????? eqbody|]; constructor; tea.
+      destruct isfun as [????? eqbody| |]; constructor; tea.
       intros *.
       eapply SirrLR in ha as ha'.
       specialize (eqbody Δ a b ρ wfΔ ha').
@@ -149,7 +149,7 @@ Section Transitivity.
     Proof.
       intros [?? isfun]; econstructor; cbn in *.
       1: eapply redtmwf_conv; tea; rewrite eqΠ; symmetry; eapply ParamRedTy.eq.
-      destruct isfun as [????? eqbody|]; constructor; tea.
+      destruct isfun as [????? eqbody| |]; constructor; tea.
       - etransitivity; tea; cbn; rewrite eqdom; apply ParamRedTy.eqdom.
       - intros ??? ρ h hab.
         cbn in *; destruct ΠAB as [domA domB' codA codB' redA redBl eqdomAB eqAB polyRedAB]; cbn in *; subst; cbn.
@@ -177,6 +177,7 @@ Section Transitivity.
         + clear oirr. now eapply overtree_PSh.
         + now rewrite wk_comp_assoc.
         + now rewrite wk_comp_assoc; apply overtree_PSh.
+      - cbn in *; etransitivity; tea; rewrite eqΠ; eapply ParamRedTy.eq.
       - eapply convneu_conv; tea; cbn; rewrite eqΠ; symmetry; apply ParamRedTy.eq.
     Defined.
 

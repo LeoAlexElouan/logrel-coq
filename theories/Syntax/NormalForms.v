@@ -10,6 +10,7 @@ Inductive whnf : term -> Type :=
   | whnf_tSort {s} : whnf (tSort s)
   | whnf_tProd {A B} : whnf (tProd A B)
   | whnf_tLambda {A t} : whnf (tLambda A t)
+  | whnf_tAlpha {i} : whnf (tAlpha i)
   | whnf_tNat : whnf tNat
   | whnf_tZero : whnf tZero
   | whnf_tSucc {n} : whnf (tSucc n)
@@ -98,6 +99,7 @@ Inductive isPosType : term -> Type :=
 
 Inductive isFun : term -> Type :=
   | LamFun {A t} : isFun (tLambda A t)
+  | AlphaFun {i} : isFun (tAlpha i)
   | NeFun  {f} : whne f -> isFun f.
 
 Inductive isNat : term -> Type :=
@@ -280,6 +282,7 @@ Inductive isCanonical : term -> Type :=
   | can_tSort {s} : isCanonical (tSort s)
   | can_tProd {A B} : isCanonical (tProd A B)
   | can_tLambda {A t} : isCanonical (tLambda A t)
+  | can_tAlpha {i} : isCanonical (tAlpha i)
   | can_tNat : isCanonical tNat
   | can_tZero : isCanonical tZero
   | can_tSucc {n} : isCanonical (tSucc n)

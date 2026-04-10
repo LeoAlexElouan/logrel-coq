@@ -64,7 +64,7 @@ Section Symmetry.
     Definition symIsLRFun {t} : isLRFun ΠA t <≈> isLRFun symΠ t.
     Proof.
       split.
-      - intros [????? Rbody|].
+      - intros [????? Rbody| |].
         * constructor; tea.
           1: etransitivity; tea; eapply ParamRedTy.eqdom.
           intros.
@@ -72,8 +72,9 @@ Section Symmetry.
           eapply (dSplit_bind_return Rbody).
           intros Ξ wfΞ ρΞ oha' oRbody ohA; cbn in *.
           now unshelve eapply SirrLR, ihcod, Rbody.
+        * constructor; etransitivity; tea. eapply ParamRedTy.eq.
         * constructor; eapply convneu_conv; tea; eapply ParamRedTy.eq.
-      - intros [????? Rbody|].
+      - intros [????? Rbody| |].
         * constructor; tea.
           1: etransitivity; tea; eapply ParamRedTy.eqdom.
           intros ??????.
@@ -81,6 +82,7 @@ Section Symmetry.
           eapply (dSplit_bind_return Rbody).
           intros Ξ wfΞ ρΞ oha' oRbody ohA; cbn in *.
           now unshelve eapply ihcod, SirrLR, Rbody.
+        * constructor; etransitivity; tea. eapply ParamRedTy.eq.
         * constructor; eapply convneu_conv; tea; eapply ParamRedTy.eq.
     Qed.
 

@@ -50,8 +50,8 @@ Section PiValidity.
     pose proof (RG := instKripkeSubst (normRedΠ RΠ').(PolyRed.posRed) _ hd').
     cbn -[wk1 ren_term] in RG. rewrite <- 2!subst_ren_wk_up in RG.
     rewrite 2to_subst_sound, 2subst_comp_on in RG.
-    eapply RG.
-     2!eta_up_single_subst.
+    replace G[_] with G[σ] in RG by now rewrite eta_up_single_subst.
+    now replace G'[_] with G'[σ'] in RG by now rewrite eta_up_single_subst.
   Qed.
 
   Lemma substSΠ {Γ Γ' F F' G G' t u l}
@@ -66,7 +66,7 @@ Section PiValidity.
     (VG : [Γ ,, F ||-v< l > G ≅ G' | validSnoc VΓ VF]) :
     [Γ ||-v< l > tProd F G ≅ tProd F' G' | VΓ].
   Proof.
-    constructor; intros; rewrite 2!subst_prod.
+    constructor; intros; rewrite <- 2!subst_prod.
     set (VF' := VF).
     destruct VF' as [RF'].
     specialize (RF' _ _ _ _ vσσ') as RF.
@@ -79,10 +79,14 @@ Section PiValidity.
       eapply overtree_PSh in oRF.
       now eapply RF.
     + intros Θ a b ρΘ wfΘ Rab.
-      rewrite <- 2!wk_up_ren_subst, 2! eq_subst_2.
-      unshelve (eapply validTyExt; tea); tea; unshelve eapply consWkSubst; tea.
-      eapply irrLREq, (Wpack_return Rab).
-      eapply wk_comp_ren_on.
+      rewrite 2(subst_ren_wk (A:=G)), 2(subst_ren_wk (A:=G')).
+      replace G[_] with G[up_subst σ⟨ρΞ⟩⟨ρΘ⟩] by now rewrite 2eq_upwk.
+      replace G'[_] with G'[up_subst σ'⟨ρΞ⟩⟨ρΘ⟩] by now rewrite 2eq_upwk.
+      rewrite 2to_subst_sound, 2subst_comp_on.
+      unshelve (eapply validTyExt; tea); tea.
+      unshelve eapply consSubst, irrLREq, Wpack_return, Rab.
+      - now unshelve eapply wkSubst, wkSubst.
+      - now rewrite 2subst_ren_wk.
   Qed.
 
 
@@ -96,7 +100,7 @@ Section PiValidity.
     (VGU : [ Γ ,, F ||-v< one > G ≅ G' : U | VΓF | VU' ]) :
     [ Γ ||-v< one > tProd F G ≅ tProd F' G' : U | VΓ | UValid VΓ ].
   Proof.
-    constructor; intros ? wfΔ0 ?? Vσ. cbn -[Wpack].
+    constructor; intros ? wfΔ0 ?? Vσ. rewrite <- 2subst_prod.
     pose proof (univValid zero VFU) as VF0.
     pose proof (univValid zero VGU) as VG0.
     pose (v := validSnoc VΓ (urefl VF)).
@@ -112,9 +116,10 @@ Section PiValidity.
     intros Ξ wfΞ ρΞ RΠ' oLRU.
     unshelve (eapply SirrLREq; [easy|]).
     2:{ eapply (LRU_ (Universe.redUOneCtx wfΞ)). }
+    rewrite <- 2wk_prod.
     unshelve econstructor.
     1,2: econstructor; [apply redtmwf_refl; cbn; eapply ty_prod; tea| constructor].
-    5: cbn in *; refine (convtm_prod _ _ _).
+    5: cbn[URedTm.te]; refine (convtm_prod _ _ _).
     1,5: exact (ty_wk ρΞ wfΞ EscLRlVFU).
     1: exact (ty_wk (wk_up F[σ] ρΞ) (wfc_cons wfΞ (wft_wk ρΞ wfΞ EscLRVF)) EscLRlVGU).
     1: exact (ty_wk ρΞ wfΞ EscRRrVFU).

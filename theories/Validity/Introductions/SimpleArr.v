@@ -18,6 +18,15 @@ Section SimpleArrValidity.
     erewrite <-2!wk1_ren_on.
     now eapply wk1ValidTy.
   Qed.
+  Lemma simpleArr'Valid {l Γ Γ' F F' G G'} (VΓ : [||-v Γ ≅ Γ'])
+    (VF : [Γ ||-v< l > F ≅ F' | VΓ ])
+    (VG : [Γ ||-v< l > G ≅ G' | VΓ]) :
+    [Γ ||-v<l> arr' Γ F G ≅ arr' Γ F' G' | VΓ].
+  Proof.
+    unshelve eapply PiValid; tea.
+    erewrite (wk1_irr (t:=G')).
+    now eapply wk1ValidTy.
+  Qed.
 
   Lemma simple_appValid {Γ Γ' t t' u u' F F' G G' l}
     (VΓ : [||-v Γ ≅ Γ'])
@@ -31,6 +40,20 @@ Section SimpleArrValidity.
     unshelve (eapply irrValidTmRfl;[|now eapply appcongValid]).
     1: now eapply irrValidTmRfl.
     now bsimpl.
+  Qed.
+
+  Lemma simple_app'Valid {Γ Γ' t t' u u' F F' G G' l}
+    (VΓ : [||-v Γ ≅ Γ'])
+    {VF : [Γ ||-v<l> F ≅ F' | VΓ]}
+    (VG : [Γ ||-v<l> G ≅ G' | VΓ])
+    (VΠ : [Γ ||-v<l> arr' Γ F G ≅ arr' Γ F' G' | VΓ])
+    (Vt : [Γ ||-v<l> t ≅ t' : arr' Γ F G | _ | VΠ])
+    (Vu : [Γ ||-v<l> u ≅ u' : F | _ | VF]) :
+    [Γ ||-v<l> tApp t u ≅ tApp t' u' : G| _ | VG].
+  Proof.
+    unshelve (eapply irrValidTmRfl;[|now eapply appcongValid]).
+    1: now eapply irrValidTmRfl.
+    eapply shift_subst1.
   Qed.
 
 End SimpleArrValidity.

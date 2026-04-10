@@ -27,10 +27,11 @@ Lemma validΣcod {Γ Γ' F F' G G' l}
 Proof.
   constructor; intros ? wfΔ ?? [Vσ hd].
   pose proof (RΣ := validTyExt VΣ wfΔ Vσ).
-  rewrite 2!subst_sig in RΣ.
-  rewrite <- 1!(eta_up_single_subst G), <- (eta_up_single_subst G').
-  eapply redΣcodfst, hd.
-  eapply RΣ.
+  rewrite <- 2!subst_sig in RΣ.
+  pose proof (RG := redΣcodfst RΣ hd).
+  rewrite 2to_subst_sound, 2subst_comp_on in RG.
+  replace G[_] with G[σ] in RG by now rewrite eta_up_single_subst.
+  now replace G'[_] with G'[σ'] in RG by now rewrite eta_up_single_subst.
 Qed.
 
 Lemma substSΣ {Γ Γ' F F' G G' t u l}
@@ -72,7 +73,7 @@ Lemma SigValid {Γ Γ' F G F' G' l}
   (VG : [ Γ ,, F ||-v< l > G ≅ G' | validSnoc VΓ VF ])
   : [Γ ||-v< l > tSig F G ≅ tSig F' G' | VΓ].
 Proof.
-  constructor; intros; rewrite 2!subst_sig.
+  constructor; intros; rewrite <- 2!subst_sig.
   set (VF' := VF).
   destruct VF' as [RF'].
   specialize (RF' _ _ _ _ vσσ') as RF.
@@ -85,10 +86,14 @@ Proof.
     eapply overtree_PSh in oRF.
     now eapply RF.
   + intros Θ a b ρΘ wfΘ Rab.
-    rewrite <- 2!wk_up_ren_subst, 2! eq_subst_2.
-    unshelve (eapply validTyExt; tea); tea; unshelve eapply consWkSubst; tea.
-    eapply irrLREq, (Wpack_return Rab).
-    eapply wk_comp_ren_on.
+    rewrite 2(subst_ren_wk (A:=G)), 2(subst_ren_wk (A:=G')).
+    replace G[_] with G[up_subst σ⟨ρΞ⟩⟨ρΘ⟩] by now rewrite 2eq_upwk.
+    replace G'[_] with G'[up_subst σ'⟨ρΞ⟩⟨ρΘ⟩] by now rewrite 2eq_upwk.
+    rewrite 2to_subst_sound, 2subst_comp_on.
+    unshelve (eapply validTyExt; tea); tea.
+    unshelve eapply consSubst, irrLREq, Wpack_return, Rab.
+    - now unshelve eapply wkSubst, wkSubst.
+    - now rewrite 2subst_ren_wk.
 Qed.
 
 End SigmaCongRed.
@@ -107,7 +112,7 @@ Section SigTmValidity.
 
   Lemma sigTmEq {Δ σ σ'} (tΔ : [ |-[ ta ] Δ])
     (Vσσ' : [VΓ | Δ ||-v σ ≅ σ' : _ | tΔ ])
-    : [Δ |-[ ta ] tSig F[σ] G[up_term_term σ] ≅ tSig F'[σ'] G'[up_term_term σ'] : U].
+    : [Δ |-[ ta ] tSig F[σ] G[up_subst σ] ≅ tSig F'[σ'] G'[up_subst σ'] : U].
   Proof.
     pose proof (Vuσ := liftSubst' VF Vσσ').
     instValid Vσσ'; instValid Vuσ; escape.
@@ -188,7 +193,7 @@ Section ProjRed.
     constructor; intros; instValid Vσσ'.
     change (tFst p)[σ] with (tFst p[σ]).
     change (tFst p')[σ'] with (tFst p'[σ']).
-    (unshelve now eapply fstRed; eapply irrLR); refold; now rewrite <-?subst_sig.
+    eapply fstRed, RVp.
   Qed.
 
   Lemma subst_fst {t σ} : tFst t[σ] = (tFst t)[σ].
@@ -198,11 +203,11 @@ Section ProjRed.
     (VGfst := substS VG (fstValid Vp)) :
     [Γ ||-v<l> tSnd p ≅ tSnd p' : _ | VΓ | VGfst].
   Proof.
-    constructor; intros; cbn -[Wpack]; instValid Vσσ'.
-    unshelve (eapply irrLREq; [|now eapply sndRed, irrLR]); refold.
-    4: exact RVΣ.
-    + refold; rewrite 2!subst_fst, <-2!singleSubstComm'; eapply VGfst, Vσσ'.
-    + now rewrite subst_fst, singleSubstComm'.
+    constructor; intros; instValid Vσσ'. rewrite <- 2subst_snd.
+    change (tSig ?F ?G)[?σ] with (tSig F[σ] G[up_subst σ]) in RVp.
+    unshelve eapply irrLREq, sndRed, RVp.
+    now rewrite !subst_ren_subst_up in RVGfst.
+    now rewrite subst_ren_subst_up.
   Qed.
 
 End ProjRed.
@@ -211,15 +216,6 @@ End ProjRed.
 
 Section PairRed.
   Context `{GenericTypingProperties}.
-
-  Lemma subst_sig {A B σ} : (tSig A B)[σ] = (tSig A[σ] B[up_term_term σ]).
-  Proof. reflexivity. Qed.
-
-  Lemma subst_pair {A B a b σ} : (tPair A B a b)[σ] = (tPair A[σ] B[up_term_term σ] a[σ] b[σ]).
-  Proof. reflexivity. Qed.
-
-  Lemma subst_snd {p σ} : (tSnd p)[σ] = tSnd p[σ].
-  Proof. reflexivity. Qed.
 
   Lemma up_subst_single' t a σ : t[up_term_term σ][(a[σ])..] = t[a..][σ].
   Proof. now bsimpl. Qed.
@@ -235,10 +231,10 @@ Section PairRed.
     [Γ ||-v<l> tFst (tPair A B a b) ≅ a : _ | VΓ | VA].
   Proof.
     eapply redSubstValid; tea.
-    constructor; intros; rewrite <-subst_fst, subst_pair.
+    constructor; intros. rewrite <-subst_fst, <- subst_pair.
     instValid Vσσ'; instValid (liftSubst' VA Vσσ'); escape.
     eapply redtm_fst_beta; tea.
-    now rewrite up_subst_single'.
+    now rewrite <- subst_ren_subst_up.
   Qed.
 
   Lemma pairSndValid {Γ Γ' A B a b l}
@@ -256,10 +252,10 @@ Section PairRed.
     eapply redSubstValid; cycle 1.
     + irrValid.
     + constructor; intros.
-      rewrite <-up_subst_single', subst_snd, <-subst_fst, subst_pair.
+      rewrite subst_ren_subst_up, <-subst_snd, <-subst_fst, <- subst_pair.
       instValid Vσσ'; instValid (liftSubst' VA Vσσ'); escape.
       eapply redtm_snd_beta; tea.
-      now rewrite up_subst_single'.
+      now rewrite <- subst_ren_subst_up.
   Qed.
 
 
@@ -273,14 +269,14 @@ Section PairRed.
     (Vb : [Γ ||-v<l> b ≅ b' : B[a..] | VΓ | VBa]) :
     [Γ ||-v<l> tPair A B a b ≅ tPair A' B' a' b' : _ | VΓ | VΣ].
   Proof.
-    constructor; intros; rewrite 2!subst_pair.
+    constructor; intros; rewrite <- 2!subst_pair.
     instValid Vσσ'; instValid (liftSubst' VA Vσσ').
-    eapply irrLREq; [now rewrite subst_sig|].
+    eapply irrLREq; [now rewrite <- subst_sig|].
     eapply pairCongRed; tea.
-    now eapply irrLRConv; tea; rewrite up_subst_single'; eapply lrefl.
+    now eapply irrLRConv; tea; rewrite <-subst_ren_subst_up; eapply lrefl.
     Unshelve.
-    1: now rewrite <-2!subst_sig.
-    now rewrite 2!up_subst_single'.
+    1: assumption.
+    now rewrite <- 2!subst_ren_subst_up.
   Qed.
 
   Lemma pairValid {Γ Γ' A A' B B' a a' b b' l}
@@ -310,16 +306,17 @@ Section PairRed.
     constructor; intros.
     pose proof (substS VB Vfstpp').
     instValid Vσσ'.
-    eapply irrLREq; [now rewrite subst_sig|].
+    rewrite 2subst_ren_subst_up in RX.
+    eapply irrLREq; [now rewrite <- subst_sig|].
     eapply sigEtaRed.
     + now eapply lrefl, irrLR.
     + now eapply urefl, irrLR.
     + tea.
     + eapply irrLREq; tea.
-      now rewrite subst_fst, up_subst_single'.
+      now rewrite subst_ren_subst_up.
     Unshelve.
-    1: now erewrite <-2!subst_sig.
-    now rewrite 2!subst_fst, 2!up_subst_single'.
+    3: eapply RX.
+    tea.
   Qed.
 
 

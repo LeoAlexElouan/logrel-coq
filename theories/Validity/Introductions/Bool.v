@@ -52,16 +52,17 @@ Section BoolElimValid.
     : [Γ ||-v<l> tBoolElim P ht hf n ≅ tBoolElim P' ht' hf' n' : _ | VΓ | VPn].
   Proof.
     constructor; intros; instValid Vσσ'; epose proof (Vuσ := liftSubst' VN Vσσ').
-    instValid Vuσ; cbn -[Wpack] in *.
-    eapply irrLREq. 1: now rewrite singleSubstComm'.
+    instValid Vuσ.
+    eapply irrLREq. 1: now rewrite subst_ren_subst_up.
+    change (tBoolElim ?P ?ht ?hf ?n)[?σ] with (tBoolElim P[up_subst σ] ht[σ] hf[σ] n[σ]).
     unshelve eapply boolElimRedEq; tea.
     2-4: now escape.
     + clear dependent n; clear dependent n'; intros Ξ wfΞ ρΞ ?? Rnn'.
-      rewrite 2eq_upren', 2!up_single_subst; eapply validTyExt; tea.
-      unshelve eapply wkSubst in Vσσ' as VρΞ; tea.
-      now unshelve econstructor.
-    + eapply irrLREq; tea; now rewrite singleSubstComm'.
-    + eapply irrLREq; tea; now rewrite singleSubstComm'.
+      rewrite 2subst_ren_wk, 2to_subst_sound, 2subst_comp_on.
+      unshelve (eapply validTyExt, irrelevanceSubstEqExt, consWkSubstEq; tea); tea.
+      all: now rewrite eq_upwk.
+    + eapply irrLREq; tea; now rewrite subst_ren_subst_up.
+    + eapply irrLREq; tea; now rewrite subst_ren_subst_up.
   Qed.
 End BoolElimValid.
 
@@ -95,22 +96,26 @@ Section BoolElimRedValid.
     [Γ ||-v<l> tBoolElim P ht hf tTrue ≅ ht : _ | VΓ | VPt].
   Proof.
     eapply redSubstValid. 2: now eapply lrefl.
-    constructor; intros; cbn; rewrite singleSubstComm'.
+    constructor; intros.
+    change (tBoolElim P ht hf tTrue)[σ] with (tBoolElim P[up_subst σ] ht[σ] hf[σ] tTrue).
+    rewrite subst_ren_subst_up.
     instValid Vσσ'; instValid (liftSubst' VN Vσσ'); escape.
     eapply redtm_boolElimTrue; tea.
-    + now rewrite <- (singleSubstComm' _ tTrue σ).
-    + now rewrite <- (singleSubstComm' _ tFalse σ).
+    + now rewrite <- (subst_ren_subst_up _ tTrue σ).
+    + now rewrite <- (subst_ren_subst_up _ tFalse σ).
   Qed.
 
   Lemma boolElimFalseValid  :
     [Γ ||-v<l> tBoolElim P ht hf tFalse ≅ hf : _ | VΓ | VPf].
   Proof.
     eapply redSubstValid. 2: now eapply lrefl.
-    constructor; intros; cbn; rewrite singleSubstComm'.
+    constructor; intros.
+    change (tBoolElim P ht hf tFalse)[σ] with (tBoolElim P[up_subst σ] ht[σ] hf[σ] tFalse).
+    rewrite subst_ren_subst_up.
     instValid Vσσ'; instValid (liftSubst' VN Vσσ'); escape.
     eapply redtm_boolElimFalse; tea.
-    + now rewrite <- (singleSubstComm' _ tTrue σ).
-    + now rewrite <- (singleSubstComm' _ tFalse σ).
+    + now rewrite <- (subst_ren_subst_up _ tTrue σ).
+    + now rewrite <- (subst_ren_subst_up _ tFalse σ).
   Qed.
 
 End BoolElimRedValid.

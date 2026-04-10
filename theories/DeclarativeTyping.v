@@ -115,9 +115,9 @@ Section Definitions.
         [Γ |- hf : P[tFalse..]] ->
         [Γ |- n : tBool] ->
         [Γ |- tBoolElim P ht hf n : P[n..]]
-      | wfTermAlpha {Γ i} :
+      | wfTermAlpha {Γ : context} {i : list_index Γ} :
           [|- Γ] ->
-          [ Γ |- tAlpha i : arr tNat tBool]
+          [ Γ |- tAlpha i : arr' Γ tNat tBool]
       | wfTermEmpty {Γ} :
           [|-Γ] ->
           [Γ |- tEmpty : U]
@@ -281,9 +281,9 @@ Section Definitions.
           [Γ |- ht : P[tTrue..]] ->
           [Γ |- hf : P[tFalse..]] ->
           [Γ |- tBoolElim P ht hf tFalse ≅ hf : P[tFalse..]]
-      | TermAlphaCong {Γ i} :
+(*       | TermAlphaCong {Γ : context} i} :
           [|- Γ] ->
-          [ Γ |- tAlpha i ≅ tAlpha i : arr tNat tBool]
+          [ Γ |- tAlpha i ≅ tAlpha i : arr tNat tBool] *)
       | TermAlphaConv {Γ i n b} :
           [|-Γ] ->
           in_Fctx (list_at Γ i) n b -> [ Γ |- tApp (tAlpha i) (nat_to_term n) ≅ bool_to_term b : tBool ]

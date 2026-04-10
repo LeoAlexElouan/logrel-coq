@@ -131,7 +131,7 @@ Section SNatElimRedEq.
         assert (Hcod : forall P n, (arr' (Γ,, tNat) P P⟨@wk_up _ Γ tNat (wk1 tNat)⟩[(tSucc (tRel 0))..])[n..] =
           arr' Γ P[n..] P[(tSucc n)..]).
         { clear dependent P. clear dependent n. intros P n.
-          erewrite <- Weakening.subst_arr'. f_equal; f_equal;
+          erewrite <- WeakeningCompute.subst_arr'. f_equal; f_equal;
           rewrite to_subst_sound, subst_ren_subst_up; f_equal.
           rewrite <- up_to_subst, <- to_subst_sound. now bsimpl. }
         unshelve (eapply irrLREq, appcongTerm; tea);

@@ -91,7 +91,7 @@ Section Weakenings.
   Lemma wk_isLRFun {Γ l A B} (ΠA : [Γ ||-Π< l > A ≅ B]) {t Δ} (ρ : Δ ≤ Γ) (wfΔ : [|- Δ]) :
     isLRFun ΠA t -> isLRFun (wkΠ ρ wfΔ ΠA) t⟨ρ⟩.
   Proof.
-    intros * [? A' t' wtdom convtydom Ht|]; rewrite <-?wk_lam; constructor; tea; refold.
+    intros * [? A' t' wtdom convtydom Ht|i HΠ|]; rewrite <-?wk_lam; constructor; tea; refold.
     + now eapply wft_wk.
     + now eapply convty_wk.
     + intros Ξ a b ρΞ wfΞ *; cbn in *.
@@ -104,6 +104,7 @@ Section Weakenings.
       rewrite wk_comp_ren_on, wk_up_wk_comp; eapply SirrLREq.
       1: now rewrite wk_comp_ren_on, wk_up_wk_comp.
       unshelve eapply Ht; tea.
+    + eapply (convty_wk _ wfΔ HΠ).
     + cbn; rewrite wk_prod; now eapply convneu_wk.
   Qed.
 

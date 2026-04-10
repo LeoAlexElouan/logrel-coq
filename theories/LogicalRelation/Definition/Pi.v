@@ -33,6 +33,7 @@ Inductive isLRFun `{ta : tag} `{WfContext ta}
             ΠA.(PiRedTyPack.codL)⟨wk_up ΠAL ρ⟩[a ..]⟨ρΞ⟩])
         (ΠA.(PolyRedPack.posRed) ρ wfΔ ha)) ->
   isLRFun ΠA (tLambda A' t)
+| AlphaLRFun : forall i, [Γ |- PiRedTyPack.outTy ΠA ≅ arr' Γ tNat tBool] -> isLRFun ΠA (tAlpha i)
 | NeLRFun : forall f : term, [Γ |- f ~ f : PiRedTyPack.outTy ΠA] -> isLRFun ΠA f.
 
 Module PiRedTmEq.
@@ -67,7 +68,7 @@ Module PiRedTmEq.
   Proof.
     intros [?? isfun]; econstructor; tea; destruct isfun.
     1: gtyping.
-    constructor; now eapply convneu_whne.
+    all: constructor; now eapply convneu_whne.
   Defined.
 
   Record PiRedTmEq `{ta : tag} `{WfContext ta}

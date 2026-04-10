@@ -113,7 +113,9 @@ Section TypingWk.
         1: now eapply ihhf.
         now bsimpl.
       * now eapply ihn.
-    - intros; now constructor.
+    - intros.
+      change (tAlpha i)⟨ρ⟩ with (tAlpha (ρ.(Fwk) i)).
+      rewrite <- (ren_index_to_ren ρ). now eapply wfTermAlpha.
     - intros; now constructor.
     - intros * ? ihP ? ihe **; cbn.
       erewrite subst_ren_wk_up; eapply wfTermEmptyElim.
@@ -328,7 +330,6 @@ Section TypingWk.
       * change tFalse with tFalse⟨ρ⟩.
         rewrite <- subst_ren_wk_up.
         now eapply ihhf.
-    - intros; now constructor.
     - intros Γ i n b hΓ _ hin Δ ρ hΔ.
       rewrite <-wk_app, wk_nat_to_term, wk_bool_to_term.
       cbn. rewrite <- (ren_index_to_ren ρ). constructor; tea.
@@ -766,6 +767,7 @@ Module WeakDeclarativeTypingProperties.
   - now do 2 econstructor.
   - now do 2 econstructor.
   - now do 2 econstructor.
+  - now do 2 econstructor.
   - now econstructor.
   - now do 2 econstructor.
   - now do 2 econstructor.
@@ -805,7 +807,7 @@ Module WeakDeclarativeTypingProperties.
   - intros ????? []; split.
     1-2 : now apply whne_tAlphanSucc.
     eapply TermAppArrCong, TermnSuccCong; tea.
-    constructor. boundary.
+    do 2 constructor. boundary.
   - intros ?????? []; split; now econstructor.
   - intros ???????????? []; split; now econstructor.
   - intros ????? []; split; now econstructor.
@@ -879,7 +881,7 @@ Module WeakDeclarativeTypingProperties.
       constructor. boundary.
     + eauto using redalg_alphanSucc, redalg_alpha.
     + eapply TermAppArrCong, TermnSuccCong; tea.
-      constructor. boundary.
+      do 2 constructor. boundary.
   - intros * ??; split.
     + eapply wfTermAppArr, wfTermnattoterm; tea.
       now constructor.
