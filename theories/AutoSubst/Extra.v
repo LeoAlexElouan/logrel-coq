@@ -120,6 +120,18 @@ Definition elimNodeHypTy P :=
     (arr P⟨upRen_term_term ↑⟩⟨upRen_term_term ↑⟩
       P⟨upRen_term_term ↑⟩⟨upRen_term_term ↑⟩[tNode (tRel 2) (tRel 1) (tRel 0)]⇑)))).
 
+
+Instance ell_eqdec : EqDec ell.
+Proof.
+  intros [ℓ wf] [ℓ' wf'].
+  assert (EqDec ell_list) by typeclasses eauto.
+  specialize (X ℓ ℓ').
+  destruct X as [<-|].
+  + left. reflexivity.
+  + right. intros e.
+    eapply n, (f_equal ℓ_list e).
+Qed.
+
 Equations Derive NoConfusion EqDec for sort.
 Equations Derive NoConfusion Subterm EqDec for term.
 
@@ -151,6 +163,10 @@ Fixpoint ren_alpha (ρ : nat -> nat) (t:term) {struct t}: term := match t with
   | tId X x y => tId (ren_alpha ρ X) (ren_alpha ρ x) (ren_alpha ρ y)
   | tRefl X x => tRefl (ren_alpha ρ X) (ren_alpha ρ x)
   | tIdElim A x P hr y e => tIdElim (ren_alpha ρ A) (ren_alpha ρ x) (ren_alpha ρ P) (ren_alpha ρ hr) (ren_alpha ρ y) (ren_alpha ρ e)
+  | tXi ℓ n => tXi ℓ (ren_alpha ρ n)
+  | tXXi ℓ n f => tXXi ℓ (ren_alpha ρ n) (ren_alpha ρ f)
+  | tEval ℓ f => tEval ℓ (ren_alpha ρ f)
+  | tBox ℓ f => tBox ℓ (ren_alpha ρ f)
   end.
 
 (* #[global] Instance Ren1_Alpha :

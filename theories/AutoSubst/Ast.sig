@@ -1,5 +1,6 @@
 sort : Type
 nat : Type
+ell : Type
 
 term(tRel) : Type
 
@@ -38,3 +39,7 @@ tId : term -> term -> term -> term
 tRefl : term -> term -> term
 tIdElim : term -> term -> (bind term , term in term) -> term -> term -> term -> term
 
+tXi : ell -> (bind term in term) -> term
+tXXi : ell -> (bind term in term) -> term -> term
+tEval : ell -> term -> term
+tBox : ell -> term -> term

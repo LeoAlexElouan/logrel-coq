@@ -1,5 +1,5 @@
 (** * LogRel.Syntax.Context: definition of contexts and operations on them.*)
-From Stdlib Require Import ssreflect Morphisms Setoid Logic.StrictProp.
+From Stdlib Require Import ssreflect Morphisms Setoid Logic.StrictProp Lia.
 From LogRel Require Import Utils BasicAst AutoSubst.Extra.
 From Equations Require Import Equations.
 
@@ -9,34 +9,76 @@ Set Primitive Projections.
 (** Context: list of declarations *)
 (** Terms use de Bruijn indices to refer to context entries.*)
 
-Definition Tcontext := list term.
+Fixpoint in_ell (ℓ : ell_list) n b : Prop :=
+  match ℓ with
+  | nil => False
+  | cons (Datatypes.pair n' b') ℓ => ((n = n') /\ (b = b')) \/ (in_ell ℓ n b)
+  end.
+
+Fixpoint notin_ell (ℓ : ell_list) n : Prop :=
+  match ℓ with
+  | nil => True
+  | cons (Datatypes.pair n' _) ℓ => (n <> n') /\ (notin_ell ℓ n)
+  end.
 
 
-Definition preFcontext := list (nat × bool).
-
-Inductive not_in_Fctx : preFcontext -> nat -> SProp :=
-  | not_in_nil n : not_in_Fctx nil n
-  | not_in_nowhere (L : preFcontext) n n' b' :
-    (n <> n') -> not_in_Fctx L n -> (not_in_Fctx (cons (n',b') L) n).
-
-Inductive wfFcontext : preFcontext -> SProp :=
-  | wf_nil : wfFcontext nil
-  | wf_cons {n b L} : wfFcontext L -> not_in_Fctx L n -> wfFcontext (cons (n,b) L).
-
-Record Fcontext :={
-  preFctx :> preFcontext;
-  wfF : wfFcontext preFctx;
-  }.
-
-Record newnat L := {
+Record newnat ℓ := {
   newnat_nat :> nat;
-  newnat_new :> not_in_Fctx L newnat_nat;
+  newnat_new :> Squash (notin_ell ℓ newnat_nat);
   }.
 
-Definition Fcons' (L:Fcontext) (new : newnat L) b : Fcontext
-  := Build_Fcontext (cons (newnat_nat _ new,b) (preFctx L)) (wf_cons (wfF L) new).
 
-Notation Fnil := (Build_Fcontext nil wf_nil).
+Fixpoint cons_ell_list (ℓ : ell_list) (n : nat) (b : bool) : ell_list :=
+  match ℓ as ℓ with
+  | nil => cons (Datatypes.pair n b) nil
+  | cons (Datatypes.pair n' b') ℓ' => match Compare_dec.lt_dec n n' with
+    | left _ => cons (Datatypes.pair n b) ℓ
+    | right _ => cons (Datatypes.pair n' b') (cons_ell_list ℓ' n b)
+    end
+  end.
+
+Lemma lt_lt_ell ℓ n n': n < n' -> lt_ell n' ℓ -> lt_ell n ℓ.
+Proof.
+  intros ltn ltn'.
+  induction ℓ as [| [n'' b''] ℓ ihℓ].
+  + constructor.
+  + cbn in *.
+    constructor.
+    - lia.
+    - now eapply ihℓ.
+Qed.
+
+Lemma lt_cons_ell (ℓ : ell_list) n' b' n : n < n' -> lt_ell n ℓ -> lt_ell n (cons_ell_list ℓ n' b').
+Proof.
+  intros ltnn' ltn.
+  induction ℓ as [|[n'' b''] ℓ ihℓ].
+  + simpl. lia.
+  + simpl in *.
+    destruct (Compare_dec.lt_dec n' n'') as [ltn'n''| nltn'n'']; now simpl.
+Qed.
+
+Lemma cons_ell_wf (ℓ : ell) (new : newnat ℓ) (b : bool) : Squash (ell_wf (cons_ell_list ℓ new b)).
+Proof.
+  destruct ℓ as [ℓ [wf]], new as [n [new]]; constructor; cbn in *.
+  induction ℓ as [|[n' b'] ℓ].
+  + simpl. easy.
+  + simpl.
+    destruct (Compare_dec.lt_dec n n') as [ltnn'| nltnn']; simpl in *.
+    - repeat constructor; try easy.
+      now eapply lt_lt_ell.
+    - constructor.
+      * eapply lt_cons_ell, wf.
+        lia.
+      * now eapply IHℓ.
+Qed.
+
+Definition cons_ell (ℓ: ell) (new : newnat ℓ) b : ell
+  := Build_ell (cons_ell_list ℓ new b) (cons_ell_wf _ _ _).
+
+
+Notation nil_ell := (Build_ell nil (squash I)).
+
+
 
 Inductive list_index' {X : Set} : Set :=
   | index_0 : list_index'
@@ -114,15 +156,37 @@ Coercion index_to_nat : list_index >-> nat.
 
 Definition list_at {A} : forall (l : list A ) (i : list_index l), A := index_induction (fun _ _ => A) (fun h _ => h) (fun _ _ _ a => a).
 
-Definition Fcons (L : list Fcontext) (i : list_index L) :
-  forall (new : newnat (list_at L i)) (b : bool), list Fcontext :=
-  index_induction (fun (L : list Fcontext) i => forall (new : newnat (list_at L i)) (b : bool), list Fcontext)
-    (fun h t new b => cons (Fcons' h new b) t)
+Definition Fcons (L : list ell) (i : list_index L) :
+  forall (new : newnat (list_at L i)) (b : bool), list ell :=
+  index_induction (fun (L : list ell) i => forall (new : newnat (list_at L i)) (b : bool), list ell)
+    (fun h t new b => cons (cons_ell h new b) t)
     (fun h t i IH new b => cons h (IH new b)) L i.
 
+Inductive decl :=
+  | term_decl (t : term)
+  | ell_decl (ℓ : ell).
+Coercion term_decl : term >-> decl.
+Coercion ell_decl : ell >-> decl.
+Equations Derive NoConfusion Subterm EqDec for decl.
+Instance ren_decl : Ren1 (nat -> nat) decl decl := fun ρ d =>
+  match d with
+  | term_decl t => term_decl t⟨ρ⟩
+  | ell_decl ℓ => ell_decl ℓ
+  end.
+#[global]
+Instance ren_decl_morphism :
+ (Proper (respectful (pointwise_relation _ eq) (respectful eq eq))
+    (@ren_decl)).
+Proof.
+  intros ρl ρr ρeq [t|ℓ] dr <-; simpl.
+  + now rewrite ρeq.
+  + reflexivity.
+Qed.
+
+Definition Tcontext := list decl.
 Record context := {
   Tctx :> Tcontext;
-  Fctx :> list Fcontext;
+  Fctx :> list ell;
   }.
 
 Notation nilctx := (Build_context nil nil).
@@ -145,16 +209,16 @@ Lemma cons_Fcons Γ A i new b : Γ,, i : new ↦ b ,, A = Γ,, A ,, i : new ↦ 
 Proof. reflexivity. Qed.
 
 (** States that a definition, correctly weakened, is in a context. *)
-Inductive in_Tctx : Tcontext -> nat -> term -> Type :=
-  | in_here (Γ : Tcontext) A : in_Tctx (cons A Γ) 0 (A⟨↑⟩)
-  | in_there (Γ : Tcontext) A A' n : in_Tctx Γ n A -> in_Tctx (cons A' Γ) (S n) (ren_term shift A).
+Inductive in_Tctx : Tcontext -> nat -> decl -> Type :=
+  | in_here (Γ : Tcontext) (A : decl) : in_Tctx (cons A Γ) 0 (A⟨↑⟩)
+  | in_there (Γ : Tcontext) A A' n : in_Tctx Γ n A -> in_Tctx (cons A' Γ) (S n) (A⟨↑⟩).
 
 Definition in_ctx Γ := in_Tctx (Tctx Γ).
 
-Lemma in_ctx_induction : forall P : forall Γ n A, in_ctx Γ n A -> Type,
+(* Lemma in_ctx_induction : forall P : forall Γ n A, in_ctx Γ n A -> Type,
   (forall Γ A, P (Γ,, A) 0 A⟨↑⟩ (in_here Γ A)) ->
   (forall Γ A A' n (hin : in_ctx Γ n A),
-    P Γ n A hin -> P (Γ,, A') (S n) A⟨↑⟩ (in_there Γ A A' n hin)) ->
+    P Γ n A hin -> P _ (S n) A⟨↑⟩ (in_there Γ A A' n hin)) ->
   forall Γ n A (hin : in_ctx Γ n A), P Γ n A hin.
 Proof.
   intros ? hhere hthere *. change Γ with (Build_context Γ Γ). induction hin.
@@ -162,11 +226,8 @@ Proof.
     eapply hhere.
   + specialize (hthere (Build_context Γ0 Γ)).
     now eapply hthere.
-Qed.
+Qed. *)
 
-Inductive in_Fctx : preFcontext -> nat -> bool -> SProp :=
-  | in_hereF (L : preFcontext) n b : in_Fctx (cons (n,b) L) n b
-  | in_thereF (L : preFcontext) n b n' b' : in_Fctx L n b -> in_Fctx (cons (n', b') L) n b.
 
 
 
@@ -178,24 +239,18 @@ Proof.
   now f_equal.
 Qed.
 
-Lemma Tctx_induction P : (forall L, P (fromFctx L)) -> (forall Γ A, P Γ -> P (Γ,,A)) -> forall Γ, P Γ.
+Lemma Tctx_induction P : (forall L, P (fromFctx L)) ->
+  (forall Γ A, P Γ -> P (Γ,,A)) -> forall Γ, P Γ.
 Proof.
   intros hL hcons [Γ L].
-  induction Γ.
+  induction Γ as [| d Γ].
   - apply hL.
-  - now apply (hcons (Build_context Γ L) a).
+  - now apply (hcons (Build_context Γ L) d).
 Qed.
 
 
 (* Properties of in_Fctx *)
 
-Inductive SFalse : SProp := .
-Inductive STrue : SProp := SI.
-Inductive SAnd (A B : SProp) : SProp := Sconj (a : A) (b : B).
-Definition Spr1 {A B} (p : SAnd A B) : A.
-Proof. now destruct p. Qed.
-Definition Spr2 {A B} (p : SAnd A B) : B.
-Proof. now destruct p. Qed.
 (* Inductive or_tricho {P Q R : SProp} : Type :=
   | in_left (p :P)
   | in_mid (q : Q)
@@ -218,8 +273,8 @@ Definition SIsNil {A} (L : list A) : SProp :=
   end.
 
 Inductive decide_in_type L n : Type :=
-  | is_in b : in_Fctx L n b -> decide_in_type L n
-  | is_notin : not_in_Fctx L n -> decide_in_type L n.
+  | is_in b : Squash (in_ell L n b) -> decide_in_type L n
+  | is_notin : Squash (notin_ell L n) -> decide_in_type L n.
 
 Arguments is_in {_ _}.
 Arguments is_notin {_ _}.
@@ -228,88 +283,101 @@ Lemma decide_in L n : decide_in_type L n.
 Proof.
   induction L as [|[n' b'] L [b hin|hnotin]].
   - right.
-    constructor.
-  - apply (is_in b).
-    now apply in_thereF.
+    repeat constructor.
+  - apply (is_in b). destruct hin; constructor.
+    now simpl.
   - pose proof (PeanoNat.Nat.eq_dec n n') as e.
     destruct e as [<-|].
     + apply (is_in b').
-      constructor.
+      repeat constructor.
     + right.
-      now eapply not_in_nowhere.
+      destruct hnotin; constructor.
+      now simpl.
 Qed.
 
-Lemma notin_is_not_in {L n b} : not_in_Fctx L n -> in_Fctx L n b -> SFalse.
+Lemma notin_is_not_in {L n b} : notin_ell L n -> in_ell L n b -> SFalse.
 Proof.
   intros hnotin hin.
-  induction hin.
-  - inversion hnotin ; subst.
-    easy.
-  - eapply IHhin.
-    now inversion hnotin ; subst.
+  induction L as [|[n' b'] L ihL].
+  + destruct hin.
+  + simpl in *.
+    destruct hin.
+    - lia.
+    - easy.
 Qed.
 
-Lemma not_in_is_notin' {L n} : (in_Fctx L n true -> SFalse) -> (in_Fctx L n false -> SFalse) -> not_in_Fctx L n.
+Lemma not_in_is_notin' {L n} : (in_ell L n true -> SFalse) -> (in_ell L n false -> SFalse) -> notin_ell L n.
 Proof.
   intros hnotint hnotinf.
-  induction L.
+  induction L as [|[n' b'] L ihL].
   + constructor.
-  + destruct a as [n' b'].
+  + simpl in *.
     constructor.
     - intros <-.
       assert SFalse as [].
       destruct b'.
-      * eapply hnotint; constructor.
-      * eapply hnotinf; constructor.
-    - eapply IHL; intros hin.
-      * eapply hnotint, in_thereF, hin.
-      * eapply hnotinf, in_thereF, hin.
+      * eapply hnotint; repeat constructor.
+      * eapply hnotinf; repeat constructor.
+    - easy.
 Qed.
 
-Lemma not_in_is_notin {L n} : (forall b, in_Fctx L n b -> SFalse) -> not_in_Fctx L n.
+Lemma not_in_is_notin {L n} : (forall b, in_ell L n b -> SFalse) -> notin_ell L n.
 Proof.
   intros.
   now eapply not_in_is_notin'.
 Qed.
 
+Lemma lt_notin ℓ n : lt_ell n ℓ -> notin_ell ℓ n.
+Proof.
+  induction ℓ as [|[n' b'] ℓ ihℓ]; simpl; constructor.
+  + lia.
+  + easy.
+Qed.
 
-Lemma functionality (L:Fcontext) n b b': in_Fctx L n b -> in_Fctx L n b' -> b = b'.
+Lemma functionality_inversion (L : ell) n : Squash (in_ell L n true) -> Squash (in_ell L n false) -> SFalse.
+Proof.
+  intros int inf.
+  destruct L as [ L [wfL]].
+  induction L as [|[n' b'] L ihL] in wfL, int, inf |-*; simpl in *.
+  {destruct int as [[]]. }
+  destruct int as [[[-> <-] |int]], inf as [[[en eb]| inf]].
+  + inversion eb.
+  + eapply notin_is_not_in, inf.
+    now eapply lt_notin.
+  + destruct en. eapply notin_is_not_in, int.
+    now eapply lt_notin.
+  + eapply ihL; try easy; constructor; easy.
+Qed.
+
+Lemma functionality (L:ell) n b b': Squash (in_ell L n b) -> Squash (in_ell L n b') -> b = b'.
 Proof.
   intros hin hin'.
   destruct L as [L wfL].
   destruct b, b'; auto.
-  all: enough (H : SFalse) by inversion H; revert hin hin'.
-  + induction wfL; intros hin hin'; inversion hin; subst; inversion hin'; subst.
-    - now eapply notin_is_not_in.
-    - now eapply notin_is_not_in.
-    - easy.
-  + induction wfL; intros hin hin'; inversion hin; subst; inversion hin'; subst.
-    - now eapply notin_is_not_in.
-    - now eapply notin_is_not_in.
-    - easy.
+  all: enough (H : SFalse) by destruct H;
+    now eapply functionality_inversion.
 Qed.
 
-Lemma functionality_inversion (L : Fcontext) n : in_Fctx L n true -> in_Fctx L n false -> SFalse.
-Proof.
-  intros hinf hint.
-  pose proof (functionality _ _ _ _ hinf hint) as eqtf.
-  inversion eqtf.
-Qed.
 
-Lemma decide_in_in (L : Fcontext) n b (hin : in_Fctx L n b) :
+Lemma decide_in_in (L : ell) n b (hin : Squash (in_ell L n b)) :
   decide_in L n = is_in b hin.
 Proof.
   destruct (decide_in L n) as [b' hin'|hnotin].
   - destruct (functionality L n b b' hin hin').
     reflexivity.
-  - destruct (notin_is_not_in hnotin hin).
+  - enough (H : SFalse) by destruct H.
+    destruct hin as [hin], hnotin as [hnotin].
+    destruct (notin_is_not_in hnotin hin).
 Qed.
 
-Lemma decide_in_new (L : Fcontext) (new : newnat L) :
+Lemma decide_in_new (L : ell) (new : newnat L) :
   decide_in L new = is_notin new.
 Proof.
   destruct (decide_in L new) as [b hin|hnotin].
-  - destruct (notin_is_not_in new hin).
+  - enough (H : SFalse) by destruct H.
+    destruct hin as [hin].
+    destruct new as [n [new]].
+    destruct (notin_is_not_in new hin).
   - reflexivity.
 Qed.
 (* 
@@ -353,18 +421,18 @@ Definition Build_context_eq {Γ Γ' L L'} (eΓ : Γ = Γ') (eL : L = L'):
 Lemma Build_context_eq_inv {Γ Γ'} (e : Γ = Γ') : e = Build_context_eq (f_equal Tctx e) (f_equal Fctx e).
 Proof. destruct e; reflexivity. Qed.
 
-Definition Build_Fcontext_eq {L L' wfL wfL'} (eL : L = L'):
-  Build_Fcontext L wfL= Build_Fcontext L' wfL'.
+Definition Build_ell_eq {L L' wfL wfL'} (eL : L = L'):
+  Build_ell L wfL= Build_ell L' wfL'.
 Proof. destruct eL; reflexivity. Defined.
 
-Definition Build_Fcontext_eq_inv {L L'} (eL : L = L'):
-  eL = Build_Fcontext_eq (f_equal preFctx eL).
+Definition Build_ell_eq_inv {L L'} (eL : L = L'):
+  eL = Build_ell_eq (f_equal ℓ_list eL).
 Proof. destruct eL; reflexivity. Qed.
 
-Lemma cons_eq_inversion' {Γ Γ'} {A A': term} {P} (e : cons A Γ = cons A' Γ') : P Γ A eq_refl -> P Γ' A' e.
+Lemma cons_eq_inversion' {Γ Γ' : Tcontext} {d d': decl} {P} (e : cons d Γ = cons d' Γ') : P Γ d eq_refl -> P Γ' d' e.
 Proof.
   intros.
-  change ((match cons A' Γ' with cons A0 Γ0 => fun e => P Γ0 A0 e | _ => fun _ => unit:Type end) e).
+  change ((match cons d' Γ' with cons d0 Γ0 => fun e => P Γ0 d0 e | _ => fun _ => unit:Type end) e).
   now destruct e.
 Qed.
 
@@ -381,16 +449,8 @@ Proof.
 Defined.
 
 
-Instance FctxEqDec : EqDec Fcontext.
-Proof.
-  intros [L wfL] [L' wfL'].
-  destruct (eq_dec L L') as [<-|ne].
-  - left. reflexivity.
-  - right. intros e. apply ne. apply (f_equal preFctx e).
-Qed.
-
-
-Instance ctxqDec : EqDec context.
+Equations Derive NoConfusion Subterm EqDec for context.
+(* Instance ctxqDec : EqDec context.
 Proof.
   intros [Γ L] [Γ' L'].
   destruct (eq_dec Γ Γ') as [<-|neΓ].
@@ -398,26 +458,24 @@ Proof.
   + left; reflexivity.
   + right. intros e. apply neL. apply (f_equal Fctx e).
   + right. intros e. apply neΓ. apply (f_equal Tctx e).
-Qed.
+Qed. *)
 
 (* Inversions *)
 
-Lemma wfFcons_notin {L n b} : wfFcontext (cons (n,b) L) -> not_in_Fctx L n.
+Lemma wfcons_notin {L n b} : ell_wf (cons (Datatypes.pair n b) L) -> notin_ell L n.
 Proof.
-  intros wf.
-  change (match ((n, b)::L)%list  with nil => STrue | cons (pair n b) L => not_in_Fctx L n end).
-  induction wf; easy.
+  simpl; intros wf.
+  eapply lt_notin, wf.
 Qed.
 
-Definition wfFcons_new {L n b} : wfFcontext (cons (n,b) L) -> newnat L :=
-  fun wfL => Build_newnat L n (wfFcons_notin wfL).
+Definition wfFcons_new {L n b} : ell_wf (cons (Datatypes.pair n b) L) -> newnat L :=
+  fun wfL => Build_newnat L n (squash (wfcons_notin wfL)).
 
-Lemma wfFcons_wfF {L n b} : wfFcontext (cons (n,b) L) -> wfFcontext L.
+Lemma wfFcons_wfF {L n b} : ell_wf (cons (Datatypes.pair n b) L) -> ell_wf L.
 Proof.
   intros wf.
-  change (match ((n, b)::L)%list  with nil => STrue | cons (pair n b) L => wfFcontext L end).
-  induction wf; easy.
+  eapply wf.
 Qed.
 
-
-
+(* 
+ *)

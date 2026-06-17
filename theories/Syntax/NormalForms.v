@@ -6,6 +6,23 @@ From LogRel.Syntax Require Import BasicAst Context Computations.
 
 (** ** Weak-head normal forms and neutrals. *)
 
+Inductive whns v k : term -> Type :=
+  | whns_tRel {ℓ} : notin_ell (ℓ : ell) k -> whns v k (tApp (tEval ℓ (tRel v)) (nat_to_term k))
+  | whns_tApp {n t} : whns v k n -> whns v k (tApp n t)
+  | whns_tNatElim {P hz hs n} : whns v k n -> whns v k (tNatElim P hz hs n)
+  | whns_tBoolElim {P ht hf n} : whns v k n -> whns v k (tBoolElim P ht hf n)
+  | whns_tEmptyElim {P e} : whns v k e -> whns v k (tEmptyElim P e)
+  | whns_tTreeElim {P hl hn n} : whns v k n -> whns v k (tTreeElim P hl hn n)
+  | whns_tFst {p} : whns v k p -> whns v k (tFst p)
+  | whns_tSnd {p} : whns v k p -> whns v k (tSnd p)
+  | whns_tIdElim {A x P hr y e} : whns v k e -> whns v k (tIdElim A x P hr y e)
+  | whns_tAlpha {i t k'} : whns v k t -> whns v k (tApp (tAlpha i) (nSucc k' t))
+  | whns_tXi {n ℓ}: whns (S v) k n -> whns v k (tXi ℓ (nSucc k n))
+.
+
+
+(* Equations Derive Signature NoConfusion EqDec for whns. *)
+
 Inductive whnf : term -> Type :=
   | whnf_tSort {s} : whnf (tSort s)
   | whnf_tProd {A B} : whnf (tProd A B)
@@ -26,6 +43,7 @@ Inductive whnf : term -> Type :=
   | whnf_tId {A x y} : whnf (tId A x y)
   | whnf_tRefl {A x} : whnf (tRefl A x)
   | whnf_whne {n} : whne n -> whnf n
+  | whnf_whns {n v k} : whns v k n -> whnf n
 with whne : term -> Type :=
   | whne_tRel {v} : whne (tRel v)
   | whne_tApp {n t} : whne n -> whne (tApp n t)
@@ -36,8 +54,9 @@ with whne : term -> Type :=
   | whne_tFst {p} : whne p -> whne (tFst p)
   | whne_tSnd {p} : whne p -> whne (tSnd p)
   | whne_tIdElim {A x P hr y e} : whne e -> whne (tIdElim A x P hr y e)
-  | whne_tAlpha {i t} : whne t -> whne (tApp (tAlpha i) t)
-  | whne_tAlphaSucc {i t} : whne (tApp (tAlpha i) t) -> whne (tApp (tAlpha i) (tSucc t)).
+  | whne_tAlpha {i t k} : whne t -> whne (tApp (tAlpha i) (nSucc k t))
+(*   | whne_tAlphaSucc {i t} : whne (tApp (tAlpha i) t) -> whne (tApp (tAlpha i) (tSucc t)) *)
+  | whne_tXi {n ℓ k}: whne n -> whne (tXi ℓ (nSucc k n)).
 
 #[global] Hint Constructors whne whnf : gen_typing.
 
@@ -65,14 +84,14 @@ Proof.
 Qed.
 
 
-Lemma whne_tAlphanSucc {i t n} : whne t -> whne (tApp (tAlpha i) (nSucc n t)).
+(* Lemma whne_tAlphanSucc {i t n} : whne t -> whne (tApp (tAlpha i) (nSucc n t)).
 Proof.
   intros hne.
   induction n.
   + now constructor.
   + now (apply whne_tAlphaSucc).
 Qed.
-
+ *)
 #[global] Hint Resolve neSort nePi neLambda : gen_typing.
 
 (** ** Restricted classes of normal forms *)
@@ -242,11 +261,37 @@ Qed.
 
 (** * Unicity of witnesses *)
 
+Lemma whne_nSucc {t t' k k'} : whne t -> whne t' -> nSucc k t = nSucc k' t' -> t = t' /\ k = k'.
+Proof.
+  induction k in t, t', k' |-*; cbn; intros net net'.
+  + intros ->.
+    destruct k'.
+    - split; reflexivity.
+    - inversion net.
+  + destruct k'; cbn.
+    - intros <-.
+      inversion net'.
+    - intros e.
+      inversion e as [e'].
+      specialize (IHk _ _ _ net net' e').
+      now destruct IHk as [[][]].
+Qed.
+
 
 Definition whne_uniq {t} (w1 w2 : whne t) : w1 = w2.
 Proof.
   induction w1. all: depelim w2; f_equal; eauto.
-  all: solve [depelim w1 | now depelim w2].
+  1-2: solve [depelim w1 | now depelim w2].
+  + destruct (whne_nSucc w1 w2 e) as [<- <-].
+    assert (e = eq_refl) as ->.
+    - enough (uip : UIP term) by eapply uip. typeclasses eauto.
+    - cbn in H. symmetry in H. destruct H.
+      f_equal; eauto.
+  + destruct (whne_nSucc w1 w2 e) as [<- <-].
+    assert (e = eq_refl) as ->.
+    - enough (uip : UIP term) by eapply uip. typeclasses eauto.
+    - cbn in H. symmetry in H. destruct H.
+      f_equal; eauto.
 Qed.
 
 Derive Signature for isType.
@@ -306,17 +351,18 @@ Proof.
   inversion Hcan ; subst ; inversion Hne.
 Qed.
 
-Lemma whnf_can_whne t : whnf t <~> isCanonical t + whne t.
+Lemma whnf_can_whne t : whnf t <~> isCanonical t + whne t + ∑ v k, whns v k t.
 Proof.
   split.
   - intros [].
-    all: try solve [left ; now constructor | now right].
-  - intros [[]|[]]; now do 2 constructor.
+    all: try solve [left; left; now constructor | now left; right | now right].
+  - intros [[[]|[]]|[v [k]]]; try now do 2 constructor.
+    now eapply whnf_whns.
 Qed.
 
-Lemma not_can_whne t : whnf t -> ¬ isCanonical t -> whne t.
+(* Lemma not_can_whne t : whnf t -> ¬ isCanonical t -> whne t.
 Proof.
-  intros []%whnf_can_whne ; eauto.
+  intros [[]|]%whnf_can_whne ; eauto.
   now intros [].
 Qed.
 
@@ -325,7 +371,7 @@ Proof.
   intros []%whnf_can_whne ; eauto.
   now intros [].
 Qed.
-
+ *)
 (** ** Stacks *)
 (** A representation of evaluation contexts as lists of destructors with a hole.
   A neutral is exactly a variable in an evaluation context. *)
