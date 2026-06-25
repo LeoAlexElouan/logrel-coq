@@ -8,23 +8,29 @@ Set Primitive Projections.
 (** ** Context declaration *)
 (** Context: list of declarations *)
 (** Terms use de Bruijn indices to refer to context entries.*)
+Inductive SOr (A B : SProp) : SProp :=
+  | SOr_introl : A -> SOr A B
+  | SOr_intror : B -> SOr A B.
 
-Fixpoint in_ell (ℓ : ell_list) n b : Prop :=
+Arguments SOr_introl {_ _}.
+Arguments SOr_intror {_ _}.
+
+Fixpoint in_ell (ℓ : ell_list) n b : SProp :=
   match ℓ with
-  | nil => False
-  | cons (Datatypes.pair n' b') ℓ => ((n = n') /\ (b = b')) \/ (in_ell ℓ n b)
+  | nil => SFalse
+  | cons (Datatypes.pair n' b') ℓ => SOr (SAnd (Squash (n = n')) (Squash (b = b'))) (in_ell ℓ n b)
   end.
 
-Fixpoint notin_ell (ℓ : ell_list) n : Prop :=
+Fixpoint notin_ell (ℓ : ell_list) n : SProp :=
   match ℓ with
-  | nil => True
-  | cons (Datatypes.pair n' _) ℓ => (n <> n') /\ (notin_ell ℓ n)
+  | nil => STrue
+  | cons (Datatypes.pair n' _) ℓ => (SAnd (Squash (n <> n')) (notin_ell ℓ n))
   end.
 
 
 Record newnat ℓ := {
   newnat_nat :> nat;
-  newnat_new :> Squash (notin_ell ℓ newnat_nat);
+  newnat_new :> notin_ell ℓ newnat_nat;
   }.
 
 
@@ -57,9 +63,23 @@ Proof.
     destruct (Compare_dec.lt_dec n' n'') as [ltn'n''| nltn'n'']; now simpl.
 Qed.
 
+Lemma Squash_dec P : Decidable.decidable P -> Squash P -> P.
+Proof.
+  intros [p|np] p'.
+  + eapply p.
+  + enough (H : SFalse) by destruct H.
+    destruct p'. destruct (np p).
+Qed.
+
+Lemma Squash_neq (n n' : nat) : Squash (n <> n') -> n <> n'.
+Proof.
+  eapply Squash_dec,
+    Decidable.dec_not, Peano_dec.dec_eq_nat.
+Qed.
+
 Lemma cons_ell_wf (ℓ : ell) (new : newnat ℓ) (b : bool) : Squash (ell_wf (cons_ell_list ℓ new b)).
 Proof.
-  destruct ℓ as [ℓ [wf]], new as [n [new]]; constructor; cbn in *.
+  destruct ℓ as [ℓ [wf]], new as [n new]; constructor; cbn in *.
   induction ℓ as [|[n' b'] ℓ].
   + simpl. easy.
   + simpl.
@@ -68,12 +88,40 @@ Proof.
       now eapply lt_lt_ell.
     - constructor.
       * eapply lt_cons_ell, wf.
+        destruct new as [ne%Squash_neq new].
         lia.
       * now eapply IHℓ.
 Qed.
 
 Definition cons_ell (ℓ: ell) (new : newnat ℓ) b : ell
   := Build_ell (cons_ell_list ℓ new b) (cons_ell_wf _ _ _).
+
+Notation "A <->S B " := (SAnd (A -> B) (B -> A)) (at level 50).
+
+Lemma in_cons_ell {ℓ new b' n b} : in_ell (cons_ell ℓ new b') n b <->S (SOr (SAnd (Squash (n = new)) (Squash (b = b'))) (in_ell ℓ n b)).
+Proof.
+  destruct new as [n' new], ℓ as [ℓ wf]; cbn in *.
+  induction ℓ as [| [n'' b''] ℓ IHℓ]. 
+  + cbn. constructor; intros H; eapply H.
+  + cbn in *.
+    destruct (Compare_dec.lt_dec n' n'').
+    - cbn. constructor; intros H; eapply H.
+    - cbn.
+      specialize (IHℓ ltac:(now destruct wf; constructor) ltac:(eapply new)).
+      constructor.
+      * intros [ | [ | ]%IHℓ]; [right; left |left | right; right]; tea.
+      * intros [ | [ | ]].
+       ++ right. eapply IHℓ; left; tea.
+       ++ left; tea.
+       ++ right. eapply IHℓ; right; tea.
+Qed.
+
+Lemma in_cons_ell_head {ℓ new b} : in_ell (cons_ell ℓ new b) new b.
+Proof.
+  eapply in_cons_ell.
+  left.
+  repeat constructor.
+Qed.
 
 
 Notation nil_ell := (Build_ell nil (squash I)).
@@ -116,34 +164,8 @@ Fixpoint Sindex_induction {A} (P : forall (l : list A), list_index l -> SProp)
     end
   end.
 
-
-(* 
-Inductive list_index {A} : list A -> Set :=
-  | index_0 h t : list_index (cons h t)
-  | index_S h t (i : list_index t) : list_index (cons h t). *)
-(* Lemma index_case {A : Set} {h: A} {t} P : (P h t (index_0 h t)) -> (forall i, P h t (index_S h t i)) -> forall i, P h t i.
-Proof.
-  intros h0 hS i.
-  revert h0 hS.
-  pattern h, t, i.
-  change (?A h t i) with (match cons h t as l return list_index l -> Type with nil => fun i => unit | cons h' t' => fun i => A h' t' i end i).
-  destruct i; auto.
-Defined.
-Lemma index_caseS {A : Set} {h: A} {t} (P : forall h t i, SProp) : (P h t (index_0 h t)) -> (forall i, P h t (index_S h t i)) -> forall i, P h t i.
-Proof.
-  intros h0 hS i.
-  revert h0 hS.
-  pattern h, t, i.
-  change (?A h t i) with (match cons h t as l return list_index l -> SProp with nil => fun i => sUnit | cons h' t' => fun i => A h' t' i end i).
-  destruct i; auto.
-Qed. *)
-
 Definition index_to_nat {A}  : forall {l : list A}, list_index l -> nat := index_induction _ (fun _ _ => 0) (fun _ _ _ => S).
 
-(* Fixpoint index_to_nat {A} {l : list A} (i : list_index l) (* {struct l} *) := match l as l' return list_index l' -> nat with
-  | nil => fun i => match i with end
-  | cons h t => fun i => match i with index_0 => 0 | index_S i' => S (index_to_nat i') end
-  end i. *)
 Lemma index_to_nat_inj {A}  {l : list A} {i i': list_index l} (ei : index_to_nat i = index_to_nat i') : i = i'.
 Proof.
   induction l, i using index_induction; destruct i';
@@ -182,7 +204,20 @@ Proof.
   + now rewrite ρeq.
   + reflexivity.
 Qed.
-
+Definition ren_alpha_decl ρ d :=
+  match d with 
+  | term_decl t => term_decl (ren_alpha ρ t)
+  | ell_decl ℓ => ell_decl ℓ
+  end.
+#[global]
+Instance ren_alha_decl_morphism :
+ (Proper (respectful (pointwise_relation _ eq) (respectful eq eq))
+    (@ren_alpha_decl)).
+Proof.
+  intros ρl ρr ρeq [t|ℓ] dr <-; simpl.
+  + now rewrite ρeq.
+  + reflexivity.
+Qed.
 Definition Tcontext := list decl.
 Record context := {
   Tctx :> Tcontext;
@@ -200,10 +235,11 @@ Definition fromFctx L := Build_context nil L.
 
 
 Notation "'ε'" := nilctx.
-Notation " Γ ,, d " := (Build_context (cons d (Tctx Γ)) (Fctx Γ)) (at level 20, d at next level).
+Notation " Γ ,, d " := (Build_context (@cons decl d (Tctx Γ)) (Fctx Γ)) (at level 20, d at next level).
 Notation " Γ ,, i : new ↦ b " := (Build_context (Tctx Γ) (Fcons (Fctx Γ) i new b)) (at level 20, new at next level, b at next level).
-Notation " Γ ,, ↦ F" := (Build_context (List.map (ren_alpha S) (Tctx Γ)) (cons F (Fctx Γ))).
+Notation " Γ ,, ↦ F" := (Build_context (List.map (ren_alpha_decl S) (Tctx Γ)) (cons F (Fctx Γ))).
 Notation " Γ ,,, Δ " := (appctx Δ Γ) (at level 25, Δ at next level, left associativity).
+
 
 Lemma cons_Fcons Γ A i new b : Γ,, i : new ↦ b ,, A = Γ,, A ,, i : new ↦ b. 
 Proof. reflexivity. Qed.
@@ -273,8 +309,8 @@ Definition SIsNil {A} (L : list A) : SProp :=
   end.
 
 Inductive decide_in_type L n : Type :=
-  | is_in b : Squash (in_ell L n b) -> decide_in_type L n
-  | is_notin : Squash (notin_ell L n) -> decide_in_type L n.
+  | is_in b : in_ell L n b -> decide_in_type L n
+  | is_notin : notin_ell L n -> decide_in_type L n.
 
 Arguments is_in {_ _}.
 Arguments is_notin {_ _}.
@@ -284,15 +320,12 @@ Proof.
   induction L as [|[n' b'] L [b hin|hnotin]].
   - right.
     repeat constructor.
-  - apply (is_in b). destruct hin; constructor.
-    now simpl.
+  - apply (is_in b). now right.
   - pose proof (PeanoNat.Nat.eq_dec n n') as e.
     destruct e as [<-|].
     + apply (is_in b').
       repeat constructor.
-    + right.
-      destruct hnotin; constructor.
-      now simpl.
+    + now right; cbn; repeat constructor.
 Qed.
 
 Lemma notin_is_not_in {L n b} : notin_ell L n -> in_ell L n b -> SFalse.
@@ -302,7 +335,8 @@ Proof.
   + destruct hin.
   + simpl in *.
     destruct hin.
-    - lia.
+    - now destruct hnotin as [[ne] _],
+        s as [[e] _].
     - easy.
 Qed.
 
@@ -313,12 +347,14 @@ Proof.
   + constructor.
   + simpl in *.
     constructor.
-    - intros <-.
+    - repeat constructor. intros <-.
       assert SFalse as [].
       destruct b'.
       * eapply hnotint; repeat constructor.
       * eapply hnotinf; repeat constructor.
-    - easy.
+    - eapply ihL; intros inL.
+      * eapply hnotint; right; eapply inL.
+      * eapply hnotinf; right; eapply inL.
 Qed.
 
 Lemma not_in_is_notin {L n} : (forall b, in_ell L n b -> SFalse) -> notin_ell L n.
@@ -330,17 +366,17 @@ Qed.
 Lemma lt_notin ℓ n : lt_ell n ℓ -> notin_ell ℓ n.
 Proof.
   induction ℓ as [|[n' b'] ℓ ihℓ]; simpl; constructor.
-  + lia.
+  + repeat constructor. lia.
   + easy.
 Qed.
 
-Lemma functionality_inversion (L : ell) n : Squash (in_ell L n true) -> Squash (in_ell L n false) -> SFalse.
+Lemma functionality_inversion (L : ell) n : in_ell L n true -> in_ell L n false -> SFalse.
 Proof.
   intros int inf.
   destruct L as [ L [wfL]].
   induction L as [|[n' b'] L ihL] in wfL, int, inf |-*; simpl in *.
-  {destruct int as [[]]. }
-  destruct int as [[[-> <-] |int]], inf as [[[en eb]| inf]].
+  {destruct int. }
+  destruct int as [[[->] [<-]] |int], inf as [[[en] [eb]]| inf].
   + inversion eb.
   + eapply notin_is_not_in, inf.
     now eapply lt_notin.
@@ -349,7 +385,7 @@ Proof.
   + eapply ihL; try easy; constructor; easy.
 Qed.
 
-Lemma functionality (L:ell) n b b': Squash (in_ell L n b) -> Squash (in_ell L n b') -> b = b'.
+Lemma functionality (L:ell) n b b': in_ell L n b -> in_ell L n b' -> b = b'.
 Proof.
   intros hin hin'.
   destruct L as [L wfL].
@@ -358,15 +394,50 @@ Proof.
     now eapply functionality_inversion.
 Qed.
 
+(* Lemma decide_in_irr (ℓ : ell) n (in1 in2 : decide_in_type ℓ n) : in1 = in2.
+Proof.
+  destruct in1, in2.
+  + destruct (functionality _ _ _ _ (squash i) (squash i0)).
+    f_equal.
+    destruct ℓ as [ℓ wf].
+    induction ℓ as [| [n' b'] ℓ ihℓ]; cbn in *.
+    - destruct i.
+    - destruct i, i0.
+      * f_equal.
+        destruct a, a0; f_equal.
+       ++ enough (H : UIP nat) by eapply H.
+        typeclasses eauto.
+       ++ enough (H : UIP bool) by eapply H.
+        typeclasses eauto.
+      * enough (H : SFalse) by destruct H.
+        destruct wf, a as [<- <-]. eapply notin_is_not_in, i. 
+        eapply lt_notin, a0.
+      * enough (H : SFalse) by destruct H.
+        destruct wf, a as [<- <-]. eapply notin_is_not_in, i. 
+        eapply lt_notin, a0.
+      * f_equal.
+        eapply ihℓ.
+        destruct wf. now constructor.
+  + enough (H : SFalse) by destruct H.
+    now eapply notin_is_not_in.
+  + enough (H : SFalse) by destruct H.
+    now eapply notin_is_not_in.
+  + f_equal.
+    destruct ℓ as [ℓ wf].
+    induction ℓ as [| [n' b'] ℓ ihℓ]; cbn in *.
+    - now destruct n0, n1.
+    - destruct n0, n1; f_equal.
+      * now destruct b, b0; f_equal.
+      * eapply ihℓ.
+        destruct wf; now constructor.
+Qed. *)
 
-Lemma decide_in_in (L : ell) n b (hin : Squash (in_ell L n b)) :
+Lemma decide_in_in (L : ell) n b (hin : in_ell L n b) :
   decide_in L n = is_in b hin.
 Proof.
   destruct (decide_in L n) as [b' hin'|hnotin].
-  - destruct (functionality L n b b' hin hin').
-    reflexivity.
+  - now destruct (functionality L n b b' hin hin').
   - enough (H : SFalse) by destruct H.
-    destruct hin as [hin], hnotin as [hnotin].
     destruct (notin_is_not_in hnotin hin).
 Qed.
 
@@ -375,9 +446,9 @@ Lemma decide_in_new (L : ell) (new : newnat L) :
 Proof.
   destruct (decide_in L new) as [b hin|hnotin].
   - enough (H : SFalse) by destruct H.
-    destruct hin as [hin].
-    destruct new as [n [new]].
-    destruct (notin_is_not_in new hin).
+(*     destruct hin as [hin]. *)
+    destruct new as [n new].
+    now eapply notin_is_not_in.
   - reflexivity.
 Qed.
 (* 
@@ -469,7 +540,7 @@ Proof.
 Qed.
 
 Definition wfFcons_new {L n b} : ell_wf (cons (Datatypes.pair n b) L) -> newnat L :=
-  fun wfL => Build_newnat L n (squash (wfcons_notin wfL)).
+  fun wfL => Build_newnat L n ( (wfcons_notin wfL)).
 
 Lemma wfFcons_wfF {L n b} : ell_wf (cons (Datatypes.pair n b) L) -> ell_wf L.
 Proof.

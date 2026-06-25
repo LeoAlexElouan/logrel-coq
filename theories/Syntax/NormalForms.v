@@ -1,27 +1,47 @@
 (** * LogRel.Syntax.NormalForms: definition of normal and neutral forms, and properties. *)
-From Stdlib Require Import ssrbool.
+From Stdlib Require Import ssrbool Logic.StrictProp.
 From Equations Require Import Equations. (* for depelim *)
 From LogRel Require Import AutoSubst.Extra Utils.
 From LogRel.Syntax Require Import BasicAst Context Computations.
 
 (** ** Weak-head normal forms and neutrals. *)
+Section NormalForms.
+  Context {red : term -> term -> Type}.
 
-Inductive whns v k : term -> Type :=
-  | whns_tRel {ℓ} : notin_ell (ℓ : ell) k -> whns v k (tApp (tEval ℓ (tRel v)) (nat_to_term k))
-  | whns_tApp {n t} : whns v k n -> whns v k (tApp n t)
-  | whns_tNatElim {P hz hs n} : whns v k n -> whns v k (tNatElim P hz hs n)
-  | whns_tBoolElim {P ht hf n} : whns v k n -> whns v k (tBoolElim P ht hf n)
-  | whns_tEmptyElim {P e} : whns v k e -> whns v k (tEmptyElim P e)
-  | whns_tTreeElim {P hl hn n} : whns v k n -> whns v k (tTreeElim P hl hn n)
-  | whns_tFst {p} : whns v k p -> whns v k (tFst p)
-  | whns_tSnd {p} : whns v k p -> whns v k (tSnd p)
-  | whns_tIdElim {A x P hr y e} : whns v k e -> whns v k (tIdElim A x P hr y e)
-  | whns_tAlpha {i t k'} : whns v k t -> whns v k (tApp (tAlpha i) (nSucc k' t))
-  | whns_tXi {n ℓ}: whns (S v) k n -> whns v k (tXi ℓ (nSucc k n))
-.
+Inductive whns {k v : nat} : term -> Type :=
+  | whns_tEval {ℓ} : notin_ell (ℓ : ell) k -> whns (tApp (tEval ℓ (tRel v)) (nat_to_term k))
+  | whns_tApp {n t} : whns n -> whns (tApp n t)
+  | whns_tNatElim {P hz hs n} : whns n -> whns (tNatElim P hz hs n)
+  | whns_tBoolElim {P ht hf n} : whns n -> whns (tBoolElim P ht hf n)
+  | whns_tEmptyElim {P e} : whns e -> whns (tEmptyElim P e)
+  | whns_tTreeElim {P hl hn n} : whns n -> whns (tTreeElim P hl hn n)
+  | whns_tFst {p} : whns p -> whns (tFst p)
+  | whns_tSnd {p} : whns p -> whns (tSnd p)
+  | whns_tIdElim {A x P hr y e} : whns e -> whns (tIdElim A x P hr y e)
+  | whns_tAlpha {i t n} : whns t -> whns (tApp (tAlpha i) (nSucc n t))
+  | whns_tXi {n ℓ k'} : whns (v := S v) n -> whns (tXi ℓ (nSucc k' n))
+  | whns_tXXi {m n ℓ k'} : whns (v := S v) m -> whns (tXXi ℓ (nSucc k' m) n)
+  | whns_tXXiRed ℓ m n n' k' km : @whns k' 0 m -> notin_ell (ℓ : ell) k' ->
+    red (tApp (tEval ℓ n) (nat_to_term k')) n' -> whns n' ->
+    whns (tXXi ℓ (nSucc km m) n).
+Arguments whns : clear implicits.
 
-
-(* Equations Derive Signature NoConfusion EqDec for whns. *)
+Inductive whne : term -> Type :=
+  | whne_tRel {v} : whne (tRel v)
+  | whne_tApp {n t} : whne n -> whne (tApp n t)
+  | whne_tNatElim {P hz hs n} : whne n -> whne (tNatElim P hz hs n)
+  | whne_tBoolElim {P ht hf n} : whne n -> whne (tBoolElim P ht hf n)
+  | whne_tEmptyElim {P e} : whne e -> whne (tEmptyElim P e)
+  | whne_tTreeElim {P hl hn n} : whne n -> whne (tTreeElim P hl hn n)
+  | whne_tFst {p} : whne p -> whne (tFst p)
+  | whne_tSnd {p} : whne p -> whne (tSnd p)
+  | whne_tIdElim {A x P hr y e} : whne e -> whne (tIdElim A x P hr y e)
+  | whne_tAlpha {i t k} : whne t -> whne (tApp (tAlpha i) (nSucc k t))
+  | whne_tXi {n ℓ k} : whne n -> whne (tXi ℓ (nSucc k n))
+  | whne_tXXi {m n ℓ k} : whne m -> whne (tXXi ℓ (nSucc k m) n)
+  | whne_tXXiRed {ℓ m n n' k km} : whns k 0 m -> notin_ell (ℓ : ell) k ->
+      red (tApp (tEval ℓ n) (nat_to_term k)) n' -> whne n' ->
+      whne (tXXi ℓ (nSucc km m) n).
 
 Inductive whnf : term -> Type :=
   | whnf_tSort {s} : whnf (tSort s)
@@ -43,23 +63,11 @@ Inductive whnf : term -> Type :=
   | whnf_tId {A x y} : whnf (tId A x y)
   | whnf_tRefl {A x} : whnf (tRefl A x)
   | whnf_whne {n} : whne n -> whnf n
-  | whnf_whns {n v k} : whns v k n -> whnf n
-with whne : term -> Type :=
-  | whne_tRel {v} : whne (tRel v)
-  | whne_tApp {n t} : whne n -> whne (tApp n t)
-  | whne_tNatElim {P hz hs n} : whne n -> whne (tNatElim P hz hs n)
-  | whne_tBoolElim {P ht hf n} : whne n -> whne (tBoolElim P ht hf n)
-  | whne_tEmptyElim {P e} : whne e -> whne (tEmptyElim P e)
-  | whne_tTreeElim {P hl hn n} : whne n -> whne (tTreeElim P hl hn n)
-  | whne_tFst {p} : whne p -> whne (tFst p)
-  | whne_tSnd {p} : whne p -> whne (tSnd p)
-  | whne_tIdElim {A x P hr y e} : whne e -> whne (tIdElim A x P hr y e)
-  | whne_tAlpha {i t k} : whne t -> whne (tApp (tAlpha i) (nSucc k t))
-(*   | whne_tAlphaSucc {i t} : whne (tApp (tAlpha i) t) -> whne (tApp (tAlpha i) (tSucc t)) *)
-  | whne_tXi {n ℓ k}: whne n -> whne (tXi ℓ (nSucc k n)).
+  | whnf_whns {n v k} : @whns k v n -> whnf n.
 
-#[global] Hint Constructors whne whnf : gen_typing.
+(* #[global] Hint Constructors whne whnf : gen_typing. *)
 
+Equations Derive Signature for whns.
 Equations Derive Signature for whne.
 
 Ltac inv_whne :=
@@ -92,7 +100,7 @@ Proof.
   + now (apply whne_tAlphaSucc).
 Qed.
  *)
-#[global] Hint Resolve neSort nePi neLambda : gen_typing.
+(* #[global] Hint Resolve neSort nePi neLambda : gen_typing. *)
 
 (** ** Restricted classes of normal forms *)
 
@@ -191,8 +199,8 @@ Definition isId_whnf t (i : isId t) : whnf t :=
   | NeId n => whnf_whne n
   end.
 
-#[global] Hint Resolve isPosType_isType isType_whnf isFun_whnf isNat_whnf isBool_whnf isTree_whnf isPair_whnf isId_whnf : gen_typing.
-#[global] Hint Constructors isPosType isType isFun isNat isBool isTree isId : gen_typing.
+(* #[global] Hint Resolve isPosType_isType isType_whnf isFun_whnf isNat_whnf isBool_whnf isTree_whnf isPair_whnf isId_whnf : gen_typing. *)
+(* #[global] Hint Constructors isPosType isType isFun isNat isBool isTree isId : gen_typing. *)
 
 Equations Derive Signature for isNat.
 
@@ -263,40 +271,150 @@ Qed.
 
 Lemma whne_nSucc {t t' k k'} : whne t -> whne t' -> nSucc k t = nSucc k' t' -> t = t' /\ k = k'.
 Proof.
-  induction k in t, t', k' |-*; cbn; intros net net'.
-  + intros ->.
-    destruct k'.
-    - split; reflexivity.
-    - inversion net.
-  + destruct k'; cbn.
-    - intros <-.
-      inversion net'.
-    - intros e.
-      inversion e as [e'].
-      specialize (IHk _ _ _ net net' e').
-      now destruct IHk as [[][]].
+  intros net net' [[<- <-]| [(n'&->&<-)|(n&<-&->)]]%nSucc_eq_inv.
+  + easy.
+  + inversion net.
+  + inversion net'.
+Qed.
+
+  #[local] Ltac nSucc_handler :=
+  try match goal with
+  | eq : nSucc ?k ?t = nSucc ?k' ?t' |- _ =>
+      eapply nSucc_eq_inv in eq as [[<- <-] | [(?&->&<-)|(?&<-&->)]]
+  end.
+
+Definition whns_uniq_kv {t} {k1 v1 k2 v2} (w1 : whns k1 v1 t) (w2 : whns k2 v2 t) : k1 = k2 /\ v1 = v2.
+Proof.
+  induction w1 in k2, v2, w2 |-*. all: depelim w2; nSucc_handler.
+  all: try solve [inversion w1 | inversion w2].
+  all: try (specialize (IHw1 _ _ ltac:(tea)) as (<-&ev);
+    now inversion ev).
+  + eapply nat_to_term_inj in H as <-.
+    repeat constructor.
+  + inversion w2_1.
+  + specialize (IHw1_1 _ _ w2)as (<-&ev).
+    inversion ev.
+  + inversion w1_1.
+  + specialize (IHw1_1 _ _ w2_1) as [-> _]; clear w2_1.
+    assert (n' = n'0) as <- by admit.
+    now specialize (IHw1_2 _ _ w2_2). 
+  + inversion w1_1.
+  + inversion w2_1.
+Admitted.
+
+Definition whns_uniq {t} k1 v1 k2 v2 (w1 : whns k1 v1 t) (w2 : whns k2 v2 t) :
+  exists (ek : k1 = k2) (ev : v1 = v2), eq_rect _ (fun v => whns k2 v t) (eq_rect _ (fun k => whns k v1 t) w1 _ ek) _ ev = w2.
+Proof.
+  induction w1 in v2, w2 |-*. all: depelim w2.
+  all: try solve [inversion w1 | inversion w2].
+  all: try (specialize (IHw1 v2 w2) as (<-&<-&<-);
+    solve [repeat unshelve econstructor]).
+  + pose proof (nat_to_term_inj e) as <-.
+    assert (e = eq_refl) as -> by
+      (enough (uip : UIP term) by eapply uip; typeclasses eauto).
+    cbn in H; symmetry in H; destruct H.
+    repeat unshelve econstructor.
+  + pose proof (nSucc_eq_inv e) as [[<- <-] | [(?&->&<-)|(?&<-&->)]].
+    - assert (e = eq_refl) as -> by
+        (enough (uip : UIP term) by eapply uip; typeclasses eauto).
+      cbn in H; symmetry in H; destruct H.
+      specialize (IHw1 v2 w2) as (<-&<-&<-).
+      repeat unshelve econstructor.
+    - inversion w1.
+    - inversion w2.
+  + pose proof (nSucc_eq_inv e) as [[<- <-] | [(?&->&<-)|(?&<-&->)]].
+    - assert (e = eq_refl) as -> by
+        (enough (uip : UIP term) by eapply uip; typeclasses eauto).
+      cbn in H; symmetry in H; destruct H.
+      specialize (IHw1 _ w2) as (<-&ev&ew).
+      inversion ev; subst.
+      assert (ev = eq_refl) as -> by
+        (enough (uip : UIP _) by eapply uip; typeclasses eauto).
+      repeat unshelve econstructor.
+    - 
+      speci
+    inversion w0; subst.
+    { inversion X. }
+    specialize (IHw1 w2) as (<-&<-&<-).
+  + specialize (IHw1 w2) as (<-&<-&<-).
+    repeat unshelve econstructor.
+  + specialize (IHw1 w2) as (<-&<-&<-).
+    repeat unshelve econstructor.
+  + 
+
+Lemma whne_whns_false {t k v} : whne t -> whns k v t -> False.
+Proof.
+  intros net nst.
+  induction net in k, v, nst |-*.
+  1-13 : depelim nst; nSucc_handler; eauto.
+  all: try solve [inversion net|inversion nst].
+  + inversion nst1.
+  + admit.
+  + inversion w.
+  + admit.
+  + inversion w.
+  + inversion nst1.
+  inversion nst; subst.
+    assert (k = k0) as -> by admit.
+    assert (v = 0) as -> by admit.
+    
+    depelim nst.
+    specialize (hred _ _ _ _ n0 r) as ->.
+    inversion net; subst.
+    inversion X.
 Qed.
 
 
-Definition whne_uniq {t} (w1 w2 : whne t) : w1 = w2.
+
+Definition whne_uniq {t} (hred : red_notin) (w1 w2 : whne t) : w1 = w2.
 Proof.
   induction w1. all: depelim w2; f_equal; eauto.
   1-2: solve [depelim w1 | now depelim w2].
   + destruct (whne_nSucc w1 w2 e) as [<- <-].
-    assert (e = eq_refl) as ->.
-    - enough (uip : UIP term) by eapply uip. typeclasses eauto.
-    - cbn in H. symmetry in H. destruct H.
-      f_equal; eauto.
+    assert (e = eq_refl) as -> by
+      (enough (uip : UIP term) by eapply uip; typeclasses eauto).
+    cbn in H; symmetry in H; destruct H.
+    f_equal; eauto.
   + destruct (whne_nSucc w1 w2 e) as [<- <-].
-    assert (e = eq_refl) as ->.
-    - enough (uip : UIP term) by eapply uip. typeclasses eauto.
-    - cbn in H. symmetry in H. destruct H.
-      f_equal; eauto.
+    assert (e = eq_refl) as -> by
+      (enough (uip : UIP term) by eapply uip; typeclasses eauto).
+    cbn in H; symmetry in H; destruct H.
+    f_equal; eauto.
+  + destruct (whne_nSucc w1 w2 e') as [<- <-].
+    assert (e' = eq_refl) as -> by
+      (enough (uip : UIP term) by eapply uip; typeclasses eauto).
+    cbn in H; symmetry in H; destruct H.
+    f_equal; eauto.
+  + eapply nSucc_eq_inv in e' as e''.
+    destruct e'' as [[<- <-] | [(?&->&<-)|(?&<-&->)]].
+    - assert (e' = eq_refl) as -> by
+        (enough (uip : UIP term) by eapply uip; typeclasses eauto).
+      cbn in H; symmetry in H; destruct H.
+      destruct (whne_whns_false hred w1 w).
+    - inversion w1.
+    - inversion w.
+  + eapply nSucc_eq_inv in e' as e''.
+    destruct e'' as [[<- <-] | [(?&->&<-)|(?&<-&->)]].
+    - assert (e' = eq_refl) as -> by
+        (enough (uip : UIP term) by eapply uip; typeclasses eauto).
+      cbn in H; symmetry in H; destruct H.
+      destruct (whne_whns_false hred w2 w).
+    - inversion w.
+    - inversion w2.
+  + eapply nSucc_eq_inv in e' as e''.
+    destruct e'' as [[<- <-] | [(?&->&<-)|(?&<-&->)]].
+    - assert (e' = eq_refl) as -> by
+        (enough (uip : UIP term) by eapply uip; typeclasses eauto).
+      cbn in H; symmetry in H; destruct H.
+      specialize (hred _ _ _ _ n0 r) as ->.
+      inversion w1. inversion X.
+    - inversion w.
+    - inversion w2.
 Qed.
 
 Derive Signature for isType.
 
-Definition isType_uniq {A} (w1 w2 : isType A) : w1 = w2.
+(* Definition isType_uniq {A} (w1 w2 : isType A) : w1 = w2.
 Proof.
   destruct w1; depelim w2; try reflexivity; try solve [inv_whne].
   f_equal; now eapply whne_uniq.
@@ -318,7 +436,7 @@ Lemma isId_uniq {t} (p q : isId t) : p = q.
 Proof.
   destruct p; depind q; try easy; try now inversion w.
   f_equal; eapply whne_uniq.
-Qed. 
+Qed.  *)
 
 
 (** ** Canonical forms *)
@@ -343,21 +461,20 @@ Inductive isCanonical : term -> Type :=
   | can_tId {A x y}: isCanonical (tId A x y)
   | can_tRefl {A x}: isCanonical (tRefl A x).
 
-#[global] Hint Constructors isCanonical : gen_typing.
+(* #[global] Hint Constructors isCanonical : gen_typing. *)
 
 Lemma can_whne_exclusive t : isCanonical t -> whne t -> False.
 Proof.
   intros Hcan Hne.
   inversion Hcan ; subst ; inversion Hne.
 Qed.
-
-Lemma whnf_can_whne t : whnf t <~> isCanonical t + whne t + ∑ v k, whns v k t.
+(* 
+Lemma whnf_can_whne t : whnf t <~> isCanonical t + whne t + { k & {v & whns k v t}}.
 Proof.
   split.
   - intros [].
-    all: try solve [left; left; now constructor | now left; right | now right].
-  - intros [[[]|[]]|[v [k]]]; try now do 2 constructor.
-    now eapply whnf_whns.
+    all: try solve [left; now constructor | now right].
+  - intros [[]|[]]; try now do 2 constructor.
 Qed.
 
 (* Lemma not_can_whne t : whnf t -> ¬ isCanonical t -> whne t.
@@ -425,48 +542,81 @@ Variant bool_entry : term -> Type :=
 Variant tree_entry : term -> Type :=
 | eLeaf n : tree_entry (tLeaf n)
 | eNode n tl tr : tree_entry (tNode n tl tr).
-
+ *)
 (** ** Normal and neutral forms are stable by renaming *)
 
 Section RenWhnf.
 
+Lemma ren_nSucc_inv {ρ k t t'} : nSucc k t = t'⟨ρ⟩ -> {u | t = u⟨ρ⟩ /\ t' = nSucc k u}.
+Proof.
+  induction k as [|k] in ρ, t, t' |-*; cbn.
+  + intros ->. now exists t'.
+  + intros e.
+    destruct t'; cbn in *; try solve [congruence].
+    inversion e as [e']; clear e.
+    specialize (IHk _ _ _ e').
+    destruct IHk as [ u [-> ->]].
+    now exists u.
+Qed.
+
+
   #[local] Ltac push_renaming :=
-  repeat match goal with
-  | eq : _ = ?t⟨_;_⟩ |- _ =>
+  (* repeat *) match goal with
+  | eq : _ = ?t⟨_⟩ |- _ =>
       destruct t ; cbn in * ; try solve [congruence] ;
       inversion eq ; subst ; clear eq
   end.
+(* 
+  Variable (ρ (* ρε *): nat -> nat).
 
-  Variable (ρ ρε: nat -> nat).
-
-  Lemma whne_ren t : whne (t⟨ρ; ρε⟩) <~> whne t.
+  Lemma whne_ren t : whne t -> whne t⟨ρ⟩. (* whne (t⟨ρ(* ; ρε *)⟩) <~> whne t. *)
   Proof.
-    split.
-    - remember t⟨ρ; ρε⟩ as t'.
+(*     split.
+    - remember t⟨ρ(* ; ρε *)⟩ as t'.
       intros Hne.
-      induction Hne in t, Heqt' |- * ; cbn.
-      all: try (push_renaming; econstructor ; now eauto).
-    - induction 1 ; cbn.
-      all: now econstructor.
-  Qed.
+      induction Hne in ρ, t, Heqt' |- * ; cbn.
+      1-9: try (repeat push_renaming; econstructor ; now eauto).
+      + push_renaming.
+        eapply ren_nSucc_inv in H1.
+        destruct H1 as [u [-> ->]].
+        push_renaming.
+        now eapply whne_tAlpha, IHHne.
+      + push_renaming.
+        eapply ren_nSucc_inv in H1 as [u [-> ->]].
+        now eapply whne_tXi, IHHne.
+      + push_renaming.
+        eapply ren_nSucc_inv in H1 as [u [-> ->]].
+        now eapply whne_tXXi, IHHne.
+      + push_renaming.
+        eapply ren_nSucc_inv in H1 as [u [-> ->]].
+        eapply whne_tXXiRed; tea. , IHHne.
+      + push_renaming.
+        eapply ren_nSucc_inv in H1 as [u [H1 ->]].
+        do 3 push_renaming.
+        now eapply whne_tEval. *)
+    - induction 1 in ρ |-*; cbn.
+      10-13 : rewrite nSucc_ren.
+      all: try now econstructor.
+      eapply whne_tXXiRed, IHX; tea.
+  Qed. *)
 
-  Lemma whnf_ren t : whnf (t⟨ρ; ρε⟩) <~> whnf t.
+(*   Lemma whnf_ren t : whnf (t⟨ρ⟩) <~> whnf t.
   Proof.
     split.
-    - remember t⟨ρ; ρε⟩ as t'.
+    - remember t⟨ρ⟩ as t'.
       intros Hnf.
       induction Hnf in t, Heqt' |- * ; cbn.
-      all: push_renaming ; econstructor ; eauto.
-      all: now eapply whne_ren ; cbn.
+      1-19: push_renaming ; econstructor ; eauto.
+      1-13: try now eapply whne_ren ; cbn.
     - induction 1 ; cbn.
       all: econstructor.
       now eapply whne_ren.
   Qed.
 
-  Lemma isType_ren A : isType (A⟨ρ; ρε⟩) <~> isType A.
+  Lemma isType_ren A : isType (A⟨ρ⟩) <~> isType A.
   Proof.
     split.
-    - remember A⟨ρ; ρε⟩ as A'.
+    - remember A⟨ρ⟩ as A'.
       intros Hty.
       induction Hty in A, HeqA' |- * ; cbn.
       all: push_renaming ; econstructor ; eauto.
@@ -476,10 +626,10 @@ Section RenWhnf.
       now eapply whne_ren.
   Qed.
 
-  Lemma isPosType_ren A : isPosType (A⟨ρ; ρε⟩) <~> isPosType A.
+  Lemma isPosType_ren A : isPosType (A⟨ρ⟩) <~> isPosType A.
   Proof.
     split.
-    - remember A⟨ρ; ρε⟩ as A'.
+    - remember A⟨ρ⟩ as A'.
       intros Hty.
       induction Hty in A, HeqA' |- * ; cbn.
       all: push_renaming ; econstructor ; eauto.
@@ -489,10 +639,10 @@ Section RenWhnf.
       now eapply whne_ren.
   Qed.
 
-  Lemma isFun_ren f : isFun (f⟨ρ; ρε⟩) <~> isFun f.
+  Lemma isFun_ren f : isFun (f⟨ρ⟩) <~> isFun f.
   Proof.
     split.
-    - remember f⟨ρ; ρε⟩ as f'.
+    - remember f⟨ρ⟩ as f'.
       intros Hfun.
       induction Hfun in f, Heqf' |- * ; cbn.
       all: push_renaming ; econstructor ; eauto.
@@ -503,10 +653,10 @@ Section RenWhnf.
   Qed.
 
 
-  Lemma isPair_ren p : isPair (p⟨ρ; ρε⟩) <~> isPair p.
+  Lemma isPair_ren p : isPair (p⟨ρ⟩) <~> isPair p.
   Proof.
     split.
-    - remember p⟨ρ; ρε⟩ as p'.
+    - remember p⟨ρ⟩ as p'.
       intros Hpair.
       induction Hpair in p, Heqp' |- * ; cbn.
       all: push_renaming ; econstructor ; eauto.
@@ -516,10 +666,10 @@ Section RenWhnf.
       now eapply whne_ren.
   Qed.
 
-  Lemma isId_ren p : isId (p⟨ρ; ρε⟩) <~> isId p.
+  Lemma isId_ren p : isId (p⟨ρ⟩) <~> isId p.
   Proof.
     split.
-    - remember p⟨ρ; ρε⟩ as p'.
+    - remember p⟨ρ⟩ as p'.
       intros Hid.
       induction Hid in p, Heqp' |- * ; cbn.
       all: push_renaming ; econstructor ; eauto.
@@ -529,13 +679,20 @@ Section RenWhnf.
       now eapply whne_ren.
   Qed.
 
-  Lemma isCanonical_ren t : isCanonical (t⟨ρ; ρε⟩) <~> isCanonical t.
+  Lemma isCanonical_ren t : isCanonical (t⟨ρ⟩) <~> isCanonical t.
   Proof.
     split.
     all: destruct t ; cbn ; inversion 1.
     all: now econstructor.
-  Qed.
+  Qed. *)
 
 End RenWhnf.
+End NormalForms.
+Arguments whns {_} _ _.
 
-#[global] Hint Resolve whne_ren whnf_ren isType_ren isPosType_ren isFun_ren isId_ren isCanonical_ren : gen_typing.
+#[global] Hint Constructors isCanonical : gen_typing.
+#[global] Hint Constructors whne whnf : gen_typing.
+#[global] Hint Resolve neSort nePi neLambda : gen_typing.
+#[global] Hint Resolve isPosType_isType isType_whnf isFun_whnf isNat_whnf isBool_whnf isTree_whnf isPair_whnf isId_whnf : gen_typing.
+#[global] Hint Constructors isPosType isType isFun isNat isBool isTree isId : gen_typing.
+(* #[global] Hint Resolve whne_ren whnf_ren isType_ren isPosType_ren isFun_ren isId_ren isCanonical_ren : gen_typing. *)

@@ -2,13 +2,20 @@
 From Stdlib Require Import CRelationClasses.
 From LogRel Require Import Utils AutoSubst.Extra Notations.
 From Equations Require Import Equations. (* for depelim *)
-From LogRel.Syntax Require Import BasicAst Context NormalForms Weakening Computations.
+From LogRel.Syntax Require Import BasicAst Context NormalForms (* Weakening *) Computations.
 
 (** ** Reductions *)
 
 (** *** One-step reduction. *)
 
-Inductive OneRedAlg {L : list Fcontext} : term -> term -> Type :=
+
+
+Inductive closure (R : term -> term -> Type) : term -> term -> Type :=
+  | clos_nil t : closure R t t
+  | clos_cons t t' u : closure R t' u -> R t t' -> closure R t u.
+
+
+Inductive OneRedAlg {L : list ell} : term -> term -> Type :=
 | BRed {A a t} :
     [ L | tApp (tLambda A t) a ⤳ t[a..] ]
 | appSubst {t u a} :
@@ -28,12 +35,12 @@ Inductive OneRedAlg {L : list Fcontext} : term -> term -> Type :=
     [ L |tBoolElim P ht hf tTrue ⤳ ht ]
 | boolElimFalse {P ht hf} :
     [ L |tBoolElim P ht hf tFalse ⤳ hf ]
-| alphaSubst {i n n'} :
-  [ L | n ⤳ n' ] -> [ L | tApp (tAlpha i) n ⤳ tApp (tAlpha i) n' ]
-| alphaSubstSucc {i n n'} :
+| alphaSubst {i k n n'} :
+  [ L | n ⤳ n' ] -> [ L | tApp (tAlpha i) (nSucc k n) ⤳ tApp (tAlpha i) (nSucc k n') ]
+(* | alphaSubstSucc {i n n'} :
   [ L | tApp (tAlpha i) n ⤳ tApp (tAlpha i) n' ] ->
-  [ L | tApp (tAlpha i) (tSucc n) ⤳ tApp (tAlpha i) (tSucc n') ]
-| alphaRed {i n b} (hin : in_Fctx (list_at L i) n b) :
+  [ L | tApp (tAlpha i) (tSucc n) ⤳ tApp (tAlpha i) (tSucc n') ] *)
+| alphaRed {i n b} (hin : in_ell (list_at L i) n b) :
   [ L | tApp (tAlpha (index_to_nat i)) (nat_to_term n) ⤳ bool_to_term b]
 | emptyElimSubst {P e e'} :
     [L |e ⤳ e'] ->
@@ -61,6 +68,13 @@ Inductive OneRedAlg {L : list Fcontext} : term -> term -> Type :=
 | idElimSubst {A x P hr y e e'} :
   [L |e ⤳ e'] ->
   [ L |tIdElim A x P hr y e ⤳ tIdElim A x P hr y e' ]
+| evalRel v k b (ℓ : ell) : in_ell ℓ k b ->
+  [ L |tApp (tEval ℓ (tRel v)) (nat_to_term k) ⤳ (bool_to_term b) ]
+| evalBox ℓ ℓ' t : [ L | tEval ℓ (tBox ℓ' t) ⤳ t]
+| xiSubst ℓ n n': [L | n ⤳ n'] -> [L | tXi ℓ n ⤳ tXi ℓ n']
+| xiLeaf ℓ n : [L | tXi ℓ (nat_to_term n) ⤳ tLeaf (nat_to_term n) ]
+| xiNode (ℓ : ell) n (k : newnat ℓ) : whns (red := closure OneRedAlg) 0 k n ->
+  [L |tXi ℓ n ⤳ tNode (nat_to_term k) (tXi (cons_ell ℓ k true) n) (tXi (cons_ell ℓ k false) n) ]
 
 where "[ L | t ⤳ t' ]" := (@OneRedAlg L t t') : typing_scope.
 
@@ -68,16 +82,19 @@ where "[ L | t ⤳ t' ]" := (@OneRedAlg L t t') : typing_scope.
 
 (** *** Multi-step reduction *)
 
-Inductive RedClosureAlg {L : list Fcontext} : term -> term -> Type :=
-  | redIdAlg {t} :
+Definition RedClosureAlg {L : list ell} : term -> term -> Type := closure (@OneRedAlg L).
+(*   | redIdAlg {t} :
     [ L | t ⤳* t ]
   | redSuccAlg {t t' u} :
     [ L | t ⤳ t'] ->
     [ L | t' ⤳* u ] ->
     [ L | t ⤳* u ]
-  where "[ L | t ⤳* t' ]" := (@RedClosureAlg L t t') : typing_scope.
+  where *)
+Notation "[ L | t ⤳* t' ]" := (@RedClosureAlg L t t') : typing_scope.
 
-Equations Derive Signature for RedClosureAlg.
+Equations Derive Signature for OneRedAlg.
+Equations Derive Signature for closure.
+
 
 #[export] Instance RedAlgTrans {L} : PreOrder (RedClosureAlg (L:=L)).
   Proof.
@@ -102,47 +119,65 @@ Record cored L t t' : Prop := { _ : [L |t' ⤳ t] }.
 Ltac inv_whne :=
   match goal with [ H : whne _ |- _ ] => inversion H end.
 
+Lemma nSucc_nat_to_term t n k : nat_to_term n = nSucc k t -> exists k', nat_to_term k' = t.
+Proof.
+  induction k in n |-*.
+  + now exists n.
+  + destruct n; inversion 1.
+    now eapply IHk.
+Qed.
+
 Lemma whne_nored {L} n u :
-  whne n -> [ L | n ⤳ u] -> False.
+  @whne (@RedClosureAlg L) n -> [ L | n ⤳ u] -> False.
 Proof.
   intros ne red.
-  induction red in ne |- *.
-  11: clear hin; induction n.
-  all : inversion ne; subst; clear ne; try now inv_whne.
-  all: inversion red.
-Qed.
+  induction ne in u, red |-*.
+  1-13: inversion red; subst; clear red.
+  all: try now inversion ne.
+  * inversion X.
+  * eapply nSucc_eq_inv in H1 as [[<- <-]| [(n0&->&<-)|(n0&<-&->)]].
+    - easy.
+    - inversion X.
+    - inversion ne.
+  * eapply nSucc_nat_to_term in H1 as [[] <-];
+    inversion ne.
+  * destruct k.
+    - easy.
+    - inversion X.
+  * eapply nSucc_nat_to_term in H1 as [[] <-];
+    inversion ne.
+  * destruct k.
+    - admit.
+    - inversion X.
+Admitted.
 
 Ltac inv_alpha :=
   match goal with
     [ H : [_ | tAlpha _ ⤳ _] |- _ ] => inversion H
     | [ H : whne (tAlpha _) |- _ ] => inversion H end.
 Lemma whnf_nored L n u :
-  whnf n -> [ L | n ⤳ u] -> False.
+  @whnf (@RedClosureAlg L) n -> [ L | n ⤳ u] -> False.
 Proof.
   intros nf red.
-  induction red in nf |- *.
-  2,3,6,9,12,13,16,18,21: inversion nf; subst; inv_whne; subst; try inv_alpha; apply IHred; now constructor.
-  7: clear hin; induction n.
-  1-13: inversion nf; subst; inv_whne; subst; try now inv_whne.
-  - apply IHred; now constructor.
-  - apply IHn; now constructor.
-Qed.
+  induction nf.
+  all: try now inversion red.
+  now eapply whne_nored.
+  admit.
+Admitted.
 
 (** *** Determinism of reduction *)
 
 Lemma ored_detaux : forall {L i i' n n'}, [ L | tApp (tAlpha i) (nat_to_term n) ⤳ tApp (tAlpha i') n'] -> False.
 Proof.
   intros L i i' n n' H.
-  induction n in n', H|-*.
-  - inversion H; subst.
-    * inversion H1.
-    * inversion H1.
-    * destruct b; inversion H3.
-  - inversion H; subst.
-    * inversion H1.
-    * inversion H1.
-    * now apply IHn in H1.
-    * destruct b; inversion H3.
+  inversion H; subst; clear H.
+  * inversion H1.
+  * induction k in n0, n, H1, H2 |-*; cbn in H2.
+    - rewrite -> H2 in H1.
+      destruct n; inversion H1.
+    - destruct n; inversion H2.
+      now eapply IHk.
+  * destruct b; inversion H3.
 Qed.
 
 Lemma ored_det {L t u v} :
@@ -162,40 +197,38 @@ Proof.
       now econstructor.
     + f_equal.
       eauto.
-  - inversion red'; subst.
-    2,3: exfalso; eapply whnf_nored; tea; constructor.
-    f_equal; eauto.
-  - inversion red'; try reflexivity; subst.
-    exfalso; eapply whnf_nored; tea; constructor.
-  - inversion red'; try reflexivity; subst.
-    exfalso; eapply whnf_nored; tea; constructor.
-  - inversion red'; subst.
-    2,3: exfalso; eapply whnf_nored; tea; constructor.
-    f_equal; eauto.
-  - inversion red'; try reflexivity; subst.
-    exfalso; eapply whnf_nored; tea; constructor.
-  - inversion red'; try reflexivity; subst.
-    exfalso; eapply whnf_nored; tea; constructor.
-  - inversion red'; subst.
-    + inv_alpha.
-    + f_equal; now apply IHred.
     + inversion red.
-    + destruct n0; inversion red.
+  - inversion red'; subst.
+    2,3: exfalso; eapply whnf_nored; tea; constructor.
+    f_equal; eauto.
+  - inversion red'; try reflexivity; subst.
+    exfalso; eapply whnf_nored; tea; constructor.
+  - inversion red'; try reflexivity; subst.
+    exfalso; eapply whnf_nored; tea; constructor.
+  - inversion red'; subst.
+    2,3: exfalso; eapply whnf_nored; tea; constructor.
+    f_equal; eauto.
+  - inversion red'; try reflexivity; subst.
+    exfalso; eapply whnf_nored; tea; constructor.
+  - inversion red'; try reflexivity; subst.
+    exfalso; eapply whnf_nored; tea; constructor.
   - inversion red'; subst.
     + inv_alpha.
-    + inversion H2.
-    + apply IHred in H2.
-      now inversion H2; subst.
-    + destruct n0; inversion H1; subst.
-      destruct (ored_detaux red).
+    + f_equal.
+      eapply nSucc_eq_inv in H1 as [[<- <-]| [(m'&->&<-)|(m&<-&->)]].
+      * now f_equal.
+      * inversion H2.
+      * inversion red.
+    + eapply nSucc_nat_to_term in H1 as [[] <-];
+      inversion red.
   - inversion red'; subst.
     + inv_alpha.
-    + destruct (ored_detaux red').
-    + destruct (ored_detaux red').
-    + apply nat_to_term_inj in H1; subst.
-      apply index_to_nat_inj in H0; subst.
-      f_equal.
-      now eapply functionality.
+    + symmetry in H1;
+      eapply nSucc_nat_to_term in H1 as [[] <-];
+      inversion H2.
+    + eapply nat_to_term_inj in H1 as <-.
+      eapply index_to_nat_inj in H0 as <-.
+      f_equal. now eapply functionality; constructor.
   - inversion red'; subst.
     f_equal; eauto.
   - inversion red'; subst.
@@ -220,6 +253,17 @@ Proof.
   - inversion red'; subst.
     2: f_equal; eauto.
     exfalso; eapply whnf_nored;tea; constructor.
+  - inversion red'; subst.
+    + inversion H2.
+    + eapply nat_to_term_inj in H2 as <-.
+      f_equal. now eapply functionality; constructor.
+  - now inversion red'; subst.
+  - inversion red'; subst; clear red'.
+    + now f_equal.
+    + destruct n0; inversion red.
+  - inversion red'; subst.
+    + destruct n; inversion H2.
+    + reflexivity.
 Qed.
 
 Lemma red_whne {L} t u : [ L | t ⤳* u] -> whne t -> t = u.
@@ -264,11 +308,15 @@ Proof.
 Qed.
 
 (** *** Stability by weakening *)
-Lemma oFredalg L L' ρε (wρε : well_Fweakening ρε L' L) t u: 
-  [L | t ⤳ u] -> [L' | ren_alpha ρε t ⤳ ren_alpha ρε u].
+Lemma oFredalg L L' (wρε : well_Fweakening L' L) t u: 
+  [L | t ⤳ u] -> [L' | (* ren_alpha ρε *) t ⤳ (* ren_alpha ρε *) u].
 Proof.
   intros hred.
   induction hred.
+  all: try now constructor.
+  rewrite <- ren_index_to_ren with (wρε := wρε).
+  constructor.
+  eapply well_Fwk_in. , hin.
   2-10, 12-21: now constructor.
   - rewrite subst_ren_alpha. constructor.
   - cbn.

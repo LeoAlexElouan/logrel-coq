@@ -54,7 +54,7 @@ Proof.
   eapply nSucc_ren_alpha.
 Qed.
 
-Lemma nat_to_term_inj n n' : nat_to_term n = nat_to_term n' -> n = n'.
+Lemma nat_to_term_inj {n n'} : nat_to_term n = nat_to_term n' -> n = n'.
 Proof.
   revert n'.
   induction n.
@@ -68,3 +68,26 @@ Proof.
       f_equal.
       now apply IHn.
 Qed.
+
+Lemma nSucc_eq_inv {t t' k k'} : nSucc k t = nSucc k' t' -> (k = k'/\ t = t') \/
+  (exists n', t = tSucc (nSucc n' t') /\ S (k + n') = k') \/
+  (exists n, tSucc (nSucc n t) = t' /\ k = S (k' + n)).
+Proof.
+  induction k in k' |-*;
+  destruct k'; cbn.
+  - now intros <-.
+  - intros ->.
+    right; left.
+    now exists k'.
+  - intros <-.
+    right; right.
+    now exists k.
+  - intros e; injection e; clear e.
+    intros e.
+    specialize (IHk _ e).
+    destruct IHk as[[<- <-]| [(n'&->&<-)|(n&<-&->)]].
+    + now left.
+    + now right; left; exists n'.
+    + now right; right; exists n.
+Qed.
+
