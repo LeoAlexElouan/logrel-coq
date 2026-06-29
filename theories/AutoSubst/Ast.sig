@@ -43,3 +43,5 @@ tXi : ell -> (bind term in term) -> term
 tXXi : ell -> (bind term in term) -> term -> term
 tEval : ell -> term -> term
 tBox : ell -> term -> term
+
+tEllElim : nat -> ell -> term -> term -> term -> term -> term -> term

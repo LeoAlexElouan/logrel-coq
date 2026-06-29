@@ -167,6 +167,7 @@ Fixpoint ren_alpha (ρ : nat -> nat) (t:term) {struct t}: term := match t with
   | tXXi ℓ n f => tXXi ℓ (ren_alpha ρ n) (ren_alpha ρ f)
   | tEval ℓ f => tEval ℓ (ren_alpha ρ f)
   | tBox ℓ f => tBox ℓ (ren_alpha ρ f)
+  | tEllElim k ℓ P ht hf n b => tEllElim k ℓ (ren_alpha ρ P) (ren_alpha ρ ht) (ren_alpha ρ hf) (ren_alpha ρ n) (ren_alpha ρ b)
   end.
 
 (* #[global] Instance Ren1_Alpha :

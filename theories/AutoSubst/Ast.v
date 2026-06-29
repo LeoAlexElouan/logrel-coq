@@ -38,7 +38,8 @@ Inductive term : Type :=
   | tXi : ell -> term -> term
   | tXXi : ell -> term -> term -> term
   | tEval : ell -> term -> term
-  | tBox : ell -> term -> term.
+  | tBox : ell -> term -> term
+  | tEllElim : nat -> ell -> term -> term -> term -> term -> term -> term.
 
 Lemma congr_tSort {s0 : sort} {t0 : sort} (H0 : s0 = t0) :
   tSort s0 = tSort t0.
@@ -276,6 +277,29 @@ exact (eq_trans (eq_trans eq_refl (ap (fun x => tBox x s1) H0))
          (ap (fun x => tBox t0 x) H1)).
 Qed.
 
+Lemma congr_tEllElim {s0 : nat} {s1 : ell} {s2 : term} {s3 : term}
+  {s4 : term} {s5 : term} {s6 : term} {t0 : nat} {t1 : ell} {t2 : term}
+  {t3 : term} {t4 : term} {t5 : term} {t6 : term} (H0 : s0 = t0)
+  (H1 : s1 = t1) (H2 : s2 = t2) (H3 : s3 = t3) (H4 : s4 = t4) (H5 : s5 = t5)
+  (H6 : s6 = t6) :
+  tEllElim s0 s1 s2 s3 s4 s5 s6 = tEllElim t0 t1 t2 t3 t4 t5 t6.
+Proof.
+exact (eq_trans
+         (eq_trans
+            (eq_trans
+               (eq_trans
+                  (eq_trans
+                     (eq_trans
+                        (eq_trans eq_refl
+                           (ap (fun x => tEllElim x s1 s2 s3 s4 s5 s6) H0))
+                        (ap (fun x => tEllElim t0 x s2 s3 s4 s5 s6) H1))
+                     (ap (fun x => tEllElim t0 t1 x s3 s4 s5 s6) H2))
+                  (ap (fun x => tEllElim t0 t1 t2 x s4 s5 s6) H3))
+               (ap (fun x => tEllElim t0 t1 t2 t3 x s5 s6) H4))
+            (ap (fun x => tEllElim t0 t1 t2 t3 t4 x s6) H5))
+         (ap (fun x => tEllElim t0 t1 t2 t3 t4 t5 x) H6)).
+Qed.
+
 Lemma upRen_term_term (xi : nat -> nat) : nat -> nat.
 Proof.
 exact (up_ren xi).
@@ -333,6 +357,9 @@ Fixpoint ren_term (xi_term : nat -> nat) (s : term) {struct s} : term :=
       tXXi s0 (ren_term (upRen_term_term xi_term) s1) (ren_term xi_term s2)
   | tEval s0 s1 => tEval s0 (ren_term xi_term s1)
   | tBox s0 s1 => tBox s0 (ren_term xi_term s1)
+  | tEllElim s0 s1 s2 s3 s4 s5 s6 =>
+      tEllElim s0 s1 (ren_term xi_term s2) (ren_term xi_term s3)
+        (ren_term xi_term s4) (ren_term xi_term s5) (ren_term xi_term s6)
   end.
 
 Lemma up_term_term (sigma : nat -> term) : nat -> term.
@@ -405,6 +432,10 @@ term :=
         (subst_term sigma_term s2)
   | tEval s0 s1 => tEval s0 (subst_term sigma_term s1)
   | tBox s0 s1 => tBox s0 (subst_term sigma_term s1)
+  | tEllElim s0 s1 s2 s3 s4 s5 s6 =>
+      tEllElim s0 s1 (subst_term sigma_term s2) (subst_term sigma_term s3)
+        (subst_term sigma_term s4) (subst_term sigma_term s5)
+        (subst_term sigma_term s6)
   end.
 
 Lemma upId_term_term (sigma : nat -> term) (Eq : forall x, sigma x = tRel x)
@@ -504,6 +535,13 @@ subst_term sigma_term s = s :=
       congr_tEval (eq_refl s0) (idSubst_term sigma_term Eq_term s1)
   | tBox s0 s1 =>
       congr_tBox (eq_refl s0) (idSubst_term sigma_term Eq_term s1)
+  | tEllElim s0 s1 s2 s3 s4 s5 s6 =>
+      congr_tEllElim (eq_refl s0) (eq_refl s1)
+        (idSubst_term sigma_term Eq_term s2)
+        (idSubst_term sigma_term Eq_term s3)
+        (idSubst_term sigma_term Eq_term s4)
+        (idSubst_term sigma_term Eq_term s5)
+        (idSubst_term sigma_term Eq_term s6)
   end.
 
 Lemma upExtRen_term_term (xi : nat -> nat) (zeta : nat -> nat)
@@ -614,6 +652,13 @@ ren_term xi_term s = ren_term zeta_term s :=
       congr_tEval (eq_refl s0) (extRen_term xi_term zeta_term Eq_term s1)
   | tBox s0 s1 =>
       congr_tBox (eq_refl s0) (extRen_term xi_term zeta_term Eq_term s1)
+  | tEllElim s0 s1 s2 s3 s4 s5 s6 =>
+      congr_tEllElim (eq_refl s0) (eq_refl s1)
+        (extRen_term xi_term zeta_term Eq_term s2)
+        (extRen_term xi_term zeta_term Eq_term s3)
+        (extRen_term xi_term zeta_term Eq_term s4)
+        (extRen_term xi_term zeta_term Eq_term s5)
+        (extRen_term xi_term zeta_term Eq_term s6)
   end.
 
 Lemma upExt_term_term (sigma : nat -> term) (tau : nat -> term)
@@ -725,6 +770,13 @@ subst_term sigma_term s = subst_term tau_term s :=
       congr_tEval (eq_refl s0) (ext_term sigma_term tau_term Eq_term s1)
   | tBox s0 s1 =>
       congr_tBox (eq_refl s0) (ext_term sigma_term tau_term Eq_term s1)
+  | tEllElim s0 s1 s2 s3 s4 s5 s6 =>
+      congr_tEllElim (eq_refl s0) (eq_refl s1)
+        (ext_term sigma_term tau_term Eq_term s2)
+        (ext_term sigma_term tau_term Eq_term s3)
+        (ext_term sigma_term tau_term Eq_term s4)
+        (ext_term sigma_term tau_term Eq_term s5)
+        (ext_term sigma_term tau_term Eq_term s6)
   end.
 
 Lemma up_ren_ren_term_term (xi : nat -> nat) (zeta : nat -> nat)
@@ -852,6 +904,13 @@ Fixpoint compRenRen_term (xi_term : nat -> nat) (zeta_term : nat -> nat)
   | tBox s0 s1 =>
       congr_tBox (eq_refl s0)
         (compRenRen_term xi_term zeta_term rho_term Eq_term s1)
+  | tEllElim s0 s1 s2 s3 s4 s5 s6 =>
+      congr_tEllElim (eq_refl s0) (eq_refl s1)
+        (compRenRen_term xi_term zeta_term rho_term Eq_term s2)
+        (compRenRen_term xi_term zeta_term rho_term Eq_term s3)
+        (compRenRen_term xi_term zeta_term rho_term Eq_term s4)
+        (compRenRen_term xi_term zeta_term rho_term Eq_term s5)
+        (compRenRen_term xi_term zeta_term rho_term Eq_term s6)
   end.
 
 Lemma up_ren_subst_term_term (xi : nat -> nat) (tau : nat -> term)
@@ -987,6 +1046,13 @@ subst_term tau_term (ren_term xi_term s) = subst_term theta_term s :=
   | tBox s0 s1 =>
       congr_tBox (eq_refl s0)
         (compRenSubst_term xi_term tau_term theta_term Eq_term s1)
+  | tEllElim s0 s1 s2 s3 s4 s5 s6 =>
+      congr_tEllElim (eq_refl s0) (eq_refl s1)
+        (compRenSubst_term xi_term tau_term theta_term Eq_term s2)
+        (compRenSubst_term xi_term tau_term theta_term Eq_term s3)
+        (compRenSubst_term xi_term tau_term theta_term Eq_term s4)
+        (compRenSubst_term xi_term tau_term theta_term Eq_term s5)
+        (compRenSubst_term xi_term tau_term theta_term Eq_term s6)
   end.
 
 Lemma up_subst_ren_term_term (sigma : nat -> term) (zeta_term : nat -> nat)
@@ -1143,6 +1209,13 @@ ren_term zeta_term (subst_term sigma_term s) = subst_term theta_term s :=
   | tBox s0 s1 =>
       congr_tBox (eq_refl s0)
         (compSubstRen_term sigma_term zeta_term theta_term Eq_term s1)
+  | tEllElim s0 s1 s2 s3 s4 s5 s6 =>
+      congr_tEllElim (eq_refl s0) (eq_refl s1)
+        (compSubstRen_term sigma_term zeta_term theta_term Eq_term s2)
+        (compSubstRen_term sigma_term zeta_term theta_term Eq_term s3)
+        (compSubstRen_term sigma_term zeta_term theta_term Eq_term s4)
+        (compSubstRen_term sigma_term zeta_term theta_term Eq_term s5)
+        (compSubstRen_term sigma_term zeta_term theta_term Eq_term s6)
   end.
 
 Lemma up_subst_subst_term_term (sigma : nat -> term) (tau_term : nat -> term)
@@ -1302,6 +1375,13 @@ subst_term tau_term (subst_term sigma_term s) = subst_term theta_term s :=
   | tBox s0 s1 =>
       congr_tBox (eq_refl s0)
         (compSubstSubst_term sigma_term tau_term theta_term Eq_term s1)
+  | tEllElim s0 s1 s2 s3 s4 s5 s6 =>
+      congr_tEllElim (eq_refl s0) (eq_refl s1)
+        (compSubstSubst_term sigma_term tau_term theta_term Eq_term s2)
+        (compSubstSubst_term sigma_term tau_term theta_term Eq_term s3)
+        (compSubstSubst_term sigma_term tau_term theta_term Eq_term s4)
+        (compSubstSubst_term sigma_term tau_term theta_term Eq_term s5)
+        (compSubstSubst_term sigma_term tau_term theta_term Eq_term s6)
   end.
 
 Lemma renRen_term (xi_term : nat -> nat) (zeta_term : nat -> nat) (s : term)
@@ -1482,6 +1562,13 @@ Fixpoint rinst_inst_term (xi_term : nat -> nat) (sigma_term : nat -> term)
         (rinst_inst_term xi_term sigma_term Eq_term s1)
   | tBox s0 s1 =>
       congr_tBox (eq_refl s0) (rinst_inst_term xi_term sigma_term Eq_term s1)
+  | tEllElim s0 s1 s2 s3 s4 s5 s6 =>
+      congr_tEllElim (eq_refl s0) (eq_refl s1)
+        (rinst_inst_term xi_term sigma_term Eq_term s2)
+        (rinst_inst_term xi_term sigma_term Eq_term s3)
+        (rinst_inst_term xi_term sigma_term Eq_term s4)
+        (rinst_inst_term xi_term sigma_term Eq_term s5)
+        (rinst_inst_term xi_term sigma_term Eq_term s6)
   end.
 
 Lemma rinstInst'_term (xi_term : nat -> nat) (s : term) :

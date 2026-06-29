@@ -91,3 +91,11 @@ Proof.
     + now right; right; exists n.
 Qed.
 
+
+Lemma nSucc_nat_to_term t n k : nat_to_term n = nSucc k t -> exists k', nat_to_term k' = t.
+Proof.
+  induction k in n |-*.
+  + now exists n.
+  + destruct n; inversion 1.
+    now eapply IHk.
+Qed.
