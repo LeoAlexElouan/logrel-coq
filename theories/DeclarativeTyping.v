@@ -16,6 +16,8 @@ Section Definitions.
   here before declaring the instance to which abstract notations are bound. *)
   Close Scope typing_scope.
 
+  Instance subst_to_decl {X} `{Subst1 X term term} : Subst1 X term decl :=
+    fun σ t => term_decl t[σ].
 
   (** Typing and conversion are mutually defined inductive relations. To avoid having
   to bother with elimination of propositions, we put them in the Type sort. *)
@@ -24,7 +26,7 @@ Section Definitions.
   Inductive WfContextDecl : context -> Type :=
       | connil : [ |- ε ]
       | connew {Γ i new b} : [|-Γ] -> [|-Γ ,, i : new ↦ b]
-      | conalpha {Γ} : [|-Γ] -> [|- Γ ,, ↦ Fnil]
+      | conalpha {Γ} : [|-Γ] -> [|- Γ ,, ↦ nil_ell]
       | concons {Γ A} :
           [ |- Γ ] ->
           [ Γ |- A ] ->
@@ -68,16 +70,16 @@ Section Definitions.
           [ Γ,, i : new ↦ false |- A] ->
           [ Γ |- A]
   (** **** Typing *)
-  with TypingDecl : context -> term -> term -> Type :=
-      | wfVar {Γ} {n decl} :
+  with TypingDecl : context -> decl -> term -> Type :=
+      | wfVar {Γ} {n d} :
           [   |- Γ ] ->
-          in_ctx Γ n decl ->
-          [ Γ |- tRel n : decl ]
+          in_ctx Γ n d ->
+          [ Γ |- tRel n : d ]
       | wfTermProd {Γ} {A B} :
           [ Γ |- A : U] -> 
           [Γ ,, A |- B : U ] ->
           [ Γ |- tProd A B : U ]
-      | wfTermLam {Γ} {A B t} :
+      | wfTermLam {Γ} {A B t : term} :
           [ Γ |- A ] ->
           [ Γ ,, A |- t : B ] -> 
           [ Γ |- tLambda A t : tProd A B]
@@ -175,15 +177,30 @@ Section Definitions.
           [Γ |- y : A] ->
           [Γ |- e : tId A x y] ->
           [Γ |- tIdElim A x P hr y e : P[e .: y..]]
-      | wfTermConv {Γ} {t A B} :
+      | wfTermConv {Γ} {t A B : term} :
           [ Γ |- t : A ] -> 
           [ Γ |- A ≅ B ] -> 
           [ Γ |- t : B ]
       | wfTermSplit {Γ t A i new} :
-          [|-  Γ] ->
+          [ |-  Γ] ->
           [ Γ,, i : new ↦ true |- t : A] ->
           [ Γ,, i : new ↦ false |- t : A] ->
           [ Γ |- t : A]
+      | wfTermXi {Γ t} {ℓ : ell} :
+          [ |- Γ] ->
+          [ Γ ,, ℓ |- t] ->
+          [ Γ |- tXi ℓ t : tTree]
+      | wfTermXXi {Γ t u} {ℓ : ell} :
+          [ |- Γ] ->
+          [ Γ ,, ℓ |- t] -> [ Γ |- u : ℓ] ->
+          [ Γ |- tXXi ℓ t u : tId tNat (dEval' Γ (tXi ℓ t) (tEval ℓ u)) t[u..] ]
+      | wfTermEval {Γ t} {ℓ : ell} :
+          [ Γ |- t : ℓ ] ->
+          [ Γ |- tEval ℓ t : arr' Γ tNat tBool]
+      | wfTermBox {Γ t} {ℓ : ell} :
+          [ Γ |- t : arr' Γ tNat tBool] ->
+          (forall n b, in_ell ℓ n b -> [ Γ |- tApp t (nat_to_term n) ≅ bool_to_term b]) ->
+          [ Γ |- tBox ℓ t : ℓ]
   (** **** Conversion of types *)
   with ConvTypeDecl : context -> term -> term  -> Type :=  
       | TypePiCong {Γ} {A B C D} :
@@ -221,7 +238,7 @@ Section Definitions.
           [ Γ,, i : new ↦ false |- A ≅ B] ->
           [ Γ |- A ≅ B]
   (** **** Conversion of terms *)
-  with ConvTermDecl : context -> term -> term -> term -> Type :=
+  with ConvTermDecl : context -> decl -> term -> term -> Type :=
       | TermBRed {Γ} {a t A B} :
               [ Γ |- A ] ->
               [ Γ ,, A |- t : B ] ->
@@ -236,7 +253,7 @@ Section Definitions.
           [ Γ |- f ≅ g : tProd A B ] ->
           [ Γ |- a ≅ b : A ] ->
           [ Γ |- tApp f a ≅ tApp g b : B[a..] ]
-      | TermLambdaCong {Γ} {t u A A' A'' B} :
+      | TermLambdaCong {Γ} {t u A A' A'' B : term} :
           [ Γ |- A ] ->
           [ Γ |- A ≅ A' ] ->
           [ Γ |- A ≅ A'' ] ->
@@ -286,7 +303,7 @@ Section Definitions.
           [ Γ |- tAlpha i ≅ tAlpha i : arr tNat tBool] *)
       | TermAlphaConv {Γ i n b} :
           [|-Γ] ->
-          in_Fctx (list_at Γ i) n b -> [ Γ |- tApp (tAlpha i) (nat_to_term n) ≅ bool_to_term b : tBool ]
+          in_ell (list_at Γ i) n b -> [ Γ |- tApp (tAlpha i) (nat_to_term n) ≅ bool_to_term b : tBool ]
       | TermEmptyElimCong {Γ P P' e e'} :
           [Γ ,, tEmpty |- P ≅ P'] ->
           [Γ |- e ≅ e' : tEmpty] ->
@@ -394,7 +411,7 @@ Section Definitions.
       | TermRefl {Γ} {t A} :
           [ Γ |- t : A ] -> 
           [ Γ |- t ≅ t : A ]
-      | TermConv {Γ} {t t' A B} :
+      | TermConv {Γ} {t t' A B : term} :
           [ Γ |- t ≅ t': A ] ->
           [ Γ |- A ≅ B ] ->
           [ Γ |- t ≅ t': B ]

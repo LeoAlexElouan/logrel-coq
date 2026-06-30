@@ -9,7 +9,7 @@ Lemma up_to_subst σ: to_subst (up_term_term σ) = up_subst (to_subst σ).
 Proof. reflexivity. Qed.
 
 Definition wk_subst_comp {Γ Δ} (ρ : Δ ≤ Γ) σ : substitution := 
-  mk_subst (fun x => (ρ >> (subst_subst σ)) x) (fun x => (ρ.(Fwk) >> (subst_alpha σ)) x).
+  mk_subst (ρ >> (subst_subst σ)) (subst_alpha σ).
 Notation "ρ >>s σ" := (wk_subst_comp ρ σ) (at level 50).
 
 
@@ -22,10 +22,10 @@ Lemma subst_ren_subst_up P n (σ : substitution) :
   P[n..][σ] = P[up_subst σ][(n[σ])..].
 Proof. now bsimpl. Qed.
 
-Lemma subst_ren_wk {Γ Δ A} {σ : substitution} (ρ : Δ ≤ Γ) : A[σ]⟨ρ⟩ = A[σ⟨ρ⟩].
+Lemma subst_ren_wk {Γ Δ} {A : term} {σ : substitution} (ρ : Δ ≤ Γ) : A[σ]⟨ρ⟩ = A[σ⟨ρ⟩].
 Proof. now bsimpl. Qed.
-Lemma subst_up_wk1 {A Γ Δ} {t : term} (σ : substitution) :
-   t[σ]⟨@wk1 Δ A[σ]⟩ = t⟨@wk1 Γ A⟩[up_subst σ].
+Lemma subst_up_wk1 {A : term} {Γ Δ : context} {t : term} (σ : substitution) :
+   t[σ]⟨@wk1 Δ (A[σ] : term)⟩ =  t⟨@wk1 Γ A⟩[up_subst σ].
 Proof. rewrite 2wk1_ren_on. now bsimpl. Qed.
 
 Lemma up_subst_wk1 Γ Δ A B t σ :
@@ -136,12 +136,12 @@ Proof.
   + eapply subst_eq_sym.
   + eapply subst_eq_trans.
 Qed.
-Instance wk_eq_equiv {Γ Δ} : Equivalence (@wk_eq Γ Δ).
+(* Instance wk_eq_equiv {Γ Δ} : Equivalence (@wk_eq Γ Δ).
 Proof.
   repeat constructor.
   1,2: destruct H; now symmetry.
   1,2: destruct H, H0; now etransitivity.
-Qed.
+Qed. *)
 
 Instance subst_eq_subst : Proper (subst_eq ==> `=1`) subst_subst := eq_subst.
 Instance subst_eq_subst2 : Morphisms.Proper (Morphisms.respectful subst_eq (Morphisms.respectful eq eq)) subst_subst.
@@ -156,10 +156,10 @@ Proof. intros σ σ' eq. setoid_rewrite eq. reflexivity. Qed.
 
 
 
-Instance subst_subst_eq : Proper (respectful subst_eq (respectful eq eq)) substitute. (*  σ =s σ' -> t[σ] = t[σ']. *)
+Instance subst_subst_eq : Proper (respectful subst_eq (respectful eq eq)) Subst_alpha. (*  σ =s σ' -> t[σ] = t[σ']. *)
 Proof.
   intros σ σ' eq  t t' <-.
-  unfold substitute, subst1, Subst_term.
+  unfold Subst_alpha, subst1, Subst_term.
   now rewrite eq.
 Qed.
 
@@ -170,13 +170,13 @@ Proof.
   intros n. eapply ren_alpha_morphism, subst_eq_subst; tea.
 Qed.
 
-Instance ren1_subst_eq {Γ Δ} : Proper (@wk_eq Γ Δ ==> subst_eq ==> subst_eq) ren1.
+Instance ren1_subst_eq : Proper (`=1` ==> subst_eq ==> subst_eq) ren1.
 Proof.
-  intros ρ ρ' [eqρ eqρε] σ σ' eqσ.
+  intros ρ ρ' eqρ(* [eqρ eqρε] *) σ σ' eqσ.
   unfold ren1, ren_substitution.
-  eapply Build_subst_eq_eq, subst_eq_alpha, ren_alpha_substitution_eq; tea.
+  eapply Build_subst_eq_eq, subst_eq_alpha; tea.
   intros n.
-  eapply ren_term_morphism, subst_eq_subst, ren_alpha_substitution_eq; tea.
+  eapply ren_term_morphism, subst_eq_subst; tea.
 Qed.
 
 Instance tail_subst_eq : Proper (subst_eq ==> subst_eq) tail_subst.

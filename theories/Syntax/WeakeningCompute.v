@@ -16,6 +16,12 @@ Definition elimNodeHypTyCod (Γ : context) (P : term) := (arr' (Γ,, tNat,, tTre
 Definition elimNodeHypTy' Γ P :=
   (tProd tNat (tProd tTree (tProd tTree (elimNodeHypTyCod Γ P⟨wk_up tTree (@wk1 Γ tNat)⟩⟨wk_up tTree (@wk1 (Γ,,tNat) tTree)⟩⟨wk_up tTree (@wk1 (Γ,,tNat,,tTree) tTree)⟩)))).
 
+Definition dEval' Γ d n :=
+  tTreeElim tNat (tLambda tNat (tRel O)) (tLambda tNat (tLambda tTree (tLambda tTree
+    (tLambda tNat (tLambda tNat (tBoolElim tNat (tRel 1) (tRel 0)
+      (tApp n⟨@wk1 Γ tNat⟩⟨@wk1 (Γ,,tNat) tTree⟩⟨@wk1 (Γ,,tNat,,tTree) tTree⟩⟨@wk1 (Γ,, tNat,, tTree,, tTree) tNat⟩
+        ⟨@wk1 (Γ,, tNat,, tTree,, tTree,, tNat) tNat⟩ (tRel 4))))))))
+    d.
 
 Lemma wk_prod {A B : term} {Γ Δ} (ρ : Δ ≤ Γ) : tProd A⟨ρ⟩ B⟨wk_up A ρ⟩ = (tProd A B)⟨ρ⟩.
 Proof. reflexivity. Qed.
@@ -171,6 +177,16 @@ Proof. reflexivity. Qed.
 
 
 Lemma subst_arr' {A B Γ Δ} (σ : nat -> term) : arr' Δ A[σ] B[σ] = (arr' Γ A B)[σ].
-Proof. cbn. f_equal. now rewrite 2wk1_ren_on, shift_up_eq. Qed.
+Proof. cbn. f_equal. now rewrite 2 wk1_ren_on, shift_up_eq. Qed.
 
+Lemma wk_dEval' {Γ Δ d n} (ρ : Δ ≤ Γ) :
+  dEval' Δ d⟨ρ⟩ n⟨ρ⟩ = (dEval' Γ d n)⟨ρ⟩.
+Proof.
+  unfold dEval'. (* cbn. repeat f_equal. now bsimpl. *)
+  rewrite <- wk_treeElim; f_equal.
+  do 5 (rewrite <- wk_lam; eapply (f_equal (fun x => tLambda _ x))).
+  rewrite <- wk_boolElim; eapply (f_equal (fun x => tBoolElim _ _ _ x)).
+  rewrite <- wk_app. eapply (f_equal (fun x => tApp x _)).
+  now do 5 (etransitivity; [ eapply (f_equal (fun x => x⟨@wk1 _ _⟩))| refine (wk_up_wk1 _)]).
+Qed.
 

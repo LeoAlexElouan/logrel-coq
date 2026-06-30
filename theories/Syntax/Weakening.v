@@ -369,7 +369,7 @@ Section RenWlWhnf.
 
   Context {Γ Δ} (ρ : Δ ≤ Γ).
 
-  Lemma whne_ren_wl t : whne t -> whne (t⟨ρ⟩).
+  Lemma whne_ren_wl t nevar : whne nevar t -> whne nevar⟨ρ⟩ t⟨ρ⟩.
   Proof.
     apply whne_ren.
   Qed.
@@ -378,7 +378,7 @@ Section RenWlWhnf.
   Proof.
     apply whnf_ren.
   Qed.
-
+(* 
   Lemma isType_ren_wl A : isType A -> isType (A⟨ρ⟩).
   Proof.
     apply isType_ren.
@@ -398,7 +398,7 @@ Section RenWlWhnf.
   Proof.
     apply isPair_ren.
   Qed.
-
+ *)
   Lemma isCanonical_ren_wl t : isCanonical t <~> isCanonical (t⟨ρ⟩).
   Proof.
     symmetry.
@@ -407,7 +407,7 @@ Section RenWlWhnf.
 
 End RenWlWhnf.
 
-#[global] Hint Resolve whne_ren_wl whnf_ren_wl isType_ren_wl isPosType_ren_wl isFun_ren_wl isCanonical_ren_wl : gen_typing.
+#[global] Hint Resolve whne_ren_wl whnf_ren_wl (* isType_ren_wl isPosType_ren_wl isFun_ren_wl *) isCanonical_ren_wl : gen_typing.
 
 (** Substitutions **)
 
@@ -416,9 +416,14 @@ End RenWlWhnf.
   subst_alpha : nat -> nat
 }.
 
-Definition substitute (σ : substitution) (t : term) := (ren_alpha (subst_alpha σ) t)[subst_subst σ].
+(* Definition substitute (σ : substitution) (t : term) := (ren_alpha (subst_alpha σ) t)[subst_subst σ]. *)
 
-#[global] Instance Subst_alpha : (Subst1 _ _ _) := substitute.
+#[global] Instance Subst_alpha : Subst1 substitution term term := fun σ t => (ren_alpha (subst_alpha σ) t)[subst_subst σ].
+#[global] Instance Subst_alpha_decl {X : Type} `{Subst1 X term term} : Subst1 X decl decl := fun σ d =>
+  match d with
+  | term_decl t => term_decl t[σ]
+  | ell_decl ℓ => ell_decl ℓ
+  end.
 
 Lemma upRen_alpha_subst_pointwise {σ ρε}: up_term_term (σ >> ren_alpha ρε) =1 up_term_term σ >> ren_alpha ρε.
 Proof. unfold up_term_term. fsimpl. rewrite commRen_alpha_term_pointwise. reflexivity. Qed.
@@ -427,9 +432,8 @@ Lemma substRen_alpha_pointwise σ ρε: subst_term σ >> ren_alpha ρε =1
   ren_alpha ρε >> subst_term (σ >> ren_alpha ρε).
 Proof.
   intros t; revert σ.
-  induction t; intros ?; cbn; f_equal; try easy;
-  [..|rewrite upRen_alpha_subst_pointwise | | ];
-  now rewrite upRen_alpha_subst_pointwise.
+  induction t; intros ?; cbn; f_equal; eauto.
+  all: repeat rewrite upRen_alpha_subst_pointwise; eauto.
 Qed.
 Lemma substRen_alpha σ ρε t : ren_alpha ρε (subst_term σ t) =
   (ren_alpha ρε >> subst_term (σ >> ren_alpha ρε)) t.
@@ -493,7 +497,7 @@ Ltac bsimpl := check_no_evars;
                  unfold VarInstance_term, Var, ids, Ren_term, Ren1, ren1,
                   Up_term_term, Up_term, up_term, Subst_term, Subst1, subst1,
                   Ren1_subst, Ren1_wk, Ren1_well_wk,
-                  Subst_alpha, substitute, wk_substitution, ren_alpha_substitution, ren_substitution
+                  Subst_alpha, wk_substitution, ren_alpha_substitution, ren_substitution
                   in *; bsimpl'; minimize.
 
 (* Record wk_eq {Γ Δ : context} (ρ ρ' : Δ ≤ Γ) : Prop := Build_wk_eq
@@ -664,6 +668,7 @@ Proof. now bsimpl. Qed.
 
 Lemma subst_ren (ρ: weakening) (σ : nat -> term) t : t[σ]⟨ρ⟩ = t[σ⟨ρ⟩].
 Proof.
+  destruct t; cbn;
   now bsimpl.
 Qed.
 
@@ -673,7 +678,7 @@ Proof.
 Qed. *)
 
 Lemma eq_upren t σ ρ : t[up_term_term σ]⟨upRen_term_term ρ⟩ = t[up_term_term σ⟨ρ⟩].
-Proof. asimpl; unfold Ren1_subst; asimpl; substify; now asimpl. Qed.
+Proof. destruct t; cbn; asimpl; unfold Ren1_subst; asimpl; substify; now asimpl. Qed.
 
 (* Lemma eq_upwk {Γ Δ} A t σ (ρ : Δ ≤ Γ) : t[(up_subst σ)⟨wk_up A ρ⟩] = t[up_subst σ⟨ρ⟩].
 Proof.
@@ -699,7 +704,7 @@ Qed.
 Definition ext_alpha t σ τ : σ.(subst_subst) =1 τ.(subst_subst) -> σ.(subst_alpha) =1 τ.(subst_alpha) -> t[σ] = t[τ].
 Proof.
   intros esubst ealpha.
-  unfold subst1, Subst_alpha, substitute.
+  unfold subst1, Subst_alpha.
   rewrite (extRen_alpha _ _ ealpha).
   now eapply ext_term.
 Qed.
@@ -715,7 +720,7 @@ Qed. *)
 
 Lemma eq_upupren t σ ρ : t[up_term_term (up_term_term σ)]⟨upRen_term_term (upRen_term_term ρ)⟩ =
  t[up_term_term (up_term_term σ⟨ρ⟩)].
-Proof. asimpl; unfold Ren1_subst; asimpl; substify; now asimpl. Qed.
+Proof. destruct t; cbn;  asimpl; unfold Ren1_subst; asimpl; substify; now asimpl. Qed.
 
 
 Lemma up_subst_ext σ τ : subst_subst σ =1 subst_subst τ ->
@@ -735,7 +740,7 @@ Proof.
   eapply up_subst_ext, eq_upwk'.
 Qed. *)
 
-Lemma subst_ren_up {P n} (ρ : nat -> nat ): P[n..]⟨ρ⟩ = P⟨upRen_term_term ρ⟩[n⟨ρ⟩..].
+Lemma subst_ren_up {P n : term} (ρ : nat -> nat ): P[n..]⟨ρ⟩ = P⟨upRen_term_term ρ⟩[n⟨ρ⟩..].
 Proof.
   now bsimpl.
 Qed.
@@ -745,7 +750,7 @@ Proof.
   now bsimpl.
 Qed.
 
-Lemma subst_ren_wk_up {Γ Δ P A n} (ρ : Γ ≤ Δ): P[n..]⟨ρ⟩ = P⟨wk_up A ρ⟩[n⟨ρ⟩..].
+Lemma subst_ren_wk_up {Γ Δ A} {P n : term} (ρ : Γ ≤ Δ): P[n..]⟨ρ⟩ = P⟨wk_up A ρ⟩[n⟨ρ⟩..].
 Proof.
   now bsimpl.
 Qed.
@@ -753,7 +758,7 @@ Qed.
 (* Lemma subst1_ren_wk_up {Γ Δ P A n} (ρ : Γ ≤ Δ) : P[n .: ρ >> tRel] = P⟨wk_up A ρ⟩[n..].
 Proof. bsimpl. Qed. *)
 
-Lemma subst_ren_wk_up2 {Γ Δ P A B a b} (ρ : Γ ≤ Δ):
+Lemma subst_ren_wk_up2 {Γ Δ A B} {P a b : term} (ρ : Γ ≤ Δ):
   P[a .: b..]⟨ρ⟩ = P⟨wk_up A (wk_up B ρ)⟩[a⟨ρ⟩ .: b⟨ρ⟩..].
 Proof. now bsimpl. Qed.
 
@@ -791,7 +796,7 @@ Proof. bsimpl. unfold _wk_id. now bsimpl. Qed.
 Lemma wk1_ren_on Γ F (H : term) : H⟨@wk1 Γ F⟩ = H⟨↑⟩.
 Proof. now bsimpl. Qed.
 
-Lemma up_wk1_ren_on {Γ} (A B t : term) : t⟨wk_up A (@wk1 Γ B)⟩ = t⟨upRen_term_term ↑⟩.
+Lemma up_wk1_ren_on {Γ} A B (t : term) : t⟨wk_up A (@wk1 Γ B)⟩ = t⟨upRen_term_term ↑⟩.
 Proof. now bsimpl. Qed.
 (* Lemma upup_wk1_ren_on {Γ} (A B C t : term) : t⟨wk_up A (wk_up B (@wk1 (Γ,, A,, B) C))⟩ = t⟨upRen_term_term (upRen_term_term ↑)⟩.
 Proof. now bsimpl. Qed. *)
