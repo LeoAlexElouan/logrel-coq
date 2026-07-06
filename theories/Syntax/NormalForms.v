@@ -5,7 +5,7 @@ From LogRel Require Import AutoSubst.Extra Utils.
 From LogRel.Syntax Require Import BasicAst Context Computations.
 
 (** ** Weak-head normal forms and neutrals. *)
-Variant neVar := termNe | ellNe (k v : nat).
+
 Instance Ren1_neVar : Ren1 (nat -> nat) neVar neVar := fun ρ nevar =>
   match nevar with
   | termNe => termNe

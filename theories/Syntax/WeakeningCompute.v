@@ -3,7 +3,7 @@ From LogRel Require Import Utils AutoSubst.Extra Notations.
 From LogRel.Syntax Require Import BasicAst Context NormalForms Computations Weakening.
 
 Notation eta_expand' Γ A f := (tApp f⟨@wk1 Γ A⟩ (tRel 0)) (only parsing).
-Notation arr' Γ A B := (tProd A (B⟨@wk1 Γ (A : term)⟩)).
+Notation arr' Γ A B := (tProd A (B⟨@wk1 Γ (term_decl A)⟩)).
 Notation elimSuccHypTy' Γ P :=
   (tProd tNat (arr' (Γ,, tNat) P P⟨wk_up tNat (@wk1 Γ tNat)⟩[(tSucc (tRel 0))..])).
 Notation elimLeafHypTy' Γ P :=
@@ -85,6 +85,11 @@ Lemma wk_natElim {Γ Δ P hz hs n} (ρ : Δ ≤ Γ) :
   tNatElim P⟨wk_up tNat ρ⟩ hz⟨ρ⟩ hs⟨ρ⟩ n⟨ρ⟩ = (tNatElim P hz hs n)⟨ρ⟩.
 Proof. reflexivity. Qed.
 
+
+Lemma wk_leaf {n Γ Δ} (ρ : Δ ≤ Γ) : tLeaf n⟨ρ⟩ = (tLeaf n)⟨ρ⟩.
+Proof. reflexivity. Qed.
+Lemma wk_node {n tl tr Γ Δ} (ρ : Δ ≤ Γ) : tNode n⟨ρ⟩ tl⟨ρ⟩ tr⟨ρ⟩ = (tNode n tl tr)⟨ρ⟩.
+Proof. reflexivity. Qed.
 Lemma wk_elimLeafHypTy {P Γ Δ} A (ρ : Δ ≤ Γ) :
   elimLeafHypTy P⟨wk_up A ρ⟩ = (elimLeafHypTy P)⟨ρ⟩.
 Proof. unfold elimLeafHypTy; cbn. f_equal ; now bsimpl. Qed.
@@ -171,10 +176,30 @@ Lemma wk_Id {A x y Γ Δ} (ρ : Δ ≤ Γ) : tId A⟨ρ⟩ x⟨ρ⟩ y⟨ρ⟩ =
 Proof. reflexivity. Qed.
 Lemma wk_refl {A x Γ Δ} (ρ : Δ ≤ Γ) : tRefl A⟨ρ⟩ x⟨ρ⟩ = (tRefl A x)⟨ρ⟩.
 Proof. reflexivity. Qed.
-Lemma wk_idElim {A x P hr y e : term}  {Δ Γ} (ρ : Δ ≤ Γ) :
+Lemma wk_idElim {A x P hr y e : term} {Δ Γ} (ρ : Δ ≤ Γ) :
   tIdElim A⟨ρ⟩ x⟨ρ⟩ P⟨wk_up (tId A⟨@wk1 Γ A⟩ x⟨@wk1 Γ A⟩ (tRel 0)) (wk_up A ρ)⟩ hr⟨ρ⟩ y⟨ρ⟩ e⟨ρ⟩ = (tIdElim A x P hr y e)⟨ρ⟩.
 Proof. reflexivity. Qed.
 
+Lemma wk_alpha {i Γ Δ} (ρ : Δ ≤ Γ) : tAlpha i = (tAlpha i)⟨ρ⟩.
+Proof. reflexivity. Qed.
+
+Lemma wk_xi {ℓ t Γ Δ} (ρ : Δ ≤ Γ) : tXi ℓ t⟨wk_up ℓ ρ⟩ = (tXi ℓ t)⟨ρ⟩.
+Proof. reflexivity. Qed.
+Lemma wk_xxi {ℓ t u Γ Δ} (ρ : Δ ≤ Γ) : tXXi ℓ t⟨wk_up ℓ ρ⟩ u⟨ρ⟩ = (tXXi ℓ t u)⟨ρ⟩.
+Proof. reflexivity. Qed.
+Lemma wk_eval {ℓ t Γ Δ} (ρ : Δ ≤ Γ) : tEval ℓ t⟨ρ⟩ = (tEval ℓ t)⟨ρ⟩.
+Proof. reflexivity. Qed.
+Lemma wk_box {ℓ t Γ Δ} (ρ : Δ ≤ Γ) : tBox ℓ t⟨ρ⟩ = (tBox ℓ t)⟨ρ⟩.
+Proof. reflexivity. Qed.
+
+Lemma wk_ellElim {ℓ k P ht hf n b} (ℓt := cons_ell ℓ k true) (ℓf := cons_ell ℓ k false) {Γ Δ} (ρ : Δ ≤ Γ):
+  tEllElim k ℓ P⟨wk_up ℓ ρ⟩ ht⟨wk_up ℓt ρ⟩ hf⟨wk_up ℓf ρ⟩ n⟨ρ⟩ b⟨ρ⟩ = (tEllElim k ℓ P ht hf n b)⟨ρ⟩.
+Proof. reflexivity. Qed.
+
+Lemma wk_decl {t Δ Γ} (ρ : Δ ≤ Γ) : term_decl t⟨ρ⟩ = (term_decl t)⟨ρ⟩.
+Proof. reflexivity. Qed.
+Lemma wk_ell {ℓ Δ Γ} (ρ : Δ ≤ Γ) : ell_decl ℓ = (ell_decl ℓ)⟨ρ⟩.
+Proof. reflexivity. Qed.
 
 Lemma subst_arr' {A B Γ Δ} (σ : nat -> term) : arr' Δ A[σ] B[σ] = (arr' Γ A B)[σ].
 Proof. cbn. f_equal. now rewrite 2 wk1_ren_on, shift_up_eq. Qed.

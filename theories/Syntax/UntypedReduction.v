@@ -73,10 +73,10 @@ Inductive OneRedAlg {L : list ell} : term -> term -> Type :=
 | xxiLeaf {ℓ k n} : [L | tXXi ℓ (nat_to_term k) n ⤳ tRefl tTree (tLeaf (nat_to_term k)) ]
 | xxiNode {ℓ : ell} {m n} {k : newnat ℓ} (ℓt := cons_ell ℓ k true) (ℓf := cons_ell ℓ k false) : whne (ellNe k 0) m ->
   [L | tXXi ℓ m n ⤳
-    tEllElim k ℓ (tId tNat (dEval (tXi ℓ m⟨upRen_term_term ↑⟩) (tRel 0)) m)
-      (tXXi ℓt m⟨upRen_term_term ↑⟩⟨upRen_term_term ↑⟩[(tBox ℓ (tEval ℓt (tRel 0)))..] (tRel 0))
-      (tXXi ℓf m⟨upRen_term_term ↑⟩⟨upRen_term_term ↑⟩[(tBox ℓ (tEval ℓf (tRel 0)))..] (tRel 0))
-      n (nat_to_term k)]
+    tEllElim k ℓ (tId tNat (dEval (tXi ℓ m)⟨↑⟩ (tEval ℓ (tRel 0))) m)
+      (tXXi ℓt m⟨upRen_term_term ↑⟩[tBox ℓ (tEval ℓt (tRel 0))]⇑ (tRel 0))
+      (tXXi ℓf m⟨upRen_term_term ↑⟩[(tBox ℓ (tEval ℓf (tRel 0)))]⇑ (tRel 0))
+      n (tApp (tEval ℓ n) (nat_to_term k))]
 | ellElimSubst {k ℓ P ht hf n b b'}: [L | b ⤳ b'] -> [L | tEllElim k ℓ P ht hf n b ⤳ tEllElim k ℓ P ht hf n b']
 | ellElimTrue {ℓ : ell} {k : newnat ℓ} {P ht hf n} :
   [L | tEllElim k ℓ P ht hf n tTrue ⤳ ht[(tBox (cons_ell ℓ k true) (tEval ℓ n))..]]

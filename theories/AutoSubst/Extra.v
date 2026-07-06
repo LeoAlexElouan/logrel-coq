@@ -21,7 +21,7 @@ Notation "f >> g" := (funcomp g f) (at level 50) : function_scope.
 Notation "s .: sigma" := (scons s sigma) (at level 55, sigma at next level, right associativity) : asubst_scope.
 
 Notation "s ⟨ xi1 ⟩" := (ren1 xi1 s) (at level 7, left associativity, format "s ⟨ xi1 ⟩") : asubst_scope.
-(* Notation "s ⟨ xi1 ; xi2 ⟩" := (ren2 xi1 xi2 s) (at level 7, left associativity, format "s ⟨ xi1 ; xi2 ⟩") : asubst_scope. *)
+Notation "s ⟨ xi1 ; xi2 ⟩" := (ren2 xi1 xi2 s) (at level 7, left associativity, format "s ⟨ xi1 ; xi2 ⟩") : asubst_scope.
 (* Notation "⟨ xi ⟩" := (ren1 xi) (at level 1, left associativity, format "⟨ xi ⟩") : function_scope. *)
 
 Notation "s [ sigma ]" := (subst1 sigma s) (at level 7, left associativity, format "s '/' [ sigma ]") : asubst_scope.
@@ -39,7 +39,7 @@ Notation U := (tSort set).
 Notation "'eta_expand' f" := (tApp f⟨↑⟩ (tRel 0)) (at level 40, only parsing).
 
 #[global] Instance Ren1_subst {X Y Z : Type} `{Ren1 X Y Z} :
-  (Ren1 X (nat -> Y) (nat -> Z)) :=
+  (Ren1 X (nat -> Y) (nat -> Z)) | 10 :=
   fun ρ σ i => (σ i)⟨ρ⟩.
 
 Ltac fold_autosubst :=
@@ -179,11 +179,12 @@ Fixpoint ren_alpha (ρ : nat -> nat) (t:term) {struct t}: term := match t with
   (Ren1 (nat -> nat) term term) :=
   fun ρε t => ren_alpha ρε t. *)
 
-(* #[global] Instance Ren2_alpha {X : Type} `{Ren1 X term term} :
+#[global] Instance Ren2_alpha {X : Type} `{Ren1 X term term} :
   (Ren2 X (nat -> nat) term term) :=
-  fun ρ ρε t => (ren_alpha ρε t)⟨ρ⟩. *)
+  fun ρ ρε t => (ren_alpha ρε t)⟨ρ⟩.
 
-Notation "s ⟨ xi1 ; xi2 ⟩" := (ren_alpha xi2 s)⟨xi1⟩ (at level 7, left associativity, format "s ⟨ xi1 ; xi2 ⟩") : asubst_scope.
+
+Notation "s ⟨ xi1 ; xi2 ⟩" := (ren2 xi1 xi2 s) (at level 7, left associativity, format "s ⟨ xi1 ; xi2 ⟩") : asubst_scope.
 
 Lemma extRen_alpha : forall (ρ ρ': nat -> nat), ρ =1 ρ' ->
   ren_alpha ρ =1 ren_alpha ρ'.

@@ -22,10 +22,10 @@ Lemma subst_ren_subst_up P n (σ : substitution) :
   P[n..][σ] = P[up_subst σ][(n[σ])..].
 Proof. now bsimpl. Qed.
 
-Lemma subst_ren_wk {Γ Δ} {A : term} {σ : substitution} (ρ : Δ ≤ Γ) : A[σ]⟨ρ⟩ = A[σ⟨ρ⟩].
+Lemma subst_ren_wk {Γ Δ} {A : term} {σ : substitution} (ρ : Δ ≤ Γ) : A[σ]⟨ρ⟩ = A[σ⟨ρ⟩] :> term.
 Proof. now bsimpl. Qed.
 Lemma subst_up_wk1 {A : term} {Γ Δ : context} {t : term} (σ : substitution) :
-   t[σ]⟨@wk1 Δ (A[σ] : term)⟩ =  t⟨@wk1 Γ A⟩[up_subst σ].
+   t[σ]⟨@wk1 Δ (A[σ] : term)⟩ =  t⟨@wk1 Γ A⟩[up_subst σ] :> term.
 Proof. rewrite 2wk1_ren_on. now bsimpl. Qed.
 
 Lemma up_subst_wk1 Γ Δ A B t σ :

@@ -24,17 +24,17 @@ Open Scope typing_scope.
 (** ** Typing *)
 Class WfContext (ta : tag) := wf_context : context -> Set.
 Class WfType (ta : tag) := wf_type : context -> term -> Set.
-Class Typing (ta : tag) := typing : context -> term -> term -> Set.
+Class Typing (ta : tag) := typing : context -> decl -> term -> Set.
 Class Inferring (ta : tag) := inferring : context -> term -> term -> Set.
 Class InferringRed (ta : tag) := infer_red : context -> term -> term -> Set.
 Class Checking (ta : tag) := check : context -> term -> term -> Set.
 Class ConvType (ta : tag) := conv_type : context -> term -> term -> Set.
 Class ConvTypeRed (ta : tag) := conv_type_red : context -> term -> term -> Set.
-Class ConvTerm (ta : tag) := conv_term : context -> term -> term -> term -> Set.
-Class ConvTermRed (ta : tag) := conv_term_red : context -> term -> term -> term -> Set.
+Class ConvTerm (ta : tag) := conv_term : context -> decl -> term -> term -> Set.
+Class ConvTermRed (ta : tag) := conv_term_red : context -> decl -> term -> term -> Set.
 Class ConvNeu (ta : tag) := conv_neu : context -> term -> term -> term -> Set.
 Class ConvNeuRed (ta : tag) := conv_neu_red : context -> term -> term -> term -> Set.
-Class ConvNeuConv (ta : tag) := conv_neu_ty : context -> term -> term -> term -> Set.
+Class ConvNeuConv (ta : tag) := conv_neu_ty : neVar -> context -> decl -> term -> term -> Set.
 
 (** The context Γ is well-formed *)
 Notation "[ |- Γ ]" := (wf_context Γ)
@@ -103,9 +103,13 @@ Notation "[ Γ |-[ ta  ] n ~ n' ▹ A ]" := (conv_neu (ta := ta) Γ A n n')
 Notation "[ Γ |- n '~h' n' ▹ A ]" := (conv_neu_red Γ A n n') (at level 0, Γ, n, n', A at level 50, only parsing) : typing_scope.
 Notation "[ Γ |-[ ta  ] n '~h' n' ▹ A ]" := (conv_neu_red (ta := ta) Γ A n n') (at level 0, ta, Γ, n, n', A at level 50) : typing_scope.
 (** Neutral n and n' are convertible in Γ at type A *)
-Notation "[ Γ |- n ~ n' : A ]" := (conv_neu_ty Γ A n n')
+Notation "[ Γ |- n ~ n' : A | nevar ]" := (conv_neu_ty nevar Γ A n n')
   (at level 0, Γ, n, n', A at level 50, only parsing) : typing_scope. 
-Notation "[ Γ |-[ ta  ] n ~ n' : A ]" := (conv_neu_ty (ta := ta) Γ A n n')
+Notation "[ Γ |-[ ta  ] n ~ n' : A | nevar ]" := (conv_neu_ty nevar (ta := ta) Γ A n n')
+  (at level 0, ta, Γ, n, n', A at level 50) : typing_scope.
+Notation "[ Γ |- n ~ n' : A ]" := (conv_neu_ty termNe Γ A n n')
+  (at level 0, Γ, n, n', A at level 50, only parsing) : typing_scope. 
+Notation "[ Γ |-[ ta  ] n ~ n' : A ]" := (conv_neu_ty termNe (ta := ta) Γ A n n')
   (at level 0, ta, Γ, n, n', A at level 50) : typing_scope.
 
 (** ** Untyped Conversion *)

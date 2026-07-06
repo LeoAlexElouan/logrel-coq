@@ -16,12 +16,15 @@ Section Definitions.
   here before declaring the instance to which abstract notations are bound. *)
   Close Scope typing_scope.
 
-  Instance subst_to_decl {X} `{Subst1 X term term} : Subst1 X term decl :=
-    fun σ t => term_decl t[σ].
 
   (** Typing and conversion are mutually defined inductive relations. To avoid having
   to bother with elimination of propositions, we put them in the Type sort. *)
-
+(* Reserved Notation "[ Γ |- m ~ n : A ]" (at level 0, m, n, A at level 50).
+Reserved Notation "[ Γ |- m ≅ n : A ]" (at level 0, m, n, A at level 50).
+Reserved Notation "[ Γ |- m ≅ n ]" (at level 0, m, n at level 50).
+Reserved Notation "[ Γ |- m ]" (at level 0, m at level 50).
+Reserved Notation "[ Γ |- m : A ]" (at level 0, m, A at level 50).
+Reserved Notation "[ |- Γ ]" (at level 0). *)
   (** **** Context well-formation *)
   Inductive WfContextDecl : context -> Type :=
       | connil : [ |- ε ]
@@ -31,8 +34,11 @@ Section Definitions.
           [ |- Γ ] ->
           [ Γ |- A ] ->
           [ |-  Γ ,, A]
+      | conell {Γ} {ℓ : ell} :
+          [ |- Γ ] ->
+          [ |- Γ ,, ℓ]
   (** **** Type well-formation *)
-  with WfTypeDecl  : context -> term -> Type :=
+  with WfTypeDecl : context -> term -> Type :=
       | wfTypeU {Γ} :
           [ |- Γ ] ->
           [ Γ |- U ]
@@ -86,7 +92,7 @@ Section Definitions.
       | wfTermApp {Γ} {f a A B} :
           [ Γ |- f : tProd A B ] -> 
           [ Γ |- a : A ] -> 
-          [ Γ |- tApp f a : B[a..] ]
+          [ Γ |- tApp f a : term_decl B[a..] ]
       | wfTermNat {Γ} :
           [|-Γ] ->
           [Γ |- tNat : U]
@@ -98,10 +104,10 @@ Section Definitions.
           [Γ |- tSucc n : tNat]
       | wfTermNatElim {Γ P hz hs n} :
         [Γ ,, tNat |- P ] ->
-        [Γ |- hz : P[tZero..]] ->
+        [Γ |- hz : term_decl P[tZero..]] ->
         [Γ |- hs : elimSuccHypTy' Γ P] ->
         [Γ |- n : tNat] ->
-        [Γ |- tNatElim P hz hs n : P[n..]]
+        [Γ |- tNatElim P hz hs n : term_decl P[n..]]
       | wfTermBool {Γ} :
           [|-Γ] ->
           [Γ |- tBool : U]
@@ -113,10 +119,10 @@ Section Definitions.
           [Γ |- tFalse : tBool]
       | wfTermBoolElim {Γ P ht hf n} :
         [Γ ,, tBool |- P ] ->
-        [Γ |- ht : P[tTrue..]] ->
-        [Γ |- hf : P[tFalse..]] ->
+        [Γ |- ht : term_decl P[tTrue..]] ->
+        [Γ |- hf : term_decl  P[tFalse..]] ->
         [Γ |- n : tBool] ->
-        [Γ |- tBoolElim P ht hf n : P[n..]]
+        [Γ |- tBoolElim P ht hf n : term_decl P[n..]]
       | wfTermAlpha {Γ : context} {i : list_index Γ} :
           [|- Γ] ->
           [ Γ |- tAlpha i : arr' Γ tNat tBool]
@@ -126,7 +132,7 @@ Section Definitions.
       | wfTermEmptyElim {Γ P e} :
         [Γ ,, tEmpty |- P ] ->
         [Γ |- e : tEmpty] ->
-        [Γ |- tEmptyElim P e : P[e..]]
+        [Γ |- tEmptyElim P e : term_decl P[e..]]
       | wfTermTree {Γ} :
           [|-Γ] ->
           [Γ |- tTree : U]
@@ -143,7 +149,7 @@ Section Definitions.
         [Γ |- hl : elimLeafHypTy' Γ P] ->
         [Γ |- hn : elimNodeHypTy' Γ P] ->
         [Γ |- t : tTree] ->
-        [Γ |- tTreeElim P hl hn t : P[t..]]
+        [Γ |- tTreeElim P hl hn t : term_decl P[t..]]
       | wfTermSig {Γ} {A B} :
         [ Γ |- A : U] -> 
         [Γ ,, A |- B : U ] ->
@@ -152,14 +158,14 @@ Section Definitions.
         [Γ |- A] ->
         [Γ,, A |- B] ->
         [Γ |- a : A] -> 
-        [Γ |- b : B[a..]] ->
+        [Γ |- b : term_decl B[a..]] ->
         [Γ |- tPair A B a b : tSig A B]
       | wfTermFst {Γ A B p} :
         [Γ |- p : tSig A B] ->
         [Γ |- tFst p : A]
       | wfTermSnd {Γ A B p} :
         [Γ |- p : tSig A B] ->
-        [Γ |- tSnd p : B[(tFst p)..]]
+        [Γ |- tSnd p : term_decl B[(tFst p)..]]
       | wfTermId {Γ} {A x y} :
           [Γ |- A : U] ->
           [Γ |- x : A] ->
@@ -173,10 +179,10 @@ Section Definitions.
           [Γ |- A] ->
           [Γ |- x : A] ->
           [Γ ,, A ,, tId A⟨@wk1 Γ A⟩ x⟨@wk1 Γ A⟩ (tRel 0) |- P] ->
-          [Γ |- hr : P[tRefl A x .: x..]] ->
+          [Γ |- hr : term_decl P[tRefl A x .: x..]] ->
           [Γ |- y : A] ->
           [Γ |- e : tId A x y] ->
-          [Γ |- tIdElim A x P hr y e : P[e .: y..]]
+          [Γ |- tIdElim A x P hr y e : term_decl P[e .: y..]]
       | wfTermConv {Γ} {t A B : term} :
           [ Γ |- t : A ] -> 
           [ Γ |- A ≅ B ] -> 
@@ -188,19 +194,25 @@ Section Definitions.
           [ Γ |- t : A]
       | wfTermXi {Γ t} {ℓ : ell} :
           [ |- Γ] ->
-          [ Γ ,, ℓ |- t] ->
+          [ Γ ,, ℓ |- t : tNat] ->
           [ Γ |- tXi ℓ t : tTree]
       | wfTermXXi {Γ t u} {ℓ : ell} :
           [ |- Γ] ->
-          [ Γ ,, ℓ |- t] -> [ Γ |- u : ℓ] ->
+          [ Γ ,, ℓ |- t : tNat] -> [ Γ |- u : ℓ] ->
           [ Γ |- tXXi ℓ t u : tId tNat (dEval' Γ (tXi ℓ t) (tEval ℓ u)) t[u..] ]
       | wfTermEval {Γ t} {ℓ : ell} :
           [ Γ |- t : ℓ ] ->
           [ Γ |- tEval ℓ t : arr' Γ tNat tBool]
       | wfTermBox {Γ t} {ℓ : ell} :
           [ Γ |- t : arr' Γ tNat tBool] ->
-          (forall n b, in_ell ℓ n b -> [ Γ |- tApp t (nat_to_term n) ≅ bool_to_term b]) ->
+          (forall n b, in_ell ℓ n b -> [ Γ |- tApp t (nat_to_term n) ≅ bool_to_term b : tBool]) ->
           [ Γ |- tBox ℓ t : ℓ]
+      | wfTermEllElim {Γ ℓ k P ht hf n b} (ℓt := cons_ell ℓ k true) (ℓf := cons_ell ℓ k false):
+          [ Γ,, ℓ |- P] ->
+          [ Γ,, ℓt |- ht : term_decl P⟨wk_up ℓ (@wk1 Γ ℓt)⟩[(tBox ℓ (tEval ℓt (tRel 0)))..] ] ->
+          [ Γ,, ℓf |- hf : term_decl P⟨wk_up ℓ (@wk1 Γ ℓf)⟩[(tBox ℓ (tEval ℓf (tRel 0)))..] ] ->
+          [ Γ |- n : ℓ] -> [Γ |- b : tBool] -> [Γ |- tApp (tEval ℓ n) (nat_to_term k) ≅ b] ->
+          [ Γ |- tEllElim k ℓ P ht hf n b : term_decl P[n..] ]
   (** **** Conversion of types *)
   with ConvTypeDecl : context -> term -> term  -> Type :=  
       | TypePiCong {Γ} {A B C D} :
@@ -239,11 +251,11 @@ Section Definitions.
           [ Γ |- A ≅ B]
   (** **** Conversion of terms *)
   with ConvTermDecl : context -> decl -> term -> term -> Type :=
-      | TermBRed {Γ} {a t A B} :
+      | TermBRed {Γ} {a t A B : term} :
               [ Γ |- A ] ->
               [ Γ ,, A |- t : B ] ->
               [ Γ |- a : A ] ->
-              [ Γ |- tApp (tLambda A t) a ≅ t[a..] : B[a..] ]
+              [ Γ |- tApp (tLambda A t) a ≅ t[a..] : term_decl B[a..] ]
       | TermPiCong {Γ} {A B C D} :
           [ Γ |- A : U] ->
           [ Γ |- A ≅ B : U ] ->
@@ -252,7 +264,7 @@ Section Definitions.
       | TermAppCong {Γ} {a b f g A B} :
           [ Γ |- f ≅ g : tProd A B ] ->
           [ Γ |- a ≅ b : A ] ->
-          [ Γ |- tApp f a ≅ tApp g b : B[a..] ]
+          [ Γ |- tApp f a ≅ tApp g b : term_decl B[a..] ]
       | TermLambdaCong {Γ} {t u A A' A'' B : term} :
           [ Γ |- A ] ->
           [ Γ |- A ≅ A' ] ->
@@ -267,47 +279,44 @@ Section Definitions.
           [Γ |- tSucc n ≅ tSucc n' : tNat]
       | TermNatElimCong {Γ P P' hz hz' hs hs' n n'} :
           [Γ ,, tNat |- P ≅ P'] ->
-          [Γ |- hz ≅ hz' : P[tZero..]] ->
+          [Γ |- hz ≅ hz' : term_decl P[tZero..]] ->
           [Γ |- hs ≅ hs' : elimSuccHypTy' Γ P] ->
           [Γ |- n ≅ n' : tNat] ->
-          [Γ |- tNatElim P hz hs n ≅ tNatElim P' hz' hs' n' : P[n..]]
+          [Γ |- tNatElim P hz hs n ≅ tNatElim P' hz' hs' n' : term_decl P[n..]]
       | TermNatElimZero {Γ P hz hs} :
           [Γ ,, tNat |- P ] ->
-          [Γ |- hz : P[tZero..]] ->
+          [Γ |- hz : term_decl P[tZero..]] ->
           [Γ |- hs : elimSuccHypTy' Γ P] ->
-          [Γ |- tNatElim P hz hs tZero ≅ hz : P[tZero..]]
+          [Γ |- tNatElim P hz hs tZero ≅ hz : term_decl P[tZero..]]
       | TermNatElimSucc {Γ P hz hs n} :
           [Γ ,, tNat |- P ] ->
-          [Γ |- hz : P[tZero..]] ->
+          [Γ |- hz : term_decl P[tZero..]] ->
           [Γ |- hs : elimSuccHypTy' Γ P] ->
           [Γ |- n : tNat] ->
-          [Γ |- tNatElim P hz hs (tSucc n) ≅ tApp (tApp hs n) (tNatElim P hz hs n) : P[(tSucc n)..]]
+          [Γ |- tNatElim P hz hs (tSucc n) ≅ tApp (tApp hs n) (tNatElim P hz hs n) : term_decl P[(tSucc n)..]]
       | TermBoolElimCong {Γ P P' ht ht' hf hf' n n'} :
           [Γ ,, tBool |- P ≅ P'] ->
-          [Γ |- ht ≅ ht' : P[tTrue..]] ->
-          [Γ |- hf ≅ hf' : P[tFalse..]] ->
+          [Γ |- ht ≅ ht' : term_decl P[tTrue..]] ->
+          [Γ |- hf ≅ hf' : term_decl P[tFalse..]] ->
           [Γ |- n ≅ n' : tBool] ->
-          [Γ |- tBoolElim P ht hf n ≅ tBoolElim P' ht' hf' n' : P[n..]]
+          [Γ |- tBoolElim P ht hf n ≅ tBoolElim P' ht' hf' n' : term_decl P[n..]]
       | TermBoolElimTrue {Γ P ht hf} :
           [Γ ,, tBool |- P ] ->
-          [Γ |- ht : P[tTrue..]] ->
-          [Γ |- hf : P[tFalse..]] ->
-          [Γ |- tBoolElim P ht hf tTrue ≅ ht : P[tTrue..]]
+          [Γ |- ht : term_decl P[tTrue..]] ->
+          [Γ |- hf : term_decl P[tFalse..]] ->
+          [Γ |- tBoolElim P ht hf tTrue ≅ ht : term_decl P[tTrue..]]
       | TermBoolElimFalse {Γ P ht hf} :
           [Γ ,, tBool |- P ] ->
-          [Γ |- ht : P[tTrue..]] ->
-          [Γ |- hf : P[tFalse..]] ->
-          [Γ |- tBoolElim P ht hf tFalse ≅ hf : P[tFalse..]]
-(*       | TermAlphaCong {Γ : context} i} :
-          [|- Γ] ->
-          [ Γ |- tAlpha i ≅ tAlpha i : arr tNat tBool] *)
+          [Γ |- ht : term_decl P[tTrue..]] ->
+          [Γ |- hf : term_decl P[tFalse..]] ->
+          [Γ |- tBoolElim P ht hf tFalse ≅ hf : term_decl P[tFalse..]]
       | TermAlphaConv {Γ i n b} :
           [|-Γ] ->
           in_ell (list_at Γ i) n b -> [ Γ |- tApp (tAlpha i) (nat_to_term n) ≅ bool_to_term b : tBool ]
       | TermEmptyElimCong {Γ P P' e e'} :
           [Γ ,, tEmpty |- P ≅ P'] ->
           [Γ |- e ≅ e' : tEmpty] ->
-          [Γ |- tEmptyElim P e ≅ tEmptyElim P' e' : P[e..]]
+          [Γ |- tEmptyElim P e ≅ tEmptyElim P' e' : term_decl P[e..]]
       | TermLeafCong {Γ} {n n'} :
           [Γ |- n ≅ n' : tNat] ->
           [Γ |- tLeaf n ≅ tLeaf n' : tTree]
@@ -321,13 +330,13 @@ Section Definitions.
           [Γ |- hl ≅ hl' : elimLeafHypTy' Γ P] ->
           [Γ |- hn ≅ hn' : elimNodeHypTy' Γ P] ->
           [Γ |- t ≅ t' : tTree] ->
-          [Γ |- tTreeElim P hl hn t ≅ tTreeElim P' hl' hn' t' : P[t..]]
+          [Γ |- tTreeElim P hl hn t ≅ tTreeElim P' hl' hn' t' : term_decl P[t..]]
       | TermTreeElimLeaf {Γ P hl hn n} :
           [Γ ,, tTree |- P ] ->
           [Γ |- n : tNat] ->
           [Γ |- hl : elimLeafHypTy' Γ P] ->
           [Γ |- hn : elimNodeHypTy' Γ P] ->
-          [Γ |- tTreeElim P hl hn (tLeaf n) ≅ tApp hl n: P[(tLeaf n)..]]
+          [Γ |- tTreeElim P hl hn (tLeaf n) ≅ tApp hl n: term_decl P[(tLeaf n)..]]
       | TermTreeElimNode {Γ P hl hn tl tr n} :
           [Γ ,, tTree |- P ] ->
           [Γ |- n : tNat] ->
@@ -337,7 +346,7 @@ Section Definitions.
           [Γ |- tr : tTree] ->
           [Γ |- tTreeElim P hl hn (tNode n tl tr) ≅
             tApp (tApp (tApp (tApp (tApp hn n) tl) tr) (tTreeElim P hl hn tl)) (tTreeElim P hl hn tr) :
-            P[(tNode n tl tr)..]]
+            term_decl P[(tNode n tl tr)..]]
       | TermSigCong {Γ} {A A' B B'} :
           [ Γ |- A : U] ->
           [ Γ |- A ≅ A' : U ] ->
@@ -350,7 +359,7 @@ Section Definitions.
           [Γ,, A |- B ≅ B'] ->
           [Γ,, A |- B ≅ B''] ->
           [Γ |- a ≅ a' : A] ->
-          [Γ |- b ≅ b' : B[a..]] ->
+          [Γ |- b ≅ b' : term_decl B[a..]] ->
           [Γ |- tPair A' B' a b ≅ tPair A'' B'' a' b' : tSig A B]
       | TermPairEta {Γ} {A B p} :
           [Γ |- p : tSig A B] ->
@@ -362,17 +371,17 @@ Section Definitions.
         [Γ |- A] ->
         [Γ ,, A |- B] ->
         [Γ |- a : A] ->
-        [Γ |- b : B[a..]] ->
+        [Γ |- b : term_decl B[a..]] ->
         [Γ |- tFst (tPair A B a b) ≅ a : A]
       | TermSndCong {Γ A B p p'} :
         [Γ |- p ≅ p' : tSig A B] ->
-        [Γ |- tSnd p ≅ tSnd p' : B[(tFst p)..]]
+        [Γ |- tSnd p ≅ tSnd p' : term_decl B[(tFst p)..]]
       | TermSndBeta {Γ A B a b} :
         [Γ |- A] ->
         [Γ ,, A |- B] ->
         [Γ |- a : A] ->
-        [Γ |- b : B[a..]] ->
-        [Γ |- tSnd (tPair A B a b) ≅ b : B[(tFst (tPair A B a b))..]]
+        [Γ |- b : term_decl B[a..]] ->
+        [Γ |- tSnd (tPair A B a b) ≅ b : term_decl B[(tFst (tPair A B a b))..]]
       | TermIdCong {Γ A A' x x' y y'} :
         (* [Γ |- A] -> ?  *)
         [Γ |- A ≅ A' : U] ->
@@ -392,22 +401,22 @@ Section Definitions.
         [Γ |- A ≅ A'] ->
         [Γ |- x ≅ x' : A] ->
         [Γ ,, A ,, tId A⟨@wk1 Γ A⟩ x⟨@wk1 Γ A⟩ (tRel 0) |- P ≅ P'] ->
-        [Γ |- hr ≅ hr' : P[tRefl A x .: x..]] ->
+        [Γ |- hr ≅ hr' : term_decl P[tRefl A x .: x..]] ->
         [Γ |- y ≅ y' : A] ->
         [Γ |- e ≅ e' : tId A x y] ->
-        [Γ |- tIdElim A x P hr y e ≅ tIdElim A' x' P' hr' y' e' : P[e .: y..]]
+        [Γ |- tIdElim A x P hr y e ≅ tIdElim A' x' P' hr' y' e' : term_decl P[e .: y..]]
       | TermIdElimRefl {Γ A x P hr y A' z} :
         [Γ |- A] ->
         [Γ |- x : A] ->
         [Γ ,, A ,, tId A⟨@wk1 Γ A⟩ x⟨@wk1 Γ A⟩ (tRel 0) |- P] ->
-        [Γ |- hr : P[tRefl A x .: x..]] ->
+        [Γ |- hr : term_decl P[tRefl A x .: x..]] ->
         [Γ |- y : A] ->
         [Γ |- A'] ->
         [Γ |- z : A] ->
         [Γ |- A ≅ A'] ->
         [Γ |- x ≅ y : A] ->
         [Γ |- x ≅ z : A] ->
-        [Γ |- tIdElim A x P hr y (tRefl A' z) ≅ hr : P[tRefl A' z .: y..]]
+        [Γ |- tIdElim A x P hr y (tRefl A' z) ≅ hr : term_decl P[tRefl A' z .: y..]]
       | TermRefl {Γ} {t A} :
           [ Γ |- t : A ] -> 
           [ Γ |- t ≅ t : A ]
@@ -427,6 +436,67 @@ Section Definitions.
           [ Γ,, i : new ↦ true |- t ≅ t' : A] ->
           [ Γ,, i : new ↦ false |- t ≅ t' : A] ->
           [ Γ |- t ≅ t' : A]
+      | TermXiCong {Γ t t'} {ℓ : ell} :
+          [ |- Γ] ->
+          [ Γ ,, ℓ |- t ≅ t' : tNat] ->
+          [ Γ |- tXi ℓ t ≅ tXi ℓ t' : tTree]
+      | TermXiLeaf {Γ n} {ℓ : ell} :
+          [ |- Γ] ->
+          [ Γ |- tXi ℓ (nat_to_term n) ≅ tLeaf (nat_to_term n) : tTree]
+      | TermXiNode {Γ t} {ℓ : ell} {k v} (ℓt := cons_ell ℓ k true) (ℓf := cons_ell ℓ k false) :
+          [ |- Γ] ->
+          [ Γ ,, ℓ |- t : tNat] ->
+          whne (ellNe k v) t ->
+          [ Γ |- tXi ℓ t ≅ tNode (nat_to_term k) (tXi ℓt t⟨wk_up ℓ (@wk1 Γ ℓt)⟩[(tEval ℓ (tBox ℓt (tRel 0)))..])
+            (tXi ℓf t⟨wk_up ℓ (@wk1 Γ ℓf)⟩[(tEval ℓ (tBox ℓf (tRel 0)))..]) : tTree]
+      | TermXXiCong {Γ t t' u u'} {ℓ : ell} :
+          [ |- Γ] ->
+          [ Γ ,, ℓ |- t ≅ t' : tNat] -> [ Γ |- u ≅ u' : ℓ] ->
+          [ Γ |- tXXi ℓ t u ≅ tXXi ℓ t' u' : tId tNat (dEval' Γ (tXi ℓ t) (tEval ℓ u)) t[u..] ]
+      | TermXXiLeaf {Γ n u u'} {ℓ : ell} :
+          [ |- Γ] -> [ Γ |- u ≅ u' : ℓ] ->
+          [ Γ |- tXXi ℓ (nat_to_term n) u ≅ tRefl tNat (nat_to_term n): tId tNat (nat_to_term n) (nat_to_term n) ]
+      | TermXXiNode  {Γ m} {ℓ : ell} {k v n} (ℓt := cons_ell ℓ k true) (ℓf := cons_ell ℓ k false):
+          whne (ellNe k v) m ->
+          [ Γ,, ℓ |- m  : tNat] -> [Γ |- n : ℓ] ->
+          [ Γ |- tXXi ℓ m n ≅ tEllElim k ℓ (tId tNat (dEval' (Γ,, ℓ) (tXi ℓ m⟨wk_up ℓ (@wk1 Γ ℓ)⟩) (tEval ℓ (tRel 0))) m)
+            (tXXi ℓt m⟨wk_up ℓ (@wk1 Γ ℓt)⟩⟨wk_up ℓ (@wk1 (Γ,,ℓt) ℓt)⟩[(tBox ℓ (tEval ℓt (tRel 0)))..] (tRel 0))
+            (tXXi ℓf m⟨wk_up ℓ (@wk1 Γ ℓf)⟩⟨wk_up ℓ (@wk1 (Γ,,ℓf) ℓf)⟩[(tBox ℓ (tEval ℓf (tRel 0)))..] (tRel 0))
+            n (tApp (tEval ℓ n) (nat_to_term k)):
+            tId tNat (dEval' Γ (tXi ℓ m) (tEval ℓ n)) m[n..] ]
+      | TermEvalCong {Γ t t'} {ℓ : ell} :
+          [ Γ |- t ≅ t' : ℓ ] ->
+          [ Γ |- tEval ℓ t ≅ tEval ℓ t' : arr' Γ tNat tBool]
+      | TermEvalRel {Γ v n b} {ℓ : ell} :
+          [ |- Γ ] ->
+          in_ell ℓ n b ->
+          [ Γ |- tApp (tEval ℓ (tRel v)) (nat_to_term n) ≅ (bool_to_term b) : tBool]
+      | TermEvalBox {Γ ℓ t}:
+          [ Γ |- t : arr' Γ tNat tBool] ->
+          (forall n b, in_ell (ℓ : ell) n b -> [ Γ |- tApp t (nat_to_term n) ≅ bool_to_term b : tBool]) ->
+          [ Γ |- tEval ℓ (tBox ℓ t) ≅ t : arr' Γ tNat tBool]
+      | TermBoxCong {Γ t t'} {ℓ : ell} :
+          [ Γ |- t ≅ t' : arr' Γ tNat tBool] ->
+          (forall n b, in_ell ℓ n b -> [ Γ |- tApp t (nat_to_term n) ≅ bool_to_term b : tBool]) ->
+          [ Γ |- tBox ℓ t ≅ tBox ℓ t' : ℓ]
+      | TermEllElimCong {Γ ℓ k} {P P' ht ht' hf hf' n n' b b' : term} (ℓt := cons_ell ℓ k true) (ℓf := cons_ell ℓ k false):
+          [ Γ,, ℓ |- P ≅ P' ] ->
+          [ Γ,, ℓt |- ht ≅ ht' : term_decl P⟨wk_up ℓ (@wk1 Γ ℓt)⟩[(tBox ℓ (tEval ℓt (tRel 0)))..] ] ->
+          [ Γ,, ℓf |- hf ≅ hf' : term_decl P⟨wk_up ℓ (@wk1 Γ ℓf)⟩[(tBox ℓ (tEval ℓf (tRel 0)))..] ] ->
+          [ Γ |- n ≅ n' : ℓ] -> [Γ |- b ≅ b' : tBool] -> [Γ |- tApp (tEval ℓ n) (nat_to_term k) ≅ b : tBool] ->
+          [ Γ |- tEllElim k ℓ P ht hf n b ≅ tEllElim k ℓ P' ht' hf' n' b' : term_decl P[n..] ]
+      | TermEllElimTrue {Γ ℓ k} {P ht hf n : term} (ℓt := cons_ell ℓ k true) (ℓf := cons_ell ℓ k false):
+          [ Γ,, ℓ |- P] ->
+          [ Γ,, ℓt |- ht : term_decl P⟨wk_up ℓ (@wk1 Γ ℓt)⟩[(tBox ℓ (tEval ℓt (tRel 0)))..] ] ->
+          [ Γ,, ℓf |- hf : term_decl P⟨wk_up ℓ (@wk1 Γ ℓf)⟩[(tBox ℓ (tEval ℓf (tRel 0)))..] ] ->
+          [ Γ |- n : ℓ] -> [Γ |- tApp (tEval ℓ n) (nat_to_term k) ≅ tTrue ] ->
+          [ Γ |- tEllElim k ℓ P ht hf n tTrue ≅ ht[(tBox ℓt (tEval ℓ n))..] : term_decl P[n..]]
+      | TermEllElimFalse {Γ ℓ k} {P ht hf n : term} (ℓt := cons_ell ℓ k true) (ℓf := cons_ell ℓ k false):
+          [ Γ,, ℓ |- P] ->
+          [ Γ,, ℓt |- ht : term_decl P⟨wk_up ℓ (@wk1 Γ ℓt)⟩[(tBox ℓ (tEval ℓt (tRel 0)))..] ] ->
+          [ Γ,, ℓf |- hf : term_decl P⟨wk_up ℓ (@wk1 Γ ℓf)⟩[(tBox ℓ (tEval ℓf (tRel 0)))..] ] ->
+          [ Γ |- n : ℓ] -> [Γ |- tApp (tEval ℓ n) (nat_to_term k) ≅ tFalse ] ->
+          [ Γ |- tEllElim k ℓ P ht hf n tFalse ≅ hf[(tBox ℓt (tEval ℓ n))..] : term_decl P[n..]]
 
   where "[   |- Γ ]" := (WfContextDecl Γ)
   and   "[ Γ |- T ]" := (WfTypeDecl Γ T)
@@ -454,9 +524,9 @@ Section Definitions.
   it can be shown to satisfy the interface of generic typing already. The bad side is that it does not
   give us strong enough inversion principles. *)
 
-  Record WeakDeclNeutralConversion (Γ : context) (A : term) (t u : term) := {
-    convnedecl_whne_l : whne t;
-    convnedecl_whne_r : whne u;
+  Record WeakDeclNeutralConversion nevar (Γ : context) (A : decl) (t u : term) := {
+    convnedecl_whne_l : whne nevar t;
+    convnedecl_whne_r : whne nevar u;
     convnedecl_conv : [ Γ |- t ≅ u : A ];
   }.
 
@@ -465,68 +535,89 @@ Section Definitions.
   The price is that at this stage we cannot show that it is transitive, yet – we need injectivity of
   type constructors for that. So we defer that until that later point. *)
 
-  Inductive DeclNeutralConversion (Γ : context) : term -> term -> term -> Type :=
+  Inductive DeclNeutralConversion (Γ : context) : neVar -> decl -> term -> term -> Type :=
 
-  | neuConvRel T n : [|- Γ] -> in_ctx Γ n T -> [Γ |- tRel n ~ tRel n : T]
+  | neuConvRel (T : term) n : [|- Γ] -> in_ctx Γ n T -> [Γ |- tRel n ~ tRel n : T | termNe]
 
-  | neuConvApp A B n n' a a' :
-      [Γ |- n ~ n' : tProd A B] ->
+  | neuConvEval (ℓ : ell) v k : [|- Γ] -> in_ctx Γ v ℓ ->
+    [Γ |- tApp (tEval ℓ (tRel v)) (nat_to_term k) ~ tApp (tEval ℓ (tRel v)) (nat_to_term k) : ℓ | ellNe k v]
+
+  | neuConvApp nevar A B n n' a a' :
+      [Γ |- n ~ n' : tProd A B | nevar] ->
       [Γ |- a ≅ a' : A] ->
-      [Γ |- tApp n a ~ tApp n' a' : B[a..]]
+      [Γ |- tApp n a ~ tApp n' a' : term_decl B[a..] | nevar]
 
-  | neuConvNat {P P' hz hz' hs hs' n n'} :
-      [Γ |- n ~ n' : tNat] ->
+  | neuConvNat {nevar P P' hz hz' hs hs' n n'} :
+      [Γ |- n ~ n' : tNat | nevar] ->
       [Γ ,, tNat |- P ≅ P'] ->
-      [Γ |- hz ≅ hz' : P[tZero..]] ->
+      [Γ |- hz ≅ hz' : term_decl P[tZero..]] ->
       [Γ |- hs ≅ hs' : elimSuccHypTy' Γ P] ->
-      [Γ |- tNatElim P hz hs n ~ tNatElim P' hz' hs' n' : P[n..]]
+      [Γ |- tNatElim P hz hs n ~ tNatElim P' hz' hs' n' : term_decl P[n..] | nevar]
 
-  | neuConvBool {P P' ht ht' hf hf' n n'} :
-      [Γ |- n ~ n' : tBool] ->
+  | neuConvBool {nevar P P' ht ht' hf hf' n n'} :
+      [Γ |- n ~ n' : tBool | nevar] ->
       [Γ ,, tBool |- P ≅ P'] ->
-      [Γ |- ht ≅ ht' : P[tTrue..]] ->
-      [Γ |- hf ≅ hf' : P[tFalse..]] ->
-      [Γ |- tBoolElim P ht hf n ~ tBoolElim P' ht' hf' n' : P[n..]]
+      [Γ |- ht ≅ ht' : term_decl P[tTrue..]] ->
+      [Γ |- hf ≅ hf' : term_decl P[tFalse..]] ->
+      [Γ |- tBoolElim P ht hf n ~ tBoolElim P' ht' hf' n' : term_decl P[n..] | nevar]
 
-  | neuConvAlpha {k i n n'} :
-      [Γ |- n ~ n' : tNat] ->
-      [Γ |- tApp (tAlpha i) (nSucc k n) ~ tApp (tAlpha i) (nSucc k n') : tBool]
+  | neuConvAlpha {nevar k i n n'} :
+      [Γ |- n ~ n' : tNat | nevar] ->
+      [Γ |- tApp (tAlpha i) (nSucc k n) ~ tApp (tAlpha i) (nSucc k n') : tBool | nevar]
 
-  | neuConvEmpty {P P' e e'} :
+  | neuConvEmpty {nevar P P' e e'} :
       [Γ ,, tEmpty |- P ≅ P'] ->
-      [Γ |- e ~ e' : tEmpty] ->
-      [Γ |- tEmptyElim P e ~ tEmptyElim P' e' : P[e..]]
+      [Γ |- e ~ e' : tEmpty | nevar] ->
+      [Γ |- tEmptyElim P e ~ tEmptyElim P' e' : term_decl P[e..] | nevar]
 
-  | neuConvTree {P P' hl hl' hn hn' t t'} :
-      [Γ |- t ~ t' : tTree] ->
+  | neuConvTree {nevar P P' hl hl' hn hn' t t'} :
+      [Γ |- t ~ t' : tTree | nevar] ->
       [Γ ,, tTree |- P ≅ P'] ->
       [Γ |- hl ≅ hl' : elimLeafHypTy' Γ P] ->
       [Γ |- hn ≅ hn' : elimLeafHypTy' Γ P] ->
-      [Γ |- tTreeElim P hl hn t ~ tTreeElim P' hl' hn' t' : P[t..]]
+      [Γ |- tTreeElim P hl hn t ~ tTreeElim P' hl' hn' t' : term_decl P[t..] | nevar]
 
-  | neuConvFst {A B p p'} :
-      [Γ |- p ~ p' : tSig A B] ->
-      [Γ |- tFst p ~ tFst p' : A]
+  | neuConvFst {nevar A B p p'} :
+      [Γ |- p ~ p' : tSig A B | nevar] ->
+      [Γ |- tFst p ~ tFst p' : A | nevar]
 
-  | neuConvSnd {A B p p'} :
-      [Γ |- p ~ p' : tSig A B] ->
-      [Γ |- tSnd p ~ tSnd p' : B[(tFst p)..]]
+  | neuConvSnd {nevar A B p p'} :
+      [Γ |- p ~ p' : tSig A B | nevar] ->
+      [Γ |- tSnd p ~ tSnd p' : term_decl B[(tFst p)..] | nevar]
 
-  | neuConvId {A A' x x' P P' hr hr' y y' e e'} :
+  | neuConvId {nevar A A' x x' P P' hr hr' y y' e e'} :
       [Γ |- A ≅ A'] ->
       [Γ |- x ≅ x' : A] ->
       [Γ ,, A ,, tId A⟨@wk1 Γ A⟩ x⟨@wk1 Γ A⟩ (tRel 0) |- P ≅ P'] ->
-      [Γ |- hr ≅ hr' : P[tRefl A x .: x..]] ->
+      [Γ |- hr ≅ hr' : term_decl P[tRefl A x .: x..]] ->
       [Γ |- y ≅ y' : A] ->
-      [Γ |- e ~ e' : tId A x y] ->
-      [Γ |- tIdElim A x P hr y e ~ tIdElim A' x' P' hr' y' e' : P[e .: y..]]
+      [Γ |- e ~ e' : tId A x y | nevar] ->
+      [Γ |- tIdElim A x P hr y e ~ tIdElim A' x' P' hr' y' e' : term_decl P[e .: y..] | nevar]
 
-  | neuConvConv {A B n n'} :
-      [Γ |- n ~ n' : A] ->
+  | neuConvConv nevar {A B n n' : term} :
+      [Γ |- n ~ n' : A | nevar] ->
       [Γ |- A ≅ B] ->
-      [Γ |- n ~ n' : B]
+      [Γ |- n ~ n' : B | nevar]
 
-  where "[ Γ |- m ~ n : A ]" := (DeclNeutralConversion Γ A m n).
+  | neuConvXi nevar {ℓ : ell} {m m'} :
+      [Γ |- m ~ m' : tNat | nevar⟨@wk1 Γ ℓ⟩] ->
+      [Γ |- tXi ℓ m ~ tXi ℓ m' : tTree | nevar]
+
+  | neuConvXXi nevar {ℓ : ell} {m m' n n'} :
+      [Γ |- n ≅ n' : ℓ] ->
+      [Γ |- m ~ m' : tNat | nevar⟨@wk1 Γ ℓ⟩] ->
+      [Γ |- tXXi ℓ m n ~ tXXi ℓ m' n' : tTree | nevar]
+
+  | neuConEllElim nevar {ℓ k} {P P' ht ht' hf hf' n n' b b' : term} (ℓt := cons_ell ℓ k true) (ℓf := cons_ell ℓ k false):
+      [ Γ,, ℓ |- P ≅ P' ] ->
+      [ Γ,, ℓt |- ht ≅ ht' : term_decl P[tBox ℓ (tEval ℓt (tRel 0))]⇑ ] ->
+      [ Γ,, ℓf |- hf ≅ hf' : term_decl P[tBox ℓ (tEval ℓf (tRel 0))]⇑ ] ->
+      [ Γ |- n ≅ n' : ℓ] -> [Γ |- tApp (tEval ℓ n) (nat_to_term k) ≅ b] ->
+      [Γ |- b ~ b' : tBool | nevar] ->
+      [Γ |- tEllElim k ℓ P ht hf n b ~ tEllElim k ℓ P' ht' hf' n' b' : term_decl P[n..] | nevar]
+
+
+  where "[ Γ |- m ~ n : A | nevar ]" := (DeclNeutralConversion Γ nevar A m n).
 
 End Definitions.
 
@@ -552,7 +643,7 @@ Module DeclarativeTypingData.
   #[export] Instance ConvTerm_Decl : ConvTerm de := ConvTermDecl.
   #[export] Instance RedType_Decl : RedType de := TypeRedClosure.
   #[export] Instance RedTerm_Decl : RedTerm de := TermRedClosure.
-  #[export] Instance ConvNeuConv_Decl : ConvNeuConv de := DeclNeutralConversion.
+  #[export] Instance ConvNeuConv_Decl : ConvNeuConv de := fun nevar Γ => DeclNeutralConversion Γ nevar.
 
   Ltac fold_decl :=
     change WfContextDecl with (wf_context (ta := de)) in * ;
@@ -642,7 +733,7 @@ End InductionPrinciples.
 
 Arguments WfDeclInductionConcl PCon PTy PTm PTyEq PTmEq : rename.
 
-Lemma wfTermAppArr {Γ} {f a A B} :
+Lemma wfTermAppArr {Γ} {f a A B : term} :
   [ Γ |- f : arr A B ] -> [ Γ |- a : A ] -> 
   [ Γ |- tApp f a : B ].
 Proof.
@@ -650,7 +741,7 @@ Proof.
   rewrite <- (@shift_subst1' B a).
   now eapply wfTermApp.
 Qed.
-Lemma TermAppArrCong {Γ} {a b f g A B} :
+Lemma TermAppArrCong {Γ} {a b f g A B : term} :
           [ Γ |- f ≅ g : arr A B ] ->
           [ Γ |- a ≅ b : A ] ->
           [ Γ |- tApp f a ≅ tApp g b : B ].
@@ -659,6 +750,8 @@ Proof.
   rewrite <- (@shift_subst1' B a).
   now eapply TermAppCong.
 Qed.
+
+Print Instances Subst1.
 
 (* 
 (** ** Generation *)
