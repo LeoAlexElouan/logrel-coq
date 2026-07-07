@@ -116,11 +116,11 @@ Section Symmetry.
   Lemma symNe {Γ A B} : [Γ ||-ne A ≅ B] -> [Γ ||-ne B ≅ A].
   Proof.
     intros []; unshelve econstructor.
-    3,4: tea.
-    now symmetry.
+    4,5: tea.
+    2:now symmetry.
   Defined.
 
-  Lemma symNeNf {Γ t u A} : [Γ ||-NeNf t ≅ u : A] -> [Γ ||-NeNf u ≅ t : A].
+  Lemma symNeNf {Γ nevar t u A} : [Γ ||-NeNf t ≅ u : A | nevar] -> [Γ ||-NeNf u ≅ t : A | nevar].
   Proof.
     intros []; econstructor; tea; now symmetry.
   Qed.
@@ -133,7 +133,7 @@ Section Symmetry.
     - intros; econstructor; tea; now symmetry.
     - constructor.
     - intros; now constructor.
-    - intros; constructor; now eapply symNeNf.
+    - intros; econstructor; now eapply symNeNf.
   Qed.
 
   Lemma symBoolPropEq {Γ} :
@@ -258,7 +258,7 @@ Section Symmetry.
   Lemma symIdPropEq {t u} : IdPropEq IA t u <≈> IdPropEq symId u t.
   Proof.
     pose proof (escapeEq (IA.(IdRedTy.tyRed))).
-    split; intros []; constructor; tea.
+    split; intros []; econstructor; tea.
     - etransitivity; tea; now symmetry.
     - etransitivity; tea; now symmetry.
     - eapply ihdom; etransitivity;[| eapply IdRedTy.lhsRed]; now symmetry.

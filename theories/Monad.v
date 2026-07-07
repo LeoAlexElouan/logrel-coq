@@ -1,7 +1,7 @@
 From LogRel Require Import Utils Syntax.All GenericTyping.
 From Equations Require Import Equations.
 
-Inductive DTree (L : list Fcontext) : Set :=
+Inductive DTree (L : list ell) : Set :=
   | leaf : DTree L 
   | node (i : list_index L) (new : newnat (list_at L i)):
     DTree (Fcons L i new true) ->
@@ -86,7 +86,7 @@ Proof.
           by (rewrite ren_index_compose in hin''0; now eapply notin_is_not_in).
       * rewrite IHd1, IHd2.
         clear IHd1 IHd2.
-        set (P:=(fun var => not_in_Fctx (list_at L'' var) new)).
+        set (P:=(fun var => notin_ell (list_at L'' var) new)).
         change hnotin'' with (eq_sind P
           hnotin''0 (ren_index_compose i wρε wρε')).
         clear hnotin''.

@@ -175,13 +175,15 @@ Fixpoint ren_alpha (ρ : nat -> nat) (t:term) {struct t}: term := match t with
   | tEllElim k ℓ P ht hf n b => tEllElim k ℓ (ren_alpha ρ P) (ren_alpha ρ ht) (ren_alpha ρ hf) (ren_alpha ρ n) (ren_alpha ρ b)
   end.
 
-(* #[global] Instance Ren1_Alpha :
-  (Ren1 (nat -> nat) term term) :=
-  fun ρε t => ren_alpha ρε t. *)
+Class RenAlpha X := renAlpha : (nat -> nat) -> X -> X.
 
-#[global] Instance Ren2_alpha {X : Type} `{Ren1 X term term} :
-  (Ren2 X (nat -> nat) term term) :=
-  fun ρ ρε t => (ren_alpha ρε t)⟨ρ⟩.
+#[global] Instance Ren1_Alpha :
+  (RenAlpha term) :=
+  fun ρε t => ren_alpha ρε t.
+
+#[global] Instance Ren2_alpha {X Y Z : Type} `{Ren1 X Y Z} `{RenAlpha Y} :
+  (Ren2 X (nat -> nat) Y Z) :=
+  fun ρ ρε t => (renAlpha ρε t)⟨ρ⟩.
 
 
 Notation "s ⟨ xi1 ; xi2 ⟩" := (ren2 xi1 xi2 s) (at level 7, left associativity, format "s ⟨ xi1 ; xi2 ⟩") : asubst_scope.

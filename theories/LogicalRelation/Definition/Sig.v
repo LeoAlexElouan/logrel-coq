@@ -58,7 +58,7 @@ Module SigRedTmEq.
   Lemma whnf `{GenericTypingProperties} {Γ A B} {ΣA : SigRedTyPack Γ A B} {t} :
     forall (red : SigRedTm ΣA t), whnf (nf red).
   Proof.
-    intros [? ? ispair]; simpl; destruct ispair; constructor; tea.
+    intros [? ? ispair]; simpl; destruct ispair; econstructor; tea.
     now eapply convneu_whne.
   Qed.
 
@@ -66,7 +66,7 @@ Module SigRedTmEq.
     SigRedTm ΣA t -> [Γ |- t ↘  SigRedTyPack.outTy ΣA].
   Proof.
     intros [?? ispair]; econstructor; tea.
-    destruct ispair; constructor; now eapply convneu_whne.
+    destruct ispair; econstructor; now eapply convneu_whne.
   Defined.
 
 

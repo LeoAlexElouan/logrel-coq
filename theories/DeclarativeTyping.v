@@ -211,7 +211,7 @@ Reserved Notation "[ |- Γ ]" (at level 0). *)
           [ Γ,, ℓ |- P] ->
           [ Γ,, ℓt |- ht : term_decl P⟨wk_up ℓ (@wk1 Γ ℓt)⟩[(tBox ℓ (tEval ℓt (tRel 0)))..] ] ->
           [ Γ,, ℓf |- hf : term_decl P⟨wk_up ℓ (@wk1 Γ ℓf)⟩[(tBox ℓ (tEval ℓf (tRel 0)))..] ] ->
-          [ Γ |- n : ℓ] -> [Γ |- b : tBool] -> [Γ |- tApp (tEval ℓ n) (nat_to_term k) ≅ b] ->
+          [ Γ |- n : ℓ] -> [Γ |- b : tBool] -> [Γ |- tApp (tEval ℓ n) (nat_to_term k) ≅ b : tBool] ->
           [ Γ |- tEllElim k ℓ P ht hf n b : term_decl P[n..] ]
   (** **** Conversion of types *)
   with ConvTypeDecl : context -> term -> term  -> Type :=  
@@ -489,14 +489,14 @@ Reserved Notation "[ |- Γ ]" (at level 0). *)
           [ Γ,, ℓ |- P] ->
           [ Γ,, ℓt |- ht : term_decl P⟨wk_up ℓ (@wk1 Γ ℓt)⟩[(tBox ℓ (tEval ℓt (tRel 0)))..] ] ->
           [ Γ,, ℓf |- hf : term_decl P⟨wk_up ℓ (@wk1 Γ ℓf)⟩[(tBox ℓ (tEval ℓf (tRel 0)))..] ] ->
-          [ Γ |- n : ℓ] -> [Γ |- tApp (tEval ℓ n) (nat_to_term k) ≅ tTrue ] ->
+          [ Γ |- n : ℓ] -> [Γ |- tApp (tEval ℓ n) (nat_to_term k) ≅ tTrue : tBool] ->
           [ Γ |- tEllElim k ℓ P ht hf n tTrue ≅ ht[(tBox ℓt (tEval ℓ n))..] : term_decl P[n..]]
       | TermEllElimFalse {Γ ℓ k} {P ht hf n : term} (ℓt := cons_ell ℓ k true) (ℓf := cons_ell ℓ k false):
           [ Γ,, ℓ |- P] ->
           [ Γ,, ℓt |- ht : term_decl P⟨wk_up ℓ (@wk1 Γ ℓt)⟩[(tBox ℓ (tEval ℓt (tRel 0)))..] ] ->
           [ Γ,, ℓf |- hf : term_decl P⟨wk_up ℓ (@wk1 Γ ℓf)⟩[(tBox ℓ (tEval ℓf (tRel 0)))..] ] ->
-          [ Γ |- n : ℓ] -> [Γ |- tApp (tEval ℓ n) (nat_to_term k) ≅ tFalse ] ->
-          [ Γ |- tEllElim k ℓ P ht hf n tFalse ≅ hf[(tBox ℓt (tEval ℓ n))..] : term_decl P[n..]]
+          [ Γ |- n : ℓ] -> [Γ |- tApp (tEval ℓ n) (nat_to_term k) ≅ tFalse : tBool] ->
+          [ Γ |- tEllElim k ℓ P ht hf n tFalse ≅ hf[(tBox ℓf (tEval ℓ n))..] : term_decl P[n..]]
 
   where "[   |- Γ ]" := (WfContextDecl Γ)
   and   "[ Γ |- T ]" := (WfTypeDecl Γ T)
@@ -524,7 +524,8 @@ Reserved Notation "[ |- Γ ]" (at level 0). *)
   it can be shown to satisfy the interface of generic typing already. The bad side is that it does not
   give us strong enough inversion principles. *)
 
-  Record WeakDeclNeutralConversion nevar (Γ : context) (A : decl) (t u : term) := {
+  Record WeakDeclNeutralConversion (Γ : context) (A : decl) (t u : term) := {
+    nevar : neVar;
     convnedecl_whne_l : whne nevar t;
     convnedecl_whne_r : whne nevar u;
     convnedecl_conv : [ Γ |- t ≅ u : A ];
@@ -539,8 +540,8 @@ Reserved Notation "[ |- Γ ]" (at level 0). *)
 
   | neuConvRel (T : term) n : [|- Γ] -> in_ctx Γ n T -> [Γ |- tRel n ~ tRel n : T | termNe]
 
-  | neuConvEval (ℓ : ell) v k : [|- Γ] -> in_ctx Γ v ℓ ->
-    [Γ |- tApp (tEval ℓ (tRel v)) (nat_to_term k) ~ tApp (tEval ℓ (tRel v)) (nat_to_term k) : ℓ | ellNe k v]
+  | neuConvEval (ℓ : ell) v (k : newnat ℓ) : [|- Γ] -> in_ctx Γ v ℓ ->
+    [Γ |- tApp (tEval ℓ (tRel v)) (nat_to_term k) ~ tApp (tEval ℓ (tRel v)) (nat_to_term k) : tBool | ellNe k v]
 
   | neuConvApp nevar A B n n' a a' :
       [Γ |- n ~ n' : tProd A B | nevar] ->
@@ -599,20 +600,20 @@ Reserved Notation "[ |- Γ ]" (at level 0). *)
       [Γ |- A ≅ B] ->
       [Γ |- n ~ n' : B | nevar]
 
-  | neuConvXi nevar {ℓ : ell} {m m'} :
-      [Γ |- m ~ m' : tNat | nevar⟨@wk1 Γ ℓ⟩] ->
-      [Γ |- tXi ℓ m ~ tXi ℓ m' : tTree | nevar]
+  | neuConvXi nevar {ℓ : ell} {m m' k} :
+      [Γ,, ℓ |- m ~ m' : tNat | nevar⟨@wk1 Γ ℓ⟩] ->
+      [Γ |- tXi ℓ (nSucc k m) ~ tXi ℓ (nSucc k m') : tTree | nevar]
 
-  | neuConvXXi nevar {ℓ : ell} {m m' n n'} :
+  | neuConvXXi nevar {ℓ : ell} {m m' n n' k} :
       [Γ |- n ≅ n' : ℓ] ->
-      [Γ |- m ~ m' : tNat | nevar⟨@wk1 Γ ℓ⟩] ->
-      [Γ |- tXXi ℓ m n ~ tXXi ℓ m' n' : tTree | nevar]
+      [Γ,, ℓ |- m ~ m' : tNat | nevar⟨@wk1 Γ ℓ⟩] ->
+      [Γ |- tXXi ℓ (nSucc k m) n ~ tXXi ℓ (nSucc k m') n' : tId tNat (dEval' Γ (tXi ℓ (nSucc k m)) (tEval ℓ n)) (nSucc k m)[n..] | nevar]
 
   | neuConEllElim nevar {ℓ k} {P P' ht ht' hf hf' n n' b b' : term} (ℓt := cons_ell ℓ k true) (ℓf := cons_ell ℓ k false):
       [ Γ,, ℓ |- P ≅ P' ] ->
-      [ Γ,, ℓt |- ht ≅ ht' : term_decl P[tBox ℓ (tEval ℓt (tRel 0))]⇑ ] ->
-      [ Γ,, ℓf |- hf ≅ hf' : term_decl P[tBox ℓ (tEval ℓf (tRel 0))]⇑ ] ->
-      [ Γ |- n ≅ n' : ℓ] -> [Γ |- tApp (tEval ℓ n) (nat_to_term k) ≅ b] ->
+      [ Γ,, ℓt |- ht ≅ ht' : term_decl P⟨wk_up ℓ (@wk1 Γ ℓt)⟩[(tBox ℓ (tEval ℓt (tRel 0)))..] ] ->
+      [ Γ,, ℓf |- hf ≅ hf' : term_decl P⟨wk_up ℓ (@wk1 Γ ℓf)⟩[(tBox ℓ (tEval ℓf (tRel 0)))..] ] ->
+      [ Γ |- n ≅ n' : ℓ] -> [Γ |- tApp (tEval ℓ n) (nat_to_term k) ≅ b : tBool] ->
       [Γ |- b ~ b' : tBool | nevar] ->
       [Γ |- tEllElim k ℓ P ht hf n b ~ tEllElim k ℓ P' ht' hf' n' b' : term_decl P[n..] | nevar]
 

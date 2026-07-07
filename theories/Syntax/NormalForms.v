@@ -6,13 +6,14 @@ From LogRel.Syntax Require Import BasicAst Context Computations.
 
 (** ** Weak-head normal forms and neutrals. *)
 
-Instance Ren1_neVar : Ren1 (nat -> nat) neVar neVar := fun ρ nevar =>
+(* Instance Ren1_neVar : Ren1 (nat -> nat) neVar neVar := fun ρ nevar =>
   match nevar with
   | termNe => termNe
   | ellNe k v => ellNe k (ρ v)
   end.
+Instance RenAlpha_neVar : RenAlpha neVar := fun _ nevar => nevar.
 Equations Derive NoConfusion for neVar.
-
+ *)
 (* Inductive whns {k v : nat} : term -> Type :=
   | whns_tEval {ℓ} : notin_ell (ℓ : ell) k -> whns (tApp (tEval ℓ (tRel v)) (nat_to_term k))
   | whns_tApp {n t} : whns n -> whns (tApp n t)
@@ -29,6 +30,33 @@ Equations Derive NoConfusion for neVar.
   | whns_tEllElim kℓ ℓ P ht hf n b : whns b -> whns (tEllElim kℓ ℓ P ht hf n b).
 Arguments whns : clear implicits.
  *)
+
+Fixpoint term_under_nSucc {A} (k : nat -> term -> A) n t {struct t} : A :=
+match t with
+  | tSucc t => term_under_nSucc k (S n) t
+  | _ => k n t
+end.
+
+Fixpoint head (t : term) : option (nat × nat) :=
+  match t with
+ | tApp (tEval ℓ (tRel v)) k => term_under_nSucc (fun k t => match t with tZero => Some (k, v) | _ => head t end) 0 k
+ | tApp (tAlpha i) k => term_under_nSucc (fun k t => match t with tZero => None | _ => head t end) 0 k
+ | tNatElim x x0 x1 x2 => head x2
+ | tBoolElim x x0 x1 x2 => head x2
+ | tEmptyElim x x0 => head x0
+ | tTreeElim x x0 x1 x2 => head x2
+ | tFst x => head x
+ | tSnd x => head x
+ | tIdElim x x0 x1 x2 x3 x4 => head x4
+ | tXi x k => term_under_nSucc (fun k t => match t with tZero => None | _ => head t end) 0 k
+ | tXXi x k n => term_under_nSucc (fun k t => match t with tZero => None | _ => head t end) 0 k
+ | tEllElim x x0 x1 x2 x3 x4 x5 => head x5
+ | _ => None
+end.
+
+
+
+
 Inductive whne : neVar -> term -> Type :=
   | whne_tRel {v} : whne termNe (tRel v)
   | whns_tEval {ℓ k v} : notin_ell (ℓ : ell) k -> whne (ellNe k v) (tApp (tEval ℓ (tRel v)) (nat_to_term k))
@@ -41,7 +69,7 @@ Inductive whne : neVar -> term -> Type :=
   | whne_tSnd {p nevar} : whne nevar p -> whne nevar (tSnd p)
   | whne_tIdElim {A x P hr y e nevar} : whne nevar e -> whne nevar (tIdElim A x P hr y e)
   | whne_tAlpha {i t k nevar} : whne nevar t -> whne nevar (tApp (tAlpha i) (nSucc k t))
-  | whne_tXi {n ℓ k nevar} : whne nevar⟨↑⟩ n -> whne nevar (tXi ℓ (nSucc k n))
+  | whne_tXi {n ℓ k nevar} : whne n -> whne head n = Some (m, k) -> m > 1 -> whne nevar (tXi ℓ (nSucc k n))
   | whne_tXXi {m n ℓ k nevar} : whne nevar⟨↑⟩ m -> whne nevar (tXXi ℓ (nSucc k m) n)
   | whne_tEllElim {kℓ ℓ P ht hf n b nevar} : whne nevar b -> whne nevar (tEllElim kℓ ℓ P ht hf n b).
 
@@ -476,33 +504,34 @@ Variant tree_entry : term -> Type :=
 
 Section RenWhnf.
 
-Lemma ren_nSucc_inv {ρ k t t'} : nSucc k t = t'⟨ρ⟩ -> {u | t = u⟨ρ⟩ /\ t' = nSucc k u}.
-Proof.
-  induction k as [|k] in ρ, t, t' |-*; cbn.
-  + intros ->. now exists t'.
-  + intros e.
-    destruct t'; cbn in *; try solve [congruence].
-    inversion e as [e']; clear e.
-    specialize (IHk _ _ _ e').
-    destruct IHk as [ u [-> ->]].
-    now exists u.
-Qed.
+
+  Lemma ren_nSucc_inv {ρ ρε k t t'} : nSucc k t = t'⟨ρ; ρε⟩ -> {u | t = u⟨ρ; ρε⟩ /\ t' = nSucc k u}.
+  Proof.
+    induction k as [|k] in ρ, t, t' |-*; cbn.
+    + intros ->. now exists t'.
+    + intros e.
+      destruct t'; cbn in *; try solve [congruence].
+      inversion e as [e']; clear e.
+      specialize (IHk _ _ _ e').
+      destruct IHk as [ u [-> ->]].
+      now exists u.
+  Qed.
 
 
   #[local] Ltac push_renaming :=
   (* repeat *) match goal with
-  | eq : _ = ?t⟨_⟩ |- _ =>
+  | eq : _ = ?t⟨_; _⟩ |- _ =>
       destruct t ; cbn in * ; try solve [congruence] ;
       inversion eq ; subst ; clear eq
   end.
 
-  Variable (ρ (* ρε *): nat -> nat).
+  Variable (ρ ρε: nat -> nat).
 
-  Lemma whne_ren t nevar : whne nevar t -> whne nevar⟨ρ⟩ t⟨ρ⟩. (* whne nevar⟨ρ⟩ t⟨ρ⟩ <~> whne nevar t. *)
+  Lemma whne_ren t nevar : whne nevar t -> whne nevar⟨ρ; ρε⟩ t⟨ρ; ρε⟩. (* whne nevar⟨ρ⟩ t⟨ρ⟩ <~> whne nevar t. *)
   Proof.
   induction 1 in ρ |-*; cbn.
   2: unfold nat_to_term.
-  2,11-13 : rewrite nSucc_ren.
+  2,11-13 : rewrite nSucc_ren_alpha, nSucc_ren.
   all: try now econstructor.
   + econstructor.
     specialize (IHwhne (upRen_term_term ρ)).
@@ -539,7 +568,7 @@ Qed.
         now eapply whne_tEval. *)
   Qed.
 
-  Lemma whnf_ren t : whnf t -> whnf t⟨ρ⟩. 
+  Lemma whnf_ren t : whnf t -> whnf t⟨ρ; ρε⟩. 
   Proof.
     induction 1; cbn.
     all: econstructor.
@@ -621,7 +650,7 @@ Qed.
       now eapply whne_ren.
   Qed. *)
 
-  Lemma isCanonical_ren t : isCanonical (t⟨ρ⟩) <~> isCanonical t.
+  Lemma isCanonical_ren t : isCanonical (t⟨ρ; ρε⟩) <~> isCanonical t.
   Proof.
     split.
     all: destruct t ; cbn ; inversion 1.

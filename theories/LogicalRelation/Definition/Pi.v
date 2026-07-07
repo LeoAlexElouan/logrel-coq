@@ -68,7 +68,7 @@ Module PiRedTmEq.
   Proof.
     intros [?? isfun]; econstructor; tea; destruct isfun.
     1: gtyping.
-    all: constructor; now eapply convneu_whne.
+    all: econstructor; now eapply convneu_whne.
   Defined.
 
   Record PiRedTmEq `{ta : tag} `{WfContext ta}

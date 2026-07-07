@@ -104,9 +104,6 @@ Proof.
     now eapply notin_is_not_in.
 Qed. *)
 
-#[global] Instance Ren1_Alpha :
-  (Ren1 Fweakening term term) :=
-  fun ρε t => ren_alpha (wk_to_ren ρε) t.
 
 Inductive well_Fweakening : Fweakening -> list ell -> list ell -> Type:=
   | well_emptyF : well_Fweakening _wk_empty nil nil
@@ -241,17 +238,19 @@ Proof.
     eapply eq_rect.
     { now constructor. }
     destruct d' as [t|].
-    + cbn; f_equal. asimpl.
-      eapply extRen_term, wk_compose_compose.
+    + cbn; f_equal. rewrite commRen_alpha_term. asimpl.
+      rewrite wk_compose_compose, extRen_alpha
+        by eapply wk_compose_compose.
+      now rewrite <- compRen_alpha_pointwise.
     + reflexivity.
 Qed.
 
 
 #[projections(primitive)]Record wk_well_wk {Γ Δ : context} := {
-(*   Fwk :> Fweakening; *)
-  well_Fwk :> well_Fweakening (* Fwk *) (Fctx Γ) (Fctx Δ);
+  Fwk :> Fweakening;
+  well_Fwk :> well_Fweakening Fwk (Fctx Γ) (Fctx Δ);
   wk :> weakening ;
-  well_wk :> well_weakening (* Fwk *) wk (Tctx Γ) (Tctx Δ)
+  well_wk :> well_weakening Fwk wk (Tctx Γ) (Tctx Δ)
 }.
 Arguments wk_well_wk : clear implicits.
 Arguments Build_wk_well_wk : clear implicits.
@@ -259,9 +258,9 @@ Notation "Γ ≤ Δ" := (wk_well_wk Γ Δ).
 
 
 Lemma wk_well_wk_wk_eq : forall Γ Δ (ρ1 ρ2 : Γ ≤ Δ),
-  ρ1.(wk) = ρ2.(wk) (* -> ρ1.(Fwk) = ρ2.(Fwk) *) -> ρ1 = ρ2.
+  ρ1.(wk) = ρ2.(wk) -> ρ1.(Fwk) = ρ2.(Fwk) -> ρ1 = ρ2.
 Proof.
-intros Γ Δ [(* ρε1 *) wε1 ρ1 w1] [(* ρε2 *) wε2 ρ2 w2]; cbn; intros <- (* <- *).
+intros Γ Δ [ρε1 wε1 ρ1 w1] [ρε2 wε2 ρ2 w2]; cbn; intros <- <-.
 assert (eε : wε1 = wε2) by apply well_Fwk_irr; destruct eε;
 assert (e : w1 = w2) by apply well_wk_irr; now destruct e.
 Qed.
@@ -271,9 +270,9 @@ Qed.
 (** ** Instance: how to rename by a well-formed weakening. *)
 
 
-#[global] Instance Ren1_well_wk {Y Z : Type} `{Ren1 (nat -> nat) Y Z} {Γ Δ : context} :
+#[global] Instance Ren1_well_wk {Y Z : Type} `{Ren1 (nat -> nat) Y Z} `{RenAlpha Y} {Γ Δ : context} :
   (Ren1 (Γ ≤ Δ) Y Z) :=
-  fun ρ t => t ⟨(wk_to_ren ρ)(*  ; (wk_to_ren ρ.(Fwk)) *)⟩.
+  fun ρ t => t ⟨(wk_to_ren ρ) ; (wk_to_ren ρ.(Fwk))⟩.
 
 Arguments Ren1_well_wk {_ _ _ _} _ _/.
 
@@ -295,20 +294,20 @@ Smpl Add 10 change_well_wk : refold.
 (** Constructors of well-typed weakenings *)
 (* Definition Fwk_empty : ε ≤ε ε := fun n b hin => hin. *)
 Definition wk_empty : (ε ≤ ε) :=
-  Build_wk_well_wk ε ε (* _wk_empty *) well_emptyF _wk_empty (well_empty (* _ *)).
+  Build_wk_well_wk ε ε _wk_empty well_emptyF _wk_empty (well_empty _).
 
 
 (* Definition _Fwk_step {Γ Δ : context} {A}: Γ ≤ε Δ -> (Γ,,A) ≤ε Δ := fun ρ n b hin => (ρ n b hin). (* For symmetry. Fwk_id should always work *) *)
 Definition wk_step {Γ Δ} A (ρ : Γ ≤ Δ) : (Γ,,A) ≤ Δ :=
-  Build_wk_well_wk (Γ,,A) Δ (* ρ *) ρ (_wk_step ρ) (well_step (* ρ *) A ρ ρ).
+  Build_wk_well_wk (Γ,,A) Δ ρ ρ (_wk_step ρ) (well_step ρ A ρ ρ).
 
 (* Definition Fwk_up {Γ Δ A} (ρ : Γ ≤ Δ): (Γ,, A⟨ρ⟩) ≤ε Δ -> (Γ,,A) ≤ε Δ := fun ρ n b hin => (ρ n b hin). *)
 Definition wk_up {Γ Δ} A (ρ : Γ ≤ Δ) : (Γ,,  A⟨ρ⟩) ≤ (Δ ,, A) :=
-  Build_wk_well_wk (Γ,,  A⟨ρ⟩) (Δ ,, A) (* ρ *) ρ (_wk_up ρ) (well_up (* ρ *) A ρ ρ).
+  Build_wk_well_wk (Γ,,  A⟨ρ⟩) (Δ ,, A) ρ ρ (_wk_up ρ) (well_up ρ A ρ ρ).
 
 
 Definition wk_id {Γ} : Γ ≤ Γ :=
-  Build_wk_well_wk Γ Γ (* (_wk_id (Fctx Γ)) *) well_Fwk_id  (_wk_id (Tctx Γ)) (well_wk_id (Tctx Γ)).
+  Build_wk_well_wk Γ Γ (_wk_id (Fctx Γ)) well_Fwk_id  (_wk_id (Tctx Γ)) (well_wk_id (Tctx Γ)).
 
 (* Definition wk_Fwk {Γ: context} {L} (ρF : L ≤ε Γ) : (Build_context Γ L) ≤ Γ :=
   Build_wk_well_wk (Build_context Γ L) _ (_wk_id Γ) (well_wk_id Γ) ρF. *)
@@ -327,7 +326,7 @@ Definition wk1 {Γ} A : Γ,, A ≤ Γ := wk_step A (wk_id (Γ := Γ)).
 
 Lemma well_length {Γ Δ : context} (ρ : Γ ≤ Δ) : #|Tctx Δ| <= #|Tctx Γ|.
 Proof.
-  destruct ρ as [(* ? *)? ρ wellρ].
+  destruct ρ as [?? ρ wellρ].
   induction wellρ.
   all: cbn ; lia.
 Qed.
@@ -335,7 +334,7 @@ Qed.
 
 Lemma id_ren (Γ : context) (ρ : Γ ≤ Γ) : ρ.(wk) = (_wk_id (Tctx Γ)).
 Proof.
-  destruct ρ as [(* ρε *) wρε ρ wρ] ; cbn.
+  destruct ρ as [ρε wρε ρ wρ] ; cbn.
   destruct Γ as [Γ L]; cbn in *.
 (*   pose proof (@eq_refl _ #|Fctx Γ|) as eFΓ. *)
   pose proof (@eq_refl _ #|Γ|) as eΓ.
@@ -347,7 +346,7 @@ Proof.
   - reflexivity.
   - set (Γ' := (Build_context Γ L)).
     set (Δ' := (Build_context Δ L)).
-    pose proof (well_length (Build_wk_well_wk Δ' Γ' (* ρε *) wρε ρ wρ )).
+    pose proof (well_length (Build_wk_well_wk Δ' Γ' ρε wρε ρ wρ )).
     now cbn in * ; lia.
   - rewrite IHwρ.
     2: now cbn in * ; lia.
@@ -451,7 +450,7 @@ Instance ren_substitution {X : Type} `{Ren1 X (nat -> term) (nat -> term)} : Ren
   fun ρ σ => mk_subst σ.(subst_subst)⟨ρ⟩ σ.(subst_alpha).
 
 Instance wk_substitution {Γ Δ} : Ren1 (Δ ≤ Γ) substitution substitution :=
-  fun ρ σ => ((* ren_alpha_substitution ρ.(Fwk) *) σ)⟨ρ.(wk)⟩.
+  fun ρ σ => (ren_alpha_substitution ρ.(Fwk) σ)⟨ρ.(wk)⟩.
 Definition up_subst σ : substitution := mk_subst (up_term_term σ.(subst_subst)) σ.(subst_alpha).
 (** ** Adaptation of AutoSubst's asimpl to well typed weakenings *)
 
@@ -497,24 +496,24 @@ Ltac bsimpl := check_no_evars;
                 repeat
                  unfold VarInstance_term, Var, ids, Ren_term, Ren1, ren1,
                   Up_term_term, Up_term, up_term, Subst_term, Subst1, subst1,
-                  Ren1_subst, Ren1_wk, Ren1_well_wk,
+                  Ren1_subst, Ren1_wk, Ren1_well_wk, Ren2, ren2, Ren2_alpha, renAlpha, Ren1_Alpha,
                   Subst_alpha, wk_substitution, ren_alpha_substitution, ren_substitution
                   in *; bsimpl'; minimize.
 
-(* Record wk_eq {Γ Δ : context} (ρ ρ' : Δ ≤ Γ) : Prop := Build_wk_eq
-  { wk_eq1 : ρ =1 ρ';  Fwk_eq1 : ρ.(Fwk) =1 ρ'.(Fwk) }. *)
+Record wk_eq {Γ Δ : context} (ρ ρ' : Δ ≤ Γ) : Prop := Build_wk_eq
+  { wk_eq1 : ρ =1 ρ';  Fwk_eq1 : ρ.(Fwk) =1 ρ'.(Fwk) }.
 
-(* Notation "ρ =₁ ρ'" := (wk_eq ρ ρ') (at level 60). *)
+Notation "ρ =₁ ρ'" := (wk_eq ρ ρ') (at level 60).
 
 
-Goal forall {Γ Δ} (ρ ρ' : Δ ≤ Γ) (t : term), ρ =1 ρ' -> t⟨ρ⟩ = t⟨ρ'⟩.
+Goal forall {Γ Δ} (ρ ρ' : Δ ≤ Γ) (t : term), ρ =₁ ρ' -> t⟨ρ⟩ = t⟨ρ'⟩.
 Proof.
-  intros * e (* [e eε] *).
-  bsimpl. now rewrite e. (* unfold funcomp. now rewrite e, eε. *)
+  intros * [e eε].
+  bsimpl. (* now rewrite e. *) asimpl. unfold funcomp. now rewrite e, eε.
 Qed.
 
-(* Lemma wf_eq1_eq  {L L' (* ρε *) (* ρε' *)}
-  (wρε : well_Fweakening (* ρε *) L' L) (wρε' : well_Fweakening (* ρε' *) L' L) :
+Lemma wf_eq1_eq  {L L' ρε ρε'}
+  (wρε : well_Fweakening ρε L' L) (wρε' : well_Fweakening ρε' L' L) :
   ρε =1 ρε' -> ρε = ρε'.
 Proof.
   intros heq1.
@@ -530,16 +529,16 @@ Proof.
     + f_equal. eapply IHwρε; tea.
       intros x. specialize (heq1 (S x)); cbn in heq1.
       now inversion heq1.
-Qed. *)
+Qed.
 
 Lemma wk_to_ren_inj : forall Γ Δ (ρ1 ρ2 : Γ ≤ Δ),
-  ρ1 =1 ρ2 ->
+  ρ1 =₁ ρ2 ->
   ρ1 = ρ2.
 Proof.
-  intros * Heq(* [Heq HFeq] *); apply wk_well_wk_wk_eq.
+  intros * [Heq HFeq]; apply wk_well_wk_wk_eq.
   1:{
-  destruct Γ as [Γ L], Δ as [Δ L'], ρ1 as [(* Fρ1 *) wFρ1 ρ1 wρ1], ρ2 as [(* Fρ2 *) wFρ2 ρ2 wρ2]; cbn in *. clear wFρ2 wFρ1.
-  induction wρ1 in Γ, Δ, wρ1, (* Fρ2, *) ρ2, wρ2, Heq |-*; cbn in *.
+  destruct Γ as [Γ L], Δ as [Δ L'], ρ1 as [Fρ1 wFρ1 ρ1 wρ1], ρ2 as [Fρ2 wFρ2 ρ2 wρ2]; cbn in *. clear wFρ2 wFρ1.
+  induction wρ1 in Γ, Δ, wρ1, Fρ2, ρ2, wρ2, Heq |-*; cbn in *.
   + inversion wρ2; now subst.
   + inversion wρ2; subst.
     - f_equal.
@@ -553,14 +552,14 @@ Proof.
     - f_equal. eapply IHwρ1; tea.
       intros n; specialize (Heq (S n)); cbn in Heq.
       now injection Heq. }
-(*   eapply (wf_eq1_eq ρ1 ρ2 HFeq); tea. *)
+  eapply (wf_eq1_eq ρ1 ρ2 HFeq); tea.
 Qed.
 
 Lemma _wk_comp_lunit {A} {Γ :list A} ρ : wk_compose (_wk_id Γ) ρ =1 ρ.
 Proof. now bsimpl. Qed.
 
-Lemma wk_comp_lunit_pointwise {Γ Δ} (ρ : Δ ≤ Γ) : wk_id ∘w ρ =1 ρ.
-Proof. (* constructor; *) eapply _wk_comp_lunit. Qed.
+Lemma wk_comp_lunit_pointwise {Γ Δ} (ρ : Δ ≤ Γ) : wk_id ∘w ρ =₁ ρ.
+Proof. constructor; eapply _wk_comp_lunit. Qed.
 Lemma wk_comp_lunit {Γ Δ} (ρ : Δ ≤ Γ) : wk_id ∘w ρ = ρ.
 Proof.
   apply wk_to_ren_inj; eapply wk_comp_lunit_pointwise.
@@ -568,8 +567,8 @@ Qed.
 
 Lemma _wk_comp_runit {A} {Γ :list A} ρ : wk_compose ρ (_wk_id Γ) =1 ρ.
 Proof. now bsimpl. Qed.
-Lemma wk_comp_runit_pointwise {Γ Δ} (ρ : Δ ≤ Γ) : ρ ∘w wk_id =1 ρ.
-Proof. (* constructor; *) eapply _wk_comp_runit. Qed.
+Lemma wk_comp_runit_pointwise {Γ Δ} (ρ : Δ ≤ Γ) : ρ ∘w wk_id =₁ ρ.
+Proof. constructor; eapply _wk_comp_runit. Qed.
 Lemma wk_comp_runit {Γ Δ} (ρ : Δ ≤ Γ) : ρ ∘w wk_id = ρ.
 Proof.
   apply wk_to_ren_inj; eapply wk_comp_runit_pointwise.
@@ -580,8 +579,8 @@ Lemma _wk_comp_assoc(*  {A} {Γ Δ Ξ ζ : list A} *) ρ ρ' ρ'' :
 Proof. now bsimpl. Qed.
 
 Lemma wk_comp_assoc_pointwise {Γ Δ Ξ ζ} (ρ : Δ ≤ Γ) (ρ' : Ξ ≤ Δ) (ρ'' : ζ ≤ Ξ) :
-  (ρ'' ∘w ρ') ∘w ρ =1 ρ'' ∘w (ρ' ∘w ρ).
-Proof. (* constructor; *) eapply _wk_comp_assoc. Qed.
+  (ρ'' ∘w ρ') ∘w ρ =₁ ρ'' ∘w (ρ' ∘w ρ).
+Proof. constructor; eapply _wk_comp_assoc. Qed.
 Lemma wk_comp_assoc {Γ Δ Ξ ζ} (ρ : Δ ≤ Γ) (ρ' : Ξ ≤ Δ) (ρ'' : ζ ≤ Ξ) :
   (ρ'' ∘w ρ') ∘w ρ = ρ'' ∘w (ρ' ∘w ρ).
 Proof.
@@ -589,7 +588,7 @@ Proof.
 Qed.
 (** ** Weakenings play well with context access *)
 
-Lemma ren2_alpha_shift t ρ ρε : t⟨ρ >> S; ρε⟩ = t⟨ρ; ρε⟩⟨↑⟩.
+Lemma ren2_alpha_shift (t : term) ρ ρε : t⟨ρ >> S; ρε⟩ = t⟨ρ; ρε⟩⟨↑⟩.
 Proof. now asimpl. Qed.
 
 Lemma shift_upRen_eq : forall {t : term} {ρ : nat -> nat}, t⟨↑⟩⟨upRen_term_term ρ⟩ = t⟨ρ⟩⟨↑⟩.
@@ -608,12 +607,12 @@ in_ctx Γ n d ->
 in_ctx Δ (ρ n) (d⟨ρ⟩).
 Proof.
   intros Hdecl.
-  destruct ρ as [(* ρε *) wfρε ρ wfρ]; cbn in *.
+  destruct ρ as [ρε wfρε ρ wfρ]; cbn in *.
   change Γ with (Build_context Γ Γ) in Hdecl; change Δ with (Build_context Δ Δ). unfold in_ctx, ren1 in *; cbn in *.
   induction wfρ in n, d, Hdecl |- *.
   - inversion Hdecl.
   - cbn.
-    pattern (d⟨wk_to_ren ρ >> S⟩).
+    pattern (d⟨ρ >> S;wk_to_ren ρε⟩).
     eapply eq_rect.
     now constructor. destruct d; cbn; now bsimpl.
   - destruct n ; cbn.
@@ -632,7 +631,7 @@ in_ctx Δ (ρ n) decl ->
 ∑ decl', decl = decl'⟨ρ⟩ × in_ctx Γ n decl'.
 Proof.
   intros Hdecl.
-  destruct ρ as [(* ρε *) wfρε ρ wfρ] ; destruct Γ, Δ; unfold in_ctx; cbn in *.
+  destruct ρ as [ρε wfρε ρ wfρ] ; destruct Γ, Δ; unfold in_ctx; cbn in *.
   induction wfρ in n, decl, Hdecl |- *.
   - inversion Hdecl.
   - cbn in *.
@@ -644,14 +643,14 @@ Proof.
     + inversion Hdecl ; subst ; clear Hdecl.
       eexists ; split.
       2: now constructor.
-      unfold ren1 at 3, Ren1_well_wk; destruct d; cbn.
+      unfold ren1 at 3, Ren1_well_wk; destruct d; cbn; [|easy].
+      rewrite commRen_alpha_term. unfold funcomp.
       now rewrite shift_upRen_eq.
-      easy.
     + inversion Hdecl ; subst ; clear Hdecl ; cbn in *.
       edestruct IHwfρ as [? []]; tea ; subst.
       eexists ; split.
       2: now econstructor.
-      destruct projT1; symmetry. eapply (f_equal term_decl), shift_upRen_eq.
+      destruct projT1; symmetry. simpl. eapply (f_equal term_decl), shift_upRen2_eq.
       reflexivity.
 Qed.
 
@@ -804,7 +803,7 @@ Proof. now bsimpl. Qed. *)
 Lemma shift_subst1 {Γ A B a} : B⟨@wk1 Γ A⟩[a..] = B.
 Proof. now rewrite wk1_ren_on, shift_subst1'. Qed.
 
-Lemma wk_up_ren_on Γ Δ (ρ : Γ ≤ Δ) F (H : term) : H⟨wk_up F ρ⟩ = H⟨upRen_term_term ρ(* ; Fwk ρ *)⟩.
+Lemma wk_up_ren_on Γ Δ (ρ : Γ ≤ Δ) F (H : term) : H⟨wk_up F ρ⟩ = H⟨upRen_term_term ρ; wk_to_ren ρ.(Fwk)⟩.
 Proof. reflexivity. Qed.
 
 (* Lemma wk_up_wk1_ren_on Γ F G (H : term) : H⟨wk_up F (@wk1 Γ G)⟩ = H⟨upRen_term_term ↑⟩.
@@ -814,10 +813,10 @@ Proof. now bsimpl. Qed.
 Lemma wk_step_wk1 {A Γ Δ} {t : term} (ρ : Δ ≤ Γ) :  t⟨ρ⟩⟨@wk1 Δ A⟩ = t⟨wk_step A ρ⟩.
 Proof.  now bsimpl. Qed.
 
-Lemma wk_up_wk1' {A Γ Δ} (ρ : Δ ≤ Γ) : @wk1 Δ (A⟨ρ⟩ ) ∘w ρ = wk_up (A ) ρ ∘w @wk1 Γ A.
+Lemma wk_up_wk1' {A Γ Δ} (ρ : Δ ≤ Γ) : @wk1 Δ A⟨ρ⟩ ∘w ρ = wk_up A ρ ∘w @wk1 Γ A.
 Proof.
   eapply wk_to_ren_inj.
-  bsimpl; reflexivity.
+  constructor; bsimpl; reflexivity.
 Qed.
 
 Lemma wk_up_wk1 {A } {Γ Δ} {t : term} (ρ : Δ ≤ Γ) :  t⟨ρ⟩⟨@wk1 Δ (A⟨ρ⟩ )⟩ = t⟨@wk1 Γ A⟩⟨wk_up A ρ⟩.
@@ -867,13 +866,15 @@ Proof.
   - now apply Fρ.
 Qed.
 
-Lemma εwk_new {L L' : list ell} i (new : newnat (list_at L i)) b (* {ρε} *) (wρε : well_Fweakening (* ρε *) L' L) :
-  in_ell (list_at L' (ren_index wρε i)) new b -> well_Fweakening (* ρε *) L' (Fcons L i new b).
+Lemma εwk_new {L L' : list ell} i (new : newnat (list_at L i)) b
+  {ρε} (wρε : well_Fweakening ρε L' L) :
+  in_ell (list_at L' (ren_index wρε i)) new b ->
+  well_Fweakening ρε L' (Fcons L i new b).
 Proof.
   intros hin.
   induction wρε.
   + destruct i.
-(*   + constructor. eapply IHwρε, hin. *)
+  + constructor. eapply IHwρε, hin.
   + induction i.
     * constructor; tea.
       now eapply Fwk_new.
@@ -884,7 +885,7 @@ Lemma wk_new : forall {Γ Δ: context} i (new : newnat (list_at Γ i)) b (ρ : �
   in_ell (list_at Δ (ren_index ρ i)) new b -> Δ ≤ (Γ,, i : new ↦ b).
 Proof.
   intros Γ Δ i new b ρ hin.
-  refine (Build_wk_well_wk _ _ (* (Fwk ρ) *) _ (wk ρ) _).
+  refine (Build_wk_well_wk _ _ (Fwk ρ) _ (wk ρ) _).
   + now eapply εwk_new.
   + apply ρ.
 Defined.
@@ -899,15 +900,15 @@ Proof.
   + right. eapply ρε, i.
 Qed.
 
-Lemma εwk_Fup : forall {L L'} b (wρε : well_Fweakening L' L) i (new : newnat (list_at L i))
+Lemma εwk_Fup : forall {L L'} b {ρε} (wρε : well_Fweakening ρε L' L) i (new : newnat (list_at L i))
   (new' : newnat (list_at L' (ren_index wρε i))),
-  new = new' :> nat -> well_Fweakening (Fcons L' (ren_index wρε i) new' b) (Fcons L i new b).
+  new = new' :> nat -> well_Fweakening ρε (Fcons L' (ren_index wρε i) new' b) (Fcons L i new b).
 Proof.
   intros * e.
   induction wρε.
   - destruct i.
-(*   - cbn. constructor.
-    eapply IHwρε, e. *)
+  - cbn. constructor.
+    eapply IHwρε, e.
   - induction i; intros; cbn.
     * constructor; tea.
       now eapply Fwk_Fup.
@@ -920,22 +921,22 @@ Lemma wk_Fup : forall {Γ Δ} b (ρ : Δ ≤ Γ ) i (new : newnat (list_at Γ i)
   new = new' :> nat -> (Δ,, (ren_index ρ i) : new' ↦ b) ≤ (Γ,, i : new ↦ b).
 Proof.
   intros * e.
-  destruct ρ as [wρε ρ wρ]; cbn.
-  unshelve eapply (Build_wk_well_wk _ _ _ ρ), wρ.
+  destruct ρ as [ρε wρε ρ wρ]; cbn.
+  unshelve eapply (Build_wk_well_wk _ _ _ _ ρ), wρ.
   destruct Γ as [Γ L], Δ as [Δ L']; cbn in *.
   now eapply εwk_Fup.
 Defined.
 
 Lemma wk_alphaup {Γ Δ F F'} (ρ : Δ ≤ Γ) (ρF : F' ≤ε F) : Δ,,↦F' ≤ Γ,,↦ F.
 Proof.
-  destruct ρ as [(* ρε *) wρε ρ wρ]; cbn.
-  refine (Build_wk_well_wk (Δ,, ↦ F') (Γ,,↦ F) _ ρ _).
+  destruct ρ as [ρε wρε ρ wρ]; cbn.
+  refine (Build_wk_well_wk (Δ,, ↦ F') (Γ,,↦ F) (_wk_up ρε) _ ρ _).
   + constructor; tea.
   + induction wρ; cbn in *.
     - constructor.
     - now constructor.
-    - replace (ren_alpha_decl S d⟨ρ⟩) with (ren_alpha_decl S d)⟨ρ⟩.
-      2:{ destruct d; cbn; f_equal. now bsimpl. }
+    - replace (ren_alpha_decl S d⟨ρ;wk_to_ren ρε⟩) with (ren_alpha_decl S d)⟨ρ;wk_to_ren (_wk_up ρε)⟩.
+      2:{ destruct d; cbn; f_equal. bsimpl. rewrite <- compRen_alpha_pointwise. reflexivity. }
       now constructor.
 Defined.
 
@@ -947,25 +948,25 @@ Proof.
 Qed.
 
 
-Lemma εwk_Fstep {L L'} b (wρε : well_Fweakening L' L) i (new : newnat (list_at L' i)) :
-   well_Fweakening (Fcons L' i new b) L.
+Lemma εwk_Fstep {L L'} b {ρε} (wρε : well_Fweakening ρε L' L) i (new : newnat (list_at L' i)) :
+   well_Fweakening ρε (Fcons L' i new b) L.
 Proof.
-  induction wρε as [|?? F F' wρε IHwρε ρε].
+  induction wρε as [| |?? F F' ρε wρε IHwρε ρF].
   + destruct i.
-(*   + induction i.
+  + induction i.
     - cbn; now constructor.
-    - cbn; constructor. eapply IHwρε. *)
+    - cbn; constructor. eapply IHwρε.
   + induction i.
     - cbn; constructor; tea.
-      eapply Fwk_Fstep, ρε.
+      eapply Fwk_Fstep, ρF.
     - cbn; constructor; tea.
       eapply IHwρε.
 Defined.
 
 Lemma wk_Fstep {Γ Δ} i new b (ρ : Γ ≤ Δ) : (Γ,, i : new ↦ b) ≤ Δ.
 Proof.
-  destruct ρ as [(* ρε *) wρε ρ wρ]; cbn.
-  refine (Build_wk_well_wk (Γ,, i : new ↦ b) Δ (* ρε *) (εwk_Fstep b wρε i new) _ wρ).
+  destruct ρ as [ρε wρε ρ wρ]; cbn.
+  refine (Build_wk_well_wk (Γ,, i : new ↦ b) Δ ρε (εwk_Fstep b wρε i new) _ wρ).
 Defined.
 
 Lemma in_wk_Fstep Γ i new b : in_ell (list_at (Γ,, i : new ↦ b) (ren_index (wk_Fstep i new b wk_id) i)) new b.
@@ -981,7 +982,7 @@ Proof.
   reflexivity.
 Qed.
 
-(* Definition wk_alphastep {Γ Δ} F (ρ : Γ ≤ Δ) : (Γ,, ↦ F) ≤ Δ.
+Definition wk_alphastep {Γ Δ} F (ρ : Γ ≤ Δ) : (Γ,, ↦ F) ≤ Δ.
 Proof.
   destruct ρ as [ρε wρε ρ wρ]; cbn.
   refine (Build_wk_well_wk (Γ,, ↦ F) Δ (_wk_step ρε) _ ρ _).
@@ -989,8 +990,8 @@ Proof.
   + induction wρ; cbn in *.
     - constructor.
     - now constructor.
-    - replace (ren_alpha S A⟨ρ;wk_to_ren ρε⟩) with A⟨ρ; wk_to_ren (_wk_step ρε)⟩.
-      2:{ bsimpl. rewrite <- compRen_alpha_pointwise. reflexivity. }
+    - replace (ren_alpha_decl S d⟨ρ;wk_to_ren ρε⟩) with d⟨ρ; wk_to_ren (_wk_step ρε)⟩.
+      2:{ destruct d; [|reflexivity]. eapply (f_equal term_decl). bsimpl. rewrite <- compRen_alpha_pointwise. reflexivity. }
       now constructor.
 Defined.
 
@@ -998,7 +999,7 @@ Lemma wk_alphastep_ren_on {Γ Δ F} (ρ : Γ ≤ Δ) (t : term) : t⟨wk_alphast
 Proof.
   bsimpl. cbn. bsimpl.
   now rewrite <- compRen_alpha_pointwise.
-Qed. *)
+Qed.
 
 
 
@@ -1007,20 +1008,20 @@ Lemma wk_induction Γ Δ (P : forall Γ Δ, Δ ≤ Γ -> Type) :
   P ε ε wk_empty ->
   (forall Γ Δ A ρ, P Γ Δ ρ -> P _ _ (wk_step A ρ)) ->
   (forall Γ Δ A ρ, P Γ Δ ρ -> P _ _ (wk_up A ρ)) ->
-(*   (forall L L' ρ i new b,
-    P (fromFctx L) (fromFctx L') ρ -> P _ _ (wk_Fstep i new b ρ)) -> *)(* 
+  (forall L L' ρ i new b,
+    P (fromFctx L) (fromFctx L') ρ -> P _ _ (wk_Fstep i new b ρ)) ->
   (forall L L' F ρ,
-    P (fromFctx L) (fromFctx L') ρ -> P _ _ (wk_alphastep F ρ)) -> *)
+    P (fromFctx L) (fromFctx L') ρ -> P _ _ (wk_alphastep F ρ)) ->
   (forall L L' F F' ρ (ρF : F' ≤ε F),
     P (fromFctx L) (fromFctx L') ρ -> P _ _ (wk_alphaup ρ ρF)) ->
   forall (ρ : Δ ≤ Γ), P Γ Δ ρ.
 Proof. revert Γ Δ.
-  intros [Γ L] [Δ L'] Hempty Hstep Hup (* HFstep *) (* Halphastep *) Halphaup [(* ρε *) wρε ρ wρ].
+  intros [Γ L] [Δ L'] Hempty Hstep Hup HFstep Halphastep Halphaup [ρε wρε ρ wρ].
   cbn in *.
   induction wρ in Γ, Δ, ρ, wρ |-*; cbn in *.
   + induction wρε.
     * eapply Hempty.
-(*     * now eapply Halphastep in IHwρε. *)
+    * now eapply Halphastep in IHwρε.
     * now eapply Halphaup in IHwρε.
   + now eapply Hstep in IHwρ.
   + now eapply Hup in IHwρ.
@@ -1060,23 +1061,20 @@ Proof.
   eapply new.
 Qed.
 
-(* Opaque wk_alphastep. *)
+Opaque wk_alphastep.
 
 
-
-Lemma ren_index_compose {L L' L''} i
-  (wρε : well_Fweakening L' L) (wρε' : well_Fweakening L'' L') :
+Lemma ren_index_compose {L L' L'' ρε ρε'} i
+  (wρε : well_Fweakening ρε L' L) (wρε' : well_Fweakening ρε' L'' L') :
   ren_index (well_Fwk_compose wρε' wρε) i  = ren_index wρε' (ren_index wρε i).
 Proof.
-  induction wρε' in L, i, wρε |-*.
+  induction wρε' in L, i, ρε, wρε |-*.
   + inversion wρε; subst; destruct i.
-(*   + cbn[ren_index]. now rewrite <- IHwρε'. *)
-  + inversion wρε; subst.
-(*     - destruct (well_Fwk_irr (well_stepF F' ρ0 H3) wρε); rename H3 into wρε.
-      cbn[ren_index]. now rewrite <- IHwρε'. *)
-    - destruct (well_Fwk_irr (well_upF _ _ H1 H3) wρε); rename H1 into wρε, H3 into f0.
-      revert f0 wρε IHwρε'.
-      induction i; intros.
-      * reflexivity.
-      * cbn[ren_index] in *; now rewrite <- IHwρε'.
+  + cbn[ren_index]. now rewrite <- IHwρε'.
+  + dependent elimination wρε.
+    - simpl. f_equal. eapply IHwρε'.
+    - destruct i.
+      * simpl. reflexivity.
+      * simpl. f_equal. eapply IHwρε'.
 Qed.
+

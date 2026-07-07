@@ -9,7 +9,7 @@ Lemma up_to_subst σ: to_subst (up_term_term σ) = up_subst (to_subst σ).
 Proof. reflexivity. Qed.
 
 Definition wk_subst_comp {Γ Δ} (ρ : Δ ≤ Γ) σ : substitution := 
-  mk_subst (ρ >> (subst_subst σ)) (subst_alpha σ).
+  mk_subst (ρ >> (subst_subst σ)) (ρ.(Fwk) >> (subst_alpha σ)).
 Notation "ρ >>s σ" := (wk_subst_comp ρ σ) (at level 50).
 
 

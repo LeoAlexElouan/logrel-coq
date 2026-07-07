@@ -29,8 +29,8 @@ theories/GenericTyping.v
 theories/DeclarativeTyping.v
 
 theories/TypingProperties/DeclarativeProperties.v
-theories/TypingProperties/NormalisationDefinition.v
-theories/TypingProperties/PropertiesDefinition.v
+#theories/TypingProperties/NormalisationDefinition.v
+#theories/TypingProperties/PropertiesDefinition.v
 #theories/TypingProperties/SubstConsequences.v
 #theories/TypingProperties/TypeInjectivityConsequences.v
 #theories/TypingProperties/NeutralConvProperties.v

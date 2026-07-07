@@ -71,7 +71,7 @@ Section IdRedTmEq.
     [IA.(IdRedTyPack.tyRed) | _ ||- IA.(IdRedTyPack.rhsL) ≅ x : _ ] ->
     [IA.(IdRedTyPack.tyRed) | _ ||- IA.(IdRedTyPack.rhsL) ≅ x' : _ ] ->
     IdPropEq (tRefl A x) (tRefl A' x')
-  | neReq {ne ne'} : [Γ ||-NeNf ne ≅ ne' : IdRedTyPack.outTy IA] -> IdPropEq ne ne'.
+  | neReq {nevar ne ne'} : [Γ ||-NeNf ne ≅ ne' : IdRedTyPack.outTy IA| nevar] -> IdPropEq ne ne'.
 
 
   Record IdRedTmEq  {t u : term} : Type :=
@@ -90,7 +90,7 @@ Section IdRedTmEq.
 
     Lemma IdPropEq_isId {t t'} : IdPropEq t t' -> isId t × isId t'.
     Proof.
-      intros [|?? []]; split; constructor.
+      intros [|??? []]; split; econstructor.
       all: eapply convneu_whne; eassumption + now symmetry.
     Defined.
 

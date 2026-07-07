@@ -62,7 +62,7 @@ Lemma wk_emptyElim {Γ Δ P n} (ρ : Δ ≤ Γ) :
 Proof. reflexivity. Qed.
 
 Lemma wk_nSucc {n t Γ Δ} (ρ : Δ ≤ Γ) : (nSucc n t)⟨ρ⟩ = nSucc n t⟨ρ⟩.
-Proof. unfold ren1, Ren1_well_wk. now rewrite (* nSucc_ren_alpha, *) nSucc_ren. Qed.
+Proof. unfold ren1, Ren1_well_wk, ren2, Ren2_alpha, renAlpha, Ren1_Alpha. now rewrite nSucc_ren_alpha, nSucc_ren. Qed.
 Lemma wk_nat_to_term {n Γ Δ} (ρ : Δ ≤ Γ) : (nat_to_term n)⟨ρ⟩ = nat_to_term n.
 Proof. eapply (wk_nSucc (t:= tZero)). Qed.
 Lemma wk_succ {n Γ Δ} (ρ : Δ ≤ Γ) : (tSucc n)⟨ρ⟩ = tSucc n⟨ρ⟩.
@@ -167,7 +167,7 @@ Lemma wk_treeElim {Γ Δ P hl hn t} (ρ : Δ ≤ Γ) :
 Proof. reflexivity. Qed.
 
 Lemma wk_bool_to_term {n Γ Δ} (ρ : Δ ≤ Γ) : (bool_to_term n)⟨ρ⟩ = bool_to_term n.
-Proof. unfold ren1, Ren1_well_wk. now rewrite bool_to_term_ren. Qed.
+Proof. unfold ren1, Ren1_well_wk, ren2, Ren2_alpha, renAlpha, Ren1_Alpha. now rewrite bool_to_term_ren_alpha, bool_to_term_ren. Qed.
 Lemma wk_boolElim {Γ Δ P hz hs n} (ρ : Δ ≤ Γ) :
   tBoolElim P⟨wk_up tBool ρ⟩ hz⟨ρ⟩ hs⟨ρ⟩ n⟨ρ⟩ = (tBoolElim P hz hs n)⟨ρ⟩.
 Proof. reflexivity. Qed.
@@ -180,7 +180,7 @@ Lemma wk_idElim {A x P hr y e : term} {Δ Γ} (ρ : Δ ≤ Γ) :
   tIdElim A⟨ρ⟩ x⟨ρ⟩ P⟨wk_up (tId A⟨@wk1 Γ A⟩ x⟨@wk1 Γ A⟩ (tRel 0)) (wk_up A ρ)⟩ hr⟨ρ⟩ y⟨ρ⟩ e⟨ρ⟩ = (tIdElim A x P hr y e)⟨ρ⟩.
 Proof. reflexivity. Qed.
 
-Lemma wk_alpha {i Γ Δ} (ρ : Δ ≤ Γ) : tAlpha i = (tAlpha i)⟨ρ⟩.
+Lemma wk_alpha {i Γ Δ} (ρ : Δ ≤ Γ) : tAlpha (ρ.(Fwk) i) = (tAlpha i)⟨ρ⟩.
 Proof. reflexivity. Qed.
 
 Lemma wk_xi {ℓ t Γ Δ} (ρ : Δ ≤ Γ) : tXi ℓ t⟨wk_up ℓ ρ⟩ = (tXi ℓ t)⟨ρ⟩.

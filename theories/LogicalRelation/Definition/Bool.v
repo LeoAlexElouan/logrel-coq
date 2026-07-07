@@ -58,7 +58,7 @@ Section BoolRedTmEq.
     BoolPropEq Γ tTrue tTrue
   | falseReq :
     BoolPropEq Γ tFalse tFalse
-  | neReq {ne ne'} : [Γ ||-NeNf ne ≅ ne' : tBool] -> BoolPropEq Γ ne ne'.
+  | neReq {nevar ne ne'} : [Γ ||-NeNf ne ≅ ne' : tBool | nevar] -> BoolPropEq Γ ne ne'.
 
 
   Record BoolRedTmEq {Γ t u} : Set :=
@@ -78,7 +78,7 @@ Section BoolRedTmEq.
     Lemma BoolPropEq_isBool Γ {t t' : term} :
       BoolPropEq Γ t t' -> isBool t × isBool t'.
     Proof.
-      intros [| |?? []]; split; constructor.
+      intros [| |??? []]; split; econstructor.
       all: eapply convneu_whne; eassumption + now symmetry.
     Defined.
 

@@ -95,9 +95,12 @@ Section Transitivity.
     Strans (LRne_ l1 neAB) (LRne_ l2 neBC).
   Proof.
     unshelve econstructor.
-    + apply LRne_; destruct neAB, neBC;  unshelve econstructor.
-      3,4: tea.
-      cbn in *; subst; now etransitivity.
+    + apply LRne_; destruct neAB, neBC; unshelve econstructor.
+      4,5: tea.
+      { exact nevar. }
+      cbn in *; subst.
+      destruct (convneuvar_uniq eq eq0).
+      etransitivity; tea.
     + cbn; intros ??? rtu ruv.
       pose proof (whredtm_det (whredtmR rtu) (whredtmL ruv)).
       assert [Γ |- neRedTy.tyL neBC ≅ neRedTy.tyL neAB].
@@ -106,7 +109,9 @@ Section Transitivity.
       destruct rtu, ruv; cbn in *; subst.
       econstructor; cbn; [tea|..].
       * eapply redtmwf_conv; tea.
-      * etransitivity; tea; now eapply convneu_conv.
+      * etransitivity; tea; eapply convneu_conv; tea.
+        now replace (neRedTy.nevar _) with (neRedTy.nevar neBC)
+          by now eapply eq_sym, convneuvar_uniq.
   Qed.
 
 
@@ -349,19 +354,20 @@ Section Transitivity.
 
   Definition transIdPropEq {t u v} : IdPropEq IAB t u -> IdPropEq IBC u v -> IdPropEq transId t v.
   Proof.
-    intros [|?? [?? conv]].
-    - intros ruv; inversion ruv as [| ?? [?? whr%convneu_whne] ]; subst.
+    intros [|??? [?? conv]].
+    - intros ruv; inversion ruv as [| ??? [?? whr%convneu_whne] ]; subst.
       2: inversion whr.
       constructor; cbn in *; destruct IAB as [????? rhsR], IBC ; cbn in *; subst; tea.
       2,4: now eapply SirrLR.
       + etransitivity; [|tea]; now eapply escapeEq.
       + eapply ihty; [|tea]; tea.
       + unshelve eapply ihty. 1: exact rhsR. all: tea.
-    - intros ruv; inversion ruv as [|?? []]; subst.
+    - intros ruv; inversion ruv as [|??? []]; subst.
       1: symmetry in conv; eapply convneu_whne in conv; inversion conv.
-      constructor; cbn in *; destruct IAB, IBC; cbn in *; subst; tea.
+      econstructor; cbn in *; destruct IAB, IBC; cbn in *; subst; tea.
       constructor; tea.
       1: now eapply ty_conv.
+      destruct (convneuvar_uniq conv conv0).
       etransitivity; tea; now eapply convneu_conv.
   Qed.
 
@@ -398,25 +404,27 @@ Section Transitivity.
       depelim Ruv; cbn in *; econstructor; tea.
       + etransitivity; tea.
       + now eapply ih.
-    - intros ? h; inversion h as [| | ?? [?? whz%convneu_whne]]; subst.
+    - intros ? h; inversion h as [| | ??? [?? whz%convneu_whne]]; subst.
       1: constructor.
       inversion whz.
-    - intros ??? ih ? h; inversion h as [| | ?? [?? whs%convneu_whne]]; subst.
+    - intros ??? ih ? h; inversion h as [| | ??? [?? whs%convneu_whne]]; subst.
       2: inversion whs.
       constructor; eauto.
-    - intros ?? [?? conv] ? h; inversion h as [ | |??  []]; subst.
+    - intros ??? [?? conv] ? h; inversion h as [ | |???  []]; subst.
       1,2: symmetry in conv; eapply convneu_whne in conv; inversion conv.
-      do 2 constructor; tea; now etransitivity.
+      destruct (convneuvar_uniq conv conv0).
+      do 2 econstructor; tea; now etransitivity.
   Qed.
 
   Lemma transBoolPropEq {Γ} :
     forall t u, BoolPropEq Γ t u -> forall v, BoolPropEq Γ u v -> BoolPropEq Γ t v.
   Proof.
-    intros ?? [ | | ?? [?? conv]].
+    intros ?? [ | | ??? [?? conv]].
     1,2: easy.
-    intros ? h; inversion h as [| | ?? []]; subst.
+    intros ? h; inversion h as [| | ??? []]; subst.
     1,2: symmetry in conv; eapply convneu_whne in conv; inversion conv.
-    do 2 constructor; tea; now etransitivity.
+    destruct (convneuvar_uniq conv conv0).
+    do 2 econstructor; tea; now etransitivity.
   Qed.
 
   Lemma transBoolRedTmEq {Γ} :
@@ -435,7 +443,7 @@ Section Transitivity.
       forall v, TreeRedTmEq.TreeTmEq Γ veq u v -> TreeRedTmEq.TreeTmEq Γ veq t v.
   Proof.
     intros ??? Rtu.
-    induction Rtu as [??????? prop ih| |??????? Rtl ihRtl Rtr ihRtr| ?? [?? conv]].
+    induction Rtu as [??????? prop ih| |??????? Rtl ihRtl Rtr ihRtr| ??? [?? conv]].
     + intros v Ruv.
       induction u, v, Ruv as [u v nfL' nfR' redL' redR' eq' prop'] using TreeRedTmEq.TreeRedTmEq_destruct.
       set (Rtu := Build_TreeRedTmEq _ _ redL redR eq prop).
@@ -444,16 +452,17 @@ Section Transitivity.
       econstructor; tea.
       - now etransitivity.
       - now eapply ih.
-    + intros v Ruv; inversion Ruv as [ | | | ?? [?? whl%convneu_whne]]; subst.
+    + intros v Ruv; inversion Ruv as [ | | | ??? [?? whl%convneu_whne]]; subst.
       - constructor; now eapply transNatRedTmEq.
       - inversion whl.
-    + intros v Ruv; inversion Ruv as [ | | | ?? [?? whn%convneu_whne]]; subst.
+    + intros v Ruv; inversion Ruv as [ | | | ??? [?? whn%convneu_whne]]; subst.
       - constructor; eauto.
         now eapply transNatRedTmEq.
       - inversion whn.
-    + intros v Ruv; inversion Ruv as [ | | | ?? []]; subst.
+    + intros v Ruv; inversion Ruv as [ | | | ??? []]; subst.
       1,2 : symmetry in conv; eapply convneu_whne in conv; inversion conv.
-      do 2 constructor; tea; now etransitivity.
+      destruct (convneuvar_uniq conv conv0).
+      do 2 econstructor; tea; now etransitivity.
   Qed.
 
   Definition transLRU@{h i j k l h' i' j' k' l' v} {l1}
@@ -500,8 +509,10 @@ Section Transitivity.
       + apply LREmpty_; destruct EAB, EBC; now econstructor.
       + intros ???; cbn; intros Rtu Ruv.
         pose proof (equ := whredtm_det (whredtmR Rtu) (whredtmL Ruv)); cbn in equ.
-        destruct Rtu as [???? []], Ruv as [???? []] ; econstructor; tea.
-        constructor; tea; subst; now etransitivity.
+        destruct Rtu as [????? []], Ruv as [????? []] ; econstructor; tea.
+        constructor; tea; subst.
+        destruct (convneuvar_uniq conv conv0).
+        now etransitivity.
     - intros TAB _ ??? [TBC]; subst; unshelve econstructor.
       + apply LRTree_; destruct TAB, TBC; now econstructor.
       + intros ???; cbn; intros ?; now eapply transTreeRedTmEq.

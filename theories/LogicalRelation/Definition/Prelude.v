@@ -180,7 +180,9 @@ Lemma ty_wk_inv : forall {Γ} {wfΓ : [|-Γ]} {t A},
 Proof.
   intros ???? ht.
   specialize (ht Γ wfΓ wk_id).
-  now rewrite 2!wk_id_ren_on in ht.
+  rewrite wk_id_ren_on in ht.
+  destruct A; tea.
+  now rewrite <- wk_decl, wk_id_ren_on in ht.
 Qed.
 
 Lemma ty_shf {Γ t A} : shf (fun Δ wfΔ (ρ : Δ ≤ Γ) => [Δ |- t⟨ρ⟩ : A⟨ρ⟩]).
@@ -212,7 +214,9 @@ Lemma convtm_wk_inv : forall {Γ} {wfΓ : [|-Γ]} {t u A},
 Proof.
   intros ????? htu.
   specialize (htu Γ wfΓ wk_id).
-  now rewrite 3!wk_id_ren_on in htu.
+  rewrite !wk_id_ren_on in htu.
+  destruct A; tea.
+  now rewrite <- wk_decl, wk_id_ren_on in htu.
 Qed.
 
 Lemma convtm_shf {Γ t u A} : shf (fun Δ wfΔ (ρ : Δ ≤ Γ) => [Δ |- t⟨ρ⟩ ≅ u⟨ρ⟩ : A⟨ρ⟩]).

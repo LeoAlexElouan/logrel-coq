@@ -8,15 +8,15 @@ Set Printing Primitive Projection Parameters.
 Section Neutral.
 Context `{GenericTypingProperties}.
 
-Definition neu {l Γ A B} : [Γ |- A] -> [Γ |- B] -> [ Γ |- A ~ B : U] -> [Γ ||-S<l> A ≅ B].
+Definition neu {l Γ nevar A B} : [Γ |- A] -> [Γ |- B] -> [ Γ |- A ~ B : U | nevar] -> [Γ ||-S<l> A ≅ B].
 Proof.
   intros; apply LRne_.
-  exists A B ; tea; gtyping.
+  exists nevar A B ; tea; gtyping.
 Defined.
 
-Lemma neU {l l' Γ A B n n'} (h : [Γ ||-U<l> A ≅ B]) :
+Lemma neU {l l' Γ nevar A B n n'} (h : [Γ ||-U<l> A ≅ B]) :
   [Γ |- n : A] ->
-  [Γ |- n ~ n' : A] ->  URedTm l' Γ n.
+  [Γ |- n ~ n' : A | nevar] ->  URedTm l' Γ n.
 Proof.
   assert [Γ |- A ≅ U] by (destruct h; gen_typing).
   intros; exists n.
@@ -25,10 +25,10 @@ Proof.
 Defined.
 
 Definition reflect {l Γ A B} (RA : [Γ ||-S<l> A ≅ B]) :=
- forall n n',
+ forall nevar n n',
     [Γ |- n : A] ->
     [Γ |- n' : A] ->
-    [Γ |- n ~ n' : A] ->
+    [Γ |- n ~ n' : A | nevar] ->
     [Γ ||-S<l> n ≅ n' : _ | RA].
 
 
@@ -39,7 +39,7 @@ Proof.
   all: eassumption.
 Qed.
 
-Lemma reflect_var0 {l Γ A A' B'} (RA : [Γ ,, A ||-S<l> A' ≅ B']) :
+Lemma reflect_var0 {l Γ} {A A' B' : term} (RA : [Γ ,, A ||-S<l> A' ≅ B']) :
   reflect RA ->
   [Γ ,, A |- A⟨@wk1 Γ A⟩ ≅ A'] ->
   [Γ |- A] ->
@@ -50,7 +50,7 @@ Proof.
   1:{
     eapply ty_conv; tea; escape.
     rewrite wk1_ren_on.
-    unshelve eapply (ty_var _ (in_here _ _ : in_ctx (Γ,,A) 0 A⟨↑⟩)).
+    eapply ty_var, in_here.
     now eapply wfc_wft.
   }
   eapply reflect_diag; tea.
@@ -61,7 +61,7 @@ Qed.
 Lemma reflect_U {l Γ A B} (h : [Γ ||-U<l> A ≅ B]) : reflect (LRU_ h).
 Proof.
   assert [Γ |- A ≅ U] by (destruct h; gen_typing).
-  intros n n' tyn tyn' conv.
+  intros nevar n n' tyn tyn' conv.
   exists (neU h tyn conv) (neU h tyn' (symmetry conv)).
   * cbn; eapply convtm_convneu; [constructor|]; now eapply convneu_conv.
   * eapply redTyRecBwd, neu.
@@ -102,14 +102,14 @@ Lemma reflect_Pi
   : reflect (LRPi' RA).
 Proof.
   destruct (ParamRedTy.redL RA).
-  intros ?? hn hn' hnn'.
+  intros ??? hn hn' hnn'.
   pose proof (lrefl hnn') as hnn; pose proof (urefl hnn') as hn'n'.
   unshelve econstructor.
   1,2: now apply funred.
   * cbn; eapply convtm_eta ; tea.
     1-4: first [now eapply ty_conv| constructor; now eapply convneu_conv].
     rewrite <-(@wk1_eta Γ RA.(ParamRedTy.domL) RA.(ParamRedTy.codL)).
-    assert [Γ,, PiRedTy.domL RA |-[ ta ] tRel 0 : (PiRedTy.domL RA)⟨@wk1 Γ (PiRedTy.domL RA)⟩]
+    assert [Γ,, PiRedTy.domL RA |-[ ta ] tRel 0 : term_decl (PiRedTy.domL RA)⟨@wk1 Γ (PiRedTy.domL RA)⟩]
       as h0
       by ( eapply ty_var0; now destruct RA as [???? []]).
     assert [|- Γ,, PiRedTy.domL RA] as hΓA by gtyping.
@@ -123,6 +123,7 @@ Proof.
     unshelve eapply escapeTm, ihcod.
     5 : apply ohvar0.
     1 : apply wfΔ.
+    all: rewrite wk_decl.
     + apply ty_wk; [tea|].
       eapply ty_app_ren; tea.
     + apply ty_wk; [tea|].

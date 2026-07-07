@@ -220,9 +220,11 @@ Proof.
   + reflexivity.
 Qed.
 
-#[global] Instance Ren2_alpha_decl {X : Type} `{Ren1 X decl decl} :
+#[global]
+Instance RenAlpha_decl : RenAlpha decl := ren_alpha_decl.
+(* #[global] Instance Ren2_alpha_decl {X : Type} `{Ren1 X decl decl} :
   (Ren2 X (nat -> nat) decl decl) :=
-  fun ρ ρε d => (ren_alpha_decl ρε d)⟨ρ⟩.
+  fun ρ ρε d => (ren_alpha_decl ρε d)⟨ρ⟩. *)
 
 Definition Tcontext := list decl.
 Record context := {

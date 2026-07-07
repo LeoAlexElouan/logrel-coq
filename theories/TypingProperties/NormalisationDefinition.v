@@ -38,7 +38,7 @@ with dnf_tm : context -> term -> term -> Type :=
     dnf_tm Γ tBool tFalse
 | termDeepEmpty {Γ} :
     dnf_tm Γ U tEmpty
-| termDeepFun {Γ f A B} :
+| termDeepFun {Γ} {f A B : term} :
     whnf f ->
     dnorm_tm (Γ,,A) B (eta_expand' Γ A f) ->
     dnf_tm Γ (tProd A B) f
@@ -64,14 +64,14 @@ with dnf_tm : context -> term -> term -> Type :=
   dnf_tm Γ P m
 (** Deep neutrals (wh neutrals, with recursively normalising/neutral subterms).
     Note that the type is "inferred". *)    
-with dneu : context -> term -> term -> Type :=
-| neuDeepVar {Γ n decl} :
-  in_ctx Γ n decl ->
-  dneu Γ decl (tRel n)
+with dneu : context -> decl -> term -> Type :=
+| neuDeepVar {Γ n d} :
+  in_ctx Γ n d ->
+  dneu Γ d (tRel n)
 | neuDeepApp {Γ n t A B} :
   dneu_red Γ (tProd A B) n ->
   dnorm_tm Γ A t ->
-  dneu Γ B[t..] (tApp n t)
+  dneu Γ (term_decl B[t..]) (tApp n t)
 | neuDeepNatElim {Γ n P hz hs} :
   dneu_red Γ tNat n ->
   dnorm_ty (Γ,,tNat) P ->
@@ -94,14 +94,14 @@ with dneu : context -> term -> term -> Type :=
 | neuDeepSnd {Γ n A B} :
   dneu_red Γ (tSig A B) n ->
   dneu Γ B[(tFst n)..] (tSnd n)
-| neuDeepIdElim {Γ A A' x x' P hr y y' n} :
+| neuDeepIdElim {Γ} {A A' x x' P hr y y' n : term} :
   dneu_red Γ (tId A' x' y') n ->
   dnorm_ty (Γ ,, A ,, tId A⟨@wk1 Γ A⟩ x⟨@wk1 Γ A⟩ (tRel 0)) P ->
   dnorm_tm Γ P[tRefl A x .: x..] hr ->
   dneu Γ P[n .: y..] (tIdElim A x P hr y n)
 
 with dneu_red : context -> term -> term -> Type :=
-| neuDeepRed {Γ n A A'} :
+| neuDeepRed {Γ} {n A A' : term} :
   dneu Γ A n ->
   [Γ | A ⤳* A'] ->
   whnf A' ->

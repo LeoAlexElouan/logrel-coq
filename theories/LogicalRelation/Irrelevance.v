@@ -182,12 +182,12 @@ Section Irrelevance.
     intros ??; split.
     + intros [????? prop]; unshelve econstructor; cbn.
       3-5: rewrite eqty, eqlhs, eqrhs; cbn; tea.
-      destruct prop; constructor; tea; cbn in *.
+      destruct prop; econstructor; tea; cbn in *.
       all:rewrite ?eqty, ?eqlhs, ?eqrhs; cbn; tea.
       all: destruct IA, IA'; cbn in *; subst; now eapply ih.
     + intros [?? rL rR eq prop]; unshelve econstructor; cbn in *.
       3-5: now rewrite eqty, eqlhs, eqrhs in rL, rR, eq.
-      destruct prop; constructor; tea; cbn in *.
+      destruct prop; econstructor; tea; cbn in *.
       all:rewrite <-?eqty, <-?eqlhs, <-?eqrhs; cbn; tea.
       all: destruct IA, IA'; cbn in *; subst; now eapply ih.
   Qed.
@@ -203,9 +203,9 @@ Section Irrelevance.
     pose (i := invLREqL_whred R1 R2).
     revert B2 R2 i ih; indLR R1.
     - intros h B2 R2 [h'] ih; subst; now eapply irrU.
-    - intros neA ?? [neB [? eq]] _; subst; intros ??; split; cbn.
-      + intros []; econstructor; now rewrite eq.
-      + intros [??]; econstructor; now rewrite eq in *.
+    - intros neA ?? (neB&?&eq&eqnevar) _; subst; intros ??; split; cbn.
+      + intros []; econstructor; now rewrite eq, ? eqnevar.
+      + intros [??]; econstructor; now rewrite eq, eqnevar in *.
     - intros ΠA ihdom ihcod ?? [ΠA' [? eqdom eqcod]] ?; subst; cbn in *.
       eapply irrΠ.
       3,4 : tea.

@@ -81,7 +81,7 @@ Inductive OneRedAlg {L : list ell} : term -> term -> Type :=
 | ellElimTrue {ℓ : ell} {k : newnat ℓ} {P ht hf n} :
   [L | tEllElim k ℓ P ht hf n tTrue ⤳ ht[(tBox (cons_ell ℓ k true) (tEval ℓ n))..]]
 | ellElimFalse {ℓ : ell} {k : newnat ℓ} {P ht hf n} :
-  [L | tEllElim k ℓ P ht hf n tFalse ⤳ ht[(tBox (cons_ell ℓ k false) (tEval ℓ n))..]]
+  [L | tEllElim k ℓ P ht hf n tFalse ⤳ hf[(tBox (cons_ell ℓ k false) (tEval ℓ n))..]]
 
 where "[ L | t ⤳ t' ]" := (@OneRedAlg L t t') : typing_scope.
 
@@ -257,15 +257,26 @@ Proof.
 Qed.
 
 (** *** Stability by weakening *)
-Lemma oFredalg L L' (wρε : well_Fweakening L' L) t u: 
-  [L | t ⤳ u] -> [L' | (* ren_alpha ρε *) t ⤳ (* ren_alpha ρε *) u].
+Lemma oFredalg L L' ρε (wρε : well_Fweakening ρε L' L) t u: 
+  [L | t ⤳ u] -> [L' | ren_alpha ρε t ⤳ ren_alpha ρε u].
 Proof.
   intros hred.
-  induction hred.
+  induction hred; simpl.
+  all: unfold nat_to_term; rewrite ?subst_ren_alpha, ? nSucc_ren_alpha, ? bool_to_term_ren_alpha.
   all: try now constructor.
-  rewrite <- ren_index_to_ren with (wρε := wρε).
-  constructor.
-  eapply well_Fwk_in; tea.
+  + rewrite <- ren_index_to_ren with (wρε := wρε).
+    eapply alphaRed, well_Fwk_in, hin.
+  + eapply xiNode.
+    eapply (whne_ren (fun x => x) (wk_to_ren ρε)) in w.
+    eapply eq_rect.
+    { eapply w. }
+    now bsimpl.
+  + do 2 (rewrite ! commRen_alpha_term; unfold funcomp).
+    eapply xxiNode.
+    eapply (whne_ren (fun x => x) (wk_to_ren ρε)) in w.
+    eapply eq_rect.
+    { eapply w. }
+    now bsimpl.
 Defined.
 
 Lemma oredalg_wk (ρ : nat -> nat) L (t u : term) :
@@ -279,15 +290,20 @@ Proof.
     ? nat_to_term_ren, ? bool_to_term_ren.
   all: try now econstructor.
   - econstructor.
-    exact (whne_ren _ _ _ w).
+    eapply (whne_ren (upRen_term_term ρ) (fun x => x)) in w.
+    eapply eq_rect.
+    { eapply w. }
+    now bsimpl.
   - cbn. simpl. repeat (unfold funcomp; cbn).
     replace m⟨upRen_term_term ↑⟩⟨upRen_term_term (upRen_term_term ρ)⟩
-      with m⟨upRen_term_term ρ⟩⟨upRen_term_term ↑⟩.
+      with m⟨upRen_term_term ρ⟩⟨upRen_term_term ↑⟩ by now bsimpl.
     replace m⟨upRen_term_term ↑⟩⟨upRen_term_term ↑⟩⟨upRen_term_term (upRen_term_term (upRen_term_term ρ))⟩
-      with m⟨upRen_term_term ρ⟩⟨upRen_term_term ↑⟩⟨upRen_term_term ↑⟩.
+      with m⟨upRen_term_term ρ⟩⟨upRen_term_term ↑⟩⟨upRen_term_term ↑⟩ by now bsimpl.
     refine (xxiNode _).
-    { exact (whne_ren _ _ _ w). }
-    all: now bsimpl.
+    eapply (whne_ren (upRen_term_term ρ) (fun x => x)) in w.
+    eapply eq_rect.
+    { eapply w. }
+    now bsimpl.
 Qed.
 (* 
 Lemma oredalg_str (Γ Δ : context) (ρ : Δ ≤ Γ) (t u : term) :
@@ -306,8 +322,8 @@ Proof.
   all: eexists ; split ; cycle -1 ; [now econstructor | now bsimpl].
 Qed. *)
 
-Lemma cFredalg L L' (wρε : well_Fweakening L' L) t u: 
-  [L | t ⤳* u] -> [L' | t ⤳* u].
+Lemma cFredalg L L' ρε (wρε : well_Fweakening ρε L' L) t u: 
+  [L | t ⤳* u] -> [L' | ren_alpha ρε t ⤳* ren_alpha ρε u].
 Proof.
   induction 1; econstructor; eauto using oFredalg.
 Defined.
@@ -402,13 +418,13 @@ Proof.
   econstructor; tea; now constructor.
 Qed.
 
-(* Lemma redalg_alpha {L i t t'} : [L | t ⤳* t'] -> [L | tApp (tAlpha i) t ⤳* tApp (tAlpha i) t'].
+Lemma redalg_alpha {L i t t' k} : [L | t ⤳* t'] -> [L | tApp (tAlpha i) (nSucc k t) ⤳* tApp (tAlpha i) (nSucc k t')].
 Proof.
   induction 1; [reflexivity|].
   econstructor; tea; now econstructor.
 Qed.
 
-Lemma redalg_alphaSucc {L i t t'} : [L | tApp (tAlpha i) t ⤳* tApp (tAlpha i) t'] ->
+(* Lemma redalg_alphaSucc {L i t t'} : [L | tApp (tAlpha i) t ⤳* tApp (tAlpha i) t'] ->
   [L | tApp (tAlpha i) (tSucc t) ⤳* tApp (tAlpha i) (tSucc t')].
 Proof.
   intros hα.
@@ -430,8 +446,8 @@ Proof.
   induction n; intros.
   - tea.
   - eauto using redalg_alphaSucc.
-Qed.
- *)
+Qed. *)
+
 
 Lemma redalg_one_step {L t t'} : [ L | t ⤳ t'] -> [ L | t ⤳* t'].
 Proof. intros; econstructor;[tea|reflexivity]. Qed.
