@@ -43,7 +43,7 @@ Proof.
   unshelve eapply ScodSubst, Ruu'.
   3: now eapply RΠ. Unshelve.
   easy. 1,2: now eapply overtree_PSh.
-  apply F. apply F'.
+  apply term_decl, F. apply term_decl, F'.
 Qed.
 
 Lemma SappcongTerm {Γ t t' u u' F F' G G' l l'}
@@ -57,7 +57,7 @@ Proof.
   set (RΠ' :=normRedΠ RΠ).
   assert [LRPi' RΠ' | _ ||- t ≅ t' : _ ] as [Rt Rt' ? app] by now eapply SirrLREq.
   eapply redSubstTmEq.
-  + unshelve (eapply irrLREqCum, app; cbn; now rewrite wk_up_wk_id, wk_id_ren_on).
+  + unshelve (eapply irrLREqCum, app; cbn-[ren1]; now rewrite wk_up_wk_id, wk_id_ren_on).
     3: eapply SirrLREqCum; tea; now rewrite wk_id_ren_on.
     escape; gtyping.
   + rewrite !wk_id_ren_on; eapply redtm_app; [now destruct (PiRedTmEq.red Rt)| now escape].

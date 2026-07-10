@@ -158,6 +158,7 @@ Section RedDefinitions.
     LamWfFun : forall A' t : term,
       [Γ |- A'] -> [Γ |- A ≅ A'] -> [Γ,, A |- t : B] (*-> [Γ,, A' |- t : B] *) -> isWfFun Γ A B (tLambda A' t)
   | AlphaWfFun : forall i, [Γ |- tProd A B ≅ arr' Γ tNat tBool ] -> isWfFun Γ A B (tAlpha i)
+  | EvalWfFun : forall ℓ v, [Γ |- tProd A B ≅ arr' Γ tNat tBool ] -> isWfFun Γ A B (tEval ℓ (tRel v))
   | NeWfFun : forall f : term, [Γ |- f ~ f : tProd A B] -> isWfFun Γ A B f.
 
   Inductive isWfPair (Γ : context) (A B : term) : term -> Set :=
@@ -458,9 +459,9 @@ Section GenericTyping.
       [Γ |- t ⤳* t' : A] -> [Γ |- u ⤳* u' : A] ->
       [Γ |- A] -> [Γ |- t' : A] -> [Γ |- u' : A] ->
       [Γ |- A ≅ A] -> [Γ |- t' ≅ u' : A] -> [Γ |- t ≅ u : A] ;
-    convtm_convneu {Γ nevar n n' A} :
+    convtm_convneu {Γ n n' A} :
       isPosType A ->
-      [Γ |- n ~ n' : A | nevar ] -> [Γ |- n ≅ n' : A] ;
+      [Γ |- n ~ n' : A  ] -> [Γ |- n ≅ n' : A] ;
     convtm_prod {Γ A A' B B'} :
       [Γ |- A : U] ->
       [Γ |- A ≅ A' : U] -> [Γ,, A |- B ≅ B' : U] ->
@@ -540,69 +541,63 @@ Section GenericTyping.
       [ |- Γ] ->
       [ Γ ,, ℓ |- t ≅ t' : tNat] -> [ Γ |- u ≅ u' : ℓ] ->
       [ Γ |- tXXi ℓ t u ≅ tXXi ℓ t' u' : tId tNat (dEval' Γ (tXi ℓ t) (tEval ℓ u)) t[u..] ] ;
-    convtm_eval {Γ t t'} {ℓ : ell} :
-      [ Γ |- t ≅ t' : ℓ ] ->
-      [ Γ |- tEval ℓ t ≅ tEval ℓ t' : arr' Γ tNat tBool] ;
+    convtm_evalCong {Γ t t'} {ℓ : ell} :
+          [ Γ |- t ≅ t' : ℓ ] ->
+          [ Γ |- tEval ℓ t ≅ tEval ℓ t' : arr' Γ tNat tBool] ;
     convtm_box {Γ t t'} {ℓ : ell} :
       [ Γ |- t ≅ t' : arr' Γ tNat tBool] ->
       (forall n b, in_ell ℓ n b -> [ Γ |- tApp t (nat_to_term n) ≅ bool_to_term b : tBool]) ->
       [ Γ |- tBox ℓ t ≅ tBox ℓ t' : ℓ] ;
-    convtm_ellElim {Γ ℓ k} {P P' ht ht' hf hf' n n' b b' : term} (ℓt := cons_ell ℓ k true) (ℓf := cons_ell ℓ k false):
-      [ Γ,, ℓ |- P ≅ P' ] ->
-      [ Γ,, ℓt |- ht ≅ ht' : term_decl P[tBox ℓ (tEval ℓt (tRel 0))]⇑ ] ->
-      [ Γ,, ℓf |- hf ≅ hf' : term_decl P[tBox ℓ (tEval ℓf (tRel 0))]⇑ ] ->
-      [ Γ |- n ≅ n' : ℓ] -> [Γ |- b ≅ b' : tBool] -> [Γ |- tApp (tEval ℓ n) (nat_to_term k) ≅ b : tBool] ->
-      [ Γ |- tEllElim k ℓ P ht hf n b ≅ tEllElim k ℓ P' ht' hf' n' b' : term_decl P[n..] ] ;
   }.
 
   Class ConvNeuProperties :=
   {
-    convneu_equiv {Γ A nevar} :: PER (conv_neu_ty nevar Γ A) ;
-    convneu_conv {Γ nevar} {t u A A' : term} : [Γ |- t ~ u : A | nevar ] -> [Γ |- A ≅ A'] -> [Γ |- t ~ u : A' | nevar ] ;
-    convneu_wk {Γ Δ t u A nevar} (ρ : Δ ≤ Γ) :
-      [|- Δ ] -> [Γ |- t ~ u : A | nevar ] -> [Δ |- t⟨ρ⟩ ~ u⟨ρ⟩ : A⟨ρ⟩ | nevar⟨ρ⟩ ] ;
-    convneu_whne {Γ A t u nevar} : [Γ |- t ~ u : A | nevar ] -> whne nevar t;
+    convneu_equiv {Γ A} :: PER (conv_neu_ty Γ A) ;
+    convneu_conv {Γ} {t u A A' : term} : [Γ |- t ~ u : A  ] -> [Γ |- A ≅ A'] -> [Γ |- t ~ u : A'  ] ;
+    convneu_wk {Γ Δ t u A} (ρ : Δ ≤ Γ) :
+      [|- Δ ] -> [Γ |- t ~ u : A  ] -> [Δ |- t⟨ρ⟩ ~ u⟨ρ⟩ : A⟨ρ⟩ ] ;
+    convneu_whne {Γ A t u} : [Γ |- t ~ u : A  ] -> whne t;
     convneu_var {Γ n A} :
       [Γ |- tRel n : A] -> [Γ |- tRel n ~ tRel n : A] ;
-    convneu_eval {Γ} {ℓ : ell} {v} {k : newnat ℓ} : [Γ |- tRel v : ell_decl ℓ] ->
+    convneu_evalrel {Γ} {ℓ : ell} {v} {k : newnat ℓ} : [Γ |- tRel v : ell_decl ℓ] ->
       [Γ |- tApp (tEval ℓ (tRel v)) (nat_to_term k) ~
-      tApp (tEval ℓ (tRel v)) (nat_to_term k) : tBool | ellNe k v];
-    convneu_app {Γ nevar f g t u A B} :
-      [ Γ |- f ~ g : tProd A B | nevar ] ->
+      tApp (tEval ℓ (tRel v)) (nat_to_term k) : tBool];
+    convneu_app {Γ f g t u A B} :
+      [ Γ |- f ~ g : tProd A B  ] ->
       [ Γ |- t ≅ u : A ] ->
-      [ Γ |- tApp f t ~ tApp g u : term_decl B[t..] | nevar ] ;
-    convneu_natElim {Γ nevar P P' hz hz' hs hs' n n'} :
+      [ Γ |- tApp f t ~ tApp g u : term_decl B[t..]  ] ;
+    convneu_natElim {Γ P P' hz hz' hs hs' n n'} :
         [Γ ,, tNat |- P ≅ P'] ->
         [Γ |- hz ≅ hz' : term_decl P[tZero..]] ->
         [Γ |- hs ≅ hs' : elimSuccHypTy' Γ P] ->
-        [Γ |- n ~ n' : tNat| nevar ] ->
-        [Γ |- tNatElim P hz hs n ~ tNatElim P' hz' hs' n' : term_decl P[n..]| nevar ] ;
-    convneu_boolElim {Γ nevar P P' ht ht' hf hf' n n'} :
+        [Γ |- n ~ n' : tNat ] ->
+        [Γ |- tNatElim P hz hs n ~ tNatElim P' hz' hs' n' : term_decl P[n..] ] ;
+    convneu_boolElim {Γ P P' ht ht' hf hf' n n'} :
         [Γ ,, tBool |- P ≅ P'] ->
         [Γ |- ht ≅ ht' : term_decl P[tTrue..]] ->
         [Γ |- hf ≅ hf' : term_decl P[tFalse..]] ->
-        [Γ |- n ~ n' : tBool| nevar ] ->
-        [Γ |- tBoolElim P ht hf n ~ tBoolElim P' ht' hf' n' : term_decl P[n..]| nevar ] ;
-    convneu_alpha {Γ : context} {i : list_index Γ} {t u n nevar} :
-      [ Γ |- t ~ u : tNat | nevar ] ->
-      [ Γ |- tApp (tAlpha i) (nSucc n t) ~ tApp (tAlpha i) (nSucc n u) : tBool | nevar ];
-    convneu_emptyElim {Γ nevar P P' e e'} :
+        [Γ |- n ~ n' : tBool ] ->
+        [Γ |- tBoolElim P ht hf n ~ tBoolElim P' ht' hf' n' : term_decl P[n..] ] ;
+    convneu_alpha {Γ : context} {i : list_index Γ} {t u n} :
+      [ Γ |- t ~ u : tNat  ] ->
+      [ Γ |- tApp (tAlpha i) (nSucc n t) ~ tApp (tAlpha i) (nSucc n u) : tBool  ];
+    convneu_emptyElim {Γ P P' e e'} :
         [Γ ,, tEmpty |- P ≅ P'] ->
-        [Γ |- e ~ e' : tEmpty | nevar ] ->
-        [Γ |- tEmptyElim P e ~ tEmptyElim P' e' : term_decl P[e..] | nevar ] ;
-    convneu_treeElim {Γ nevar P P' hl hl' hn hn' t t'} :
+        [Γ |- e ~ e' : tEmpty  ] ->
+        [Γ |- tEmptyElim P e ~ tEmptyElim P' e' : term_decl P[e..]  ] ;
+    convneu_treeElim {Γ P P' hl hl' hn hn' t t'} :
         [Γ ,, tTree |- P ≅ P'] ->
         [Γ |- hl ≅ hl' : elimLeafHypTy' Γ P] ->
         [Γ |- hn ≅ hn' : elimNodeHypTy' Γ P] ->
-        [Γ |- t ~ t' : tTree | nevar ] ->
-        [Γ |- tTreeElim P hl hn t ~ tTreeElim P' hl' hn' t' : term_decl P[t..] | nevar ] ;
-    convneu_fst {Γ nevar A B p p'} :
-      [Γ |- p ~ p' : tSig A B | nevar ] ->
-      [Γ |- tFst p ~ tFst p' : A | nevar ] ;
-    convneu_snd {Γ nevar A B p p'} :
-      [Γ |- p ~ p' : tSig A B | nevar ] ->
-      [Γ |- tSnd p ~ tSnd p' : term_decl B[(tFst p)..] | nevar ] ;
-    convneu_IdElim {Γ nevar A A' x x' P P' hr hr' y y' e e'} :
+        [Γ |- t ~ t' : tTree  ] ->
+        [Γ |- tTreeElim P hl hn t ~ tTreeElim P' hl' hn' t' : term_decl P[t..]  ] ;
+    convneu_fst {Γ A B p p'} :
+      [Γ |- p ~ p' : tSig A B  ] ->
+      [Γ |- tFst p ~ tFst p' : A  ] ;
+    convneu_snd {Γ A B p p'} :
+      [Γ |- p ~ p' : tSig A B  ] ->
+      [Γ |- tSnd p ~ tSnd p' : term_decl B[(tFst p)..]  ] ;
+    convneu_IdElim {Γ A A' x x' P P' hr hr' y y' e e'} :
       (* Parameters well formed: required by declarative instance *)
       [Γ |- A] ->
       [Γ |- x : A] ->
@@ -611,27 +606,31 @@ Section GenericTyping.
       [Γ ,, A ,, tId A⟨@wk1 Γ A⟩ x⟨@wk1 Γ A⟩ (tRel 0) |- P ≅ P'] ->
       [Γ |- hr ≅ hr' : term_decl P[tRefl A x .: x..]] ->
       [Γ |- y ≅ y' : A] ->
-      [Γ |- e ~ e' : tId A x y | nevar ] ->
-      [Γ |- tIdElim A x P hr y e ~ tIdElim A' x' P' hr' y' e' : term_decl P[e .: y..] | nevar ];
-    convneu_split {Γ nevar t u A i new} :
+      [Γ |- e ~ e' : tId A x y  ] ->
+      [Γ |- tIdElim A x P hr y e ~ tIdElim A' x' P' hr' y' e' : term_decl P[e .: y..]  ];
+    convneu_eval {Γ t u v k} {ℓ : ell} :
+      [|- Γ] -> in_ctx Γ v ℓ ->
+      [ Γ |- t ~ u : tNat ] ->
+      [ Γ |- tApp (tEval ℓ (tRel v)) (nSucc k t) ~ tApp (tEval ℓ (tRel v)) (nSucc k u) : tBool ];
+    convneu_split {Γ t u A i new} :
       [|- Γ] ->
-      [ Γ,, i : new ↦ true |- t ~ u : A | nevar ] ->
-      [ Γ,, i : new ↦ false |- t ~ u : A | nevar ] ->
-      [ Γ |- t ~ u : A | nevar ] ;
-    convneu_xi nevar {Γ} {ℓ : ell} {m m' k} :
-      [Γ,, ℓ |- m ~ m' : tNat | nevar⟨@wk1 Γ ℓ⟩] ->
-      [Γ |- tXi ℓ (nSucc k m) ~ tXi ℓ (nSucc k m') : tTree | nevar] ;
-    convneu_xxi nevar {ℓ : ell} {Γ m m' n n' k} :
+      [ Γ,, i : new ↦ true |- t ~ u : A  ] ->
+      [ Γ,, i : new ↦ false |- t ~ u : A  ] ->
+      [ Γ |- t ~ u : A  ] ;
+    convneu_xi {Γ} {ℓ : ell} {m m' k v} :
+      [Γ,, ℓ |- m ~ m' : tNat] -> head m = Some (k, S v) -> head m' = Some (k, S v) ->
+      [Γ |- tXi ℓ (nSucc k m) ~ tXi ℓ (nSucc k m') : tTree ] ;
+    convneu_xxi {ℓ : ell} {Γ m m' n n' k v} :
       [Γ |- n ≅ n' : ℓ] ->
-      [Γ,, ℓ |- m ~ m' : tNat | nevar⟨@wk1 Γ ℓ⟩] ->
-      [Γ |- tXXi ℓ (nSucc k m) n ~ tXXi ℓ (nSucc k m') n' : tId tNat (dEval' Γ (tXi ℓ (nSucc k m)) (tEval ℓ n)) (nSucc k m)[n..] | nevar] ;
-    convneu_ellElim nevar {Γ ℓ k} {P P' ht ht' hf hf' n n' b b' : term} (ℓt := cons_ell ℓ k true) (ℓf := cons_ell ℓ k false):
+      [Γ,, ℓ |- m ~ m' : tNat] -> head m = Some (k, S v) -> head m' = Some (k, S v) ->
+      [Γ |- tXXi ℓ (nSucc k m) n ~ tXXi ℓ (nSucc k m') n' : tId tNat (dEval' Γ (tXi ℓ (nSucc k m)) (tEval ℓ n)) (nSucc k m)[n..] ] ;
+    convneu_ellElim {Γ ℓ k} {P P' ht ht' hf hf' n n' b b' : term} (ℓt := cons_ell ℓ k true) (ℓf := cons_ell ℓ k false):
       [ Γ,, ℓ |- P ≅ P' ] ->
       [ Γ,, ℓt |- ht ≅ ht' : term_decl P⟨wk_up ℓ (@wk1 Γ ℓt)⟩[(tBox ℓ (tEval ℓt (tRel 0)))..] ] ->
       [ Γ,, ℓf |- hf ≅ hf' : term_decl P⟨wk_up ℓ (@wk1 Γ ℓf)⟩[(tBox ℓ (tEval ℓf (tRel 0)))..] ] ->
       [ Γ |- n ≅ n' : ℓ] -> [Γ |- tApp (tEval ℓ n) (nat_to_term k) ≅ b : tBool] ->
-      [Γ |- b ~ b' : tBool | nevar] ->
-      [Γ |- tEllElim k ℓ P ht hf n b ~ tEllElim k ℓ P' ht' hf' n' b' : term_decl P[n..] | nevar];
+      [Γ |- b ~ b' : tBool ] ->
+      [Γ |- tEllElim k ℓ P ht hf n b ~ tEllElim k ℓ P' ht' hf' n' b' : term_decl P[n..] ];
   }.
 
   Class RedTypeProperties :=
@@ -776,6 +775,50 @@ Section GenericTyping.
       [Γ |- t ⤳* t : A] ;
     redtm_trans {Γ A} ::
       Transitive (red_tm Γ A) ;
+    redtm_xi {Γ t t' n} {ℓ : ell} :
+          [ |- Γ] ->
+          [ Γ ,, ℓ |- t ⤳* t' : tNat] ->
+          [ Γ |- tXi ℓ (nSucc n t) ⤳* tXi ℓ (nSucc n t') : tTree];
+    redtm_xiLeaf {Γ n} {ℓ : ell} :
+      [ |- Γ] ->
+      [ Γ |- tXi ℓ (nat_to_term n) ⤳* tLeaf (nat_to_term n) : tTree];
+    redtm_xiNode {Γ t} {ℓ : ell} {k} (ℓt := cons_ell ℓ k true) (ℓf := cons_ell ℓ k false) :
+      [ |- Γ] ->
+      [ Γ ,, ℓ |- t : tNat] -> whne t -> head t = Some (newnat_nat _ k, 0) ->
+      [ Γ |- tXi ℓ t ⤳* tNode (nat_to_term k) (tXi ℓt t⟨wk_up ℓ (@wk1 Γ ℓt)⟩[(tBox ℓ (tEval ℓt (tRel 0)))..])
+        (tXi ℓf t⟨wk_up ℓ (@wk1 Γ ℓf)⟩[(tBox ℓ (tEval ℓf (tRel 0)))..]) : tTree];
+    redtm_xxi {Γ t t' u n} {ℓ : ell} :
+          [ |- Γ] ->
+          [ Γ ,, ℓ |- t ⤳* t' : tNat] -> [ Γ |- u : ℓ] ->
+          [ Γ |- tXXi ℓ (nSucc n t) u ⤳* tXXi ℓ (nSucc n t') u : tId tNat (dEval' Γ (tXi ℓ (nSucc n t)) (tEval ℓ u)) (nSucc n t)[u..] ] ;
+    redtm_xxiLeaf {Γ n u} {ℓ : ell} :
+      [ |- Γ] -> [ Γ |- u : ℓ] ->
+      [ Γ |- tXXi ℓ (nat_to_term n) u ⤳* tRefl tNat (nat_to_term n): tId tNat (nat_to_term n) (nat_to_term n) ];
+    redtm_xxiNode  {Γ m} {ℓ : ell} {k n} (ℓt := cons_ell ℓ k true) (ℓf := cons_ell ℓ k false):
+      whne m -> head m = Some (newnat_nat _ k, 0) ->
+      [ Γ,, ℓ |- m  : tNat] -> [Γ |- n : ℓ] ->
+      [ Γ |- tXXi ℓ m n ⤳* tEllElim k ℓ (tId tNat (dEval' (Γ,, ℓ) (tXi ℓ m⟨wk_up ℓ (@wk1 Γ ℓ)⟩) (tEval ℓ (tRel 0))) m)
+        (tXXi ℓt m⟨wk_up ℓ (@wk1 Γ ℓt)⟩⟨wk_up ℓ (@wk1 (Γ,,ℓt) ℓt)⟩[(tBox ℓ (tEval ℓt (tRel 0)))..] (tRel 0))
+        (tXXi ℓf m⟨wk_up ℓ (@wk1 Γ ℓf)⟩⟨wk_up ℓ (@wk1 (Γ,,ℓf) ℓf)⟩[(tBox ℓ (tEval ℓf (tRel 0)))..] (tRel 0))
+        n (tApp (tEval ℓ n) (nat_to_term k)):
+        tId tNat (dEval' Γ (tXi ℓ m) (tEval ℓ n)) m[n..] ];
+    redtm_eval {Γ v n t t'} {ℓ : ell} :
+      [ Γ |- t ⤳* t' : tNat ] -> in_ctx Γ v ℓ ->
+      [ Γ |- tApp (tEval ℓ (tRel v)) (nSucc n t) ⤳* tApp (tEval ℓ (tRel v)) (nSucc n t') : tBool] ;
+    redtm_evalRel {Γ v n b} {ℓ : ell} :
+      [ |- Γ ] ->
+      in_ell ℓ n b -> in_ctx Γ v ℓ ->
+      [ Γ |- tApp (tEval ℓ (tRel v)) (nat_to_term n) ⤳* (bool_to_term b) : tBool] ;
+    redtm_evalBox {Γ ℓ t}:
+      [ Γ |- t : arr' Γ tNat tBool] ->
+      (forall n b, in_ell (ℓ : ell) n b -> [ Γ |- tApp t (nat_to_term n) ≅ bool_to_term b : tBool]) ->
+      [ Γ |- tEval ℓ (tBox ℓ t) ⤳* t : arr' Γ tNat tBool] ;
+    redtm_ellElim {Γ ℓ k} {P ht hf n b b' : term} (ℓt := cons_ell ℓ k true) (ℓf := cons_ell ℓ k false):
+          [ Γ,, ℓ |- P ] ->
+          [ Γ,, ℓt |- ht : term_decl P⟨wk_up ℓ (@wk1 Γ ℓt)⟩[(tBox ℓ (tEval ℓt (tRel 0)))..] ] ->
+          [ Γ,, ℓf |- hf : term_decl P⟨wk_up ℓ (@wk1 Γ ℓf)⟩[(tBox ℓ (tEval ℓf (tRel 0)))..] ] ->
+          [ Γ |- n : ℓ] -> [Γ |- b ⤳* b' : tBool] -> [Γ |- tApp (tEval ℓ n) (nat_to_term k) ≅ b : tBool] ->
+          [ Γ |- tEllElim k ℓ P ht hf n b ⤳* tEllElim k ℓ P ht hf n b' : P[n..] ] ;
     redtm_ellElimTrue {Γ ℓ k} {P ht hf n : term} (ℓt := cons_ell ℓ k true) (ℓf := cons_ell ℓ k false):
       [ Γ,, ℓ |- P] ->
       [ Γ,, ℓt |- ht : term_decl P⟨wk_up ℓ (@wk1 Γ ℓt)⟩[(tBox ℓ (tEval ℓt (tRel 0)))..] ] ->
@@ -930,12 +973,6 @@ Section GenericConsequences.
   `{!RedTypeProperties} `{!RedTermProperties}.
 
 
-  Lemma convneuvar_uniq {Γ nevarl nevarr nel ne ner A A'} : [Γ |- nel ~ ne : A | nevarl] -> [Γ |- ne ~ ner : A' | nevarr] -> nevarl = nevarr.
-  Proof.
-    intros hnel hner.
-    eapply nevar_uniq, convneu_whne, hner.
-    eapply convneu_whne, PER_Symmetric, hnel.
-  Qed.
 
   (** *** Meta-conversion *)
   (** Similar to conversion, but using a meta-level equality rather
@@ -958,11 +995,11 @@ Section GenericConsequences.
     now intros ? -> ->.
   Qed.
 
-  Lemma convne_meta_conv nevar (Γ : context) (t u u' : term) (A A' : decl) :
-    [Γ |- t ~ u : A | nevar] ->
+  Lemma convne_meta_conv (Γ : context) (t u u' : term) (A A' : decl) :
+    [Γ |- t ~ u : A ] ->
     A' = A ->
     u' = u ->
-    [Γ |- t ~ u' : A' | nevar].
+    [Γ |- t ~ u' : A' ].
   Proof.
     now intros ? -> ->.
   Qed.
@@ -1173,10 +1210,7 @@ Section GenericConsequences.
     end) (well_formed_typed _ _ w).
 
   (** *** Derived typing, reduction and conversion judgements *)
-  Lemma ell_eq ℓ ℓ' wf wf' : ℓ = ℓ' -> Build_ell ℓ wf = Build_ell ℓ' wf'.
-  Proof. now intros <-. Qed.
-  Lemma ell_eq' {ℓ ℓ' : ell} : ℓ = ℓ' :> ell_list -> ℓ = ℓ'.
-  Proof. intros e; now eapply ell_eq. Qed.
+
 
   Lemma wfc_consε {Γ F} : [|-Γ] -> [|-Γ,,↦ F].
   Proof.
@@ -1554,11 +1588,11 @@ Section GenericConsequences.
     rewrite wk_prod, wk_decl; gtyping.
   Qed.
 
-  Lemma convneu_app_ren {Γ Δ nevar} {A f g a b dom cod : term} (ρ : Δ ≤ Γ) :
-    [Γ |- f ~ g : A | nevar] ->
+  Lemma convneu_app_ren {Γ Δ} {A f g a b dom cod : term} (ρ : Δ ≤ Γ) :
+    [Γ |- f ~ g : A ] ->
     [Γ |- A ≅ tProd dom cod] ->
     [Δ |- a ≅ b : term_decl dom⟨ρ⟩] ->
-    [Δ |- tApp f⟨ρ⟩ a ~ tApp g⟨ρ⟩ b : term_decl cod⟨wk_up dom ρ⟩[a ..] | nevar⟨ρ⟩].
+    [Δ |- tApp f⟨ρ⟩ a ~ tApp g⟨ρ⟩ b : term_decl cod⟨wk_up dom ρ⟩[a ..]].
   Proof.
     intros Hfg HA Hab.
     eapply convneu_app, Hab.
@@ -1581,7 +1615,7 @@ Section GenericConsequences.
     intros []; now eapply redtm_whnf.
   Qed.
 
-  Lemma redtmwf_whne {nevar Γ t u A} : [Γ |- t :⤳*: u : A] -> whne nevar t -> t = u.
+  Lemma redtmwf_whne {Γ t u A} : [Γ |- t :⤳*: u : A] -> whne t -> t = u.
   Proof.
     intros ? ?%whnf_whne; now eapply redtmwf_whnf.
   Qed.
@@ -1598,7 +1632,7 @@ Section GenericConsequences.
     intros []; now eapply redty_whnf.
   Qed.
 
-  Lemma redtywf_whne {nevar Γ A B} : [Γ |- A :⤳*: B] -> whne nevar A -> A = B.
+  Lemma redtywf_whne {Γ A B} : [Γ |- A :⤳*: B] -> whne A -> A = B.
   Proof.
     intros ? ?%whnf_whne; now eapply redtywf_whnf.
   Qed.
@@ -1663,6 +1697,23 @@ Section GenericConsequences.
   Qed.
 
 
+  Lemma ty_nSucc {Γ n t} :
+    [Γ |- t : tNat] ->
+    [Γ |- nSucc n t : tNat].
+  Proof.
+    intros ht; induction n.
+    - tea.
+    - cbn. now eapply ty_succ.
+  Qed.
+
+  Lemma convtm_nSucc {Γ n t t'} :
+    [Γ |- t ≅ t': tNat] ->
+    [Γ |- nSucc n t ≅ nSucc n t': tNat].
+  Proof.
+    intros ht; induction n.
+    - tea.
+    - cbn. now eapply convtm_succ.
+  Qed.
 
 End GenericConsequences.
 

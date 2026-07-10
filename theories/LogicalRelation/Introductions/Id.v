@@ -297,23 +297,23 @@ Proof.
   rewrite <- 2wk_idElim.
   assert [Θ |-[ ta ] A⟨ρ⟩]
     by (escape; now eapply wft_wk).
-  assert ([ |-[ ta ] Θ,, (A⟨ρ⟩)])
+  assert ([ |-[ ta ] Θ,, (term_decl A⟨ρ⟩)])
     by now eapply wfc_cons.
-  assert ([ |-[ ta ] (Θ,, (A⟨ρ⟩)),, ((tId A⟨@wk1 Γ A⟩ x⟨@wk1 Γ A⟩ (tRel 0))⟨wk_up A ρ⟩)]).
+  assert ([ |-[ ta ] (Θ,, (term_decl A⟨ρ⟩)),, (term_decl (tId A⟨@wk1 Γ A⟩ x⟨@wk1 Γ A⟩ (tRel 0))⟨wk_up A ρ⟩)]).
   { eapply wfc_cons; tea.
     eapply wft_wk; tea.
-    eapply wft_Id.
+    eapply wft_Id; rewrite ? wk_decl.
     + eapply wft_wk; escape; gtyping.
     + eapply ty_wk; escape; gtyping.
     + eapply ty_var0; escape; gtyping. }
   assert [Θ |-[ ta ] A'⟨ρ⟩]
     by (escape; now eapply wft_wk).
-  assert ([ |-[ ta ] Θ,, (A'⟨ρ⟩)])
+  assert ([ |-[ ta ] Θ,, (term_decl A'⟨ρ⟩)])
     by now eapply wfc_cons.
-  assert ([ |-[ ta ] (Θ,, (A'⟨ρ⟩)),, ((tId A'⟨@wk1 Γ A'⟩ x'⟨@wk1 Γ A'⟩ (tRel 0))⟨wk_up A' ρ⟩)]).
+  assert ([ |-[ ta ] (Θ,, (term_decl A'⟨ρ⟩)),, (term_decl (tId A'⟨@wk1 Γ A'⟩ x'⟨@wk1 Γ A'⟩ (tRel 0))⟨wk_up A' ρ⟩)]).
   { eapply wfc_cons; tea.
     eapply wft_wk; tea.
-    eapply wft_Id.
+    eapply wft_Id; rewrite ? wk_decl.
     + eapply wft_wk; escape; gtyping.
     + eapply ty_wk; escape; gtyping.
     + eapply ty_var0; escape; gtyping. }
@@ -340,13 +340,13 @@ Proof.
     1: now eapply overtree_PSh.
   + now rewrite 2 (wk_comp_ren_on P[e .: y..]), <- subst_ren_wk_up2.
   + eapply wft_wkEq, RP0.
-    2: now rewrite <- wk_Id, 2wk_up_wk1.
+    2: now rewrite <- wk_decl, <- wk_Id, <-2 wk_up_wk1.
     tea.
   + eapply wft_wkEq, RP0'.
-    2: now rewrite <- wk_Id, 2wk_up_wk1.
+    2: now rewrite <- wk_decl, <- wk_Id, <-2 wk_up_wk1.
     tea.
   + refine (convty_wkEq _ _ _ RPP0).
-    2: now rewrite <- wk_Id, 2wk_up_wk1.
+    2: now rewrite <- wk_decl, <- wk_Id, <-2 wk_up_wk1.
     tea.
   + eapply irrLREq, wkLRTm, Rhrhr'.
     now erewrite subst_ren_wk_up2.

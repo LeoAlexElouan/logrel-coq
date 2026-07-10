@@ -56,8 +56,7 @@ Section EmptyRedTmEq.
       nfR : term ;
       redL : [Γ |- t :⤳*: nfL : tEmpty] ;
       redR : [Γ |- u :⤳*: nfR : tEmpty ] ;
-      nevar : neVar;
-      eq : [Γ ||-NeNf nfL ≅ nfR : tEmpty | nevar]
+      eq : [Γ ||-NeNf nfL ≅ nfR : tEmpty ]
   }.
   Arguments  EmptyRedTmEq : clear implicits.
 
@@ -67,12 +66,12 @@ Section EmptyRedTmEq.
 
     Definition whredL {Γ t u} : EmptyRedTmEq Γ t u -> [Γ |- t ↘ tEmpty].
     Proof.
-      intros []; econstructor; tea; unshelve eapply NeNf.whredL; cycle 4; tea.
+      intros []; econstructor; tea; unshelve eapply NeNf.whredL; cycle 3; tea.
     Defined.
 
     Definition whredR {Γ t u} : EmptyRedTmEq Γ t u -> [Γ |- u ↘ tEmpty].
     Proof.
-      intros []; econstructor; tea; unshelve eapply NeNf.whredR; cycle 4; tea.
+      intros []; econstructor; tea; unshelve eapply NeNf.whredR; cycle 3; tea.
     Defined.
   End  Def.
 
@@ -89,6 +88,6 @@ Instance EmptyRedTmEqWhRed `{GenericTypingProperties} {Γ} : WhRedTmRel Γ tEmpt
   {| whredtmL := fun t u Rtu => EmptyRedTmEq.whredL Rtu ;
     whredtmR := fun t u Rtu => EmptyRedTmEq.whredR Rtu |}.
 Next Obligation.
-  destruct h as [????? []].
+  destruct h as [???? []].
   eapply convtm_convneu; tea; econstructor.
 Qed.

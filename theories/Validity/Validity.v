@@ -18,29 +18,36 @@ Ltac substitution := eauto with substitution.
   substitution equality is eqSubst.
   One should think of VRel as a functional relation taking two arguments Γ, Γ'
   and returning eqSubst as an output *)
-  Inductive Fequiv L L' : Set := Fequiv_make : L ≤ε L' -> L' ≤ε L -> Fequiv L L'.
-  Notation "L =ε L'" := (Fequiv L L').
-  Instance Equivalence_Fequiv : Equivalence Fequiv.
+
+
+(*   Inductive Fequiv L L' : Set := Fequiv_make : L ≤ε L' -> L' ≤ε L -> Fequiv L L'. *)
+  Notation "ℓ =ε ℓ'" := (ℓ = ℓ' :> ell).
+(*   Instance Equivalence_Fequiv : Equivalence Fequiv.
   Proof.
     split.
     + split; eapply Fwk_id.
     + intros ?? []; now split.
     + intros ??? [] []; split; now eapply Fwk_compose.
-  Qed.
+  Qed. *)
 
-  Definition lFwk {L L'} (eq : L =ε L') : L ≤ε L'.
-  Proof. apply eq. Qed.
+  Lemma ell_incl_id {ℓ} : ℓ ≤ε ℓ.
+  Proof. intros ?? inℓ; eapply inℓ. Qed.
 
-  Definition rFwk {L L'} (eq : L =ε L') : L' ≤ε L.
-  Proof. apply eq. Qed.
+  Definition lFwk {L L'} (eq : L = L') : L ≤ε L'.
+  Proof. destruct eq; apply ell_incl_id. Qed.
 
-  Lemma Fequiv_Fup {L L'} {b} (eq : L =ε L') {new : newnat L} {new' : newnat L'} :
+  Definition rFwk {L L'} (eq : L = L') : L' ≤ε L.
+  Proof. destruct eq; apply ell_incl_id. Qed.
+
+
+
+(*   Lemma Fequiv_Fup {L L'} {b} (eq : L =ε L') {new : newnat L} {new' : newnat L'} :
    new = new' :> nat -> (Fcons' L new b) =ε (Fcons' L' new' b).
   Proof.
     destruct eq.
     intros e; split; eapply Fwk_Fup; tea.
     now symmetry.
-  Qed.
+  Qed. *)
 
   Definition VRel@{i j | i < j +} `{ta : tag} `{!WfContext ta} :=
   forall (Γ Γ' : context)
@@ -156,19 +163,19 @@ Section εsnocValid.
   Context `{ta : tag} `{!WfContext ta}
   `{!WfType ta} `{!Typing ta} `{!ConvType ta}
   `{!ConvTerm ta} `{!ConvNeuConv ta} `{!RedType ta} `{!RedTerm ta}
-  {L L': list Fcontext} (Γ := fromFctx L) (Γ' := fromFctx L') {VΓ : VPack@{u} Γ Γ'} {F F' : Fcontext} (* {l : TypeLevel} *).
+  {L L': list ell} (Γ := fromFctx L) (Γ' := fromFctx L') {VΓ : VPack@{u} Γ Γ'} {ℓ ℓ' : ell} (* {l : TypeLevel} *).
 (*   {vA : typeValidity@{u i j k l} Γ Γ' VΓ l A A' (* [ VΓ | Γ ||-v< l > A ] *)}. *)
 
 
-  Record εsnocEqSubst (VF : F =ε F') {Δ : context} {wfΔ : [|- Δ]} {σ σ' : substitution} : Type := {
+  Record εsnocEqSubst (Vℓ : ℓ =ε ℓ') {Δ : context} {wfΔ : [|- Δ]} {σ σ' : substitution} : Type := {
       εeqTail : [ VΓ | Δ ||-v εtail_subst σ ≅ εtail_subst σ' : Γ | wfΔ ] ;
       εeqHedIndex : list_index Δ.(Fctx) ;
       εeqHeadEq : subst_alpha σ 0 = subst_alpha σ' 0 ;
       εeqHeadIn : subst_alpha σ 0 = index_to_nat εeqHedIndex ;
-      εeqHead : list_at Δ.(Fctx) εeqHedIndex ≤ε F ;
+      εeqHead : list_at Δ.(Fctx) εeqHedIndex ≤ε ℓ ;
     }.
 
-  Definition εsnocVPack (VF : F =ε F') := Build_VPack@{u} (Γ ,, ↦ F) (Γ',, ↦ F') (@εsnocEqSubst VF).
+  Definition εsnocVPack (Vℓ : ℓ =ε ℓ') := Build_VPack@{u} (Γ ,, ↦ ℓ) (Γ',, ↦ ℓ') (@εsnocEqSubst Vℓ).
 End εsnocValid.
 
 Arguments εsnocEqSubst : clear implicits.
@@ -201,6 +208,30 @@ Arguments snocEqSubst {_ _ _ _ _ _ _ _ _}.
 Arguments snocVPack : clear implicits.
 Arguments snocVPack {_ _ _ _ _ _ _ _ _}.
 
+Section ℓsnocValid.
+  Universe u i j k l.
+  Context `{ta : tag} `{!WfContext ta}
+  `{!WfType ta} `{!Typing ta} `{!ConvType ta}
+  `{!ConvTerm ta} `{!ConvNeuConv ta} `{!RedType ta} `{!RedTerm ta}
+  {Γ Γ': context} {VΓ : VPack@{u} Γ Γ'} {A A' : term} {l : TypeLevel}
+  {vA : typeValidity@{u i j k l} Γ Γ' VΓ l A A' (* [ VΓ | Γ ||-v< l > A ] *)}.
+
+
+  Record snocEqSubst {Δ : context} {wfΔ : [|- Δ]} {σ σ' : substitution} : Type :=
+    {
+      eqTail : [ VΓ | Δ ||-v tail_subst σ ≅ tail_subst σ' : Γ | wfΔ ] ;
+      eqHead : [ Δ ||-< l > (subst_subst σ) var_zero ≅ (subst_subst σ') var_zero : A[tail_subst σ] | validTyExt vA wfΔ eqTail ]
+    }.
+
+  Definition snocVPack := Build_VPack@{u (* max(u,k) *)} (Γ ,, A) (Γ',,A') (@snocEqSubst).
+End snocValid.
+
+Arguments snocEqSubst : clear implicits.
+Arguments snocEqSubst {_ _ _ _ _ _ _ _ _}.
+
+Arguments snocVPack : clear implicits.
+Arguments snocVPack {_ _ _ _ _ _ _ _ _}.
+
 Unset Elimination Schemes.
 
 Inductive VR@{i j k l} `{ta : tag}
@@ -208,7 +239,7 @@ Inductive VR@{i j k l} `{ta : tag}
   `{ConvType ta} `{ConvTerm ta} `{ConvNeuConv ta}
   `{RedType ta} `{RedTerm ta} : VRel@{k l} :=
   | VREmpty : VR ε ε emptyEqSubst@{k}
-  | VRSnocε : forall {L L' : list Fcontext} (Γ:= fromFctx L) (Γ' := fromFctx L') {F F'}
+  | VRSnocε : forall {L L' : list ell} (Γ:= fromFctx L) (Γ' := fromFctx L') {F F'}
     (VΓ : VPack@{k} Γ Γ')
     (VΓad : VPackAdequate@{k l} VR VΓ)
      (VF : F =ε F'), (* let ΓF := (Γ ,, ↦ F) in *)
@@ -244,7 +275,7 @@ Section MoreDefs.
     : [||-v Γ ,, A ≅ Γ' ,, A'] :=
     Build_VAdequate (snocVPack Γ Γ' VΓ A A' l VA) (VRSnoc VΓ VΓ VA).
 
-  Definition validSnocε@{i j k l} {L L' : list Fcontext} (Γ:= fromFctx L) (Γ' := fromFctx L') {F F'}
+  Definition validSnocε@{i j k l} {L L' : list ell} (Γ:= fromFctx L) (Γ' := fromFctx L') {F F'}
     (VΓ : [VR@{i j k l}| ||-v Γ ≅ Γ']) (VF : F =ε F')
     : [||-v Γ ,, ↦ F ≅ Γ' ,, ↦ F'] :=
     Build_VAdequate (εsnocVPack Γ Γ' VΓ F F' VF) (VRSnocε VΓ VΓ VF).
@@ -340,7 +371,7 @@ Section Inductions.
   Theorem VR_rect
     (P : forall {Γ Γ' vSubstExt}, VR Γ Γ' vSubstExt -> Type)
     (hε : P VREmpty)
-    (hsnocε : forall {L L' : list Fcontext} (Γ:= fromFctx L) (Γ' := fromFctx L') {F F' VΓ VΓad VF},
+    (hsnocε : forall {L L' : list ell} (Γ:= fromFctx L) (Γ' := fromFctx L') {F F' VΓ VΓad VF},
       P VΓad -> P (VRSnocε (L := L) (L':=L') (F := F) (F':=F') VΓ VΓad VF))
     (hsnoc : forall {Γ Γ' A A' l VΓ VΓad VA},
       P VΓad -> P (VRSnoc (Γ := Γ) (Γ':=Γ') (A := A) (A':=A') (l := l) VΓ VΓad VA)) :
@@ -352,7 +383,7 @@ Section Inductions.
   Theorem validity_rect
     (P : forall {Γ Γ' : context}, [||-v Γ ≅ Γ'] -> Type)
     (hε : P validEmpty)
-    (hsnocε : forall {L L' : list Fcontext} (Γ:= fromFctx L) (Γ' := fromFctx L') {F F'}
+    (hsnocε : forall {L L' : list ell} (Γ:= fromFctx L) (Γ' := fromFctx L') {F F'}
       (VΓ : [||-v Γ ≅ Γ']) (VF : F =ε F'), P VΓ -> P (validSnocε VΓ VF))
     (hsnoc : forall {Γ Γ' : context}  {A A' l} (VΓ : [||-v Γ ≅ Γ']) (VA : [Γ ||-v< l > A ≅ A' | VΓ]), P VΓ -> P (validSnoc VΓ VA)) :
     forall {Γ Γ' : context} (VΓ : [||-v Γ ≅ Γ']), P VΓ.

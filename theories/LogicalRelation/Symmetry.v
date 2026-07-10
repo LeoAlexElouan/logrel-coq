@@ -64,7 +64,7 @@ Section Symmetry.
     Definition symIsLRFun {t} : isLRFun ΠA t <≈> isLRFun symΠ t.
     Proof.
       split.
-      - intros [????? Rbody| |].
+      - intros [????? Rbody| | |].
         * constructor; tea.
           1: etransitivity; tea; eapply ParamRedTy.eqdom.
           intros.
@@ -73,8 +73,9 @@ Section Symmetry.
           intros Ξ wfΞ ρΞ oha' oRbody ohA; cbn in *.
           now unshelve eapply SirrLR, ihcod, Rbody.
         * constructor; etransitivity; tea. eapply ParamRedTy.eq.
+        * constructor; etransitivity; tea. eapply ParamRedTy.eq.
         * constructor; eapply convneu_conv; tea; eapply ParamRedTy.eq.
-      - intros [????? Rbody| |].
+      - intros [????? Rbody| | |].
         * constructor; tea.
           1: etransitivity; tea; eapply ParamRedTy.eqdom.
           intros ??????.
@@ -82,6 +83,7 @@ Section Symmetry.
           eapply (dSplit_bind_return Rbody).
           intros Ξ wfΞ ρΞ oha' oRbody ohA; cbn in *.
           now unshelve eapply ihcod, SirrLR, Rbody.
+        * constructor; etransitivity; tea. eapply ParamRedTy.eq.
         * constructor; etransitivity; tea. eapply ParamRedTy.eq.
         * constructor; eapply convneu_conv; tea; eapply ParamRedTy.eq.
     Qed.
@@ -116,11 +118,11 @@ Section Symmetry.
   Lemma symNe {Γ A B} : [Γ ||-ne A ≅ B] -> [Γ ||-ne B ≅ A].
   Proof.
     intros []; unshelve econstructor.
-    4,5: tea.
-    2:now symmetry.
+    3,4: tea.
+    now symmetry.
   Defined.
 
-  Lemma symNeNf {Γ nevar t u A} : [Γ ||-NeNf t ≅ u : A | nevar] -> [Γ ||-NeNf u ≅ t : A | nevar].
+  Lemma symNeNf {Γ t u A} : [Γ ||-NeNf t ≅ u : A ] -> [Γ ||-NeNf u ≅ t : A ].
   Proof.
     intros []; econstructor; tea; now symmetry.
   Qed.

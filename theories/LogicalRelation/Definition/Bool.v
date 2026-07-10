@@ -58,7 +58,7 @@ Section BoolRedTmEq.
     BoolPropEq Γ tTrue tTrue
   | falseReq :
     BoolPropEq Γ tFalse tFalse
-  | neReq {nevar ne ne'} : [Γ ||-NeNf ne ≅ ne' : tBool | nevar] -> BoolPropEq Γ ne ne'.
+  | neReq {ne ne'} : [Γ ||-NeNf ne ≅ ne' : tBool ] -> BoolPropEq Γ ne ne'.
 
 
   Record BoolRedTmEq {Γ t u} : Set :=
@@ -78,7 +78,7 @@ Section BoolRedTmEq.
     Lemma BoolPropEq_isBool Γ {t t' : term} :
       BoolPropEq Γ t t' -> isBool t × isBool t'.
     Proof.
-      intros [| |??? []]; split; econstructor.
+      intros [| |?? []]; split; econstructor.
       all: eapply convneu_whne; eassumption + now symmetry.
     Defined.
 
@@ -108,7 +108,7 @@ End BoolRedTmEq.
 
 Export BoolRedTmEq(BoolRedTmEq, Build_BoolRedTmEq, BoolPropEq, BoolPropEq_isBool).
 
-Notation "[ Γ ||-Bool t ≅ u :Bool]" := (@BoolRedTmEq _ _ _ _ _ _ _ Γ t u).  (* (at level 0, Γ, t, u at level 50). *)
+Notation "[ Γ ||-Bool t ≅ u :Bool]" := (@BoolRedTmEq _ _ _ _ _ Γ t u).  (* (at level 0, Γ, t, u at level 50). *)
 
 #[program]
 Instance BoolRedTmEqWhRed `{GenericTypingProperties} {Γ} : WhRedTmRel Γ tBool (BoolRedTmEq Γ) :=

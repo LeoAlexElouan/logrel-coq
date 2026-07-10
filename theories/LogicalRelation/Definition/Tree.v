@@ -69,7 +69,7 @@ Section TreeRedTmEq.
     (Rtl : TreeTmEq RedEq tl tl')
     (Rtr : TreeTmEq RedEq tr tr') :
     TreeTmEq PropEq (tNode n tl tr) (tNode n' tl' tr')
-  | neReq {nevar ne ne'} : [Γ ||-NeNf ne ≅ ne' : tTree | nevar] -> TreeTmEq PropEq ne ne'.
+  | neReq {ne ne'} : [Γ ||-NeNf ne ≅ ne' : tTree ] -> TreeTmEq PropEq ne ne'.
 
   Definition TreePropEq := (TreeTmEq PropEq).
   Definition TreeRedTmEq := (TreeTmEq RedEq).
@@ -87,7 +87,7 @@ Section TreeRedTmEq.
   Definition TreePropEq_destruct : forall (P : forall t u, TreePropEq t u -> Type),
     (forall n n' Rn, P (tLeaf n) (tLeaf n') (@leafReq n n' Rn)) ->
     (forall n n' tl tl' tr tr' Rn Rtl Rtr, P (tNode n tl tr) (tNode n' tl' tr') (@nodeReq n n' tl tl' tr tr' Rn Rtl Rtr)) ->
-    (forall nevar ne ne' Rne, P ne ne' (@neReq nevar ne ne' Rne)) ->
+    (forall ne ne' Rne, P ne ne' (@neReq ne ne' Rne)) ->
     forall t u (Rtu : TreePropEq t u), P t u Rtu := fun P hl hn hne t u Rtu =>
       match Rtu as Rtu' in TreeTmEq v t' u'
         return (match v with
@@ -95,7 +95,7 @@ Section TreeRedTmEq.
           | _ => fun _ => (unit : Type) end Rtu') with
       | leafReq Rn => hl _ _ Rn
       | nodeReq Rn Rtl Rtr => hn _ _ _ _ _ _ Rn Rtl Rtr
-      | neReq Rne => hne _ _ _ Rne
+      | neReq Rne => hne _ _ Rne
       | _ => tt end.
 
   Section Def.
@@ -104,7 +104,7 @@ Section TreeRedTmEq.
     Lemma TreePropEq_isTree {t t' : term} :
       TreePropEq t t' -> isTree t × isTree t'.
     Proof.
-      intros Rt. induction Rt  as [ | |??? []] using TreePropEq_destruct; split; econstructor.
+      intros Rt. induction Rt  as [ | |?? []] using TreePropEq_destruct; split; econstructor.
       all: eapply convneu_whne; eassumption + now symmetry.
     Defined.
 

@@ -62,20 +62,27 @@ Inductive OneRedAlg {L : list ell} : term -> term -> Type :=
 | idElimSubst {A x P hr y e e'} :
   [L |e ⤳ e'] ->
   [ L |tIdElim A x P hr y e ⤳ tIdElim A x P hr y e' ]
+| evalSubst {v k ℓ t t'} :
+  [L | t ⤳ t'] ->
+  [L | tApp (tEval ℓ (tRel v)) (nSucc k t) ⤳ tApp (tEval ℓ (tRel v)) (nSucc k t') ]
 | evalRel v k b (ℓ : ell) : in_ell ℓ k b ->
   [ L |tApp (tEval ℓ (tRel v)) (nat_to_term k) ⤳ (bool_to_term b) ]
 | evalBox {ℓ ℓ' t} : [ L | tEval ℓ (tBox ℓ' t) ⤳ t]
 | xiSubst {ℓ n n' k} : [L | n ⤳ n'] -> [L | tXi ℓ (nSucc k n) ⤳ tXi ℓ (nSucc k n')]
 | xiLeaf {ℓ n }: [L | tXi ℓ (nat_to_term n) ⤳ tLeaf (nat_to_term n) ]
-| xiNode {ℓ : ell} {n} {k : newnat ℓ} : whne (ellNe k 0) n ->
-  [L |tXi ℓ n ⤳ tNode (nat_to_term k) (tXi (cons_ell ℓ k true) n) (tXi (cons_ell ℓ k false) n) ]
+| xiNode {ℓ : ell} {n} {k : newnat ℓ} (ℓt := cons_ell ℓ k true) (ℓf := cons_ell ℓ k false) :
+  whne n -> head n = Some (newnat_nat _ k, 0) ->
+  [L |tXi ℓ n ⤳ tNode (nat_to_term k)
+    (tXi (cons_ell ℓ k true) n[tBox ℓ (tEval ℓt (tRel 0))]⇑)
+    (tXi (cons_ell ℓ k false) n[tBox ℓ (tEval ℓf (tRel 0))]⇑) ]
 | xxiSubst {ℓ m m' n k} : [L | m ⤳ m'] -> [L | tXXi ℓ (nSucc k m) n ⤳ tXXi ℓ (nSucc k m') n]
-| xxiLeaf {ℓ k n} : [L | tXXi ℓ (nat_to_term k) n ⤳ tRefl tTree (tLeaf (nat_to_term k)) ]
-| xxiNode {ℓ : ell} {m n} {k : newnat ℓ} (ℓt := cons_ell ℓ k true) (ℓf := cons_ell ℓ k false) : whne (ellNe k 0) m ->
+| xxiLeaf {ℓ k n} : [L | tXXi ℓ (nat_to_term k) n ⤳ tRefl tNat (nat_to_term k) ]
+| xxiNode {ℓ : ell} {m n} {k : newnat ℓ} (ℓt := cons_ell ℓ k true) (ℓf := cons_ell ℓ k false) :
+  whne m -> head m = Some (newnat_nat _ k, 0) ->
   [L | tXXi ℓ m n ⤳
     tEllElim k ℓ (tId tNat (dEval (tXi ℓ m)⟨↑⟩ (tEval ℓ (tRel 0))) m)
       (tXXi ℓt m⟨upRen_term_term ↑⟩[tBox ℓ (tEval ℓt (tRel 0))]⇑ (tRel 0))
-      (tXXi ℓf m⟨upRen_term_term ↑⟩[(tBox ℓ (tEval ℓf (tRel 0)))]⇑ (tRel 0))
+      (tXXi ℓf m⟨upRen_term_term ↑⟩[tBox ℓ (tEval ℓf (tRel 0))]⇑ (tRel 0))
       n (tApp (tEval ℓ n) (nat_to_term k))]
 | ellElimSubst {k ℓ P ht hf n b b'}: [L | b ⤳ b'] -> [L | tEllElim k ℓ P ht hf n b ⤳ tEllElim k ℓ P ht hf n b']
 | ellElimTrue {ℓ : ell} {k : newnat ℓ} {P ht hf n} :
@@ -126,8 +133,10 @@ Record cored L t t' : Prop := { _ : [L |t' ⤳ t] }.
 (** *** Weak-head normal forms do not reduce *)
 
 Ltac inv_whne :=
-  match goal with [ H : whne _ _ |- _ ] => inversion H; block H end.
+  match goal with [ H : whne _ |- _ ] => inversion H; block H end.
 
+Lemma headnSucc {k k' n} : head (nSucc k n) = Some (k', 0) -> 0 = k.
+Proof. destruct k; [reflexivity|inversion 1]. Qed.
 
 #[local] Ltac nSucc_handler :=
 try match goal with
@@ -137,27 +146,22 @@ try match goal with
     eapply symmetry, nSucc_nat_to_term in eq as [[] <-]
 | eq : nat_to_term ?k = nSucc ?k' ?t' |- _ =>
     eapply nSucc_nat_to_term in eq as [[] <-]
-| eq  : nat_to_term ?k =  nat_to_term ?k' |- _ =>
+| eq : nat_to_term ?k =  nat_to_term ?k' |- _ =>
     eapply nat_to_term_inj in eq as <-
 end.
 
-Lemma whne_nored {L} n u nevar:
-  whne nevar n -> [ L | n ⤳ u] -> False.
+Lemma whne_nored {L} n u :
+  whne n -> [ L | n ⤳ u] -> False.
 Proof.
   intros ne red.
   induction ne in u, red |-*.
-  1-14: inversion red; subst; clear red; nSucc_handler.
-  all: try solve [now inversion ne | now inversion H2].
+  all: inversion red; subst; clear red; nSucc_handler.
+  all: try solve [now inversion ne | now inversion H2 | inversion H3]. 
   * destruct (notin_is_not_in ltac:(tea) ltac:(tea)).
-  * destruct k.
-    2: inversion H2.
-    pose proof (nevar_uniq ne H2).
-    destruct nevar; inversion H.
-  * inversion H3.
-  * destruct k.
-    2: inversion H3.
-    pose proof (nevar_uniq ne H3).
-    destruct nevar; inversion H.
+  * pose proof (headnSucc H3) as <-.
+    simpl in H3. rewrite e in H3. discriminate.
+  * pose proof (headnSucc H4) as <-.
+    simpl in H4. rewrite e in H4. discriminate.
 Qed.
 
 Ltac inv_alpha :=
@@ -197,25 +201,23 @@ Proof.
 (*   71-72 : depelim red'. *)
   all : try solve [repeat f_equal; eauto].
   all : repeat match goal with r : [_ | _ ⤳ _] |- _ => try solve [inversion r]; block r | _ => idtac end; unblock.
-  all : try match goal with w : whne _ (nSucc ?k _) |- _ => destruct k; [ | inversion w]; cbn in w end .
-  all : try match goal with w : whne _ (nat_to_term ?k) |- _ => destruct k; inversion w end .
+  all : try match goal with w : whne (nSucc ?k _) |- _ => destruct k; [ | inversion w]; cbn in w end .
+  all : try match goal with w : whne (nat_to_term ?k) |- _ => destruct k; inversion w end .
   all: try solve [exfalso; eapply whne_nored; eauto].
   * eapply index_to_nat_inj in H as <-.
     eapply f_equal, functionality; tea.
   * eapply f_equal, functionality; tea.
-  * pose proof (nevar_uniq w w0).
-    destruct k as [k wf], k0 as [k0 wf0]; cbn in *.
-    now inversion H; subst.
-  * pose proof (nevar_uniq w w0).
-    destruct k as [k wf], k0 as [k0 wf0]; cbn in *.
-    now inversion H; subst.
+  * destruct k0 as [k0 wf0], k as [k wf]; cbn in *.
+    rewrite e in e0. now inversion e0; subst.
+  * destruct k0 as [k0 wf0], k as [k wf]; cbn in *.
+    rewrite e in e0. now inversion e0; subst.
   * destruct k as [k wf], k0 as [k0 wf0]; cbn in *.
     now inversion H; subst.
   * destruct k as [k wf], k0 as [k0 wf0]; cbn in *.
     now inversion H; subst.
 Qed.
 
-Lemma red_whne {L} t u nevar : [ L | t ⤳* u] -> whne nevar t -> t = u.
+Lemma red_whne {L} t u : [ L | t ⤳* u] -> whne t -> t = u.
 Proof.
   intros [] ?.
   1: reflexivity.
@@ -266,17 +268,16 @@ Proof.
   all: try now constructor.
   + rewrite <- ren_index_to_ren with (wρε := wρε).
     eapply alphaRed, well_Fwk_in, hin.
-  + eapply xiNode.
-    eapply (whne_ren (fun x => x) (wk_to_ren ρε)) in w.
-    eapply eq_rect.
-    { eapply w. }
-    now bsimpl.
+  + rewrite ! commRen_alpha_term; unfold funcomp.
+    replace (ren_alpha ρε n) with n⟨fun x => x; wk_to_ren ρε⟩ by now bsimpl.
+    eapply xiNode.
+    - eapply whne_ren, w.
+    - now rewrite head_ren, e.
   + do 2 (rewrite ! commRen_alpha_term; unfold funcomp).
+    replace (ren_alpha ρε m) with m⟨fun x => x; wk_to_ren ρε⟩ by now bsimpl.
     eapply xxiNode.
-    eapply (whne_ren (fun x => x) (wk_to_ren ρε)) in w.
-    eapply eq_rect.
-    { eapply w. }
-    now bsimpl.
+    - eapply whne_ren, w.
+    - now rewrite head_ren, e.
 Defined.
 
 Lemma oredalg_wk (ρ : nat -> nat) L (t u : term) :
@@ -289,21 +290,21 @@ Proof.
   all: rewrite ? nSucc_ren, ? subst_ren_up,
     ? nat_to_term_ren, ? bool_to_term_ren.
   all: try now econstructor.
-  - econstructor.
-    eapply (whne_ren (upRen_term_term ρ) (fun x => x)) in w.
-    eapply eq_rect.
-    { eapply w. }
-    now bsimpl.
-  - cbn. simpl. repeat (unfold funcomp; cbn).
+  - replace n⟨upRen_term_term ↑⟩⟨upRen_term_term (upRen_term_term ρ)⟩
+      with n⟨upRen_term_term ρ⟩⟨upRen_term_term ↑⟩ by now bsimpl.
+    replace (ren1 (upRen_term_term ρ) n) with n⟨upRen_term_term ρ;fun x => x⟩ by now bsimpl.
+    econstructor.
+    + eapply whne_ren, w.
+    + now rewrite head_ren, e.
+  - repeat (unfold funcomp; cbn).
     replace m⟨upRen_term_term ↑⟩⟨upRen_term_term (upRen_term_term ρ)⟩
       with m⟨upRen_term_term ρ⟩⟨upRen_term_term ↑⟩ by now bsimpl.
     replace m⟨upRen_term_term ↑⟩⟨upRen_term_term ↑⟩⟨upRen_term_term (upRen_term_term (upRen_term_term ρ))⟩
       with m⟨upRen_term_term ρ⟩⟨upRen_term_term ↑⟩⟨upRen_term_term ↑⟩ by now bsimpl.
-    refine (xxiNode _).
-    eapply (whne_ren (upRen_term_term ρ) (fun x => x)) in w.
-    eapply eq_rect.
-    { eapply w. }
-    now bsimpl.
+    replace (ren1 (upRen_term_term ρ) m) with m⟨upRen_term_term ρ;fun x => x⟩ by now bsimpl.
+    refine (xxiNode _ _).
+    + eapply whne_ren, w.
+    + now rewrite head_ren, e.
 Qed.
 (* 
 Lemma oredalg_str (Γ Δ : context) (ρ : Δ ≤ Γ) (t u : term) :
@@ -419,6 +420,32 @@ Proof.
 Qed.
 
 Lemma redalg_alpha {L i t t' k} : [L | t ⤳* t'] -> [L | tApp (tAlpha i) (nSucc k t) ⤳* tApp (tAlpha i) (nSucc k t')].
+Proof.
+  induction 1; [reflexivity|].
+  econstructor; tea; now econstructor.
+Qed.
+
+Lemma redalg_xi {L ℓ t t' n} : [L | t ⤳* t'] ->  [ L | tXi ℓ (nSucc n t) ⤳* tXi ℓ (nSucc n t')].
+Proof.
+  induction 1; [reflexivity|].
+  econstructor; tea; now econstructor.
+Qed.
+
+Lemma redalg_xxi {L ℓ t t' u n} : [L | t ⤳* t'] ->  [ L | tXXi ℓ (nSucc n t) u ⤳* tXXi ℓ (nSucc n t') u].
+Proof.
+  induction 1; [reflexivity|].
+  econstructor; tea; now econstructor.
+Qed.
+
+Lemma redalg_ellElim {L ℓ k P ht hf n b b'} : [L | b ⤳* b'] ->  [ L | tEllElim k ℓ P ht hf n b ⤳* tEllElim k ℓ P ht hf n b'].
+Proof.
+  induction 1; [reflexivity|].
+  econstructor; tea; now econstructor.
+Qed.
+
+Lemma redalg_eval {L v k ℓ t t'} :
+  [L | t ⤳* t'] ->
+  [L | tApp (tEval ℓ (tRel v)) (nSucc k t) ⤳* tApp (tEval ℓ (tRel v)) (nSucc k t') ].
 Proof.
   induction 1; [reflexivity|].
   econstructor; tea; now econstructor.

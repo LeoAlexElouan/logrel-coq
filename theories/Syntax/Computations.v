@@ -42,6 +42,13 @@ Proof.
   - reflexivity.
   - now f_equal.
 Qed.
+Lemma nSucc_subst : forall {n t σ}, nSucc n t[σ] = (nSucc n t)[σ].
+Proof.
+  intros n t σ.
+  induction n; cbn.
+  - reflexivity.
+  - now f_equal.
+Qed.
 
 Lemma nat_to_term_ren : forall n ρ, (nat_to_term n)⟨ρ⟩ = nat_to_term n.
 Proof.
@@ -52,6 +59,11 @@ Lemma nat_to_term_ren_alpha : forall n ρε, ren_alpha ρε (nat_to_term n) = na
 Proof.
   intros n ρ.
   eapply nSucc_ren_alpha.
+Qed.
+Lemma nat_to_term_subst : forall n σ, nat_to_term n = (nat_to_term n)[σ].
+Proof.
+  intros n σ.
+  eapply @nSucc_subst with (t:=tZero).
 Qed.
 
 Lemma nat_to_term_inj {n n'} : nat_to_term n = nat_to_term n' -> n = n'.
@@ -98,4 +110,11 @@ Proof.
   + now exists n.
   + destruct n; inversion 1.
     now eapply IHk.
+Qed.
+
+Lemma nSuccswap n t : nSucc n (tSucc t) = tSucc (nSucc n t).
+Proof.
+  induction n.
+  + reflexivity.
+  + cbn. now rewrite IHn.
 Qed.

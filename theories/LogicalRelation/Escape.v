@@ -86,7 +86,7 @@ Section Escapes.
       1-3: gen_typing.
       2: now eapply urefl.
       tea.
-    - intros EA ? [????? []]; prod_splitter.
+    - intros EA ? [???? []]; prod_splitter.
       1,2: (eapply ty_conv; [gtyping|now symmetry]).
       destruct EA; eapply convtm_wfexp.
       1-3: gen_typing.

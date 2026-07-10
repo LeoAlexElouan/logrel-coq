@@ -15,12 +15,11 @@ Module neRedTy.
     `{WfType ta} `{ConvNeuConv ta} `{RedType ta}
     {Γ : context} {A B : term}
   : Set := {
-    nevar : neVar; 
     tyL : term;
     redL : [ Γ |- A :⤳*: tyL];
     tyR : term;
     redR : [ Γ |- B :⤳*: tyR];
-    eq : [ Γ |- tyL ~ tyR : U |nevar] ;
+    eq : [ Γ |- tyL ~ tyR : U ] ;
   }.
 
   Arguments neRedTy {_ _ _ _}.
@@ -60,7 +59,7 @@ Module neRedTmEq.
     termR     : term;
     redL      : [ Γ |- t :⤳*: termL : R.(neRedTy.tyL) ];
     redR      : [ Γ |- u :⤳*: termR : R.(neRedTy.tyL) ];
-    eq : [ Γ |- termL ~ termR : R.(neRedTy.tyL) | R.(neRedTy.nevar)] ;
+    eq : [ Γ |- termL ~ termR : R.(neRedTy.tyL) ] ;
   }.
 
   Arguments neRedTmEq {_ _ _ _ _ _ _ _ _ _ _} _ _ _.
@@ -93,33 +92,33 @@ Qed.
 
 Module NeNf.
 
-  Record RedTmEq `{ta : tag} `{Typing ta} `{ConvNeuConv ta} {Γ nevar A k l} : Set :=
+  Record RedTmEq `{ta : tag} `{Typing ta} `{ConvNeuConv ta} {Γ A k l} : Set :=
     {
       tyL : [Γ |- k : A] ;
       tyR : [Γ |- l : A] ;
-      conv : [Γ |- k ~ l : A | nevar]
+      conv : [Γ |- k ~ l : A ]
     }.
 
   Arguments RedTmEq {_ _ _}.
 
-  Definition whredL `{GenericTypingProperties} {Γ : context} {nevar} {t u A : term} :
-    RedTmEq Γ nevar A t u -> [Γ |- t ↘  A].
+  Definition whredL `{GenericTypingProperties} {Γ : context} {t u A : term} :
+    RedTmEq Γ A t u -> [Γ |- t ↘  A].
   Proof.
     intros []; econstructor.
     1: now eapply redtmwf_refl.
     econstructor; now eapply convneu_whne.
   Defined.
 
-  Definition whredR `{GenericTypingProperties} {Γ : context} {nevar} {t u A : term} :
-    RedTmEq Γ nevar A t u -> [Γ |- u ↘  A].
+  Definition whredR `{GenericTypingProperties} {Γ : context} {t u A : term} :
+    RedTmEq Γ A t u -> [Γ |- u ↘  A].
   Proof.
     intros []; econstructor.
     1: now eapply redtmwf_refl.
     econstructor; eapply convneu_whne; now symmetry.
   Defined.
 
-  Definition conv_ `{GenericTypingProperties} {Γ : context} {nevar} {t u A B : term} :
-    [Γ |- A ≅ B] -> RedTmEq Γ nevar A t u -> RedTmEq Γ nevar B t u.
+  Definition conv_ `{GenericTypingProperties} {Γ : context} {t u A B : term} :
+    [Γ |- A ≅ B] -> RedTmEq Γ A t u -> RedTmEq Γ B t u.
   Proof.
     intros ? []; econstructor.
     1,2: now eapply ty_conv.
@@ -128,11 +127,11 @@ Module NeNf.
 
 End NeNf.
 
-Notation "[ Γ ||-NeNf k ≅ l : A | nevar ]" := (NeNf.RedTmEq Γ nevar A k l) (at level 0, Γ, k, l, A at level 50).
+Notation "[ Γ ||-NeNf k ≅ l : A ]" := (NeNf.RedTmEq Γ A k l) (at level 0, Γ, k, l, A at level 50).
 
 
 #[program]
-Instance NeNfWhRedTm `{GenericTypingProperties} {Γ nevar A} (posA : isPosType A) : WhRedTmRel Γ A (NeNf.RedTmEq Γ nevar A) :=
+Instance NeNfWhRedTm `{GenericTypingProperties} {Γ A} (posA : isPosType A) : WhRedTmRel Γ A (NeNf.RedTmEq Γ A) :=
   {| whredtmL := fun t u Rtu => NeNf.whredL Rtu ;
      whredtmR := fun t u Rtu => NeNf.whredR Rtu ;
   |}.

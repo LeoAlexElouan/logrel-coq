@@ -85,24 +85,6 @@ Qed.
 
 Definition Fweakening := weakening.
 
-Class Fweakening' (L L' : ell) : SProp := ρF : forall n b, in_ell L' n b -> in_ell L n b.
-Notation "L ≤ε L'" := (Fweakening' L L').
-
-(* Lemma Fweakening_unsquash {L L'}: L ≤ε L' -> Fweakening' L L'.
-Proof.
-  intros ρε n b inL'.
-  destruct L as [L wf].
-  destruct (decide_in L n).
-  + assert (b = b0) as <-.
-    { eapply functionality.
-      + destruct ρε; constructor; eapply f, inL'.
-      + constructor. eapply i. }
-    eapply i.
-  + enough (H : SFalse) by destruct H.
-    destruct ρε.
-    eapply f in inL'.
-    now eapply notin_is_not_in.
-Qed. *)
 
 
 Inductive well_Fweakening : Fweakening -> list ell -> list ell -> Type:=
@@ -369,7 +351,12 @@ Section RenWlWhnf.
 
   Context {Γ Δ} (ρ : Δ ≤ Γ).
 
-  Lemma whne_ren_wl t nevar : whne nevar t -> whne nevar⟨ρ⟩ t⟨ρ⟩.
+  Lemma head_ren_wl t : head t⟨ρ⟩ = ren_op ρ (head t).
+  Proof.
+    eapply head_ren.
+  Qed.
+
+  Lemma whne_ren_wl t : whne t -> whne t⟨ρ⟩.
   Proof.
     apply whne_ren.
   Qed.
@@ -890,8 +877,8 @@ Proof.
   + apply ρ.
 Defined.
 
-Lemma Fwk_Fup : forall {L L'} b (Fρ :  L' ≤ε L) (new : newnat L) (new' : newnat L'),
-   new = new' :> nat -> (cons_ell L' new' b) ≤ε (cons_ell L new b).
+Lemma Fwk_Fup : forall {ℓ ℓ' : ell} b (Fρ : ℓ' ≤ε ℓ) (new : newnat ℓ) (new' : newnat ℓ'),
+   new = new' :> nat -> (cons_ell ℓ' new' b) ≤ε (cons_ell ℓ new b).
 Proof.
   intros * ρε new new' e n'' b'' hin'%in_cons_ell.
   eapply in_cons_ell.
@@ -927,10 +914,10 @@ Proof.
   now eapply εwk_Fup.
 Defined.
 
-Lemma wk_alphaup {Γ Δ F F'} (ρ : Δ ≤ Γ) (ρF : F' ≤ε F) : Δ,,↦F' ≤ Γ,,↦ F.
+Lemma wk_alphaup {Γ Δ} {ℓ ℓ' : ell} (ρ : Δ ≤ Γ) (ρF : ℓ' ≤ε ℓ) : Δ,,↦ℓ' ≤ Γ,,↦ ℓ.
 Proof.
   destruct ρ as [ρε wρε ρ wρ]; cbn.
-  refine (Build_wk_well_wk (Δ,, ↦ F') (Γ,,↦ F) (_wk_up ρε) _ ρ _).
+  refine (Build_wk_well_wk (Δ,, ↦ ℓ') (Γ,,↦ ℓ) (_wk_up ρε) _ ρ _).
   + constructor; tea.
   + induction wρ; cbn in *.
     - constructor.
@@ -1012,7 +999,7 @@ Lemma wk_induction Γ Δ (P : forall Γ Δ, Δ ≤ Γ -> Type) :
     P (fromFctx L) (fromFctx L') ρ -> P _ _ (wk_Fstep i new b ρ)) ->
   (forall L L' F ρ,
     P (fromFctx L) (fromFctx L') ρ -> P _ _ (wk_alphastep F ρ)) ->
-  (forall L L' F F' ρ (ρF : F' ≤ε F),
+  (forall L L' (F F' : ell) ρ (ρF : F' ≤ε F),
     P (fromFctx L) (fromFctx L') ρ -> P _ _ (wk_alphaup ρ ρF)) ->
   forall (ρ : Δ ≤ Γ), P Γ Δ ρ.
 Proof. revert Γ Δ.

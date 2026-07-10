@@ -41,7 +41,7 @@ Section Weakenings.
     1: intros; now eapply LRU_, wkU.
     cbn; intros * [??? ?%redTyRecFwd]; unshelve econstructor.
     1,2: now eapply wkURedTerm.
-    1: cbn; change U with U⟨ρ⟩; gtyping.
+    1: cbn; change (term_decl U) with (term_decl U)⟨ρ⟩; now eapply convtm_wk.
     eapply redTyRecBwd.
     eapply ih; cbn; tea.
     apply URedTy.lt.
@@ -55,7 +55,8 @@ Section Weakenings.
     intros []; opector.
     - intros ? ρ' ?; rewrite 2!wk_comp_ren_on; now eapply shpRed.
     - intros Ξ a b ρΞ wfΞ Hab.
-      rewrite wk_comp_ren_on, (wk_comp_ren_on pos'), 2wk_up_wk_comp.
+      change (term_decl ?A⟨?ρ⟩) with (term_decl A)⟨ρ⟩.
+      rewrite 2 wk_comp_ren_on, 2wk_up_wk_comp.
       unshelve eapply posRed; tea; eapply SirrLREq; tea; now rewrite wk_comp_ren_on.
   Qed.
 
@@ -91,7 +92,7 @@ Section Weakenings.
   Lemma wk_isLRFun {Γ l A B} (ΠA : [Γ ||-Π< l > A ≅ B]) {t Δ} (ρ : Δ ≤ Γ) (wfΔ : [|- Δ]) :
     isLRFun ΠA t -> isLRFun (wkΠ ρ wfΔ ΠA) t⟨ρ⟩.
   Proof.
-    intros * [? A' t' wtdom convtydom Ht|i HΠ|]; rewrite <-?wk_lam; constructor; tea; refold.
+    intros * [? A' t' wtdom convtydom Ht|i HΠ|ℓ v HΠ| ]; rewrite <-?wk_lam; constructor; tea; refold.
     + now eapply wft_wk.
     + now eapply convty_wk.
     + intros Ξ a b ρΞ wfΞ *; cbn in *.
@@ -101,11 +102,13 @@ Section Weakenings.
       eapply (dSplit_bind_return Ht).
       intros Θ wfΘ ρΘ oha' oHt owk; cbn in *.
       change t'⟨wk_up A' ρ⟩ with t'⟨wk_up (ParamRedTy.domL ΠA) ρ⟩.
-      rewrite wk_comp_ren_on, wk_up_wk_comp; eapply SirrLREq.
-      1: now rewrite wk_comp_ren_on, wk_up_wk_comp.
-      unshelve eapply Ht; tea.
+      replace t'⟨_⟩⟨_⟩ with t'⟨wk_up (ParamRedTy.domL ΠA) (ρΞ ∘w ρ)⟩
+       by now rewrite <- wk_up_wk_comp, wk_comp_ren_on.
+      unshelve eapply SirrLREq, Ht; tea.
+      now rewrite <- wk_up_wk_comp, wk_comp_ren_on.
     + eapply (convty_wk _ wfΔ HΠ).
-    + cbn; rewrite wk_prod; now eapply convneu_wk.
+    + eapply (convty_wk _ wfΔ HΠ).
+    + eapply (convneu_wk _ wfΔ c).
   Qed.
 
   Lemma wkPiRedTerm {Γ l A B} (ΠA : [Γ ||-Π< l > A ≅ B]) {t Δ} (ρ : Δ ≤ Γ) (wfΔ : [|- Δ]) (ΠA' := wkΠ ρ wfΔ ΠA) :
@@ -123,7 +126,7 @@ Section Weakenings.
     - intros; now apply LRPi', wkΠ.
     - cbn ; intros * []; unshelve econstructor.
       1,2: now apply wkPiRedTerm.
-      1: cbn; rewrite wk_prod; now eapply convtm_wk.
+      1: now eapply (convtm_wk _ wfΔ eq).
       intros Ξ a b ρΞ wfΞ hab. (* rewrite 2!wk_comp_ren_on. *)
       eassert ([_ |_||- _≅ _ : (ParamRedTy.domL ΠA)⟨ρΞ∘w ρ⟩ ≅ _]) as hab'
         by (eapply SirrLREq; [eapply wk_comp_ren_on| eapply hab]).
@@ -132,9 +135,8 @@ Section Weakenings.
       intros Θ wfΘ ρΘ ohab' oeqApp owk.
       unfold wkPiRedTerm; cbn[PiRedTmEq.nf].
       rewrite 2wk_comp_ren_on.
-      eapply SirrLREq.
-      1: cbn; now rewrite wk_comp_ren_on, wk_up_wk_comp.
-      unshelve eapply eqApp; tea.
+      unshelve eapply SirrLREq, eqApp; tea.
+      now rewrite <- wk_up_wk_comp, <- wk_comp_ren_on.
   Qed.
 
   Lemma wk_up_subst1 {Γ Δ F} t a (ρ : Γ ≤ Δ) : t⟨wk_up F ρ⟩[(a⟨ρ⟩)..] = t[a..]⟨ρ⟩.
@@ -151,7 +153,7 @@ Section Weakenings.
     cbn; now rewrite wk_comp_ren_on.
   + rewrite <- subst_ren_wk_up.
     now eapply wft_wk.
-  + cbn. rewrite <- 2subst_ren_wk_up.
+  + cbn-[ren1]. rewrite <- 2subst_ren_wk_up.
     now eapply convty_wk.
   + intros Ξ ρΞ wfΞ.
     specialize (Hsnd Ξ (ρΞ ∘w ρ) wfΞ).
@@ -160,14 +162,14 @@ Section Weakenings.
     eapply SirrLREq; clear oirr.
     2:rewrite (wk_comp_ren_on b); now unshelve apply Hsnd.
     cbn. now rewrite 2wk_comp_ren_on.
-  + cbn; rewrite wk_sig; now eapply convneu_wk.
+  + cbn-[ren1]; rewrite wk_sig, wk_decl; now eapply convneu_wk.
   Qed.
 
   Lemma wkSigRedTerm {Γ l A B} (ΣA : [Γ ||-Σ< l > A ≅ B]) {t Δ} (ρ : Δ ≤ Γ) (wfΔ : [|- Δ]) :
     SigRedTm ΣA t -> SigRedTm (wkΣ ρ wfΔ ΣA) t⟨ρ⟩.
   Proof.
     intros [nf].
-    unshelve eexists (nf⟨ρ⟩); try (cbn; rewrite wk_sig).
+    unshelve eexists (nf⟨ρ⟩); try (cbn-[ren1]; rewrite wk_sig).
     + now eapply redtmwf_wk.
     + apply wk_isLRPair; assumption.
   Defined.
@@ -178,7 +180,7 @@ Section Weakenings.
     - intros; now apply LRSig', wkΣ.
     - cbn ; intros * []; unshelve econstructor.
       1,2: now apply wkSigRedTerm.
-      2: cbn; rewrite wk_sig; now eapply convtm_wk.
+      2: cbn-[ren1]; rewrite wk_sig, wk_decl; now eapply convtm_wk.
       + intros Ξ ρ' wfΞ ; cbn; rewrite 2!wk_comp_ren_on.
         eapply SirrLREq; [now rewrite wk_comp_ren_on| now unshelve eapply eqFst].
       + intros Ξ ρΞ wfΞ ; cbn.
@@ -236,11 +238,11 @@ Section Weakenings.
     × (forall t u, NatPropEq Γ t u -> forall Δ (ρ : Δ ≤ Γ), [ |-[ ta ] Δ] ->NatPropEq Δ t⟨ρ⟩ u⟨ρ⟩).
   Proof.
     apply NatRedEqInduction.
-    * intros; econstructor; tea; change tNat with tNat⟨ρ⟩; gen_typing.
+    * intros; econstructor; tea; change tNat with tNat⟨ρ⟩; rewrite ? wk_decl; try gtyping.
     * constructor.
     * now constructor.
     * intros; constructor.
-      change tNat with tNat⟨ρ⟩.
+      change (term_decl tNat) with (term_decl tNat)⟨ρ⟩.
       now eapply wkNeNfEq.
   Qed.
 
@@ -252,9 +254,10 @@ Section Weakenings.
     - intros [] _; unshelve econstructor.
       + intros; apply LRne_; econstructor.
         1,2: now eapply redtywf_wk.
-        change U with U⟨ρ⟩; gtyping.
+        change (term_decl ?A) with (term_decl A)⟨ρ⟩; gtyping.
       + cbn; intros * []; cbn in *; econstructor; cbn.
         1,2: now eapply redtmwf_wk.
+        rewrite wk_decl.
         gtyping.
     - intros; eapply wkLRΠ.
     - intros; unshelve econstructor.
@@ -265,34 +268,38 @@ Section Weakenings.
       + intros; now apply LRBool_, wkBool.
       + cbn; intros ????? [ ]; econstructor; change tBool with tBool⟨ρ⟩.
         1,2: now eapply redtmwf_wk.
-        1: gen_typing.
+        1: rewrite wk_decl; gtyping.
         destruct prop; constructor.
-        change tBool with tBool⟨ρ⟩.
+        change (term_decl tBool) with (term_decl tBool)⟨ρ⟩.
         now eapply wkNeNfEq.
     - intros; unshelve econstructor.
       + intros; now eapply LREmpty_, wkEmpty.
       + cbn; intros ????? []; econstructor; change tEmpty with tEmpty⟨ρ⟩.
         1,2: now eapply redtmwf_wk.
+        rewrite wk_decl.
         now eapply wkNeNfEq.
     - intros; unshelve econstructor.
       + intros; now eapply LRTree_, wkTree.
-      + intros ??? t u hTree; cbn in *.
+      + intros ??? t u hTree; cbn-[ren1] in *.
         unfold TreeRedTmEq.
         induction hTree.
-        * econstructor; tea; change tTree with tTree⟨ρ⟩; gtyping.
+        * econstructor; tea; change tTree with tTree⟨ρ⟩; rewrite ? wk_decl.
+          1,2:eapply redtmwf_wk; tea.
+          eapply convtm_wk; tea.
         * cbn; constructor; now eapply wkNatTm.
         * cbn; constructor; tea; now eapply wkNatTm.
         * constructor.
-        change tTree with tTree⟨ρ⟩.
+        change (term_decl tTree) with (term_decl tTree)⟨ρ⟩.
         now eapply wkNeNfEq.
     - intros; eapply wkLRΣ.
     - intros IA ihty ih; unshelve econstructor.
       + intros ; eapply LRId', wkId; eauto.
-      + intros * [????? prop]; econstructor; cbn; rewrite ?wk_Id.
+      + intros * [????? prop]; econstructor; cbn-[ren1]; rewrite ?wk_Id.
         1,2: now eapply redtmwf_wk.
-        1: now eapply convtm_wk.
-        destruct prop; [rewrite <- 2wk_refl|]; constructor; cbn; rewrite ?wk_Id.
-        1-4: gtyping.
+        1: rewrite wk_decl; now eapply convtm_wk.
+        destruct prop; [rewrite <- 2wk_refl|]; constructor; cbn-[ren1]; rewrite ? wk_Id, ? wk_decl.
+        1,2: now eapply wft_wk.
+        1,2: now eapply ty_wk.
         1,2: now eapply convty_wk.
         5: now eapply wkNeNfEq.
         all: now eapply ihty.

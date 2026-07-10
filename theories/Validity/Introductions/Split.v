@@ -306,51 +306,6 @@ Qed. *)
     (RN := LRNat_ l NN)
     (RB := boolRed (Γ:=Γ) (l:=l) wfΓ).
 
-Lemma ty_nSucc {n t} :
-  [Γ |- t : tNat] ->
-  [Γ |- nSucc n t : tNat].
-Proof.
-  intros ht; induction n.
-  - tea.
-  - cbn. now eapply ty_succ.
-Qed.
-
-Lemma convtm_nSucc {n t t'} :
-  [Γ |- t ≅ t': tNat] ->
-  [Γ |- nSucc n t ≅ nSucc n t': tNat].
-Proof.
-  intros ht; induction n.
-  - tea.
-  - cbn. now eapply convtm_succ.
-Qed.
-
-Lemma nat_to_termReq n : NatPropEq Γ (nat_to_term n) (nat_to_term n).
-Proof.
-  induction n.
-  - constructor.
-  - cbn; constructor.
-    econstructor.
-    4: eapply IHn.
-    1,2: now constructor; [| eapply redtm_refl]; eapply ty_nSucc, ty_zero.
-    now eapply convtm_nSucc, convtm_zero.
-Qed.
-
-Lemma nSuccReq n {t t'} : [Γ||-Nat t ≅ t':Nat] -> [Γ ||-Nat nSucc n t ≅ nSucc n t' :Nat].
-Proof.
-  intros Rt.
-  induction n.
-  - eassumption.
-  - cbn. unshelve eapply SsuccRed, IHn.
-    4: eapply NN.
-    tea.
-Qed.
-
-Lemma nSuccswap n t : nSucc n (tSucc t) = tSucc (nSucc n t).
-Proof.
-  induction n.
-  + reflexivity.
-  + cbn. now rewrite IHn.
-Qed.
 
 Inductive NatPropEqInst : term -> term -> Set :=
   | natReqInst n : NatPropEqInst (nat_to_term n) (nat_to_term n)
@@ -464,12 +419,6 @@ Proof.
   Unshelve. all:tea.
 Qed.
 
-Lemma SAlphaRedEqTy {Γ : context} (wfΓ : [|-Γ]) {l} : [Γ ||-S< l > arr' Γ tNat tBool ].
-Proof.
-  eapply SArrRedTy.
-  + intros. eapply SnatRed; tea.
-  + intros. eapply SboolRed; tea.
-Qed.
 
 Lemma SAlphaRedEq {Γ : context} {wfΓ : [|-Γ]} {l} {i : list_index Γ} :
   [Γ ||-S< l > tAlpha i ≅ tAlpha i : arr' Γ tNat tBool|SAlphaRedEqTy wfΓ].

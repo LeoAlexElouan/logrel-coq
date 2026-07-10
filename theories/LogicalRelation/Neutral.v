@@ -8,15 +8,15 @@ Set Printing Primitive Projection Parameters.
 Section Neutral.
 Context `{GenericTypingProperties}.
 
-Definition neu {l Γ nevar A B} : [Γ |- A] -> [Γ |- B] -> [ Γ |- A ~ B : U | nevar] -> [Γ ||-S<l> A ≅ B].
+Definition neu {l Γ A B} : [Γ |- A] -> [Γ |- B] -> [ Γ |- A ~ B : U ] -> [Γ ||-S<l> A ≅ B].
 Proof.
   intros; apply LRne_.
-  exists nevar A B ; tea; gtyping.
+  exists A B ; tea; gtyping.
 Defined.
 
-Lemma neU {l l' Γ nevar A B n n'} (h : [Γ ||-U<l> A ≅ B]) :
+Lemma neU {l l' Γ A B n n'} (h : [Γ ||-U<l> A ≅ B]) :
   [Γ |- n : A] ->
-  [Γ |- n ~ n' : A | nevar] ->  URedTm l' Γ n.
+  [Γ |- n ~ n' : A ] ->  URedTm l' Γ n.
 Proof.
   assert [Γ |- A ≅ U] by (destruct h; gen_typing).
   intros; exists n.
@@ -25,10 +25,10 @@ Proof.
 Defined.
 
 Definition reflect {l Γ A B} (RA : [Γ ||-S<l> A ≅ B]) :=
- forall nevar n n',
+ forall n n',
     [Γ |- n : A] ->
     [Γ |- n' : A] ->
-    [Γ |- n ~ n' : A | nevar] ->
+    [Γ |- n ~ n' : A ] ->
     [Γ ||-S<l> n ≅ n' : _ | RA].
 
 
@@ -61,7 +61,7 @@ Qed.
 Lemma reflect_U {l Γ A B} (h : [Γ ||-U<l> A ≅ B]) : reflect (LRU_ h).
 Proof.
   assert [Γ |- A ≅ U] by (destruct h; gen_typing).
-  intros nevar n n' tyn tyn' conv.
+  intros n n' tyn tyn' conv.
   exists (neU h tyn conv) (neU h tyn' (symmetry conv)).
   * cbn; eapply convtm_convneu; [constructor|]; now eapply convneu_conv.
   * eapply redTyRecBwd, neu.
@@ -102,7 +102,7 @@ Lemma reflect_Pi
   : reflect (LRPi' RA).
 Proof.
   destruct (ParamRedTy.redL RA).
-  intros ??? hn hn' hnn'.
+  intros ?? hn hn' hnn'.
   pose proof (lrefl hnn') as hnn; pose proof (urefl hnn') as hn'n'.
   unshelve econstructor.
   1,2: now apply funred.
@@ -136,7 +136,7 @@ Proof.
     eapply Split_return; tea.
     intros Ξ wfΞ ρΞ ohab; cbn in ohab, hab.
     escape.
-    apply ihcod.
+    apply ihcod; rewrite wk_decl.
     + now eapply ty_wk, ty_app_ren.
     + eapply (ty_wk _ wfΞ), ty_conv; clear Ξ wfΞ ρΞ ohab.
       now eapply ty_app_ren.
@@ -172,7 +172,7 @@ Definition hconv_fst
   [Γ |- n : A] -> [Γ |- n' : A] -> [Γ |- n ~ n' : A] ->
   [PolyRed.shpRed RA ρ h | Δ ||- tFst n⟨ρ⟩ ≅ tFst n'⟨ρ⟩ : _].
 Proof.
-  intros; eapply ihdom; rewrite !wk_fst.
+  intros; eapply ihdom; rewrite !wk_fst, wk_decl.
   1,2: eapply ty_wk; tea; now eapply ty_fst, ty_conv.
   eapply convneu_wk; tea; now eapply convneu_fst, convneu_conv.
 Qed.
@@ -189,7 +189,7 @@ Definition hconv_snd
   (hfst := hconv_fst ihdom ρ h tyn tyn' convnn') :
   dover (PolyRed.posRed RA ρ h hfst) (fun Ξ _ ρΞ hSplit => [ hSplit | Ξ ||- tSnd n⟨ρ⟩⟨ρΞ⟩ ≅ tSnd n'⟨ρ⟩⟨ρΞ⟩ : _]).
 Proof.
-  intros Ξ wfΞ ρΞ ohfst; eapply ihcod; rewrite !wk_fst, !wk_snd, <- subst_ren_wk_up.
+  intros Ξ wfΞ ρΞ ohfst; eapply ihcod; rewrite !wk_fst, !wk_snd, <- subst_ren_wk_up, !wk_decl.
   1,2: eapply ty_wk; tea.
   * now eapply ty_wk, ty_snd, ty_conv.
   * eapply ty_wk, ty_conv; tea; clear Δ ρ h hfst Ξ wfΞ ρΞ ohfst.
@@ -227,26 +227,26 @@ Proof.
     cbn in hsnd; escape.
     rewrite !wk_up_wk_id, !wk_id_ren_on in *.
     unfold sigred, SigRedTyPack.outTy; cbn[SigRedTmEq.nf].
-    rewrite <- wk_sig.
+    rewrite <- wk_decl, <- wk_sig.
     apply convtm_eta_sig; tea.
     + now eapply wft_wk.
     + eapply wft_wk, codTy.
       eapply wfc_cons, wft_wk, domTy; tea.
-    + rewrite wk_sig.
+    + rewrite wk_sig, wk_decl.
       eapply ty_wk ; tea.
       now eapply ty_conv.
     + constructor.
-      rewrite wk_sig.
+      rewrite wk_sig, wk_decl.
       eapply convneu_wk; tea.
       now eapply convneu_conv.
-    + rewrite wk_sig.
+    + rewrite wk_sig, wk_decl.
       eapply ty_wk ; tea.
       now eapply ty_conv.
     + constructor.
-      rewrite wk_sig.
+      rewrite wk_sig, wk_decl.
       eapply convneu_wk; tea.
       now eapply convneu_conv.
-    + rewrite 2 wk_fst.
+    + rewrite 2 wk_fst, wk_decl.
       eapply convtm_wk; tea.
     + now rewrite wk_fst, <- subst_ren_wk_up.
   * intros Δ ρ hΔ.
@@ -338,7 +338,7 @@ Lemma SneNfTermEq {Γ l A n n'} (RA : [Γ ||-S<l> A]) : [Γ ||-NeNf n ≅ n' : A
 Proof. intros []; now eapply reflectLR. Qed.
 
 
-Lemma Svar0conv {l Γ A A' B'} (RA : [Γ ,, A ||-S<l> A' ≅ B']) :
+Lemma Svar0conv {l Γ} {A A' B' : term} (RA : [Γ ,, A ||-S<l> A' ≅ B']) :
   [Γ,, A |- A⟨@wk1 Γ A⟩ ≅ A'] ->
   [Γ |- A] ->
   [Γ ,, A ||-S<l> tRel 0 : A' | RA].
@@ -346,7 +346,7 @@ Proof.
   apply reflect_var0 ; now eapply reflectLR.
 Qed.
 
-Lemma Svar0 {l Γ A A' B'} (RA : [Γ ,, A ||-S<l> A' ≅ B']) :
+Lemma Svar0 {l Γ} {A A' B' : term} (RA : [Γ ,, A ||-S<l> A' ≅ B']) :
   A⟨@wk1 Γ A⟩ = A' ->
   [Γ |- A] ->
   [Γ ,, A ||-S<l> tRel 0 : A' | RA].
@@ -363,11 +363,11 @@ Proof.
   eapply Split_return.
   1: escape; gtyping.
   intros Δ wfΔ ρ oRA.
-  eapply SneNfTermEq; constructor;
+  eapply SneNfTermEq; constructor; rewrite wk_decl;
   now first [eapply ty_wk|eapply convneu_wk].
 Qed.
 
-Lemma var0conv {l Γ A A' B'} (RAB : [ Γ,,A||-<l> A' ≅ B']) :
+Lemma var0conv {l Γ} {A A' B' : term} (RAB : [ Γ,,A||-<l> A' ≅ B']) :
   [Γ,, A |- A⟨@wk1 Γ A⟩ ≅ A'] ->
   [Γ ,, A ||-<l> tRel 0 : A' | RAB].
 Proof.
@@ -376,14 +376,14 @@ Proof.
   1: now eapply wfc_convty.
   intros Δ wfΔ ρ oRAB.
   assert ([Γ,, A |-[ ta ] tRel 0 : A'])
-    by (eapply ty_conv, convA; eapply ty_var0'; gtyping).
-  eapply reflectLR.
+    by (eapply ty_conv, convA; rewrite wk_decl; eapply ty_var0'; gtyping).
+  eapply reflectLR; rewrite wk_decl.
   + now eapply ty_wk.
   + now eapply ty_wk.
   + now eapply convneu_wk, convneu_var.
 Qed.
 
-Lemma var0 {l Γ A A' B'} (RA : [ Γ,,A  ||-<l> A' ≅ B']) :
+Lemma var0 {l Γ} {A A' B' : term} (RA : [ Γ,,A  ||-<l> A' ≅ B']) :
   A⟨@wk1 Γ A⟩ = A' ->
   [Γ ,, A ||-<l> tRel 0 : A' | RA].
 Proof.

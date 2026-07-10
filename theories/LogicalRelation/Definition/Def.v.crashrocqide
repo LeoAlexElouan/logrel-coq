@@ -1,7 +1,7 @@
 (** * LogRel.LogicalRelation.Definition.Def : Definition of the logical relation *)
 From Stdlib Require Import CRelationClasses.
 From LogRel Require Import Utils Syntax.All GenericTyping Monad.
-From LogRel.LogicalRelation.Definition Require Import Prelude Ne Universe Poly Pi Sig Nat Bool Empty Id.
+From LogRel.LogicalRelation.Definition Require Import Prelude Ne Universe Poly Pi Sig Nat Bool Empty Tree Id.
 
 
 Set Primitive Projections.
@@ -33,6 +33,8 @@ Inductive LR@{i j k} `{ta : tag}
     LR rec Γ A B (BoolRedTmEq Γ)
   | LREmpty {Γ A B} (NA : [Γ ||-Empty A ≅ B]) :
     LR rec Γ A B (EmptyRedTmEq Γ)
+  | LRTree {Γ A B} (NA : [Γ ||-Tree A ≅ B]) :
+    LR rec Γ A B (TreeRedTmEq Γ)
   | LRSig {Γ : context} {A B : term} (ΣA : SigRedTyPack@{j k} Γ A B) (ΣAad : SigRedTyAdequate@{j k} (LR rec) ΣA) :
     LR rec Γ A B (SigRedTmEq ΣA)
   | LRId {Γ A B} (IA : IdRedTyPack@{j} Γ A B) (IAad : IdRedTyAdequate@{j k} (LR rec) IA) :
@@ -112,6 +114,10 @@ Section MoreDefs.
     : [LogRel@{i j k l} l | Γ ||- A ≅ B] :=
     LRbuild (LREmpty (LogRelRec l) NA).
 
+  Definition LRTree_@{i j k l} l {Γ A B} (NA : [Γ ||-Tree A ≅ B])
+    : [LogRel@{i j k l} l | Γ ||- A ≅ B] :=
+    LRbuild (LRTree (LogRelRec l) NA).
+
   Definition LRId_@{i j k l} l {Γ A B} (IA : IdRedTyPack@{k} Γ A B)
     (IAad : IdRedTyAdequate (LR (LogRelRec@{i j k} l)) IA)
     : [LogRel@{i j k l} l | Γ ||- A ≅ B] :=
@@ -145,8 +151,8 @@ End Weak_LogRel.
 
 Notation "[ Γ ||-< l > A ≅ B ]" := (WLRAdequate Γ l A B).
 Notation "[ Γ ||-< l > A ]" := [ Γ ||-<l> A ≅ A].
-Notation "[ Γ ||-< l > t ≅ u : A | RA ]" := (RA.(LRPack.eqTm) t u).
-Notation "[ Γ ||-< l > t : A | RA ]" := [ Γ ||-< l > t ≅ t : A | RA].
+Notation "[ Γ ||-< l > t ≅ u : A | RA ]" := (RA.(@LRPack.eqTm Γ A _) t u) (only parsing).
+Notation "[ Γ ||-< l > t : A | RA ]" := [ Γ ||-< l > t ≅ t : A | RA] (only parsing).
 
 Lemma WAdrefold `{GenericTypingProperties} :
     forall {Γ l A B Δ} {ρ : Δ≤ Γ}, [Δ ||-<l> A⟨ρ⟩ ≅ B⟨ρ⟩] ->
@@ -160,14 +166,13 @@ Proof.
 Qed.
 
 Lemma WAd_split `{GenericTypingProperties}
-  {Γ l A B new} :
-  [Γ,, new ↦ true ||-< l > A ≅ B] -> [Γ,, new ↦ false ||-< l > A ≅ B] -> [Γ ||-< l >A ≅ B].
+  {Γ l A B i new} : [|-Γ] ->
+  [Γ,, i : new ↦ true ||-< l > A ≅ B] -> [Γ,, i : new ↦ false ||-< l > A ≅ B] -> [Γ ||-< l >A ≅ B].
 Proof.
-  intros ht hf.
-  assert (wftrue : [|-Γ,, new ↦ true]) by apply ht.
-  assert (wffalse : [|-Γ,, new ↦ false]) by apply hf.
-  assert (wfΓ : [|-Γ]) by now eapply wfc_split.
-  epose proof (Split_shf (A:= fun Δ _ ρ => [Δ ||-S< l > A⟨ρ⟩ ≅ B⟨ρ⟩]) Γ wfΓ wk_id new _ _) as hsplit.
+  intros wfΓ ht hf.
+  assert (wftrue : [|-Γ,, i : new ↦ true]) by apply ht.
+  assert (wffalse : [|-Γ,, i : new ↦ false]) by apply hf.
+  epose proof (Split_shf (A:= fun Δ _ ρ => [Δ ||-S< l > A⟨ρ⟩ ≅ B⟨ρ⟩]) Γ wfΓ wk_id i new _ _) as hsplit.
   eapply Split_hom_PSh, hsplit.
   intros ??? RAB.
   now rewrite wk_comp_runit in RAB.

@@ -18,13 +18,13 @@ Arguments SOr_intror {_ _}.
 Fixpoint in_ell (ℓ : ell_list) n b : SProp :=
   match ℓ with
   | nil => SFalse
-  | cons (Datatypes.pair n' b') ℓ => SOr (SAnd (Squash (n = n')) (Squash (b = b'))) (in_ell ℓ n b)
+  | cons (n', b') ℓ => SOr (SAnd (Squash (n = n')) (Squash (b = b'))) (in_ell ℓ n b)
   end.
 
 Fixpoint notin_ell (ℓ : ell_list) n : SProp :=
   match ℓ with
   | nil => STrue
-  | cons (Datatypes.pair n' _) ℓ => (SAnd (Squash (n <> n')) (notin_ell ℓ n))
+  | cons (n', _) ℓ => (SAnd (Squash (n <> n')) (notin_ell ℓ n))
   end.
 
 
@@ -36,10 +36,10 @@ Record newnat ℓ := {
 
 Fixpoint cons_ell_list (ℓ : ell_list) (n : nat) (b : bool) : ell_list :=
   match ℓ as ℓ with
-  | nil => cons (Datatypes.pair n b) nil
-  | cons (Datatypes.pair n' b') ℓ' => match Compare_dec.lt_dec n n' with
-    | left _ => cons (Datatypes.pair n b) ℓ
-    | right _ => cons (Datatypes.pair n' b') (cons_ell_list ℓ' n b)
+  | nil => cons (n, b) nil
+  | cons (n', b') ℓ' => match Compare_dec.lt_dec n n' with
+    | left _ => cons (n, b) ℓ
+    | right _ => cons (n', b') (cons_ell_list ℓ' n b)
     end
   end.
 
@@ -50,7 +50,7 @@ Proof.
   + constructor.
   + cbn in *.
     constructor.
-    - lia.
+    - destruct ltn' as [[]]; constructor. lia.
     - now eapply ihℓ.
 Qed.
 
@@ -58,9 +58,10 @@ Lemma lt_cons_ell (ℓ : ell_list) n' b' n : n < n' -> lt_ell n ℓ -> lt_ell n 
 Proof.
   intros ltnn' ltn.
   induction ℓ as [|[n'' b''] ℓ ihℓ].
-  + simpl. lia.
+  + simpl. repeat constructor; tea.
   + simpl in *.
-    destruct (Compare_dec.lt_dec n' n'') as [ltn'n''| nltn'n'']; now simpl.
+    destruct (Compare_dec.lt_dec n' n'') as [ltn'n''| nltn'n''], ltn as [[ltnn''] ltn];
+      repeat constructor; now simpl.
 Qed.
 
 Lemma Squash_dec P : Decidable.decidable P -> Squash P -> P.
@@ -77,9 +78,9 @@ Proof.
     Decidable.dec_not, Peano_dec.dec_eq_nat.
 Qed.
 
-Lemma cons_ell_wf (ℓ : ell) (new : newnat ℓ) (b : bool) : Squash (ell_wf (cons_ell_list ℓ new b)).
+Lemma cons_ell_wf (ℓ : ell) (new : newnat ℓ) (b : bool) : ell_wf (cons_ell_list ℓ new b).
 Proof.
-  destruct ℓ as [ℓ [wf]], new as [n new]; constructor; cbn in *.
+  destruct ℓ as [ℓ wf], new as [n new]; cbn in *.
   induction ℓ as [|[n' b'] ℓ].
   + simpl. easy.
   + simpl.
@@ -107,7 +108,7 @@ Proof.
     destruct (Compare_dec.lt_dec n' n'').
     - cbn. constructor; intros H; eapply H.
     - cbn.
-      specialize (IHℓ ltac:(now destruct wf; constructor) ltac:(eapply new)).
+      specialize (IHℓ ltac:(destruct wf; tea) ltac:(eapply new)).
       constructor.
       * intros [ | [ | ]%IHℓ]; [right; left |left | right; right]; tea.
       * intros [ | [ | ]].
@@ -124,7 +125,7 @@ Proof.
 Qed.
 
 
-Notation nil_ell := (Build_ell nil (squash I)).
+Notation nil_ell := (Build_ell nil stt).
 
 
 
@@ -190,15 +191,17 @@ Inductive decl :=
 Coercion term_decl : term >-> decl.
 Coercion ell_decl : ell >-> decl.
 Equations Derive NoConfusion Subterm EqDec for decl.
-Instance ren_decl : Ren1 (nat -> nat) decl decl := fun ρ d =>
+Instance ren_decl : Ren1 (nat -> nat) decl decl | 2 := fun ρ d =>
   match d with
   | term_decl t => term_decl t⟨ρ⟩
   | ell_decl ℓ => ell_decl ℓ
   end.
+(* Instance ren_to_decl {X} `{Ren1 X term term} : Ren1 X term decl | 3 :=
+  fun ρ t => term_decl t⟨ρ⟩.
+Instance subst_to_decl {X} `{Subst1 X term term} : Subst1 X term decl | 3 :=
+  fun σ t => term_decl t[σ]. *)
 #[global]
-Instance ren_decl_morphism :
- (Proper (respectful (pointwise_relation _ eq) (respectful eq eq))
-    (@ren_decl)).
+Instance ren_decl_morphism : Proper ((`=1`) ==> eq ==> eq) ren_decl.
 Proof.
   intros ρl ρr ρeq [t|ℓ] dr <-; simpl.
   + now rewrite ρeq.
@@ -210,14 +213,19 @@ Definition ren_alpha_decl ρ d :=
   | ell_decl ℓ => ell_decl ℓ
   end.
 #[global]
-Instance ren_alha_decl_morphism :
- (Proper (respectful (pointwise_relation _ eq) (respectful eq eq))
-    (@ren_alpha_decl)).
+Instance ren_alpha_decl_morphism : Proper ((`=1`) ==> eq ==> eq) ren_alpha_decl.
 Proof.
   intros ρl ρr ρeq [t|ℓ] dr <-; simpl.
   + now rewrite ρeq.
   + reflexivity.
 Qed.
+
+#[global]
+Instance RenAlpha_decl : RenAlpha decl := ren_alpha_decl.
+(* #[global] Instance Ren2_alpha_decl {X : Type} `{Ren1 X decl decl} :
+  (Ren2 X (nat -> nat) decl decl) :=
+  fun ρ ρε d => (ren_alpha_decl ρε d)⟨ρ⟩. *)
+
 Definition Tcontext := list decl.
 Record context := {
   Tctx :> Tcontext;
@@ -366,14 +374,14 @@ Qed.
 Lemma lt_notin ℓ n : lt_ell n ℓ -> notin_ell ℓ n.
 Proof.
   induction ℓ as [|[n' b'] ℓ ihℓ]; simpl; constructor.
-  + repeat constructor. lia.
+  + destruct H as [[]]; repeat constructor. lia.
   + easy.
 Qed.
 
 Lemma functionality_inversion (L : ell) n : in_ell L n true -> in_ell L n false -> SFalse.
 Proof.
   intros int inf.
-  destruct L as [ L [wfL]].
+  destruct L as [L wfL].
   induction L as [|[n' b'] L ihL] in wfL, int, inf |-*; simpl in *.
   {destruct int. }
   destruct int as [[[->] [<-]] |int], inf as [[[en] [eb]]| inf].
@@ -533,20 +541,19 @@ Qed. *)
 
 (* Inversions *)
 
-Lemma wfcons_notin {L n b} : ell_wf (cons (Datatypes.pair n b) L) -> notin_ell L n.
+Lemma wfcons_notin {L n b} : ell_wf (cons (n, b) L) -> notin_ell L n.
 Proof.
   simpl; intros wf.
   eapply lt_notin, wf.
 Qed.
 
-Definition wfFcons_new {L n b} : ell_wf (cons (Datatypes.pair n b) L) -> newnat L :=
-  fun wfL => Build_newnat L n ( (wfcons_notin wfL)).
+Definition wfFcons_new {L n b} : ell_wf (cons (n, b) L) -> newnat L :=
+  fun wfL => Build_newnat L n (wfcons_notin wfL).
 
-Lemma wfFcons_wfF {L n b} : ell_wf (cons (Datatypes.pair n b) L) -> ell_wf L.
+Lemma wfFcons_wfF {L n b} : ell_wf (cons (n, b) L) -> ell_wf L.
 Proof.
   intros wf.
   eapply wf.
 Qed.
 
-(* 
- *)
+

@@ -99,7 +99,8 @@ Definition cons_ell (ℓ: ell) (new : newnat ℓ) b : ell
 
 Notation "A <->S B " := (SAnd (A -> B) (B -> A)) (at level 50).
 
-Lemma in_cons_ell {ℓ new b' n b} : in_ell (cons_ell ℓ new b') n b <->S (SOr (SAnd (Squash (n = new)) (Squash (b = b'))) (in_ell ℓ n b)).
+Lemma in_cons_ell {ℓ new b' n b} : in_ell (cons_ell ℓ new b') n b <->S
+  (SOr (SAnd (Squash (n = new)) (Squash (b = b'))) (in_ell ℓ n b)).
 Proof.
   destruct new as [n' new], ℓ as [ℓ wf]; cbn in *.
   induction ℓ as [| [n'' b''] ℓ IHℓ]. 
@@ -165,9 +166,11 @@ Fixpoint Sindex_induction {A} (P : forall (l : list A), list_index l -> SProp)
     end
   end.
 
-Definition index_to_nat {A}  : forall {l : list A}, list_index l -> nat := index_induction _ (fun _ _ => 0) (fun _ _ _ => S).
+Definition index_to_nat {A}  : forall {l : list A}, list_index l -> nat :=
+  index_induction _ (fun _ _ => 0) (fun _ _ _ => S).
 
-Lemma index_to_nat_inj {A}  {l : list A} {i i': list_index l} (ei : index_to_nat i = index_to_nat i') : i = i'.
+Lemma index_to_nat_inj {A}  {l : list A} {i i': list_index l}
+  (ei : index_to_nat i = index_to_nat i') : i = i'.
 Proof.
   induction l, i using index_induction; destruct i';
   cbn in *; inversion ei.
@@ -177,7 +180,8 @@ Qed.
 
 Coercion index_to_nat : list_index >-> nat.
 
-Definition list_at {A} : forall (l : list A ) (i : list_index l), A := index_induction (fun _ _ => A) (fun h _ => h) (fun _ _ _ a => a).
+Definition list_at {A} : forall (l : list A ) (i : list_index l), A :=
+  index_induction (fun _ _ => A) (fun h _ => h) (fun _ _ _ a => a).
 
 Definition Fcons (L : list ell) (i : list_index L) :
   forall (new : newnat (list_at L i)) (b : bool), list ell :=
@@ -244,7 +248,8 @@ Definition fromFctx L := Build_context nil L.
 
 Notation "'ε'" := nilctx.
 Notation " Γ ,, d " := (Build_context (@cons decl d (Tctx Γ)) (Fctx Γ)) (at level 20, d at next level).
-Notation " Γ ,, i : new ↦ b " := (Build_context (Tctx Γ) (Fcons (Fctx Γ) i new b)) (at level 20, new at next level, b at next level).
+Notation " Γ ,, i : new ↦ b " :=
+  (Build_context (Tctx Γ) (Fcons (Fctx Γ) i new b)) (at level 20, new at next level, b at next level).
 Notation " Γ ,, ↦ F" := (Build_context (List.map (ren_alpha_decl S) (Tctx Γ)) (cons F (Fctx Γ))).
 Notation " Γ ,,, Δ " := (appctx Δ Γ) (at level 25, Δ at next level, left associativity).
 
@@ -336,10 +341,10 @@ Proof.
     + now right; cbn; repeat constructor.
 Qed.
 
-Lemma notin_is_not_in {L n b} : notin_ell L n -> in_ell L n b -> SFalse.
+Lemma notin_is_not_in {ℓ n b} : notin_ell ℓ n -> in_ell ℓ n b -> SFalse.
 Proof.
   intros hnotin hin.
-  induction L as [|[n' b'] L ihL].
+  induction ℓ as [|[n' b'] ℓ ihℓ].
   + destruct hin.
   + simpl in *.
     destruct hin.
@@ -348,10 +353,12 @@ Proof.
     - easy.
 Qed.
 
-Lemma not_in_is_notin' {L n} : (in_ell L n true -> SFalse) -> (in_ell L n false -> SFalse) -> notin_ell L n.
+Lemma not_in_is_notin' {ℓ n} :
+  (in_ell ℓ n true -> SFalse) -> (in_ell ℓ n false -> SFalse) ->
+  notin_ell ℓ n.
 Proof.
   intros hnotint hnotinf.
-  induction L as [|[n' b'] L ihL].
+  induction ℓ as [|[n' b'] ℓ ihℓ].
   + constructor.
   + simpl in *.
     constructor.
@@ -360,12 +367,12 @@ Proof.
       destruct b'.
       * eapply hnotint; repeat constructor.
       * eapply hnotinf; repeat constructor.
-    - eapply ihL; intros inL.
-      * eapply hnotint; right; eapply inL.
-      * eapply hnotinf; right; eapply inL.
+    - eapply ihℓ; intros inℓ.
+      * eapply hnotint; right; eapply inℓ.
+      * eapply hnotinf; right; eapply inℓ.
 Qed.
 
-Lemma not_in_is_notin {L n} : (forall b, in_ell L n b -> SFalse) -> notin_ell L n.
+Lemma not_in_is_notin {ℓ n} : (forall b, in_ell ℓ n b -> SFalse) -> notin_ell ℓ n.
 Proof.
   intros.
   now eapply not_in_is_notin'.
@@ -461,7 +468,8 @@ Proof.
 Qed.
 (* 
 Lemma trichotomy_in (L : Fcontext) n b (hin : in_Fctx L n b) :
-  trichotomy L n = match b return (forall (hin : in_Fctx L n b), _) with true => fun hin => in_left hin| false => fun hin => in_mid hin end hin.
+  trichotomy L n = match b return (forall (hin : in_Fctx L n b), _) with true =>
+  fun hin => in_left hin| false => fun hin => in_mid hin end hin.
 Proof.
   destruct (trichotomy L n).
   1,2: destruct b.
@@ -508,7 +516,8 @@ Definition Build_ell_eq_inv {L L'} (eL : L = L'):
   eL = Build_ell_eq (f_equal ℓ_list eL).
 Proof. destruct eL; reflexivity. Qed.
 
-Lemma cons_eq_inversion' {Γ Γ' : Tcontext} {d d': decl} {P} (e : cons d Γ = cons d' Γ') : P Γ d eq_refl -> P Γ' d' e.
+Lemma cons_eq_inversion' {Γ Γ' : Tcontext} {d d': decl} {P} (e : cons d Γ = cons d' Γ') :
+  P Γ d eq_refl -> P Γ' d' e.
 Proof.
   intros.
   change ((match cons d' Γ' with cons d0 Γ0 => fun e => P Γ0 d0 e | _ => fun _ => unit:Type end) e).
@@ -556,5 +565,88 @@ Proof.
   eapply wf.
 Qed.
 
-Variant neVar := termNe | ellNe (k v : nat).
+Lemma ell_eq ℓ ℓ' wf wf' : ℓ = ℓ' -> Build_ell ℓ wf = Build_ell ℓ' wf'.
+Proof. now intros <-. Qed.
+Lemma ell_eq' {ℓ ℓ' : ell} : ℓ = ℓ' :> ell_list -> ℓ = ℓ'.
+Proof. intros e; now eapply ell_eq. Qed.
+
+Class ell_incl (ℓ ℓ' : ell_list) : SProp := ρF : forall n b, in_ell ℓ' n b -> in_ell ℓ n b.
+Notation "ℓ ≤ε ℓ'" := (ell_incl ℓ ℓ') (at level 40).
+
+Lemma not_ell_incl_nil_cons {ℓ p}: ell_incl nil (cons p ℓ) -> SFalse.
+Proof.
+  intros inℓ. destruct p as [n b].
+  eapply (@notin_is_not_in nil n b).
+  - constructor.
+  - eapply inℓ.
+    repeat constructor.
+Qed.
+
+Lemma incl_cons {ℓ ℓ' : ell_list} {n} {b : bool} (wf : ell_wf ℓ) (wf' : ell_wf ℓ') (ltn : lt_ell n ℓ) (ltn' : lt_ell n ℓ') :
+  cons (n, b) ℓ ≤ε cons (n, b) ℓ' -> ℓ ≤ε ℓ'.
+Proof.
+  intros inℓ n' b' inn'.
+  specialize (inℓ n' b' ltac:(right; eapply inn')) 
+    as [[[<-] [<-]] |]; tea.
+  enough SFalse as [].
+  eapply @notin_is_not_in; tea.
+  eapply lt_notin, ltn'.
+Qed.
+
+Lemma ell_can (ℓ ℓ' : ell) : ℓ ≤ε ℓ' -> ℓ' ≤ε ℓ -> ℓ = ℓ'.
+Proof.
+  intros inℓ inℓ'.
+  destruct ℓ as [ℓ wf], ℓ' as [ℓ' wf']; cbn in *.
+  eapply ell_eq.
+  induction ℓ as [ | [n b] ℓ] in wf, ℓ', wf', inℓ, inℓ' |-*.
+  + destruct ℓ' as [ | [n' b'] ℓ'].
+    - reflexivity.
+    - destruct (not_ell_incl_nil_cons inℓ).
+  + destruct ℓ' as [ | [n' b'] ℓ'].
+    - destruct (not_ell_incl_nil_cons inℓ').
+    - assert (n = n') as <-.
+      { destruct (PeanoNat.Nat.lt_trichotomy n n') as [nlt| [en|n'lt]].
+        + enough SFalse as [].
+          eapply @notin_is_not_in with (ℓ := cons (n', b') ℓ') (n := n) (b := b).
+          - eapply lt_notin.
+            repeat constructor; tea.
+            now eapply lt_lt_ell, wf'.
+          - eapply inℓ'. repeat constructor.
+        + eapply en.
+        + enough SFalse as [].
+          eapply @notin_is_not_in with (ℓ := cons (n, b) ℓ) (n := n') (b := b').
+          - eapply lt_notin.
+            repeat constructor; tea.
+            now eapply lt_lt_ell, wf.
+          - eapply inℓ. repeat constructor. }
+      assert (b = b') as <-
+        by (eapply (functionality (Build_ell _ wf) n), inℓ;
+          repeat constructor).
+      f_equal.
+      * eapply (IHℓ wf.(Spr2) _ wf'.(Spr2)); destruct wf as [ltn wf], wf' as [ltn' wf'].
+       ++ eapply incl_cons; tea.
+       ++ eapply incl_cons; tea.
+Qed.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

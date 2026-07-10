@@ -96,4 +96,6 @@ Section SimpleArrow.
     now rewrite wk_arr'.
   Qed.
 
+
+
 End SimpleArrow.

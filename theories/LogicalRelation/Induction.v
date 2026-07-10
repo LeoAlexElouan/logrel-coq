@@ -317,7 +317,7 @@ Section Inversions.
     | TreeType => ∑ (h : [Γ ||-Tree A ≅ B]), lr = LRTree_ l h
     | SigType => ∑ (h : [Γ ||-Σ<l> A ≅ B]), [× lr = LRSig' h, h.(ParamRedTy.domL) = sigdom A' & h.(ParamRedTy.codL) = sigcod A']
     | IdType => ∑ (h : [Γ||-Id<l> A ≅ B]), [× lr = LRId' h, h.(IdRedTy.tyL) = idparam A', h.(IdRedTy.lhsL) = idlhs A' & h.(IdRedTy.rhsL) = idrhs A']
-    | @NeType _ nevar _ => ∑ (h : [Γ ||-ne A ≅ B]), lr = LRne_ l h × h.(neRedTy.tyL) = A' × h.(neRedTy.nevar) = nevar
+    | @NeType _ _ => ∑ (h : [Γ ||-ne A ≅ B]), lr = LRne_ l h × h.(neRedTy.tyL) = A'
     end.
 
   Lemma invLREqL {Γ l A B A'} (lr : [Γ ||-S<l> A ≅ B]) (r : [Γ | A ⤳* A']) (w : isType A') : invLRTyEqL lr w.
@@ -339,7 +339,7 @@ Section Inversions.
     intros; now unshelve eapply (invLREqL _ redIdAlg UnivType).π1.
   Qed.
 
-  Lemma invLRne {Γ l nevar A B} : whne nevar A -> [Γ ||-S<l> A ≅ B] -> [Γ ||-ne A ≅ B].
+  Lemma invLRne {Γ l A B} : whne A -> [Γ ||-S<l> A ≅ B] -> [Γ ||-ne A ≅ B].
   Proof.
     intros; now unshelve eapply  (invLREqL _ redIdAlg (NeType _)).π1.
   Qed.

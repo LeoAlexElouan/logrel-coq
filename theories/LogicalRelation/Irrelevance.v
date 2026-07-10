@@ -71,7 +71,7 @@ Section Irrelevance.
   Lemma irrIsLRFun : forall t, isLRFun ΠA' t <≈> isLRFun ΠA t.
   Proof.
     destruct ΠA, ΠA'; cbn in *; subst.
-    intros ? ; split ; intros [| |]; constructor; tea; cbn in *.
+    intros ? ; split ; intros [| | |]; constructor; tea; cbn in *.
     + intros; cbn in *.
       eapply (fst (ihdom Δ ρ wfΔ _ _ a b)) in ha as ha'.
       specialize (d _ _ _ _ wfΔ ha').
@@ -203,9 +203,9 @@ Section Irrelevance.
     pose (i := invLREqL_whred R1 R2).
     revert B2 R2 i ih; indLR R1.
     - intros h B2 R2 [h'] ih; subst; now eapply irrU.
-    - intros neA ?? (neB&?&eq&eqnevar) _; subst; intros ??; split; cbn.
-      + intros []; econstructor; now rewrite eq, ? eqnevar.
-      + intros [??]; econstructor; now rewrite eq, eqnevar in *.
+    - intros neA ?? (neB&?&eq) _; subst; intros ??; split; cbn.
+      + intros []; econstructor; now rewrite eq.
+      + intros [??]; econstructor; now rewrite eq in *.
     - intros ΠA ihdom ihcod ?? [ΠA' [? eqdom eqcod]] ?; subst; cbn in *.
       eapply irrΠ.
       3,4 : tea.

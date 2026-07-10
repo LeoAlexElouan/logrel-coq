@@ -120,9 +120,11 @@ Definition elimNodeHypTy P :=
     (arr P⟨upRen_term_term ↑⟩⟨upRen_term_term ↑⟩
       P⟨upRen_term_term ↑⟩⟨upRen_term_term ↑⟩[tNode (tRel 2) (tRel 1) (tRel 0)]⇑)))).
 
+Definition dEvalNode n :=
+  tLambda tNat (tLambda tTree (tLambda tTree (tLambda tNat (tLambda tNat
+    (tBoolElim tNat (tRel 1) (tRel 0) (tApp n⟨↑⟩⟨↑⟩⟨↑⟩⟨↑⟩⟨↑⟩ (tRel 4))))))).
 Definition dEval d n :=
-  tTreeElim tNat (tLambda tNat (tRel O)) (tLambda tNat (tLambda tTree (tLambda tTree
-    (tLambda tNat (tLambda tNat (tBoolElim tNat (tRel 1) (tRel 0) (tApp n⟨↑⟩⟨↑⟩⟨↑⟩⟨↑⟩⟨↑⟩ (tRel 4))))))))
+  tTreeElim tNat (tLambda tNat (tRel O)) (dEvalNode n)
     d.
 
 

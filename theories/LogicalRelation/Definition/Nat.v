@@ -66,7 +66,7 @@ Section NatRedTmEq.
   | succReq {n n'} :
     NatRedTmEq n n' ->
     NatPropEq (tSucc n) (tSucc n')
-  | neReq {nevar ne ne'} : [Γ ||-NeNf ne ≅ ne' : tNat | nevar] -> NatPropEq ne ne'.
+  | neReq {ne ne'} : [Γ ||-NeNf ne ≅ ne' : tNat] -> NatPropEq ne ne'.
 
   Section Def.
     Context `{!GenericTypingProperties _ _ _ _ _ _ _ _ _}.
@@ -74,7 +74,7 @@ Section NatRedTmEq.
     Lemma NatPropEq_isNat {t t' : term} :
       NatPropEq t t' -> isNat t × isNat t'.
     Proof.
-      intros [| |??? []]; split; econstructor.
+      intros [| |?? []]; split; econstructor.
       all: eapply convneu_whne; eassumption + now symmetry.
     Defined.
 

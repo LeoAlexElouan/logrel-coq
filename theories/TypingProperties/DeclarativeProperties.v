@@ -188,24 +188,6 @@ Section TypingWk.
         now eapply IHhr.
       + now eapply IHy.
       + now eapply IHe.
-    - intros * _ IHt _ IHAB ? ρ ?.
-      econstructor.
-      1: now eapply IHt.
-      now eapply IHAB.
-    - intros Γ t A i new wfΓ _ ht Iht hf Ihf Δ ρ hΔ.
-      destruct (decide_in (list_at Δ (ren_index ρ i)) new) as [[] hin|hnotin].
-      + specialize (Iht Δ (wk_new i new true ρ hin) hΔ).
-        apply Iht.
-      + specialize (Ihf Δ (wk_new i new false ρ hin) hΔ).
-        apply Ihf.
-      + set (new' := Build_newnat _ new hnotin).
-        apply (wfTermSplit (new := new')); tea.
-        * pose (wk_Fup true ρ i new new' eq_refl).
-          apply (Iht _ w).
-          now constructor.
-        * pose (wk_Fup false ρ i new new' eq_refl).
-          apply (Ihf _ w).
-          now constructor.
     - intros * wfΓ _ _ iht * wfΔ.
       rewrite <- wk_decl, <- wk_xi. constructor; eauto.
       eapply iht. constructor; tea.
@@ -242,6 +224,24 @@ Section TypingWk.
       + now eapply ihn.
       + now eapply ihb.
       + rewrite <- (wk_nat_to_term ρ). eapply ihconv; tea.
+    - intros * _ IHt _ IHAB ? ρ ?.
+      econstructor.
+      1: now eapply IHt.
+      now eapply IHAB.
+    - intros Γ t A i new wfΓ _ ht Iht hf Ihf Δ ρ hΔ.
+      destruct (decide_in (list_at Δ (ren_index ρ i)) new) as [[] hin|hnotin].
+      + specialize (Iht Δ (wk_new i new true ρ hin) hΔ).
+        apply Iht.
+      + specialize (Ihf Δ (wk_new i new false ρ hin) hΔ).
+        apply Ihf.
+      + set (new' := Build_newnat _ new hnotin).
+        apply (wfTermSplit (new := new')); tea.
+        * pose (wk_Fup true ρ i new new' eq_refl).
+          apply (Iht _ w).
+          now constructor.
+        * pose (wk_Fup false ρ i new new' eq_refl).
+          apply (Ihf _ w).
+          now constructor.
     - intros Γ A A' B B' _ IHA _ IHAA' _ IHBB' ? ρ ?.
       cbn.
       econstructor.
@@ -520,30 +520,6 @@ Section TypingWk.
       + now eapply IHz.
       + now eapply IHxy.
       + now eapply IHxz.
-    - intros * _ IHt ? ρ ?.
-      now econstructor.
-    - intros * _ IHt _ IHA ? ρ ?. rewrite <- wk_decl.
-      econstructor.
-      + now eapply IHt.
-      + now eapply IHA.
-    - intros * _ IHt ? ρ ?.
-      now econstructor.
-    - intros * _ IHt _ IHt' ? ρ ?.
-      now econstructor.
-    - intros Γ t t' A i new wfΓ _ ht Iht hf Ihf Δ ρ hΔ.
-      destruct (decide_in (list_at Δ (ren_index ρ i)) new) as [[] hin|hnotin].
-      + specialize (Iht Δ (wk_new i new true ρ hin) hΔ).
-        apply Iht.
-      + specialize (Ihf Δ (wk_new i new false ρ hin) hΔ).
-        apply Ihf.
-      + set (new' := Build_newnat _ new hnotin).
-        apply (TermSplit (new := new')); tea.
-        * pose (wk_Fup true ρ i new new' eq_refl).
-          apply (Iht _ w).
-          now constructor.
-        * pose (wk_Fup false ρ i new new' eq_refl).
-          apply (Ihf _ w).
-          now constructor.
     - intros * wfΓ _ _ ihtt' * wfΔ.
       rewrite <- wk_decl, <-! wk_xi.
       eapply TermXiCong; tea.
@@ -552,13 +528,14 @@ Section TypingWk.
     - intros * wfΓ _ * wfΔ.
       rewrite <- wk_decl, <- wk_xi, <- wk_leaf, ! wk_nat_to_term.
       now constructor.
-    - intros * wfΓ _ _ iht net * wfΔ.
+    - intros * wfΓ _ _ iht net ene * wfΔ.
       erewrite <- wk_decl, <- wk_node, wk_nat_to_term, <-! wk_xi,
         ! subst_ren_wk_up, <-! up_wk_up_wk1.
       eapply TermXiNode; tea.
       + eapply iht.
         constructor; tea.
-      + eapply (whne_ren_wl _ _ _ net).
+      + eapply (whne_ren_wl _ _ net).
+      + now rewrite head_ren_wl, ene.
     - intros * wfΓ _ _ ihtt' _ ihuu' * wfΔ.
       erewrite <- wk_decl, <-! wk_xxi, <- wk_Id, <- wk_dEval', <-wk_xi,
         <- wk_eval, subst_ren_wk_up.
@@ -570,14 +547,15 @@ Section TypingWk.
       erewrite <- wk_decl, <- wk_refl, <- wk_xxi, <- wk_Id, !wk_nat_to_term.
       eapply TermXXiLeaf; tea.
       eapply ihu; tea.
-    - intros * nem hm ihm _ ihn * wfΔ.
+    - intros * nem ene hm ihm _ ihn * wfΔ.
       set (ℓt := cons_ell ℓ k true); set (ℓf := cons_ell ℓ k false).
       erewrite <- wk_decl, <- wk_ellElim, <-! wk_Id, <-! wk_dEval',
         <-! wk_xxi, ! subst_ren_wk_up, <-! wk_box,
         <-! wk_app, wk_nat_to_term, <-! wk_eval, <-! wk_xi, <-! up_wk_up_wk1.
       eapply convtm_meta_conv.
       eapply TermXXiNode.
-      + eapply (whne_ren_wl _ _ _ nem).
+      + eapply (whne_ren_wl _ _ nem).
+      + now rewrite head_ren_wl, ene.
       + eapply ihm.
         constructor; tea.
       + eapply ihn; tea.
@@ -655,6 +633,30 @@ Section TypingWk.
       + eapply ihn; tea.
       + rewrite <- (wk_nat_to_term ρ).
         eapply ihconv; tea.
+    - intros * _ IHt ? ρ ?.
+      now econstructor.
+    - intros * _ IHt _ IHA ? ρ ?. rewrite <- wk_decl.
+      econstructor.
+      + now eapply IHt.
+      + now eapply IHA.
+    - intros * _ IHt ? ρ ?.
+      now econstructor.
+    - intros * _ IHt _ IHt' ? ρ ?.
+      now econstructor.
+    - intros Γ t t' A i new wfΓ _ ht Iht hf Ihf Δ ρ hΔ.
+      destruct (decide_in (list_at Δ (ren_index ρ i)) new) as [[] hin|hnotin].
+      + specialize (Iht Δ (wk_new i new true ρ hin) hΔ).
+        apply Iht.
+      + specialize (Ihf Δ (wk_new i new false ρ hin) hΔ).
+        apply Ihf.
+      + set (new' := Build_newnat _ new hnotin).
+        apply (TermSplit (new := new')); tea.
+        * pose (wk_Fup true ρ i new new' eq_refl).
+          apply (Iht _ w).
+          now constructor.
+        * pose (wk_Fup false ρ i new new' eq_refl).
+          apply (Ihf _ w).
+          now constructor.
 Qed.
 
 End TypingWk.
@@ -991,7 +993,6 @@ Module WeakDeclarativeTypingProperties.
   - now econstructor.
   - now econstructor.
   - now econstructor.
-  - now econstructor; rewrite ? up_wk1_ren_on.
   Qed.
 
   Lemma TermnSuccCong {Γ : context} {t u : term} {n : nat}:
@@ -1006,12 +1007,12 @@ Module WeakDeclarativeTypingProperties.
   - split; red.
     + intros ?? []; split; tea; now econstructor.
     + intros ??? [] []; split; tea; now econstructor.
-  - intros ?????? [] ?; split; tea; now econstructor.
-  - intros ???????? []; split.
+  - intros ????? [] ?; split; tea; now econstructor.
+  - intros ??????? []; split.
     + now eapply whne_ren.
     + now eapply whne_ren.
     + now eapply typing_wk.
-  - now intros ????? [].
+  - now intros ???? [].
   - intros ????; split; now econstructor.
   - intros ?????; split.
     + constructor. eapply k.
@@ -1019,40 +1020,36 @@ Module WeakDeclarativeTypingProperties.
     + change tBool with tBool[(nat_to_term k)..].
       eapply TermAppCong, TermnSuccCong, TermRefl, wfTermZero, boundary_tm_ctx, H.
       now eapply TermEvalCong, TermRefl.
-  - intros ???????? [] ?; split; now econstructor.
-  - intros ????????????? []; split; now econstructor.
-  - intros ????????????? []; split; now econstructor.
-  - intros ?????? []; split.
+  - intros ??????? [] ?; split; now econstructor.
+  - intros ???????????? []; split; now econstructor.
+  - intros ???????????? []; split; now econstructor.
+  - intros ????? []; split.
     1-2 : now econstructor.
     eapply TermAppArrCong, TermnSuccCong; tea.
     do 2 constructor. boundary.
-  - intros ??????? []; split; now econstructor.
-  - intros ????????????? []; split; now econstructor.
   - intros ?????? []; split; now econstructor.
-  - intros ?????? []; split; now econstructor.
+  - intros ???????????? []; split; now econstructor.
+  - intros ????? []; split; now econstructor.
+  - intros ????? []; split; now econstructor.
   - intros * ??????? []; split; now econstructor.
-  - intros ???????? [] []; split; tea.
+  - intros * ?? []; split.
+    1,2: now econstructor.
+    eapply @TermAppCong with (B:=tBool), TermnSuccCong; tea.
+    eapply TermEvalCong, TermRefl, wfVar; tea.
+  - intros ??????? [] []; split; tea.
     now eapply TermSplit.
-  - intros ?????? [nel ner hmm']; split; tea.
-    + eapply whne_tXi.
-      destruct nevar; cbn in *; tea.
-      rewrite wk_to_ren_id in *; tea.
-    + eapply whne_tXi.
-      destruct nevar; cbn in *; tea.
-      rewrite wk_to_ren_id in *; tea.
+  - intros ?????? [nel ner hmm'] ene; split; tea.
+    + eapply whne_tXi; tea.
+    + eapply whne_tXi; tea.
     + eapply TermXiCong, TermnSuccCong, hmm'.
       eapply boundary_ctx_ctx, boundary_tm_conv_ctx, hmm'.
   - intros ????????? [nel ner hmm']; split; tea.
-    + eapply whne_tXXi.
-      destruct nevar; cbn in *; tea.
-      rewrite wk_to_ren_id in *; tea.
-    + eapply whne_tXXi.
-      destruct nevar; cbn in *; tea.
-      rewrite wk_to_ren_id in *; tea.
+    + eapply whne_tXXi; tea.
+    + eapply whne_tXXi; tea.
     + eapply TermXXiCong; tea.
       { eapply boundary_tm_conv_ctx; tea. }
       eapply TermnSuccCong, hmm'.
-  - intros ?????????????????????[]; split; tea.
+  - intros ????????????????????[]; split; tea.
     + now constructor.
     + now constructor.
     + eapply TermEllElimCong; tea.
@@ -1070,6 +1067,149 @@ Module WeakDeclarativeTypingProperties.
   Proof.
     induction n; now constructor.
   Defined.
+
+  Lemma TermdEval'Cong {Γ t t' u u'} : [ |- Γ] ->
+    [Γ |-[ de ] u ≅ u' : arr' Γ tNat tBool] ->
+    [Γ |-[ de ] t ≅ t' : tTree] ->
+    [Γ |-[ de ] dEval' Γ t u ≅ dEval' Γ t' u'  : tNat ].
+  Proof.
+    intros wfΓ du dt.
+    assert (wfΓN : [ |- Γ,,tNat])
+      by (repeat constructor; tea).
+    assert (wfΓT : [ |- Γ,,tTree])
+      by (repeat constructor; tea).
+    assert (wfΓNT : [ |- Γ,, tNat,, tTree])
+      by (constructor; tea; constructor; tea).
+    assert (wfΓNTT : [ |- Γ,, tNat,, tTree,, tTree])
+      by (constructor; tea; constructor; tea).
+    assert (wfΓNTTN : [ |- Γ,, tNat,, tTree,, tTree,, tNat])
+      by (constructor; tea; constructor; tea).
+    assert (wfΓNTTNN : [ |- Γ,, tNat,, tTree,, tTree,, tNat,, tNat])
+      by (constructor; tea; constructor; tea). (* this makes the proof faster *)
+    unfold dEval'.
+    change (term_decl tNat) with (term_decl tNat[t..]).
+    eapply TermTreeElimCong; tea.
+    1-2: repeat (constructor; tea).
+    constructor.
+    1-3 : repeat (constructor; tea).
+    cbn-[Tctx Fctx]; constructor.
+    1-3 : repeat (constructor; tea).
+    constructor.
+    1-3 : repeat (constructor; tea).
+    unfold elimNodeHypTyCod.
+    cbn-[Tctx Fctx]; constructor.
+    1-3 : repeat (constructor; tea).
+    constructor.
+    1-3 : repeat (constructor; tea).
+    refine (TermBoolElimCong (P:=tNat) _ _ _ _).
+    1-3 : repeat (constructor; tea).
+    - eapply in_there with (A:=tNat), in_here.
+    - eapply (TermAppCong (A:= tNat) (B:=tBool)).
+      { repeat (eapply (convtm_wk (A:= tProd tNat tBool)); tea). }
+      repeat (constructor; tea).
+      do 4 eapply in_there with (A:= tNat).
+      eapply in_here.
+  Qed.
+
+  Lemma wfTermdEvalNode {Γ u} : [ |- Γ] ->
+    [Γ |-[ de ] u : arr' Γ tNat tBool] ->
+    [Γ |-[ de ] dEvalNode' Γ u : elimNodeHypTy' Γ tNat ].
+  Proof.
+    intros wfΓ du.
+    assert (wfΓN : [ |- Γ,,tNat])
+      by (repeat constructor; tea).
+    assert (wfΓNT : [ |- Γ,, tNat,, tTree])
+      by (constructor; tea; constructor; tea).
+    assert (wfΓNTT : [ |- Γ,, tNat,, tTree,, tTree])
+      by (constructor; tea; constructor; tea).
+    assert (wfΓNTTN : [ |- Γ,, tNat,, tTree,, tTree,, tNat])
+      by (constructor; tea; constructor; tea).
+    assert (wfΓNTTNN : [ |- Γ,, tNat,, tTree,, tTree,, tNat,, tNat])
+      by (constructor; tea; constructor; tea). (* this makes the proof faster *)
+    constructor.
+    1 : repeat (constructor; tea).
+    cbn-[Tctx Fctx]; constructor.
+    1 : repeat (constructor; tea).
+    constructor.
+    1 : repeat (constructor; tea).
+    unfold elimNodeHypTyCod.
+    cbn-[Tctx Fctx]; constructor.
+    1 : repeat (constructor; tea).
+    constructor.
+    1 : repeat (constructor; tea).
+    eapply (wfTermBoolElim (P:=tNat)).
+    1-3 : repeat (constructor; tea).
+    - eapply in_there with (A:=tNat), in_here.
+    - eapply (wfTermApp (A:= tNat) (B:=tBool)).
+      { repeat (eapply (ty_wk (A:= tProd tNat tBool)); tea). }
+      repeat (constructor; tea).
+      do 4 eapply in_there with (A:= tNat).
+      eapply in_here.
+  Qed.
+  Lemma wfTermdEval {Γ t u} : [ |- Γ] ->
+    [Γ |-[ de ] u : arr' Γ tNat tBool] ->
+    [Γ |-[ de ] t : tTree] ->
+    [Γ |-[ de ] dEval' Γ t u : tNat ].
+  Proof.
+    intros wfΓ du dt.
+    assert (wfΓT : [ |- Γ,,tTree])
+      by (repeat constructor; tea). (* this makes the proof faster *)
+    unfold dEval'.
+    eapply (wfTermTreeElim (P:=tNat)); tea.
+    1-2: repeat (constructor; tea).
+    eapply wfTermdEvalNode;tea.
+  Qed.
+
+  Lemma TermdEval'Leaf {Γ n u} : [|-Γ] -> [Γ |- n : tNat] -> [Γ |- u : arr' Γ tNat tBool] ->
+    [ Γ |- dEval' Γ (tLeaf n) u ≅ n : tNat ].
+  Proof.
+    intros wfΓ dn du.
+    assert (wfΓN : [ |- Γ,,tNat])
+      by (repeat constructor; tea).
+    assert (wfΓT : [ |- Γ,,tTree])
+      by (repeat constructor; tea).
+    unfold dEval'.
+    etransitivity.
+    + eapply @TermTreeElimLeaf with (P:=tNat); tea.
+      1,2 : repeat (constructor; tea).
+      eapply wfTermdEvalNode;tea.
+    + eapply @TermBRed with (B:=tNat) (t:= tRel 0); tea.
+      all: repeat (constructor; tea).
+  Qed.
+
+
+  Lemma RedTermdEval'Leaf {Γ n u} : [|-Γ] -> [Γ |- n : tNat] -> [Γ |- u : arr' Γ tNat tBool] ->
+    [ Γ |- dEval' Γ (tLeaf n) u ⤳* n : tNat ].
+  Proof.
+    intros wfΓ dn du; split.
+    + eapply wfTermdEval; tea.
+      eapply wfTermLeaf; tea.
+    + unfold dEval'.
+      econstructor; [eapply treeElimLeaf|].
+      eapply redalg_one_step, @BRed with (t:=tRel 0).
+    + eapply TermdEval'Leaf; tea.
+  Qed.
+
+
+(*    [Γ |-[ de ] dEval' Γ (tXi ℓ (nat_to_term n)) (tEval ℓ u) ≅ nat_to_term n : term_decl tNat] *)
+  Lemma XXiLeafType {Γ ℓ u n} : [ |-[ de ] Γ] ->
+    [Γ |-[ de ] u : ell_decl ℓ] ->
+    [Γ |- tId tNat (dEval' Γ (tXi ℓ (nat_to_term n)) (tEval ℓ u)) (nat_to_term n)[u..] ≅
+        tId tNat (nat_to_term n) (nat_to_term n) ].
+  Proof.
+    intros wfΓ du.
+    assert (devu : [Γ |- tEval ℓ u : arr' Γ tNat tBool]) by (constructor; tea).
+    econstructor.
+    * now repeat constructor.
+    * etransitivity.
+      - eapply TermdEval'Cong; tea.
+        1: eapply TermRefl; tea.
+        eapply TermXiLeaf;tea.
+      - eapply TermdEval'Leaf; tea.
+        eapply wfTermnattoterm; tea.
+    * rewrite <- nat_to_term_subst.
+      eapply TermRefl, wfTermnattoterm;  tea.
+  Qed.
 
   #[export, refine] Instance RedTermDeclProperties : RedTermProperties (ta := de) := {}.
   Proof.
@@ -1172,16 +1312,78 @@ Module WeakDeclarativeTypingProperties.
     + assumption.
     + reflexivity.
     + now econstructor.
+  - intros * ? []; split.
+    + now eapply wfTermXi, wfTermnSucc.
+    + now eapply redalg_xi.
+    + now eapply TermXiCong, TermnSuccCong.
   - intros; split.
-    + constructor; tea.
-      constructor; boundary.
+    + eapply wfTermXi, wfTermnattoterm; tea.
+      now constructor.
     + eapply redalg_one_step; constructor.
+    + now econstructor.
+  - intros * ????; split.
+    + now econstructor.
+    + eapply redalg_one_step.
+      do 2 replace t⟨wk_up _ _⟩ with t⟨upRen_term_term ↑⟩ by now bsimpl.
+      eapply xiNode; tea.
+    + now econstructor.
+  - intros * ? [] ?; split.
+    + eapply wfTermXXi; tea.
+      eapply wfTermnSucc; tea.
+    + now eapply redalg_xxi.
+    + eapply TermXXiCong; tea.
+      * eapply TermnSuccCong; tea.
+      * eapply TermRefl; tea.
+  - intros * wfΓ du; split.
+    + eapply wfTermConv, XXiLeafType; tea.
+      eapply wfTermXXi; tea.
+      eapply wfTermnattoterm.
+      constructor; tea.
+    + eapply redalg_one_step.
+      eapply xxiLeaf.
+    + eapply TermTrans; [eapply TermXXiLeaf|];tea.
+      * constructor; tea.
+      * repeat (constructor; tea).
+        eapply wfTermnattoterm; tea.
+  - intros; split.
+    + eapply wfTermXXi; tea.
+      eapply boundary_tm_ctx; tea.
+    + eapply redalg_one_step.
+      repeat replace m⟨wk_up _ _⟩ with m⟨upRen_term_term ↑⟩ by now bsimpl.
+      repeat replace m⟨upRen_term_term ↑⟩⟨wk_up _ _⟩ with m⟨upRen_term_term ↑⟩⟨upRen_term_term ↑⟩ by now bsimpl.
+      eapply xxiNode; tea.
+    + now econstructor.
+  - intros * []; split.
+    + eapply (wfTermApp (A:=tNat) (B:=tBool)), wfTermnSucc; tea.
+      do 2 constructor; tea. boundary.
+    + eapply redalg_eval;tea.
+    + eapply @TermAppCong with (A:=tNat) (B:=tBool), TermnSuccCong; tea.
+      do 3 constructor;tea. boundary.
+  - intros; split.
+    + eapply (wfTermApp (A:=tNat) (B:=tBool)), wfTermnattoterm; tea.
+      do 2 constructor; tea.
+    + eapply redalg_one_step; constructor; tea.
     + now constructor.
   - intros; split.
+    + constructor; constructor; tea.
+    + eapply redalg_one_step.
+      constructor.
     + constructor; tea.
-      constructor; boundary.
-    + eapply redalg_one_step; constructor; eauto.
-    + now constructor.
+  - intros * ???? [] ?; split.
+    + constructor; tea.
+    + eapply redalg_ellElim; tea.
+    + constructor; tea.
+      all: repeat (constructor; tea).
+  - intros * ?????; split.
+    + repeat (constructor; tea).
+      boundary.
+    + eapply redalg_one_step; constructor.
+    + constructor; tea.
+  - intros * ?????; split.
+    + repeat (constructor; tea).
+      boundary.
+    + eapply redalg_one_step; constructor.
+    + constructor; tea.
   Qed.
 
   #[export, refine] Instance RedTypeDeclProperties : RedTypeProperties (ta := de) := {}.
