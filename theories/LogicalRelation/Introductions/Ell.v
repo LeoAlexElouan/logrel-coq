@@ -12,6 +12,50 @@ Section Ell.
     + intros. eapply SboolRed; tea.
   Qed.
 
+Section NatRedUndernSucc.
+  Context {Γ} {wfΓ : [|-Γ]} {f : term -> term} {A}
+    (hf : forall t u, [Γ |- t :⤳*: u : tNat] -> forall n, [Γ |- f (nSucc n t) :⤳*: f (nSucc n u) : A]).
+
+  Inductive NatPropEqInst : term -> term -> Set :=
+    | natReqInst n : NatPropEqInst (nat_to_term n) (nat_to_term n)
+    | neReqInst n neL neR : [Γ ||-NeNf neL ≅ neR : tNat] ->
+        NatPropEqInst (nSucc n neL) (nSucc n neR).
+
+  Record NatRedTmEqInst tL tR : Set :=
+    {
+      nfLInst : term ;
+      nfRInst : term ;
+      redLInst : forall n, [Γ |- f (nSucc n tL) :⤳*: f (nSucc n nfLInst) : A] ;
+      redRInst : forall n, [Γ |- f (nSucc n tR) :⤳*: f (nSucc n nfRInst) : A ] ;
+  (*     eqInst : [Γ |- nfL ≅ nfR : tBool] ; *)
+      propInst : NatPropEqInst nfLInst nfRInst
+    }.
+
+  Definition natRed_toInst :
+    (forall tL tR (Rt : [Γ ||-Nat tL ≅ tR :Nat]), NatRedTmEqInst tL tR) ×
+    (forall tL tR (propt : NatPropEq Γ tL tR), NatRedTmEqInst tL tR).
+  Proof.
+    apply NatRedEqInduction.
+    + intros tL tR ???? _ _ [dnfL dnfR redL' redR' prop].
+      econstructor; tea.
+      1,2: now etransitivity; [eapply hf |].
+    + econstructor.
+      3: eapply (natReqInst 0).
+      all: intros n; eapply redtmwf_refl. ty_simple_app, ty_nSucc; gtyping.
+    + intros tL tR Rt [dnfL dnfR redL redR prop].
+      eexists (tSucc dnfL) (tSucc dnfR).
+      - intros n. rewrite 2nSuccswap.
+        refine (redL (S n)).
+      - intros n. rewrite 2nSuccswap.
+        refine (redR (S n)).
+      - destruct prop.
+        * eapply (natReqInst (S n)).
+        * now eapply (neReqInst (S n)).
+    + intros neL neR Rne.
+      exists neL neR.
+      1,2: intros n; eapply redtmwf_refl, ty_simple_app, ty_nSucc, Rne ; gtyping.
+      now eapply (neReqInst 0).
+  Defined.
   Lemma EvalRedEq {l Γ t t'} {ℓ : ell} (wfΓ : [|-Γ]) (RNtoB : [Γ ||-S<l> arr' Γ tNat tBool])
      : [ Γ ||-EllS t ≅ t' : ℓ | RNtoB ] -> [ Γ ||-S< l > tEval ℓ t ≅ tEval ℓ t' : _ | RNtoB].
   Proof.
@@ -44,14 +88,17 @@ Section Ell.
         1,2: constructor; tea.
         1: constructor. Search _wk_id.
         1: cbn; rewrite wk_to_ren_id;
-          now eapply in_there with (A:=ℓ). Search tRel typing.
+          now eapply in_there with (A:=ℓ).
         1: eapply (ty_var0 (A:=tNat)); gtyping.
       - cbn[PiRedTmEq.nf]. unfold PiRedTmEq.appRed.
         intros ???? wfΔ ?.
-        enough [ _ ||-<l>
-          tApp (tEval ℓ (tRel v))⟨ρ⟩ a ≅ tApp (tEval ℓ (tRel v))⟨ρ⟩ b : _ |boolRed (l:=l) wfΔ].
-        eapply Split_hom_PSh, X.
-        intros Ξ wfΞ ρΞ oRΠ ?.
+        eapply Split_return; tea.
+        intros Ξ wfΞ ρΞ oRΠ.
+        unshelve eapply SirrLR, SwkLR.
+        3: eapply SboolRed; tea.
+        all:tea.
+        constructor.
+        1:{ reflexivity. f_equal.
         unshelve eapply SirrLR, oRΠ.
         cbn.
         intros
