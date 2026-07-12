@@ -755,7 +755,7 @@ Proof.
   now eapply TermAppCong.
 Qed.
 
-Print Instances Subst1.
+
 
 (* 
 (** ** Generation *)
