@@ -5,6 +5,7 @@
 *.glob
 *.aux
 *.v#
+*.v.crashrocqide
 .vscode
 
 .Makefile.coq.d
