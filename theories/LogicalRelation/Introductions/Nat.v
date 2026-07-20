@@ -36,7 +36,7 @@ Proof.
   eapply redTyRecBwd; now eapply SnatRed.
 Defined.
 
-Lemma SzeroRed' {Γ} : [|-Γ] -> [Γ ||-Nat tZero ≅ tZero :Nat].
+Lemma SzeroReqNat {Γ} : [|-Γ] -> [Γ ||-Nat tZero ≅ tZero :Nat].
 Proof.
   intros wfΓ.
   exists tZero tZero.
@@ -47,7 +47,7 @@ Defined.
 Lemma SzeroRed {Γ l A B} {NN : [Γ ||-Nat A ≅ B]} : [Γ ||-<l> tZero : _ | LRNat_ l NN].
 Proof.
   assert [|-Γ] by (pose (LRNat_ l NN); escape; gtyping).
-  now eapply SzeroRed'.
+  now eapply SzeroReqNat.
 (*   exists tZero tZero.
   1-3: gtyping.
   constructor. *)
@@ -245,7 +245,7 @@ End NatElimRedEq.
 Section Computations.
   Context {Γ : context} {wfΓ : [|-Γ]}.
 
-  Lemma nSuccReq n {t t'} : [Γ||-Nat t ≅ t':Nat] -> [Γ ||-Nat nSucc n t ≅ nSucc n t' :Nat].
+  Lemma nSuccReqNat n {t t'} : [Γ||-Nat t ≅ t':Nat] -> [Γ ||-Nat nSucc n t ≅ nSucc n t' :Nat].
   Proof.
     intros Rt.
     induction n.
@@ -253,18 +253,20 @@ Section Computations.
     - cbn. unshelve eapply SsuccRed', IHn.
   Qed.
 
-  Lemma nat_to_termReq' {n} : [Γ ||-Nat nat_to_term n ≅ nat_to_term n :Nat].
-  Proof. now eapply nSuccReq, SzeroRed'. Qed.
+  Lemma nat_to_termReqNat {n} : [Γ ||-Nat nat_to_term n ≅ nat_to_term n :Nat].
+  Proof. now eapply nSuccReqNat, SzeroReqNat. Qed.
 
-  Lemma nat_to_termReq {l A B n} {RA : [Γ ||-Nat A ≅ B]} : [Γ ||-S< l > nat_to_term n ≅ nat_to_term n :_ | LRNat_ l RA].
-  Proof. now eapply nat_to_termReq'. Qed.
+  Lemma Snat_to_termReq {l A B n} {RA : [Γ ||-Nat A ≅ B]} : [Γ ||-S< l > nat_to_term n ≅ nat_to_term n :_ | LRNat_ l RA].
+  Proof. now eapply nat_to_termReqNat. Qed.
+  Lemma nat_to_termReq {l n} : [Γ ||-< l > nat_to_term n :_ | natRed (l:=l) wfΓ].
+  Proof. eapply Wpack_return'. unshelve eapply Snat_to_termReq. now eapply natRedTy. Qed.
 
   Lemma nat_to_termPropEq n : NatPropEq Γ (nat_to_term n) (nat_to_term n).
   Proof.
     destruct n.
     - constructor.
     - cbn; constructor.
-      eapply nat_to_termReq'.
+      eapply nat_to_termReqNat.
   Qed.
 
 End Computations.

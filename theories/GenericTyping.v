@@ -173,6 +173,14 @@ Section RedDefinitions.
       isWfPair Γ A B (tPair A' B' a b)
   | NeWfPair : forall n : term, [Γ |- n ~ n : tSig A B] -> isWfPair Γ A B n.
 
+  Inductive isWfEll (Γ : context) (ℓ : ell) : term -> Set :=
+    | boxWfEll {t} : [Γ |- t : arr' Γ tNat tBool] ->
+    (forall n b, in_ell ℓ n b ->
+      [ Γ |- tApp t (nat_to_term n) ≅ bool_to_term b : tBool]) ->
+      isWfEll Γ ℓ (tBox ℓ t)
+    | neWfEll {v} : in_ctx Γ v ℓ -> isWfEll Γ ℓ (tRel v).
+
+
 End RedDefinitions.
 
 Arguments TypeRedWf : clear implicits.
@@ -231,6 +239,7 @@ Section GenericTyping.
   {
     wfc_nil : [|- ε ] ;
     wfc_cons {Γ} {A} : [|- Γ] -> [Γ |- A] -> [|- Γ,,A];
+    wfc_consell {Γ} {ℓ : ell} : [|- Γ] -> [|- Γ,, ℓ];
     wfc_consF {Γ} {i new} {b} : [|- Γ] -> [|- Γ,, i : new ↦ b];
     wfc_alpha {Γ} : [|- Γ] -> [|- Γ,, ↦ nil_ell];
     wfc_wft {Γ A} : [Γ |- A] -> [|- Γ];
@@ -411,8 +420,8 @@ Section GenericTyping.
       [ Γ |- tBox ℓ t : ℓ] ;
     ty_ellElim {Γ ℓ k P ht hf n b} (ℓt := cons_ell ℓ k true) (ℓf := cons_ell ℓ k false):
       [ Γ,, ℓ |- P] ->
-      [ Γ,, ℓt |- ht : term_decl P[tBox ℓ (tEval ℓt (tRel 0))]⇑ ] ->
-      [ Γ,, ℓf |- hf : term_decl P[tBox ℓ (tEval ℓf (tRel 0))]⇑ ] ->
+      [ Γ,, ℓt |- ht : term_decl P⟨wk_up ℓ (@wk1 Γ ℓt)⟩[(tBox ℓ (tEval ℓt (tRel 0)))..] ] ->
+      [ Γ,, ℓf |- hf : term_decl P⟨wk_up ℓ (@wk1 Γ ℓf)⟩[(tBox ℓ (tEval ℓf (tRel 0)))..] ] ->
       [ Γ |- n : ℓ] -> [Γ |- b : tBool] -> [Γ |- tApp (tEval ℓ n) (nat_to_term k) ≅ b : tBool] ->
       [ Γ |- tEllElim k ℓ P ht hf n b : term_decl P[n..] ] ;
   }.
@@ -462,6 +471,8 @@ Section GenericTyping.
     convtm_convneu {Γ n n' A} :
       isPosType A ->
       [Γ |- n ~ n' : A  ] -> [Γ |- n ≅ n' : A] ;
+    convtm_varEll {Γ v ℓ} : [|-Γ] -> in_ctx Γ v ℓ ->
+      [Γ |- tRel v ≅ tRel v : ℓ] ;
     convtm_prod {Γ A A' B B'} :
       [Γ |- A : U] ->
       [Γ |- A ≅ A' : U] -> [Γ,, A |- B ≅ B' : U] ->
@@ -548,6 +559,13 @@ Section GenericTyping.
       [ Γ |- t ≅ t' : arr' Γ tNat tBool] ->
       (forall n b, in_ell ℓ n b -> [ Γ |- tApp t (nat_to_term n) ≅ bool_to_term b : tBool]) ->
       [ Γ |- tBox ℓ t ≅ tBox ℓ t' : ℓ] ;
+    convtm_eta_ell {Γ t t'} {ℓ : ell} :
+      [ Γ |- t : ℓ] ->
+      isWfEll Γ ℓ t ->
+      [ Γ |- t' : ℓ] ->
+      isWfEll Γ ℓ t' ->
+      [ Γ |- tEval ℓ t ≅ tEval ℓ t' : arr' Γ tNat tBool] ->
+      [ Γ |- t ≅ t' : ℓ] ;
   }.
 
   Class ConvNeuProperties :=

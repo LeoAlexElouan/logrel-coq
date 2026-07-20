@@ -231,24 +231,6 @@ Defined. *)
       | PolyRed.posRed ΠA ρ wfΔ hab]) ->
   [Γ ||-S< l > tLambda shp t ≅ tLambda shp' u : A | LRPi' ΠA]. *)
 
-Definition Build_PiRedTmEq' {Γ l A B} {ΠA : PiRedTy Γ l A B} {t u : term}
-  (shp := PiRedTy.domL ΠA) (shp' := PiRedTy.domR ΠA)
-  (pos := PiRedTy.codL ΠA) (pos' := PiRedTy.codR ΠA)
-  (redL : PiRedTm ΠA t) (redR : PiRedTm ΠA u)
-  (nfL := PiRedTmEq.nf redL) (nfR := PiRedTmEq.nf redR) :
-  [Γ |- nfL ≅ nfR : tProd shp pos] ->
-  (forall Δ ρ wfΔ a b
-    (hab : [Δ ||-S< l > a ≅ b : shp⟨ρ⟩ | PolyRed.shpRed ΠA ρ wfΔ ]), 
-    [Δ ||-< l > tApp nfL⟨ρ⟩ a ≅ tApp nfR⟨ρ⟩ b : pos⟨wk_up shp ρ⟩[a ..]
-      | PolyRed.posRed ΠA ρ wfΔ hab]) ->
-  [Γ ||-Π t ≅ u : A | ΠA].
-Proof.
-  intros eq eqApp.
-  econstructor.
-  1: eapply eq.
-  intros Δ a b ρ wfΔ hab.
-  eapply eqApp.
-Qed.
 
 
 Lemma eqApp' {Γ l A B} {ΠA : [Γ ||-Π< l > A ≅ B]} {t u}

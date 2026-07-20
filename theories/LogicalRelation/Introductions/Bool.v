@@ -69,6 +69,19 @@ Proof.
   all: tea.
 Qed.
 
+Lemma Sbool_to_termRed {Γ l A B b} {NN : [Γ ||-Bool A ≅ B]} : [Γ ||-S<l> bool_to_term b : _ | LRBool_ l NN].
+Proof.
+  destruct b.
+  - eapply StrueRed.
+  - eapply SfalseRed.
+Qed.
+
+Lemma bool_to_termRed {Γ l b} (wfΓ : [|-Γ]) : [Γ ||-<l> bool_to_term b : _ | boolRed (l:=l) wfΓ].
+Proof.
+  destruct b.
+  - eapply trueRed.
+  - eapply falseRed.
+Qed.
 
 Lemma liftSubst_singleSubst_eq {t u v: term} : t[u]⇑[v..] = t[u[v..]..].
 Proof. now bsimpl. Qed.

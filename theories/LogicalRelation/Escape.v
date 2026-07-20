@@ -149,6 +149,8 @@ Section Escapes.
     [Γ |- B].
   Proof. apply escapeTy. Qed.
 
+
+
 End Escapes.
 (* 
 Ltac escapeSplit :=

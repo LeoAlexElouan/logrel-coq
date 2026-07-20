@@ -588,6 +588,9 @@ Section TypingWk.
       + intros * inℓ.
         rewrite <- (wk_nat_to_term ρ), <- (wk_bool_to_term ρ).
         eapply ihconv; tea.
+    - intros * _ iht * wfΔ.
+      rewrite <- wk_box, <- wk_eval.
+      now econstructor; eapply iht.
     - intros * _ ihP _ ihht _ ihhf _ ihn _ ihb _ ihconv * wfΔ.
       erewrite <- wk_decl, subst_ren_wk_up, <-! wk_ellElim.
       eapply TermEllElimCong.
@@ -901,7 +904,7 @@ Module WeakDeclarativeTypingProperties.
 
   #[export, refine] Instance WfCtxDeclProperties : WfContextProperties (ta := de) := {}.
   Proof.
-    1-4: now constructor.
+    1-5: now constructor.
     1-6: boundary.
   Qed.
 
@@ -920,8 +923,6 @@ Module WeakDeclarativeTypingProperties.
     - intros.
       econstructor ; tea.
       now apply TypeSym, RedConvTyC.
-    - intros.
-      now apply wfTermEllElim; rewrite ? up_wk1_ren_on.
   Qed.
 
   #[export, refine] Instance ConvTypeDeclProperties : ConvTypeProperties (ta := de) := {}.
@@ -945,6 +946,13 @@ Module WeakDeclarativeTypingProperties.
   - now econstructor.
   Qed.
 
+  Lemma TermnSuccCong {Γ : context} {t u : term} {n : nat}:
+    [Γ |-[ de ] t ≅ u : tNat] ->
+    [Γ |-[ de ] nSucc n t ≅ nSucc n u : tNat].
+  Proof.
+    induction n; intros; tea; now econstructor.
+  Defined.
+
   #[export, refine] Instance ConvTermDeclProperties : ConvTermProperties (ta := de) := {}.
   Proof.
   - intros.
@@ -961,6 +969,8 @@ Module WeakDeclarativeTypingProperties.
     2: eapply TermSym.
     all: now eapply RedConvTeC.
   - intros * ? H; apply H.
+  - intros.
+    now do 2 econstructor.
   - intros.
     now econstructor.
   - intros.
@@ -993,14 +1003,20 @@ Module WeakDeclarativeTypingProperties.
   - now econstructor.
   - now econstructor.
   - now econstructor.
+  - intros * dt wft dt' wft' deta.
+    eapply TermTrans; [|now constructor].
+    eapply TermTrans; [eapply TermSym; now constructor|].
+    constructor; tea.
+    intros * inℓ.
+    destruct wft.
+    + eapply TermTrans, c; tea.
+      eapply @TermAppCong with (B:=tBool); tea.
+      constructor; tea.
+      eapply TermnSuccCong, TermRefl, wfTermZero, boundary_tm_ctx; tea.
+    + constructor; tea.
+      boundary.
   Qed.
 
-  Lemma TermnSuccCong {Γ : context} {t u : term} {n : nat}:
-    [Γ |-[ de ] t ≅ u : tNat] ->
-    [Γ |-[ de ] nSucc n t ≅ nSucc n u : tNat].
-  Proof.
-    induction n; intros; now constructor.
-  Defined.
 
   #[export, refine] Instance ConvNeuDeclProperties : ConvNeuProperties (ta := de) := {}.
   Proof.

@@ -466,6 +466,28 @@ Proof.
     now eapply notin_is_not_in.
   - reflexivity.
 Qed.
+
+Lemma in_cons_ell_relevant (ℓ : ell) (new : newnat ℓ) n b b' : in_ell (cons_ell ℓ new b') n b ->
+  {n = new /\ b = b'} + {Box (in_ell ℓ n b)}.
+Proof.
+  intros inℓb'.
+  destruct (decide_in ℓ n).
+  + assert (b = b0) as <-.
+    { eapply functionality; tea.
+      eapply in_cons_ell; right; tea. }
+    right; constructor; tea.
+  + left.
+    destruct (nat_eqdec n new) as [|].
+    - constructor; tea.
+      eapply functionality; tea.
+      eapply in_cons_ell. left.
+      repeat constructor; tea.
+    - enough SFalse as [].
+      eapply in_cons_ell in inℓb' as [[[]]| ].
+      * destruct (n1 e).
+      * eapply notin_is_not_in; tea.
+Qed.
+
 (* 
 Lemma trichotomy_in (L : Fcontext) n b (hin : in_Fctx L n b) :
   trichotomy L n = match b return (forall (hin : in_Fctx L n b), _) with true =>
@@ -628,7 +650,28 @@ Proof.
        ++ eapply incl_cons; tea.
 Qed.
 
-
+Lemma ell_rect (P : ell -> Type) : P nil_ell ->
+  (forall ℓ n b, P ℓ -> P (cons_ell ℓ n b)) ->
+  forall ℓ, P ℓ.
+Proof.
+  intros hnil hcons ℓ.
+  destruct ℓ as [ℓ wf].
+  induction ℓ as [| [n b] ℓ ihℓ].
+  + eapply hnil.
+  + destruct wf as [nlt wf].
+    specialize (hcons (Build_ell ℓ wf) (Build_newnat _ n (lt_notin _ _ nlt)) b (ihℓ wf)).
+    eapply eq_rect with (1:=hcons).
+    clear hcons ihℓ.
+    destruct ℓ as [| [n' b'] ℓ].
+    - reflexivity.
+    - unfold cons_ell.
+      cbn. eapply ell_eq.
+      destruct (Compare_dec.lt_dec n n').
+      * reflexivity.
+      * enough (H : SFalse) by destruct H.
+        destruct nlt as [[] _].
+        destruct (n0 l).
+Qed.
 
 
 
