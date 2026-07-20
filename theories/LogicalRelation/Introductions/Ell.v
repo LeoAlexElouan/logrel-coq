@@ -5,17 +5,17 @@ From LogRel.LogicalRelation.Introductions Require Import Poly Pi Application Nat
 Section Ell.
   Context `{GenericTypingProperties}.
 
-  Lemma SNtoBRedEqTy {Γ : context} (wfΓ : [|-Γ]) {l} : [Γ ||-S< l > arr' Γ tNat tBool ].
+  Lemma SNtoBRed {Γ : context} (wfΓ : [|-Γ]) {l} : [Γ ||-S< l > arr' Γ tNat tBool ].
   Proof.
     eapply SArrRedTy.
     + intros. eapply SnatRed; tea.
     + intros. eapply SboolRed; tea.
   Qed.
-  Lemma NtoBRedEqTy {Γ : context} (wfΓ : [|-Γ]) {l} : [Γ ||-< l > arr' Γ tNat tBool ].
-  Proof. now eapply WAd_return, SNtoBRedEqTy. Qed.
+  Lemma NtoBRed {Γ : context} (wfΓ : [|-Γ]) {l} : [Γ ||-< l > arr' Γ tNat tBool ].
+  Proof. now eapply WAd_return, SNtoBRed. Qed.
 
 
-  Lemma EvalRelRedEqAux {ℓ : ell} {Γ l v} (wfΓ : [|-Γ]) : in_ctx Γ v ℓ -> (forall tL tR (Rt : [Γ ||-Nat tL ≅ tR :Nat]), forall k,
+  Lemma evalRelRedEqAux {ℓ : ell} {Γ l v} (wfΓ : [|-Γ]) : in_ctx Γ v ℓ -> (forall tL tR (Rt : [Γ ||-Nat tL ≅ tR :Nat]), forall k,
     [Γ ||-S< l > tApp (tEval ℓ (tRel v)) (nSucc k tL) ≅ tApp (tEval ℓ (tRel v)) (nSucc k tR) : _ | SboolRed wfΓ]) ×
     (forall tL tR (propt : NatPropEq Γ tL tR), forall k,
     [Γ ||-S< l > tApp (tEval ℓ (tRel v)) (nSucc k tL) ≅ tApp (tEval ℓ (tRel v)) (nSucc k tR) : _ | SboolRed wfΓ]).
@@ -50,43 +50,13 @@ Section Ell.
       eapply convneu_eval; tea.
   Qed.
 
-
-
-  Lemma EvalRelRedEq {ℓ : ell} {Γ l v t t' k} (wfΓ :[|-Γ]):  in_ctx Γ v ℓ -> [Γ ||-S< l > t ≅ t' : tNat | SnatRed (l:=l) wfΓ ] ->
+  Lemma SevalRelRedEq {ℓ : ell} {Γ l v t t' k} (wfΓ :[|-Γ]):  in_ctx Γ v ℓ -> [Γ ||-S< l > t ≅ t' : tNat | SnatRed (l:=l) wfΓ ] ->
     [ Γ ||-S< l > tApp (tEval ℓ (tRel v)) (nSucc k t) ≅ tApp (tEval ℓ (tRel v)) (nSucc k t') : tBool |SboolRed wfΓ].
   Proof.
     cbn.
     intros inv Rtt'.
-    eapply (fst (EvalRelRedEqAux wfΓ inv)); tea.
+    eapply (fst (evalRelRedEqAux wfΓ inv)); tea.
     Unshelve. tea.
-  Qed.
-
-  Lemma EvalRedEq {Γ l t t'} {ℓ : ell} (RNtoB : [Γ ||-S<l> arr' Γ tNat tBool])
-     : [ Γ ||-EllS t ≅ t' : ℓ | RNtoB ] -> [ Γ ||-S< l > tEval ℓ t ≅ tEval ℓ t' : _ | RNtoB].
-  Proof.
-    assert (wfΓ : [|-Γ]) by (escape; gtyping).
-    intros Rtt'. eapply Rtt'.
-  Qed.
-
-  Lemma symmetricEll{Γ l n n' ℓ} (RNtoB : [Γ ||-S< l > arr' Γ tNat tBool]) :
-    [Γ ||-EllS n ≅ n' : ℓ | RNtoB] -> [Γ ||-EllS n' ≅ n : ℓ | RNtoB].
-  Proof.
-    intros [].
-    constructor; tea; symmetry; tea.
-  Qed.
-
-  Lemma transitiveEll {Γ l n n' n'' ℓ} (RNtoB : [Γ ||-S< l > arr' Γ tNat tBool]) :
-    [Γ ||-EllS n ≅ n' : ℓ | RNtoB] -> [Γ ||-EllS n' ≅ n'' : ℓ | RNtoB] -> [Γ ||-EllS n ≅ n'' : ℓ | RNtoB].
-  Proof.
-    intros [] [].
-    constructor; tea; etransitivity; tea.
-  Qed.
-
-  Instance PER_Ell l Γ RNtoB ℓ : PER (EllRedTmEq (l:=l) Γ RNtoB ℓ).
-  Proof.
-    constructor.
-    + intros n n'. eapply symmetricEll.
-    + intros n n' n''. eapply transitiveEll.
   Qed.
 
   Lemma SirrEll {Γ l t t'} {ℓ : ell} (RNtoB RNtoB' : [Γ ||-S< l > arr' Γ tNat tBool]) :
@@ -100,6 +70,61 @@ Section Ell.
     + destruct isellR; constructor; tea.
       eapply SirrLR; tea.
     + eapply SirrLR; tea.
+  Qed.
+  Lemma irrEll {Γ l t t'} {ℓ : ell} (RNtoB RNtoB' : [Γ ||-< l > arr' Γ tNat tBool]) :
+    [Γ ||-Ell t ≅ t' : ℓ | RNtoB] -> [Γ ||-Ell t ≅ t' : ℓ | RNtoB'].
+  Proof.
+    intros Rtt'.
+    eapply (dSplit_bind_return Rtt').
+    intros * oNtoB oRn oNtoB'.
+    now unshelve eapply SirrEll, Rtt'.
+  Qed.
+
+  Lemma SsymmetricEll{Γ l n n' ℓ} (RNtoB : [Γ ||-S< l > arr' Γ tNat tBool]) :
+    [Γ ||-EllS n ≅ n' : ℓ | RNtoB] -> [Γ ||-EllS n' ≅ n : ℓ | RNtoB].
+  Proof.
+    intros [].
+    constructor; tea; symmetry; tea.
+  Qed.
+  Lemma symmetricEll {Γ l n n' ℓ} (RNtoB : [Γ ||-< l > arr' Γ tNat tBool]) :
+    [Γ ||-Ell n ≅ n' : ℓ | RNtoB] -> [Γ ||-Ell n' ≅ n : ℓ | RNtoB].
+  Proof.
+    intros Rn.
+    eapply (dSplit_bind_return Rn).
+    intros * _ oRn oNtoB.
+    unshelve eapply SirrEll, SsymmetricEll, Rn; tea.
+  Qed.
+
+  Lemma StransitiveEll {Γ l n n' n'' ℓ} (RNtoB : [Γ ||-S< l > arr' Γ tNat tBool]) :
+    [Γ ||-EllS n ≅ n' : ℓ | RNtoB] -> [Γ ||-EllS n' ≅ n'' : ℓ | RNtoB] -> [Γ ||-EllS n ≅ n'' : ℓ | RNtoB].
+  Proof.
+    intros [] [].
+    constructor; tea; etransitivity; tea.
+  Qed.
+  Lemma transitiveEll {Γ l n n' n'' ℓ} (RNtoB : [Γ ||-< l > arr' Γ tNat tBool]) :
+    [Γ ||-Ell n ≅ n' : ℓ | RNtoB] -> [Γ ||-Ell n' ≅ n'' : ℓ | RNtoB] -> [Γ ||-Ell n ≅ n'' : ℓ | RNtoB].
+  Proof.
+    intros Rnn' Rn'n''.
+    eapply (dSplit_bind Rnn').
+    intros Δ wfΔ ρ _ oRnn'.
+    unshelve eapply (dSplit_wk_bind_return Rn'n''); tea.
+    intros * _ oRn'n'' oNtoB.
+    eapply SirrEll, StransitiveEll.
+    + now unshelve eapply Rnn', overtree_PSh.
+    + now unshelve eapply Rn'n''.
+  Qed.
+
+  Instance SPER_Ell l Γ RNtoB ℓ : PER (EllRedTmEq (l:=l) Γ RNtoB ℓ).
+  Proof.
+    constructor.
+    + intros n n'. eapply SsymmetricEll.
+    + intros n n' n''. eapply StransitiveEll.
+  Qed.
+  Instance PER_Ell l Γ RNtoB ℓ : PER (WEllRedTmEq (l:=l) Γ RNtoB ℓ).
+  Proof.
+    constructor.
+    + intros n n'. eapply symmetricEll.
+    + intros n n' n''. eapply transitiveEll.
   Qed.
 
   Lemma wkisell {Γ Δ l t}  {ℓ : ell} (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]) (RNtoB : [Γ ||-S< l > arr' Γ tNat tBool]) :
@@ -193,7 +218,7 @@ Section Ell.
       intros *.
       unshelve eapply Wpack_return'.
       1: unshelve eapply SboolRed; tea.
-      eapply (EvalRelRedEq (k:=0)), SirrLR, hab.
+      eapply (SevalRelRedEq (k:=0)), SirrLR, hab.
       eapply in_ctx_wk with (d:=ℓ); tea.
   Qed.
   Lemma Svar0Ell {Γ l} {ℓ : ell} (RNtoB : [Γ,,ℓ ||-S< l > arr' Γ tNat tBool]) : [Γ,,ℓ ||-EllS tRel 0 : ℓ | RNtoB].
@@ -207,7 +232,7 @@ Section Ell.
     assert (wfΓ : [|-Γ]) by (escape; gtyping).
     intros inℓ.
     unshelve now eapply WEll_return, SreflectEll.
-    now eapply SNtoBRedEqTy.
+    now eapply SNtoBRed.
   Qed.
   Lemma var0Ell {Γ l} {ℓ : ell} (RNtoB : [Γ,,ℓ ||-< l > arr' Γ tNat tBool]) : [Γ,,ℓ ||-Ell tRel 0 : ℓ | RNtoB].
   Proof.
@@ -215,17 +240,32 @@ Section Ell.
     constructor.
   Qed.
 
-  Lemma SboxRed {Γ l t t'} {ℓ : ell} (RNtoB : [Γ ||-S<l> arr' Γ tNat tBool]) :
-    [Γ ||-S< l > t ≅ t' : _ | RNtoB] ->
-    (forall n b, in_ell ℓ n b ->
-      [Γ ||-Bool tApp t (nat_to_term n) ≅ bool_to_term b :Bool]) ->
-    (forall n b, in_ell ℓ n b ->
-      [Γ ||-Bool tApp t' (nat_to_term n) ≅ bool_to_term b :Bool]) ->
-    [Γ ||-EllS tBox ℓ t ≅ tBox ℓ t' : ℓ | RNtoB].
+  Lemma SevalRedEq {Γ wfΓ l t t'} {ℓ : ell} :
+    [ Γ ||-EllS t ≅ t' : ℓ | SNtoBRed wfΓ (l:=l)] -> [ Γ ||-S< l > tEval ℓ t ≅ tEval ℓ t' : _ | SNtoBRed wfΓ].
   Proof.
-    assert (wfΓ :[|-Γ]) by (escape; gtyping).
+    intros Rtt'. eapply Rtt'.
+  Qed.
+
+  Lemma evalRedEq {Γ wfΓ l t t'} {ℓ : ell} :
+    [ Γ ||-Ell t ≅ t' : ℓ | NtoBRed wfΓ (l:=l) ] -> [ Γ ||-< l > tEval ℓ t ≅ tEval ℓ t' : _ | NtoBRed wfΓ (l:=l)].
+  Proof.
+    intros Rtt'.
+    eapply (dSplit_bind_return Rtt').
+    intros ??? _ oRtt' oRNtoB.
+    rewrite <-! wk_eval.
+    unshelve eapply SirrLR, SevalRedEq, SirrEll, Rtt'; tea.
+  Qed.
+
+  Lemma SboxRed {Γ l t t'} {ℓ : ell} (wfΓ : [|-Γ]) :
+    [Γ ||-S< l > t ≅ t' : _ | SNtoBRed wfΓ] ->
+    (forall n b, in_ell ℓ n b ->
+      [Γ ||-S< l > tApp t (nat_to_term n) ≅ bool_to_term b : _ | SboolRed wfΓ ]) ->
+    (forall n b, in_ell ℓ n b ->
+      [Γ ||-S< l > tApp t' (nat_to_term n) ≅ bool_to_term b : _ | SboolRed wfΓ]) ->
+    [Γ ||-EllS tBox ℓ t ≅ tBox ℓ t' : ℓ | SNtoBRed wfΓ (l:=l)].
+  Proof.
     intros Rtt' Btnb Bt'nb.
-    escape.
+    escape. cbn in Btnb, Bt'nb.
     constructor.
     1,2: constructor.
     1: eapply lrefl; tea.
@@ -259,10 +299,10 @@ Section Ell.
   Qed.
 
   Lemma boxRed {Γ l t t'} {ℓ : ell} (wfΓ : [|-Γ]) :
-    [Γ ||-< l > t ≅ t' : _ | NtoBRedEqTy (l:=l) wfΓ] ->
+    [Γ ||-< l > t ≅ t' : _ | NtoBRed (l:=l) wfΓ] ->
     (forall n b, in_ell ℓ n b ->
       [Γ ||-< l > tApp t (nat_to_term n) ≅ bool_to_term b : _ | boolRed (l:=l) wfΓ]) ->
-    [Γ ||-Ell tBox ℓ t ≅ tBox ℓ t' : ℓ | NtoBRedEqTy (l:=l) wfΓ].
+    [Γ ||-Ell tBox ℓ t ≅ tBox ℓ t' : ℓ | NtoBRed (l:=l) wfΓ].
   Proof.
     intros Rtt' Rtnb.
     assert (Rt'nb : forall n b, in_ell ℓ n b ->
@@ -283,19 +323,15 @@ Section Ell.
     { eapply wk_well_wk_compose; tea. }
     intros Ω wfΩ ρΩ obool oRt'nb oNtoR.
     rewrite <-! wk_box.
-    eapply SboxRed.
-    - now eapply Rtt', overtree_PSh.
-    - change [?Γ ||-Bool ?tL ≅ ?tR :Bool] with
-        [Γ ||-S< l > tL ≅ tR :_ | SboolRed wfΩ] in *.
-      intros n b inℓ.
+    unshelve eapply SirrEll, SboxRed; tea.
+    - now unshelve eapply SirrLR, Rtt', overtree_PSh.
+    - intros n b inℓ.
       rewrite <- (wk_nat_to_term ((ρΩ ∘w ρΞ) ∘w ρ)),
         <- (wk_bool_to_term ((ρΩ ∘w ρΞ) ∘w ρ)).
       unshelve eapply SirrLR, Rtnb; tea.
       all: rewrite wk_comp_assoc; tea.
       now eapply overtree_PSh.
-    - change [?Γ ||-Bool ?tL ≅ ?tR :Bool] with
-        [Γ ||-S< l > tL ≅ tR :_ | SboolRed wfΩ] in *.
-      intros n b inℓ.
+    - intros n b inℓ.
       rewrite <- (wk_nat_to_term ((ρΩ ∘w ρΞ) ∘w ρ)),
         <- (wk_bool_to_term ((ρΩ ∘w ρΞ) ∘w ρ)).
       unshelve eapply SirrLR, Rt'nb; tea.
@@ -342,7 +378,7 @@ Ltac escape :=
   end; unblock.
 
 
-  Lemma evalnat_to_termRed {Γ l n n' k b} {ℓ : ell} (wfΓ : [|-Γ]) : in_ell ℓ k b -> [Γ ||-EllS n ≅ n' : ℓ | SNtoBRedEqTy (l:=l) wfΓ] ->
+  Lemma Sevalnat_to_termRed {Γ l n k b} {ℓ : ell} (wfΓ : [|-Γ]) : in_ell ℓ k b -> [Γ ||-EllS n : ℓ | SNtoBRed (l:=l) wfΓ] ->
     [Γ ||-S< l > tApp (tEval ℓ n) (nat_to_term k) ≅ bool_to_term b : _ | SboolRed wfΓ].
   Proof.
     intros inℓ Rnn'.
@@ -357,8 +393,17 @@ Ltac escape :=
     - eapply SredSubstLeftTmEq, redtm_evalRel; tea.
       eapply Sbool_to_termRed.
   Qed.
+  Lemma evalnat_to_termRed {Γ l n k b} {ℓ : ell} (wfΓ : [|-Γ]) : in_ell ℓ k b -> [Γ ||-Ell n : ℓ | NtoBRed (l:=l) wfΓ] ->
+    [Γ ||-< l > tApp (tEval ℓ n) (nat_to_term k) ≅ bool_to_term b : _ | boolRed (l:=l) wfΓ].
+  Proof.
+    intros inℓ Rnn'.
+    eapply (dSplit_bind_return Rnn').
+    intros * oNtoR oRnn' oB.
+    rewrite <- wk_app, <- wk_eval, wk_nat_to_term, wk_bool_to_term.
+    now unshelve eapply SirrLR, Sevalnat_to_termRed, SirrEll, Rnn'.
+  Qed.
 
-  Lemma Evalnat_to_term {ℓ : ell} {Γ l t n b} (RNtoB : [Γ ||-S< l > arr' Γ tNat tBool]) : in_ell ℓ n b ->
+(*   Lemma evalnat_to_term {ℓ : ell} {Γ l t n b} (RNtoB : [Γ ||-S< l > arr' Γ tNat tBool]) : in_ell ℓ n b ->
     [Γ ||-EllS t : ℓ |RNtoB] -> [Γ ||-Bool tApp (tEval ℓ t) (nat_to_term n) ≅ bool_to_term b :Bool].
   Proof.
     intros inℓ Rt.
@@ -366,40 +411,38 @@ Ltac escape :=
     eapply evalnat_to_termRed with (wfΓ:=wfΓ); tea.
     now eapply SirrEll.
   Qed.
-
-  Lemma evalBoxRed {Γ l t} {ℓ : ell} (RNtoB : [Γ ||-S< l > arr' Γ tNat tBool]) :
-    (forall n b, in_ell ℓ n b -> [Γ ||-Bool tApp t (nat_to_term n) ≅ bool_to_term b :Bool]) ->
-    [Γ ||-S< l > t :_ | RNtoB] -> [Γ ||-S< l > tEval ℓ (tBox ℓ t) ≅ t : _ | RNtoB].
+ *)
+  Lemma SevalBoxRed {Γ l t} (wfΓ : [|-Γ]) {ℓ : ell} :
+    (forall n b, in_ell ℓ n b -> [Γ ||-S< l > tApp t (nat_to_term n) ≅ bool_to_term b : _ | SboolRed wfΓ]) ->
+    [Γ ||-S< l > t :_ | SNtoBRed wfΓ] -> [Γ ||-S< l > tEval ℓ (tBox ℓ t) ≅ t : _ | SNtoBRed wfΓ].
   Proof.
     intros Rtnb Rt.
-    assert (wfΓ : [|-Γ]) by (escape; gtyping).
-    change [?Γ ||-Bool ?tL ≅ ?tR :Bool] with
-      [Γ ||-S< l > tL ≅ tR :_ | SboolRed wfΓ] in *.
     eapply SredSubstLeftTmEq, redtm_evalBox; tea.
     2: intros n b inℓ; specialize (Rtnb _ _ inℓ).
     all: escape; tea.
   Qed.
 
-  Lemma SboxEvalRedEq {Γ l ℓ t t'} (RNtoB : [Γ ||-S< l > arr' Γ tNat tBool]) :
-    [Γ ||-EllS t ≅ t' : ℓ | RNtoB] -> [Γ ||-EllS tBox ℓ (tEval ℓ t) ≅ tBox ℓ (tEval ℓ t') : ℓ |RNtoB].
+  Lemma SboxEvalRedEq {Γ l ℓ t t'} (wfΓ : [|-Γ]) :
+    [Γ ||-EllS t ≅ t' : ℓ | SNtoBRed wfΓ (l:=l)] ->
+    [Γ ||-EllS tBox ℓ (tEval ℓ t) ≅ tBox ℓ (tEval ℓ t') : ℓ | SNtoBRed wfΓ (l:=l)].
   Proof.
     intros Rt.
-    eapply SboxRed.
+    unshelve eapply SboxRed; tea.
     { eapply Rt. }
-    1,2: intros; eapply Evalnat_to_term; tea.
+    1,2: intros; eapply Sevalnat_to_termRed; tea.
     + eapply lrefl; tea.
     + eapply urefl; tea.
   Qed.
 
-  Lemma etaEllRed {Γ l ℓ t} (RNtoB : [Γ ||-S< l > arr' Γ tNat tBool]) :
-    [Γ ||-EllS t : ℓ | RNtoB] -> [Γ ||-EllS tBox ℓ (tEval ℓ t) ≅ t : ℓ |RNtoB].
+  Lemma SetaEllRed {Γ l ℓ t} (wfΓ : [|-Γ]) :
+    [Γ ||-EllS t : ℓ | SNtoBRed wfΓ (l:=l)] ->
+    [Γ ||-EllS tBox ℓ (tEval ℓ t) ≅ t : ℓ | SNtoBRed wfΓ (l:=l)].
   Proof.
     intros Rt.
-    assert (wfΓ : [|-Γ]) by (escape; gtyping).
     destruct Rt eqn:eRt.
     constructor; tea.
     + constructor; tea.
-      intros n b inℓ; eapply Evalnat_to_term, lrefl; tea.
+      intros n b inℓ; unshelve eapply Sevalnat_to_termRed, lrefl, SirrEll; tea.
     + eapply escapeEll.
       eapply SboxEvalRedEq; tea.
     + escape.
@@ -408,26 +451,23 @@ Ltac escape :=
         eapply SboxEvalRedEq; tea.
       - constructor; tea.
         intros n b inℓ.
-        eapply escapeTm, @evalnat_to_termRed with (wfΓ := wfΓ); tea.
-        eapply SirrEll; tea.
+        eapply escapeTm, Sevalnat_to_termRed; tea.
       - now eapply isLREll_isWfEll.
-      - eapply escapeTm, evalBoxRed, Rt.
+      - eapply escapeTm, SevalBoxRed, Rt.
         intros n b inℓ.
-        eapply evalnat_to_termRed with (wfΓ:=wfΓ); tea.
-        now eapply SirrEll.
-    + eapply evalBoxRed, Rt.
+        eapply Sevalnat_to_termRed; tea.
+    + eapply SevalBoxRed, Rt.
       intros n b inℓ.
-      eapply evalnat_to_termRed with (wfΓ:=wfΓ); tea.
-      now eapply SirrEll.
+      eapply Sevalnat_to_termRed; tea.
   Qed.
 
 
   Section SEllElimRedEq.
   Context {Γ l ℓ k P P' t t' b b'} (wfΓ : [|-Γ]) (ℓt := cons_ell ℓ k true) (ℓf := cons_ell ℓ k false)
     (RB := SboolRed (l:=l) wfΓ) (RN := SnatRed (l:=l) wfΓ)
-    (RNtoB := SNtoBRedEqTy (l:=l) wfΓ)
+    (RNtoB := SNtoBRed (l:=l) wfΓ)
     (gP : [Γ,,ℓ |- P]) (gP' : [Γ,,ℓ |- P']) (gPP' : [Γ,,ℓ |- P ≅ P'])
-    (RPP'ext : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), forall t t', [Δ ||-EllS t ≅ t' : ℓ | SNtoBRedEqTy (l:=l) wfΔ] ->
+    (RPP'ext : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), forall t t', [Δ ||-EllS t ≅ t' : ℓ | SNtoBRed (l:=l) wfΔ] ->
       [Δ ||-< l > P⟨wk_up ℓ ρ⟩[t..] ≅ P'⟨wk_up ℓ ρ⟩[t'..]])
     (Rt  : [Γ ||-EllS t ≅ t' : ℓ | RNtoB]) (Rb : [Γ ||-S< l > b ≅ b' : tBool | RB])
     (Rtkb : [Γ ||-S< l > tApp (tEval ℓ t) (nat_to_term k) ≅ b : tBool | RB])
@@ -446,32 +486,32 @@ Ltac escape :=
     eapply SreflectEll.
     repeat constructor.
   Qed.
-  Let RPP'extt : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), forall n n', [Δ ||-EllS n ≅ n' : ℓt | SNtoBRedEqTy (l:=l) wfΔ] ->
+  Let RPP'extt : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), forall n n', [Δ ||-EllS n ≅ n' : ℓt | SNtoBRed (l:=l) wfΔ] ->
       [Δ ||-< l > P⟨wk_up ℓ ρ⟩[(tBox ℓ (tEval ℓt n))..] ≅ P'⟨wk_up ℓ ρ⟩[(tBox ℓ (tEval ℓt n'))..]].
   Proof.
     intros * Rn0.
     unshelve eapply RPP'ext; tea.
     eapply SboxRed.
-    + eapply EvalRedEq; tea.
+    + eapply SevalRedEq; tea.
     + intros ?? inℓ.
-      eapply evalnat_to_termRed; tea.
+      eapply Sevalnat_to_termRed, lrefl; tea.
       eapply in_cons_ell; right; tea.
     + intros ?? inℓ.
-      eapply evalnat_to_termRed, PER_Symmetric; tea.
+      eapply Sevalnat_to_termRed, urefl; tea.
       eapply in_cons_ell; right; tea.
   Qed.
-  Let RPP'extf : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), forall n n', [Δ ||-EllS n ≅ n' : ℓf | SNtoBRedEqTy (l:=l) wfΔ] ->
+  Let RPP'extf : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), forall n n', [Δ ||-EllS n ≅ n' : ℓf | SNtoBRed (l:=l) wfΔ] ->
       [Δ ||-< l > P⟨wk_up ℓ ρ⟩[(tBox ℓ (tEval ℓf n))..] ≅ P'⟨wk_up ℓ ρ⟩[(tBox ℓ (tEval ℓf n'))..]].
   Proof.
     intros * Rn0.
     unshelve eapply RPP'ext; tea.
     eapply SboxRed.
-    + eapply EvalRedEq; tea.
+    + eapply SevalRedEq; tea.
     + intros ?? inℓ.
-      eapply evalnat_to_termRed; tea.
+      eapply Sevalnat_to_termRed, lrefl; tea.
       eapply in_cons_ell; right; tea.
     + intros ?? inℓ.
-      eapply evalnat_to_termRed, PER_Symmetric; tea.
+      eapply Sevalnat_to_termRed, urefl; tea.
       eapply in_cons_ell; right; tea.
   Qed.
 
@@ -482,14 +522,16 @@ Ltac escape :=
     unshelve eapply RPP'ext; tea.
   Qed.
   Context {ht ht' hf hf'}
-    (Rhtext : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), forall n n' (Rn : [Δ ||-EllS n ≅ n' : ℓt | SNtoBRedEqTy (l:=l) wfΔ]),
-      [Δ ||-< l > ht⟨wk_up ℓt ρ⟩[n..] ≅ ht'⟨wk_up ℓt ρ⟩[n'..] : P⟨wk_up ℓ ρ⟩[(tBox ℓ (tEval ℓt n))..] | RPP'extt Δ ρ wfΔ _ _ Rn])
-    (Rhfext : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), forall n n' (Rn : [Δ ||-EllS n ≅ n' : ℓf | SNtoBRedEqTy (l:=l) wfΔ]),
-      [Δ ||-< l > hf⟨wk_up ℓf ρ⟩[n..] ≅ hf'⟨wk_up ℓf ρ⟩[n'..] : P⟨wk_up ℓ ρ⟩[(tBox ℓ (tEval ℓf n))..] | RPP'extf Δ ρ wfΔ _ _ Rn]).
+    (Rhtext : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), forall n n' (Rn : [Δ ||-EllS n ≅ n' : ℓt | SNtoBRed (l:=l) wfΔ]),
+      [Δ ||-< l > ht⟨wk_up ℓt ρ⟩[n..] ≅ ht'⟨wk_up ℓt ρ⟩[n'..] :
+        P⟨wk_up ℓ ρ⟩[(tBox ℓ (tEval ℓt n))..] | RPP'extt Δ ρ wfΔ _ _ Rn])
+    (Rhfext : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), forall n n' (Rn : [Δ ||-EllS n ≅ n' : ℓf | SNtoBRed (l:=l) wfΔ]),
+      [Δ ||-< l > hf⟨wk_up ℓf ρ⟩[n..] ≅ hf'⟨wk_up ℓf ρ⟩[n'..] :
+        P⟨wk_up ℓ ρ⟩[(tBox ℓ (tEval ℓf n))..] | RPP'extf Δ ρ wfΔ _ _ Rn]).
 (*     (Rht : [Γ,,ℓt ||-< l > ht ≅ ht' : _ |RPP't])
     (Rhf : [Γ,,ℓf ||-< l > hf ≅ hf' : _ |RPP'f]). *)
 
-  Let RPext : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), forall n n', [Δ ||-EllS n ≅ n' : ℓ | SNtoBRedEqTy (l:=l) wfΔ] ->
+  Let RPext : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), forall n n', [Δ ||-EllS n ≅ n' : ℓ | SNtoBRed (l:=l) wfΔ] ->
       [Δ ||-< l > P⟨wk_up ℓ ρ⟩[n..] ≅ P⟨wk_up ℓ ρ⟩[n'..]].
   Proof.
     intros * Rn0.
@@ -529,12 +571,12 @@ Ltac escape :=
       assert (Rtnbt : forall n b, in_ell ℓt n b ->
         [Γ ||-S< l > tApp (tEval ℓ t) (nat_to_term n) ≅ bool_to_term b : _ | SboolRed wfΓ]).
       { intros n b [[-> ->]| [inℓ]]%in_cons_ell_relevant; tea.
-        eapply evalnat_to_termRed; tea. }
+        eapply Sevalnat_to_termRed, lrefl; tea. }
       assert (Rt'nbt : forall n b, in_ell ℓt n b ->
         [Γ ||-S< l > tApp (tEval ℓ t') (nat_to_term n) ≅ bool_to_term b : _ | SboolRed wfΓ]).
       { intros n b [[-> ->]| [inℓ]]%in_cons_ell_relevant; tea.
-        eapply evalnat_to_termRed; tea; symmetry; tea. }
-      assert (Rboxeval : [Γ ||-EllS tBox ℓt (tEval ℓ t) ≅ tBox ℓt (tEval ℓ t'): ℓt | SNtoBRedEqTy (l:=l) wfΓ]).
+        eapply Sevalnat_to_termRed, urefl; tea. }
+      assert (Rboxeval : [Γ ||-EllS tBox ℓt (tEval ℓ t) ≅ tBox ℓt (tEval ℓ t'): ℓt | SNtoBRed (l:=l) wfΓ]).
       { eapply SboxRed; tea.
         eapply Rt. }
       unshelve eapply irrLRConv, Rhtext; tea.
@@ -543,13 +585,13 @@ Ltac escape :=
       unshelve eapply RPext; tea.
       etransitivity.
       + eapply SboxRed; tea.
-        { eapply evalBoxRed, lrefl, Rt; tea. }
+        { eapply SevalBoxRed, lrefl, Rt; tea. }
         * intros n b inℓ.
-          eapply evalnat_to_termRed; tea.
+          eapply Sevalnat_to_termRed, lrefl; tea.
           eapply in_cons_ell; right; tea.
         * intros n b inℓ.
-          eapply evalnat_to_termRed; tea.
-      + now eapply etaEllRed, lrefl.
+          eapply Sevalnat_to_termRed, lrefl; tea.
+      + now eapply SetaEllRed, lrefl.
     - escape.
       eapply redSubstTmEq.
       2: eapply redtm_ellElimFalse; tea.
@@ -560,12 +602,12 @@ Ltac escape :=
       assert (Rtnbf : forall n b, in_ell ℓf n b ->
         [Γ ||-S< l > tApp (tEval ℓ t) (nat_to_term n) ≅ bool_to_term b : _ | SboolRed wfΓ]).
       { intros n b [[-> ->]| [inℓ]]%in_cons_ell_relevant; tea.
-        eapply evalnat_to_termRed; tea. }
+        eapply Sevalnat_to_termRed, lrefl; tea. }
       assert (Rt'nbf : forall n b, in_ell ℓf n b ->
         [Γ ||-S< l > tApp (tEval ℓ t') (nat_to_term n) ≅ bool_to_term b : _ | SboolRed wfΓ]).
       { intros n b [[-> ->]| [inℓ]]%in_cons_ell_relevant; tea.
-        eapply evalnat_to_termRed; tea; symmetry; tea. }
-      assert (Rboxeval : [Γ ||-EllS tBox ℓf (tEval ℓ t) ≅ tBox ℓf (tEval ℓ t'): ℓf | SNtoBRedEqTy (l:=l) wfΓ]).
+        eapply Sevalnat_to_termRed, urefl; tea. }
+      assert (Rboxeval : [Γ ||-EllS tBox ℓf (tEval ℓ t) ≅ tBox ℓf (tEval ℓ t'): ℓf | SNtoBRed (l:=l) wfΓ]).
       { eapply SboxRed; tea.
         eapply Rt. }
       unshelve eapply irrLRConv, Rhfext; tea.
@@ -574,16 +616,18 @@ Ltac escape :=
       unshelve eapply RPext; tea.
       etransitivity.
       + eapply SboxRed; tea.
-        { eapply evalBoxRed, lrefl, Rt; tea. }
+        { eapply SevalBoxRed, lrefl, Rt; tea. }
         * intros n b inℓ.
-          eapply evalnat_to_termRed; tea.
+          eapply Sevalnat_to_termRed, lrefl; tea.
           eapply in_cons_ell; right; tea.
         * intros n b inℓ.
-          eapply evalnat_to_termRed; tea.
-      + now eapply etaEllRed, lrefl.
+          eapply Sevalnat_to_termRed, lrefl; tea.
+      + now eapply SetaEllRed, lrefl.
   - epose proof (SneNfTermEq RB r).
     escape.
-    eapply irrLR, neNfTermEq; constructor.
+    unshelve eapply irrLR, neNfTermEq; tea.
+    { now eapply lrefl. }
+    constructor.
     + eapply ty_ellElim; tea.
     + eapply ty_conv.
       { eapply ty_ellElim; tea.
@@ -592,9 +636,6 @@ Ltac escape :=
         - etransitivity; tea. }
       now symmetry.
     + destruct r; eapply convneu_ellElim; tea.
-  Unshelve.
-  tea.
-  eapply lrefl; tea.
   Qed.
 
   Lemma SEllElimRedEq :
@@ -616,9 +657,10 @@ End SEllElimRedEq.
   Section EllElimRedEq.
   Context {Γ l ℓ k P P' t t' b b'} (wfΓ : [|-Γ]) (ℓt := cons_ell ℓ k true) (ℓf := cons_ell ℓ k false)
     (RB := boolRed (l:=l) wfΓ) (RN := natRed (l:=l) wfΓ)
-    (RNtoB := NtoBRedEqTy (l:=l) wfΓ)
+    (RNtoB := NtoBRed (l:=l) wfΓ)
     (gP : [Γ,,ℓ |- P]) (gP' : [Γ,,ℓ |- P']) (gPP' : [Γ,,ℓ |- P ≅ P'])
-    (RPP'ext : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), forall t t', [Δ ||-Ell t ≅ t' : ℓ | NtoBRedEqTy (l:=l) wfΔ] ->
+    (RPP'ext : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]),
+      forall t t', [Δ ||-Ell t ≅ t' : ℓ | NtoBRed (l:=l) wfΔ] ->
       [Δ ||-< l > P⟨wk_up ℓ ρ⟩[t..] ≅ P'⟨wk_up ℓ ρ⟩[t'..]])
     (Rt  : [Γ ||-Ell t ≅ t' : ℓ | RNtoB]) (Rb : [Γ ||-< l > b ≅ b' : tBool | RB])
     (Rtkb : [Γ ||-< l > tApp (tEval ℓ t) (nat_to_term k) ≅ b : tBool | RB])
@@ -637,32 +679,26 @@ End SEllElimRedEq.
     eapply reflectEll.
     repeat constructor.
   Qed.
-  Let RPP'extt : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), forall n n', [Δ ||-Ell n ≅ n' : ℓt | NtoBRedEqTy (l:=l) wfΔ] ->
+  Let RPP'extt : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), forall n n', [Δ ||-Ell n ≅ n' : ℓt | NtoBRed (l:=l) wfΔ] ->
       [Δ ||-< l > P⟨wk_up ℓ ρ⟩[(tBox ℓ (tEval ℓt n))..] ≅ P'⟨wk_up ℓ ρ⟩[(tBox ℓ (tEval ℓt n'))..]].
   Proof.
     intros * Rn0.
     unshelve eapply RPP'ext; tea.
     eapply boxRed.
-    + eapply EvalRedEq; tea.
+    + eapply evalRedEq; tea.
     + intros ?? inℓ.
-      eapply evalnat_to_termRed; tea.
-      eapply in_cons_ell; right; tea.
-    + intros ?? inℓ.
-      eapply evalnat_to_termRed, PER_Symmetric; tea.
+      eapply evalnat_to_termRed, lrefl; tea.
       eapply in_cons_ell; right; tea.
   Qed.
-  Let RPP'extf : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), forall n n', [Δ ||-EllS n ≅ n' : ℓf | SNtoBRedEqTy (l:=l) wfΔ] ->
+  Let RPP'extf : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), forall n n', [Δ ||-Ell n ≅ n' : ℓf | NtoBRed (l:=l) wfΔ] ->
       [Δ ||-< l > P⟨wk_up ℓ ρ⟩[(tBox ℓ (tEval ℓf n))..] ≅ P'⟨wk_up ℓ ρ⟩[(tBox ℓ (tEval ℓf n'))..]].
   Proof.
     intros * Rn0.
     unshelve eapply RPP'ext; tea.
-    eapply SboxRed.
-    + eapply EvalRedEq; tea.
+    eapply boxRed.
+    + eapply evalRedEq; tea.
     + intros ?? inℓ.
-      eapply evalnat_to_termRed; tea.
-      eapply in_cons_ell; right; tea.
-    + intros ?? inℓ.
-      eapply evalnat_to_termRed, PER_Symmetric; tea.
+      eapply evalnat_to_termRed, lrefl; tea.
       eapply in_cons_ell; right; tea.
   Qed.
 
@@ -673,14 +709,14 @@ End SEllElimRedEq.
     unshelve eapply RPP'ext; tea.
   Qed.
   Context {ht ht' hf hf'}
-    (Rhtext : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), forall n n' (Rn : [Δ ||-EllS n ≅ n' : ℓt | SNtoBRedEqTy (l:=l) wfΔ]),
+    (Rhtext : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), forall n n' (Rn : [Δ ||-Ell n ≅ n' : ℓt | NtoBRed (l:=l) wfΔ]),
       [Δ ||-< l > ht⟨wk_up ℓt ρ⟩[n..] ≅ ht'⟨wk_up ℓt ρ⟩[n'..] : P⟨wk_up ℓ ρ⟩[(tBox ℓ (tEval ℓt n))..] | RPP'extt Δ ρ wfΔ _ _ Rn])
-    (Rhfext : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), forall n n' (Rn : [Δ ||-EllS n ≅ n' : ℓf | SNtoBRedEqTy (l:=l) wfΔ]),
+    (Rhfext : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), forall n n' (Rn : [Δ ||-Ell n ≅ n' : ℓf | NtoBRed (l:=l) wfΔ]),
       [Δ ||-< l > hf⟨wk_up ℓf ρ⟩[n..] ≅ hf'⟨wk_up ℓf ρ⟩[n'..] : P⟨wk_up ℓ ρ⟩[(tBox ℓ (tEval ℓf n))..] | RPP'extf Δ ρ wfΔ _ _ Rn]).
 (*     (Rht : [Γ,,ℓt ||-< l > ht ≅ ht' : _ |RPP't])
     (Rhf : [Γ,,ℓf ||-< l > hf ≅ hf' : _ |RPP'f]). *)
 
-  Let RPext : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), forall n n', [Δ ||-EllS n ≅ n' : ℓ | SNtoBRedEqTy (l:=l) wfΔ] ->
+  Let RPext : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), forall n n', [Δ ||-Ell n ≅ n' : ℓ | NtoBRed (l:=l) wfΔ] ->
       [Δ ||-< l > P⟨wk_up ℓ ρ⟩[n..] ≅ P⟨wk_up ℓ ρ⟩[n'..]].
   Proof.
     intros * Rn0.
@@ -689,22 +725,22 @@ End SEllElimRedEq.
     eapply urefl; tea.
   Qed.
 
-  Let RPP'tt := RPP'extt _ (wk1 ℓt) wfΓℓt _ _ (Svar0Ell _).
+  Let RPP'tt := RPP'extt _ (wk1 ℓt) wfΓℓt _ _ (var0Ell _).
   Let Rht : [Γ,,ℓt ||-< l > ht ≅ ht' : _|RPP'tt].
   Proof.
-    specialize (Rhtext _ (wk1 ℓt) wfΓℓt _ _ (Svar0Ell _)) as Rht.
+    specialize (Rhtext _ (wk1 ℓt) wfΓℓt _ _ (var0Ell _)) as Rht.
     now rewrite ! wk1_eta in Rht.
   Qed.
-  Let RPP'ff := RPP'extf _ (wk1 ℓf) wfΓℓf _ _ (Svar0Ell _).
+  Let RPP'ff := RPP'extf _ (wk1 ℓf) wfΓℓf _ _ (var0Ell _).
   Let Rhf : [Γ,,ℓf ||-< l > hf ≅ hf' : _|RPP'ff].
   Proof.
-    specialize (Rhfext _ (wk1 ℓf) wfΓℓf _ _ (Svar0Ell _)) as Rhf.
+    specialize (Rhfext _ (wk1 ℓf) wfΓℓf _ _ (var0Ell _)) as Rhf.
     now rewrite ! wk1_eta in Rhf.
   Qed.
 
-  Lemma SEllElimRedEqAux : forall b b' (Rbb' : BoolPropEq Γ b b')
-    (Rnb : [Γ ||-S< l > tApp (tEval ℓ t) (nat_to_term k) ≅ b : tBool | RB])
-    (Rn'b : [Γ ||-S< l > tApp (tEval ℓ t') (nat_to_term k) ≅ b : tBool | RB]),
+(*   Lemma SEllElimRedEqAux : forall b b' (Rbb' : BoolPropEq Γ b b')
+    (Rnb : [Γ ||-< l > tApp (tEval ℓ t) (nat_to_term k) ≅ b : tBool | RB])
+    (Rn'b : [Γ ||-< l > tApp (tEval ℓ t') (nat_to_term k) ≅ b : tBool | RB]),
     [Γ ||-< l > tEllElim k ℓ P ht hf t b ≅ tEllElim k ℓ P' ht' hf' t' b' : P[t..] | RPP't].
   Proof.
     clear dependent b. clear b'.
@@ -786,7 +822,7 @@ End SEllElimRedEq.
   Unshelve.
   tea.
   eapply lrefl; tea.
-  Qed.
+  Qed. *)
 
   Lemma SEllElimRedEq :
     [Γ ||-< l > tEllElim k ℓ P ht hf t b ≅ tEllElim k ℓ P' ht' hf' t' b' : P[t..] | RPP't].

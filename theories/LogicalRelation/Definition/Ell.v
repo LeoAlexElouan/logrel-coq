@@ -1,13 +1,39 @@
 From Stdlib Require Import CRelationClasses.
 From LogRel Require Import Utils Syntax.All GenericTyping Monad.
-From LogRel.LogicalRelation.Definition Require Import Universe Bool Def.
+From LogRel.LogicalRelation.Definition Require Import Universe Bool Def Helper.
 
+  Lemma SNtoBRed `{GenericTypingProperties} Γ (wfΓ : [|-Γ]) : [Γ ||-S< zero > arr' Γ tNat tBool ].
+  Proof.
+    assert(gN : [Γ |- tNat]).
+    { eapply wft_term, ty_nat; tea. }
+    assert (wfΓN : [|-Γ,, tNat]).
+    { eapply wfc_cons, wft_term, ty_nat; tea. }
+    assert (gB : [Γ,,tNat |- tBool]).
+    { eapply wft_term, ty_bool; tea. }
+    eapply LRPi'.
+    exists tNat tNat tBool tBool.
+    1,2: constructor; tea;
+      eapply redtywf_refl, wft_prod; tea.
+    + eapply convty_term, convtm_nat; tea.
+    + eapply convty_prod, convty_term, convtm_bool; tea.
+      eapply convty_term, convtm_nat; tea.
+    + unshelve econstructor.
+      - intros * wfΔ.
+        apply LRNat_.
+        constructor; eapply redtywf_refl, wft_term, ty_nat; tea.
+      - intros * _.
+        eapply Split_return; tea.
+        intros Ξ wfΞ ρΞ.
+        apply LRBool_.
+        constructor; eapply redtywf_refl, wft_term, ty_bool; tea.
+  Qed.
 
 Module EllRedTmEq.
 Section EllRedTmEq.
   Context `{ta : tag} `{WfContext ta} `{WfType ta} `{ConvType ta}
     `{RedType ta} `{Typing ta} `{ConvNeuConv ta} `{ConvTerm ta}
     `{RedTerm ta} {l : TypeLevel} {Γ : context} {RNtoB : [Γ ||-S<l> arr' Γ tNat tBool] } {ℓ : ell}.
+
 
   Inductive isLREll : term -> Type :=
   | boxLREll {t} : [Γ ||-S< l > t : arr' Γ tNat tBool | RNtoB] ->
