@@ -1,6 +1,7 @@
 From LogRel Require Import Utils Syntax.All GenericTyping LogicalRelation.
 From LogRel.LogicalRelation Require Import Properties.
 From LogRel.Validity Require Import Validity Irrelevance.
+From LogRel.LogicalRelation.Introductions Require Ell.
 
 Set Universe Polymorphism.
 Set Printing Primitive Projection Parameters.
@@ -14,6 +15,9 @@ Proof.
   revert Δ wfΔ σ σ'; indValid VΓ.
   - intros. apply conv_sempty.
   - intros * ih ???? []. now eapply conv_sconsε, ih.
+  - intros * ih ???? []. apply conv_scons.
+    + now eapply ih.
+    + now escape.
   - intros * ih ???? []. apply conv_scons.
     + now eapply ih.
     + now escape.
@@ -75,6 +79,11 @@ Proof.
       2: now unshelve now eapply wkLR.
       rewrite subst_ren_wk.
       eapply subst_subst_eq; constructor; reflexivity.
+  - intros * ih * [tl hd]; unshelve econstructor.
+    + eapply irrelevanceSubstEqExt, ih with (ρ:=ρ) ; tea; constructor; cbn; bsimpl; reflexivity.
+    + unshelve now eapply irrEll, wkEll.
+      change (arr' Δ' tNat tBool) with (arr' Δ tNat tBool)⟨ρ⟩.
+      now eapply wkLRTy, (validTyExt VNtoB wfΔ tl).
 Qed.
 
 Lemma wk1Subst {Γ Γ' σ σ' Δ F} (VΓ : [||-v Γ ≅ Γ'])
@@ -162,7 +171,7 @@ Lemma liftSubst' {Γ Γ' σ σ' Δ lF F F'} {VΓ : [||-v Γ ≅ Γ' ]} {wfΔ : [
   (Vσ : [Δ ||-v σ ≅ σ' : Γ | VΓ | wfΔ ]) :
   let VΓF := validSnoc VΓ VF in
   let wfΔF := wfc_cons wfΔ (escapeSplit (validTyExt VF wfΔ Vσ)) in
-  [Δ ,, F[σ] ||-v up_subst σ ≅ up_subst σ' : Γ ,, F | VΓF | wfΔF ].
+  [Δ ,, term_decl F[σ] ||-v up_subst σ ≅ up_subst σ' : Γ ,, F | VΓF | wfΔF ].
 Proof.
   intros; unshelve opector.
   + eapply irrelevanceSubstEqExt, wk1Subst, Vσ.
@@ -176,7 +185,7 @@ Lemma liftSubstSym' {Γ Γ' σ σ' Δ lF F F'} {VΓ : [||-v Γ ≅ Γ' ]} {wfΔ 
   (Vσ : [Δ ||-v σ ≅ σ' : Γ | VΓ | wfΔ ]) :
   let VΓF := symValid (validSnoc VΓ VF) in
   let wfΔF := wfc_cons wfΔ (escapeSplit (validTyExt (symValidTy' VF) wfΔ (symSubst _ _ _ _ Vσ))) in
-  [Δ ,, F'[σ'] ||-v up_subst σ' ≅ up_subst σ : Γ' ,, F' | VΓF | wfΔF ].
+  [Δ ,, term_decl F'[σ'] ||-v up_subst σ' ≅ up_subst σ : Γ' ,, F' | VΓF | wfΔF ].
 Proof.
   unshelve eapply irrelevanceSubst, liftSubst'; cycle 3; [now eapply symValidTy'|..]; tea.
   now eapply symSubst.
@@ -189,7 +198,7 @@ Lemma wk1ValidTy {Γ Γ' lA A A' lF F F'} {VΓ : [||-v Γ ≅ Γ']} (VF : [Γ ||
   [Γ ,, F ||-v<lA> A ⟨ @wk1 Γ F ⟩ ≅ A' ⟨ @wk1 Γ' F' ⟩ | validSnoc VΓ VF ].
 Proof.
   intros VA; constructor; intros * [hd tl].
-  rewrite 2wk1_subst; now eapply validTyExt.
+  rewrite 2 wk1_subst; now eapply validTyExt.
 Qed.
 
 Lemma wk1ValidTm {Γ Γ' lA t u A A' lF F F'} {VΓ : [||-v Γ ≅ Γ']}
@@ -211,7 +220,7 @@ Lemma cons2ValidSubst {Γ Γ' σ σ' t t' u u' l A A' B B' Δ} {VΓ : [||-v Γ �
   {VB : [Γ ||-v<l> B ≅ B' | VΓ]}
   (Vt : [Γ ||-v<l> t ≅ t' : A | VΓ | VA])
   (Vu : [Γ ||-v<l> u ≅ u' : B | VΓ | VB]) :
-  [Δ ||-v σ ∘s to_subst (t.:u..) ≅  σ' ∘s to_subst (t'.: u'..) : Γ ,, B ,, A⟨@wk1 Γ B⟩  | validSnoc (validSnoc VΓ VB) (wk1ValidTy VB VA) | wfΔ ].
+  [Δ ||-v σ ∘s to_subst (t.:u..) ≅  σ' ∘s to_subst (t'.: u'..) : Γ ,, B ,, term_decl A⟨@wk1 Γ B⟩  | validSnoc (validSnoc VΓ VB) (wk1ValidTy VB VA) | wfΔ ].
 Proof.
   unshelve opector; intros; tea.
   + rewrite !tail_double_subst.
@@ -264,13 +273,19 @@ Proof.
     assert (hA : [Γ |- A]) by (rewrite subst_id_on; exact (escapeSplit RA)).
     pose (wfΓA := wfc_cons wfΓ hA).
     assert (Vs : [VΓ | _ ||-v tail_subst subst_id : _ | wfΓA]).
-    1:{
-      eapply irrelevanceSubstEqExt, wkSubst with (ρ := @wk1 Γ A), ih;
-        constructor; cbn; bsimpl; try reflexivity; tea.
+    { eapply irrelevanceSubstEqExt, wkSubst with (ρ := @wk1 Γ A), ih;
+        constructor; cbn; bsimpl; try reflexivity; eapply term_decl; tea.
     }
     exists wfΓA; exists Vs.
     eapply var0; tea.
     now rewrite <- wk1_subst with (A:= A) (Γ:=Γ), <- subst_id_on.
+  - intros ???? VΓ VNtoB [wfΓ ih].
+    pose (wfΓℓ := wfc_consell wfΓ : [|-Γ,,ℓ]).
+    assert (Vs : [VΓ | _ ||-v tail_subst subst_id : _ | wfΓℓ]).
+    { eapply irrelevanceSubstEqExt, wkSubst with (ρ := @wk1 Γ ℓ), ih;
+        constructor; cbn; bsimpl; try reflexivity; eapply ell_decl; tea. }
+    exists wfΓℓ; exists Vs.
+    eapply Ell.var0Ell.
 Qed.
 
 
@@ -297,18 +312,27 @@ Lemma wkrenSubst {Γ Δ} (ρ : Δ ≤ Γ) :
   forall {Γ' Δ'} (VΓ : [||-v Γ ≅ Γ']) (VΔ : [||-v Δ ≅ Δ'])  {Ξ σ σ'} (wfΞ : [|- Ξ]),
   [VΔ | Ξ ||-v σ ≅ σ' : _ | wfΞ] -> [VΓ | Ξ ||-v ρ >>s σ ≅ ρ >>s σ' : _ | wfΞ].
 Proof.
-  induction ρ using wk_induction; intros * Vσ.
+  induction ρ using wk_induction; [|destruct A as [A | ℓ]..| | ]; intros * Vσ.
   + pose proof (invValidity VΓ) as (e&h); subst; cbn in h; subst.
     constructor.
   + pose proof (invValidity VΔ) as (?&?&?&?&?&e&h); subst; cbn in h; subst.
     destruct Vσ as [htl hhd].
     eapply (IHρ _ _ _ _ _ _ _ _ htl).
-  + pose proof (invValidity VΔ) as (?&?&?&?&?&e&h); subst; cbn in h; subst.
+  + pose proof (invValidity VΔ) as (?&?&?&?&e&h); subst; cbn in h; subst.
+    destruct Vσ as [htl hhd].
+    eapply (IHρ _ _ _ _ _ _ _ _ htl).
+  + change (term_decl A)⟨ρ⟩ with (term_decl A⟨ρ⟩) in VΔ.
+    pose proof (invValidity VΔ) as (?&?&?&?&?&e&h); subst; cbn in h; subst.
     pose proof (invValidity VΓ) as (?&?&?&?&?&e&h); subst; cbn in h; subst.
     destruct Vσ as [tl hd]. opector.
     - refine (IHρ _ _ _ _ _ _ _ _ tl).
-    - eapply irrLREqCum; tea;
+    - eapply irrLREqCum; tea.
       now rewrite wk_subst_comp_on.
+  + pose proof (invValidity VΔ) as (?&?&?&?&e&h); subst; cbn in h; subst.
+    pose proof (invValidity VΓ) as (?&?&?&?&e&h); subst; cbn in h; subst.
+    destruct Vσ as [tl hd]. opector.
+    - refine (IHρ _ _ _ _ _ _ _ _ tl).
+    - eapply irrEll; tea.
   + pose proof (invValidity VΔ) as (?&?&?&?&e&h); subst; cbn in h; subst.
     destruct Vσ as [htl i hd hi hin].
     eapply (IHρ _ _ _ _ _ _ _ _ htl).

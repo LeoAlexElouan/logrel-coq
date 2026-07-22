@@ -995,15 +995,15 @@ Lemma wk_induction Γ Δ (P : forall Γ Δ, Δ ≤ Γ -> Type) :
   P ε ε wk_empty ->
   (forall Γ Δ A ρ, P Γ Δ ρ -> P _ _ (wk_step A ρ)) ->
   (forall Γ Δ A ρ, P Γ Δ ρ -> P _ _ (wk_up A ρ)) ->
-  (forall L L' ρ i new b,
-    P (fromFctx L) (fromFctx L') ρ -> P _ _ (wk_Fstep i new b ρ)) ->
+(*   (forall L L' ρ i new b,
+    P (fromFctx L) (fromFctx L') ρ -> P _ _ (wk_Fstep i new b ρ)) -> *)
   (forall L L' F ρ,
     P (fromFctx L) (fromFctx L') ρ -> P _ _ (wk_alphastep F ρ)) ->
   (forall L L' (F F' : ell) ρ (ρF : F' ≤ε F),
     P (fromFctx L) (fromFctx L') ρ -> P _ _ (wk_alphaup ρ ρF)) ->
   forall (ρ : Δ ≤ Γ), P Γ Δ ρ.
 Proof. revert Γ Δ.
-  intros [Γ L] [Δ L'] Hempty Hstep Hup HFstep Halphastep Halphaup [ρε wρε ρ wρ].
+  intros [Γ L] [Δ L'] Hempty Hstep Hup (* HFstep *) Halphastep Halphaup [ρε wρε ρ wρ].
   cbn in *.
   induction wρ in Γ, Δ, ρ, wρ |-*; cbn in *.
   + induction wρε.
@@ -1012,6 +1012,58 @@ Proof. revert Γ Δ.
     * now eapply Halphaup in IHwρε.
   + now eapply Hstep in IHwρ.
   + now eapply Hup in IHwρ.
+Qed.
+
+Lemma in_here' Γ A : in_ctx (Γ,, A) 0 A⟨@wk1 Γ A⟩.
+Proof.
+  destruct A.
+  + change (term_decl ?t)⟨?ρ⟩ with (term_decl t⟨ρ⟩). rewrite wk1_ren_on.
+    exact (in_here _ _).
+  + exact (in_here _ _).
+Defined.
+Lemma in_there' Γ A A' n : in_ctx Γ n A -> in_ctx (Γ,,A') (S n) A⟨@wk1 Γ A'⟩.
+Proof.
+  intros hin.
+  destruct A.
+  + change (term_decl ?t)⟨?ρ⟩ with (term_decl t⟨ρ⟩). rewrite wk1_ren_on.
+    exact (in_there _ _ _ _ hin).
+  + cbn. exact (in_there _ _ _ _ hin).
+Defined.
+
+Lemma in_ctx_induction : forall P : forall Γ n A, in_ctx Γ n A -> Type,
+  (forall Γ A, P (Γ,, A) 0 A⟨@wk1 Γ A⟩ (in_here' Γ A)) ->
+  (forall Γ A A' n (hin : in_ctx Γ n A),
+    P Γ n A hin -> P _ (S n) A⟨@wk1 Γ A'⟩ (in_there' Γ A A' n hin)) ->
+  forall Γ n A (hin : in_ctx Γ n A), P Γ n A hin.
+Proof.
+  intros P hhere hthere *. change Γ with (Build_context Γ Γ). induction hin.
+  + specialize (hhere (Build_context Γ0 Γ) A).
+    unfold in_here' in hhere.
+    destruct A.
+    - change (term_decl ?t)⟨?ρ⟩ with (term_decl t⟨ρ⟩) in hhere.
+      rewrite wk1_ren_on in hhere.
+      eapply hhere.
+    - eapply hhere.
+  + specialize (hthere (Build_context Γ0 Γ) A A' n hin IHhin).
+    unfold in_there' in hthere.
+    destruct A.
+    - change (term_decl ?t)⟨?ρ⟩ with (term_decl t⟨ρ⟩) in hthere.
+      rewrite (wk1_ren_on (Build_context Γ0 (Fctx Γ)) A' t) in hthere.
+      eapply hthere.
+    - eapply hthere.
+Qed.
+
+Lemma term_in_ctx_induction : forall P : forall Γ n A, in_ctx Γ n (term_decl A) -> Type,
+  (forall Γ (A : term), P (Γ,, A) 0 A⟨@wk1 Γ A⟩ (in_here' Γ A)) ->
+  (forall Γ (A : term) A' n (hin : in_ctx Γ n A) (IH : P Γ n A hin),
+      P _ (S n) A⟨@wk1 Γ A'⟩ (in_there' Γ A A' n hin)) ->
+  forall Γ n (A : term) (hin : in_ctx Γ n A), P Γ n A hin.
+Proof.
+  intros P hhere hthere *.
+  change (?P A hin) with
+    (match term_decl A as t return forall (hin : in_ctx Γ n t), Type with
+      term_decl A => P A | ell_decl ℓ => fun _ => True end hin).
+  now induction hin using in_ctx_induction; destruct A0; cbn.
 Qed.
 
 (* 

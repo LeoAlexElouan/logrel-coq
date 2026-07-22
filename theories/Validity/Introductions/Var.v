@@ -18,7 +18,7 @@ Section Var.
   Qed.
 
 
-  Lemma var0Valid' {Γ Γ' l A A'} (VΓ : [||-v Γ,,A ≅ Γ']) (VA : [Γ,,A ||-v<l> A⟨@wk1 Γ A⟩ ≅ A' | VΓ]) :
+  Lemma var0Valid' {Γ Γ' l} {A A' : term} (VΓ : [||-v Γ,,A ≅ Γ']) (VA : [Γ,,A ||-v<l> A⟨@wk1 Γ A⟩ ≅ A' | VΓ]) :
     [Γ,, A ||-v<l> tRel 0 : _ | VΓ | VA ].
   Proof.
     pose proof (invValidity VΓ) as (?&?&?&?&?&e&h); subst; cbn in h; subst.
@@ -26,24 +26,31 @@ Section Var.
     now rewrite wk1_subst.
   Qed.
 
-  Lemma in_ctx_valid {Γ : context} {A n} (hin : in_ctx Γ n A)
+  Lemma in_ctx_valid {Γ : context} {A : term} {n} (hin : in_ctx Γ n A)
     : forall {Γ'} (VΓ : [||-v Γ ≅ Γ']), ∑ l B, [Γ ||-v<l> A ≅ B | VΓ].
   Proof.
-    induction hin as [| ???? hin ih] using in_ctx_induction; intros ? VΓ;
-    pose proof (invValidity VΓ) as (?&?&?&VΓ'&VA &e&?); subst; cbn in *; subst.
-    2: destruct (ih _ VΓ') as (?&?&?).
-    all: eexists _, _; erewrite <- wk1_ren_on; now eapply wk1ValidTy.
+    pattern Γ, n, A, hin.
+    eapply term_in_ctx_induction; clear Γ A n hin; intros.
+    + pose proof (invValidity VΓ) as (?&?&?&VΓ'&VA &e&?); subst; cbn in *; subst.
+      do 2 eexists; now eapply wkValidTy.
+    + destruct A'.
+      - pose proof (invValidity VΓ) as (?&?&?&VΓ'&VA &e&?); subst; cbn in *; subst.
+        destruct (IH _ VΓ') as (?&?&?).
+        do 2 eexists; now eapply wkValidTy.
+      - pose proof (invValidity VΓ) as (?&?&VΓ'&VNtoB &e&?); subst; cbn in *; subst.
+        destruct (IH _ VΓ') as (?&?&?).
+        do 2 eexists; now eapply wkValidTy.
   Qed.
 
 
-  Lemma varnValid {Γ A n} (hin : in_ctx Γ n A) :
+  Lemma varnValid {Γ} {A : term} {n} (hin : in_ctx Γ n A) :
     forall l {Γ' A'} (VΓ : [||-v Γ ≅ Γ']) (VA : [Γ ||-v<l> A ≅ A' | VΓ]),
       [Γ ||-v<l> tRel n : _ | VΓ | VA ].
   Proof.
-    induction hin as [| ???? hin ih] using in_ctx_induction; intros l ?? VΓ; 
-      erewrite <- wk1_ren_on; intros VA.
+    pattern Γ, n, A, hin.
+    eapply term_in_ctx_induction; clear Γ A n hin; intros.
     1: eapply var0Valid'.
-    pose proof (invValidity VΓ) as  (?&?&?&VΓ'&VA'&?&h) ; subst; cbn in h; subst.
+    pose proof (invValidity VΓ) (?&?&?&VΓ'&VA'&?&h) ; subst; cbn in h; subst.
     destruct (in_ctx_valid hin VΓ') as (?&?&h).
     pose proof (h' := wk1ValidTm VA' _ (ih _ _ _ _ h)).
     cbn -[wk1] in h'; rewrite wk1_ren in h'; unfold shift in h'.

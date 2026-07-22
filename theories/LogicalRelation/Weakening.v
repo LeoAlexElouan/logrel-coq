@@ -246,6 +246,18 @@ Section Weakenings.
       now eapply wkNeNfEq.
   Qed.
 
+  Lemma wkBoolTm Γ t u : [Γ ||-Bool t ≅ u :Bool] ->
+    forall (Δ : context) (ρ : Δ ≤ Γ), [ |-[ ta ] Δ] -> [Δ ||-Bool t⟨ρ⟩ ≅ u⟨ρ⟩:Bool].
+  Proof.
+    intros [] ?? wfΔ.
+    econstructor; change tBool with tBool⟨ρ⟩.
+    1,2: now eapply redtmwf_wk.
+    1: rewrite wk_decl; gtyping.
+    destruct prop; constructor.
+    change (term_decl tBool) with (term_decl tBool)⟨ρ⟩.
+    now eapply wkNeNfEq.
+  Qed.
+
   Lemma wkLR_rec@{h i j k l} {l} (ih : forall l', l' << l -> wkStmt@{h i j k} l') :
     wkStmt@{i j k l} l.
   Proof.
@@ -266,12 +278,8 @@ Section Weakenings.
         now eapply wkNatTm.
     - intros; unshelve econstructor.
       + intros; now apply LRBool_, wkBool.
-      + cbn; intros ????? [ ]; econstructor; change tBool with tBool⟨ρ⟩.
-        1,2: now eapply redtmwf_wk.
-        1: rewrite wk_decl; gtyping.
-        destruct prop; constructor.
-        change (term_decl tBool) with (term_decl tBool)⟨ρ⟩.
-        now eapply wkNeNfEq.
+      + cbn; intros ????? hBool.
+        now eapply wkBoolTm.
     - intros; unshelve econstructor.
       + intros; now eapply LREmpty_, wkEmpty.
       + cbn; intros ????? []; econstructor; change tEmpty with tEmpty⟨ρ⟩.

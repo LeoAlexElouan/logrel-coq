@@ -67,6 +67,7 @@ theories/LogicalRelation/InstKripke.v
 theories/LogicalRelation/Reduction.v
 theories/LogicalRelation/NormalRed.v
 # theories/LogicalRelation/LRTactics.v
+theories/LogicalRelation/EllProperties.v
 theories/LogicalRelation/Properties.v
 
 theories/LogicalRelation/Introductions/Universe.v

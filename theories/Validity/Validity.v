@@ -21,7 +21,7 @@ Ltac substitution := eauto with substitution.
 
 
 (*   Inductive Fequiv L L' : Set := Fequiv_make : L ≤ε L' -> L' ≤ε L -> Fequiv L L'. *)
-  Notation "ℓ =ε ℓ'" := (ℓ = ℓ' :> ell).
+  Notation "ℓ =ε ℓ'" := (ℓ = ℓ' :> ell) (only parsing).
 (*   Instance Equivalence_Fequiv : Equivalence Fequiv.
   Proof.
     split.
@@ -213,24 +213,24 @@ Section ℓsnocValid.
   Context `{ta : tag} `{!WfContext ta}
   `{!WfType ta} `{!Typing ta} `{!ConvType ta}
   `{!ConvTerm ta} `{!ConvNeuConv ta} `{!RedType ta} `{!RedTerm ta}
-  {Γ Γ': context} {VΓ : VPack@{u} Γ Γ'} {A A' : term} {l : TypeLevel}
-  {vA : typeValidity@{u i j k l} Γ Γ' VΓ l A A' (* [ VΓ | Γ ||-v< l > A ] *)}.
+  {Γ Γ': context} {VΓ : VPack@{u} Γ Γ'} {ℓ : ell} {l : TypeLevel}
+  (vNtoB : typeValidity@{u i j k l} Γ Γ' VΓ l (arr' Γ tNat tBool) (arr' Γ tNat tBool)).
 
 
-  Record snocEqSubst {Δ : context} {wfΔ : [|- Δ]} {σ σ' : substitution} : Type :=
+  Record ℓsnocEqSubst {Δ : context} {wfΔ : [|- Δ]} {σ σ' : substitution} : Type :=
     {
-      eqTail : [ VΓ | Δ ||-v tail_subst σ ≅ tail_subst σ' : Γ | wfΔ ] ;
-      eqHead : [ Δ ||-< l > (subst_subst σ) var_zero ≅ (subst_subst σ') var_zero : A[tail_subst σ] | validTyExt vA wfΔ eqTail ]
+      ℓeqTail : [ VΓ | Δ ||-v tail_subst σ ≅ tail_subst σ' : Γ | wfΔ ] ;
+      ℓeqHead : [ Δ ||-Ell (subst_subst σ) var_zero ≅ (subst_subst σ') var_zero : ℓ | validTyExt vNtoB wfΔ ℓeqTail ]
     }.
 
-  Definition snocVPack := Build_VPack@{u (* max(u,k) *)} (Γ ,, A) (Γ',,A') (@snocEqSubst).
-End snocValid.
+  Definition ℓsnocVPack := Build_VPack@{u (* max(u,k) *)} (Γ ,, ℓ) (Γ',, ℓ) (@ℓsnocEqSubst).
+End ℓsnocValid.
 
-Arguments snocEqSubst : clear implicits.
-Arguments snocEqSubst {_ _ _ _ _ _ _ _ _}.
+Arguments ℓsnocEqSubst : clear implicits.
+Arguments ℓsnocEqSubst {_ _ _ _ _ _ _ _ _}.
 
-Arguments snocVPack : clear implicits.
-Arguments snocVPack {_ _ _ _ _ _ _ _ _}.
+Arguments ℓsnocVPack : clear implicits.
+Arguments ℓsnocVPack {_ _ _ _ _ _ _ _ _}.
 
 Unset Elimination Schemes.
 
@@ -247,8 +247,13 @@ Inductive VR@{i j k l} `{ta : tag}
   | VRSnoc : forall {Γ Γ':context} {A A' l}
     (VΓ : VPack@{k} Γ Γ')
     (VΓad : VPackAdequate@{k l} VR VΓ)
-    (VA : typeValidity@{k i j k l} Γ Γ' VΓ l A A' (*[ VΓ | Γ ||-v< l > A ]*)),
-    VR (Γ,,A) (Γ',,A') (snocEqSubst Γ Γ' VΓ A A' l VA).
+    (VA : typeValidity@{k i j k l} Γ Γ' VΓ l A A'),
+    VR (Γ,,A) (Γ',,A') (snocEqSubst Γ Γ' VΓ A A' l VA)
+  | VRSnocℓ : forall {Γ Γ':context} {ℓ : ell} {l}
+    (VΓ : VPack@{k} Γ Γ')
+    (VΓad : VPackAdequate@{k l} VR VΓ)
+    (VNtoB : typeValidity@{k i j k l} Γ Γ' VΓ l _ _),
+    VR (Γ,, ℓ ) (Γ',, ℓ) (ℓsnocEqSubst Γ Γ' VΓ ℓ l VNtoB).
 
 
 Set Elimination Schemes.
@@ -274,6 +279,11 @@ Section MoreDefs.
     (VΓ : [VR@{i j k l}| ||-v Γ ≅ Γ']) (VA : [Γ ||-v< l > A ≅ A' | VΓ])
     : [||-v Γ ,, A ≅ Γ' ,, A'] :=
     Build_VAdequate (snocVPack Γ Γ' VΓ A A' l VA) (VRSnoc VΓ VΓ VA).
+
+  Definition validSnocℓ@{i j k l} {Γ Γ' : context} l
+    (VΓ : [VR@{i j k l}| ||-v Γ ≅ Γ']) VNtoB (ℓ : ell) :
+    [||-v Γ ,, ℓ ≅ Γ' ,, ℓ] :=
+    Build_VAdequate (ℓsnocVPack Γ Γ' VΓ ℓ l VNtoB) (VRSnocℓ VΓ VΓ VNtoB).
 
   Definition validSnocε@{i j k l} {L L' : list ell} (Γ:= fromFctx L) (Γ' := fromFctx L') {F F'}
     (VΓ : [VR@{i j k l}| ||-v Γ ≅ Γ']) (VF : F =ε F')
@@ -374,10 +384,12 @@ Section Inductions.
     (hsnocε : forall {L L' : list ell} (Γ:= fromFctx L) (Γ' := fromFctx L') {F F' VΓ VΓad VF},
       P VΓad -> P (VRSnocε (L := L) (L':=L') (F := F) (F':=F') VΓ VΓad VF))
     (hsnoc : forall {Γ Γ' A A' l VΓ VΓad VA},
-      P VΓad -> P (VRSnoc (Γ := Γ) (Γ':=Γ') (A := A) (A':=A') (l := l) VΓ VΓad VA)) :
+      P VΓad -> P (VRSnoc (Γ := Γ) (Γ':=Γ') (A := A) (A':=A') (l := l) VΓ VΓad VA))
+    (hsnocℓ : forall {Γ Γ' ℓ l VΓ VΓad VNtoB},
+      P VΓad -> P (VRSnocℓ (Γ := Γ) (Γ':=Γ') (ℓ := ℓ) (l := l) VΓ VΓad VNtoB)) :
     forall {Γ Γ' : context} {vSubstExt} (VΓ : VR Γ Γ' vSubstExt), P VΓ.
   Proof.
-    fix ih 4; destruct VΓ; [apply hε | apply hsnocε; apply ih | apply hsnoc; apply ih].
+    fix ih 4; destruct VΓ; [apply hε | apply hsnocε; apply ih | apply hsnoc; apply ih | apply hsnocℓ; apply ih ].
   Defined.
 
   Theorem validity_rect
@@ -385,7 +397,10 @@ Section Inductions.
     (hε : P validEmpty)
     (hsnocε : forall {L L' : list ell} (Γ:= fromFctx L) (Γ' := fromFctx L') {F F'}
       (VΓ : [||-v Γ ≅ Γ']) (VF : F =ε F'), P VΓ -> P (validSnocε VΓ VF))
-    (hsnoc : forall {Γ Γ' : context}  {A A' l} (VΓ : [||-v Γ ≅ Γ']) (VA : [Γ ||-v< l > A ≅ A' | VΓ]), P VΓ -> P (validSnoc VΓ VA)) :
+    (hsnoc : forall {Γ Γ' : context}  {A A' l} (VΓ : [||-v Γ ≅ Γ'])
+      (VA : [Γ ||-v< l > A ≅ A' | VΓ]), P VΓ -> P (validSnoc VΓ VA))
+    (hsnocℓ : forall {Γ Γ' : context}  {ℓ l} (VΓ : [||-v Γ ≅ Γ'])
+      VNtoB, P VΓ -> P (validSnocℓ l VΓ VNtoB ℓ)) :
     forall {Γ Γ' : context} (VΓ : [||-v Γ ≅ Γ']), P VΓ.
   Proof.
     intros Γ Γ' [[eq] VΓad]; revert Γ Γ' eq VΓad.
@@ -393,26 +408,11 @@ Section Inductions.
     - apply hε.
     - intros * ?? * ?. cbn in *. apply hsnocε with (1:=X).
     - intros *; apply hsnoc.
+    - intros *; apply hsnocℓ.
   Defined.
 
   Import EqNotations.
 
-
-
-  (* Example check_uip_context : UIP context. Proof. typeclasses eauto. Qed. *)
-(*   Lemma invValidity {Γ Γ' : context} (VΓ : [||-v Γ ≅ Γ']) :
-    match Γ as Γ return forall Γ', [||-v Γ ≅ Γ'] -> Type with
-    | Build_context nil L => fun Γ₀ VΓ₀ => ∑ (e : Tctx Γ₀ = nil),
-        rew [fun Γ₀ => [||-v fromFctx L ≅ Γ₀]] (f_equal (fun Γ => Build_context Γ (Fctx Γ₀)) e) in VΓ₀ = validEmpty
-    | Build_context (A :: Γ)%list L => fun Γ₀ VΓ₀ =>
-      ∑ l A' Γ' (VΓ : [||-v Build_context Γ L ≅ Γ']) (VA : [Build_context Γ L ||-v< l > A ≅ A' | VΓ]) (e : Tctx Γ₀ = Tctx (Γ' ,, A')) (eF : Fctx Γ₀ = Fctx (Γ' ,, A')),
-        rew [fun Γ₀ => [||-v (Build_context Γ L),,A ≅ Γ₀]] ((f_equal2 Build_context e eF)) in VΓ₀ = validSnoc VΓ VA
-    end Γ' VΓ.
-  Proof.
-    pattern Γ, Γ', VΓ; apply validity_rect; intros.
-    - exists eq_refl; reflexivity.
-    - do 5 eexists; do 2 exists eq_refl; reflexivity.
-  Defined. *)
 
   (* Example check_uip_context : UIP context. Proof. typeclasses eauto. Qed. *)
   Lemma invValidity {Γ Γ' : context} (VΓ : [||-v Γ ≅ Γ']) :
@@ -422,15 +422,19 @@ Section Inductions.
     | Build_context nil (F :: L)%list => fun Γ₀ VΓ₀ =>
       ∑ F' L' (VΓ : [||-v fromFctx L ≅ fromFctx L']) (VF : F =ε F') (e : Γ₀ = (fromFctx L' ,, ↦ F')),
         rew [fun Γ₀ => [||-v (fromFctx L),,↦ F ≅ Γ₀]] e in VΓ₀ = validSnocε VΓ VF
-    | Build_context (A :: Γ)%list L => let ΓL := Build_context Γ L in fun Γ₀ VΓ₀ =>
+    | Build_context (term_decl A :: Γ)%list L => let ΓL := Build_context Γ L in fun Γ₀ VΓ₀ =>
       ∑ l A' Γ' (VΓ : [||-v ΓL ≅ Γ']) (VA : [ΓL ||-v< l > A ≅ A' | VΓ]) (e : Γ₀ = (Γ' ,, A')),
         rew [fun Γ₀ => [||-v ΓL,,A ≅ Γ₀]] e in VΓ₀ = validSnoc VΓ VA
+    | Build_context (ell_decl ℓ :: Γ)%list L => let ΓL := Build_context Γ L in fun Γ₀ VΓ₀ =>
+      ∑ l Γ' (VΓ : [||-v ΓL ≅ Γ']) VNtoB (e : Γ₀ = (Γ' ,, ℓ)),
+        rew [fun Γ₀ => [||-v ΓL,,ℓ ≅ Γ₀]] e in VΓ₀ = validSnocℓ l VΓ VNtoB ℓ
     end Γ' VΓ.
   Proof.
     pattern Γ, Γ', VΓ; apply validity_rect; intros.
     - exists eq_refl; reflexivity.
     - do 4 eexists; exists eq_refl; reflexivity.
     - do 5 eexists; exists eq_refl; reflexivity.
+    - do 4 eexists; exists eq_refl; reflexivity.
   Defined.
 
   Lemma invValidityEmpty (VΓ : [||-v ε ≅ ε]) : VΓ = validEmpty.
@@ -449,7 +453,7 @@ Section Inductions.
     now do 2 eexists.
   Qed.
 
-  Lemma invValiditySnoc {Γ Γ' A A'} (VΓ₀ : [||-v Γ ,, A ≅ Γ',, A' ]) :
+  Lemma invValiditySnoc {Γ Γ'} {A A' : term} (VΓ₀ : [||-v Γ ,, A ≅ Γ',, A' ]) :
       ∑ l (VΓ : [||-v Γ ≅ Γ']) (VA : [Γ ||-v< l > A ≅ A'| VΓ]), VΓ₀ = validSnoc VΓ VA.
   Proof.
     destruct (invValidity VΓ₀) as (l&A''&Γ''&VΓ&VA&e&h).
@@ -459,6 +463,18 @@ Section Inductions.
     inversion e'; subst.
     rewrite (uip e eq_refl) in h.
     now do 3 eexists.
+  Qed.
+
+  Lemma invValiditySnocℓ {Γ Γ'} {ℓ ℓ' : ell} (VΓ₀ : [||-v Γ ,, ℓ ≅ Γ',, ℓ' ]) :
+      ∑ l (VΓ : [||-v Γ ≅ Γ']) VNtoB (e : ℓ = ℓ'), rew <- [fun varℓ => [||-v Γ ,, ell_decl ℓ ≅ Γ',, ell_decl varℓ]] e in VΓ₀ = validSnocℓ l VΓ VNtoB ℓ.
+  Proof.
+    destruct (invValidity VΓ₀) as (l&Γ''&VΓ&VNtoB&e&h).
+    destruct Γ' as [Γ' L'], Γ'' as [Γ'' L'']; cbn in *; subst.
+    pose proof (f_equal Fctx e) as e'; cbn in e'; destruct e'.
+    pose proof (f_equal Tctx e) as e'; cbn in e'.
+    inversion e'; subst.
+    rewrite (uip e eq_refl) in h.
+    do 3 eexists. now exists eq_refl.
   Qed.
 
 End Inductions.
