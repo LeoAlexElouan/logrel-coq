@@ -137,7 +137,7 @@ Proof.
     intros Ξ wfΞ ρΞ ohab; cbn in ohab, hab.
     escape.
     apply ihcod; rewrite wk_decl.
-    + now eapply ty_wk, ty_app_ren.
+    + eapply ty_wk, ty_app_ren; tea.
     + eapply (ty_wk _ wfΞ), ty_conv; clear Ξ wfΞ ρΞ ohab.
       now eapply ty_app_ren.
       unshelve epose proof (kripkeLRlrefl (PolyRed.posRed RA) ρ hΔ hab) as hcod.

@@ -48,8 +48,8 @@ Section PiValidity.
     set (hd' := cover hd _ wfΘ (ρΘ ∘w ρΞ) ohd oVΠ). cbn in hd'.
 (*     rewrite <- 1!(eta_up_single_subst G), <- (eta_up_single_subst G'). *)
     pose proof (RG := instKripkeSubst (normRedΠ RΠ').(PolyRed.posRed) _ hd').
-    cbn -[wk1 ren_term] in RG. rewrite <- 2!subst_ren_wk_up in RG.
-    rewrite 2to_subst_sound, 2subst_comp_on in RG.
+    cbn -[ren1] in RG.
+    rewrite <- 2 subst_ren_wk_up, 2 to_subst_sound, 2 subst_comp_on in RG.
     replace G[_] with G[σ] in RG by now rewrite eta_up_single_subst.
     now replace G'[_] with G'[σ'] in RG by now rewrite eta_up_single_subst.
   Qed.
@@ -121,11 +121,11 @@ Section PiValidity.
     1,2: econstructor; [apply redtmwf_refl; cbn; eapply ty_prod; tea| constructor].
     5: cbn[URedTm.te]; refine (convtm_prod _ _ _).
     1,5: exact (ty_wk ρΞ wfΞ EscLRlVFU).
-    1: exact (ty_wk (wk_up F[σ] ρΞ) (wfc_cons wfΞ (wft_wk ρΞ wfΞ EscLRVF)) EscLRlVGU).
+    1: exact (ty_wk (wk_up _ ρΞ) (wfc_cons wfΞ (wft_wk ρΞ wfΞ EscLRVF)) EscLRlVGU).
     1: exact (ty_wk ρΞ wfΞ EscRRrVFU).
-    1: exact (ty_wk (wk_up F'[σ'] ρΞ) (wfc_cons wfΞ (wft_wk ρΞ wfΞ EscRRVF)) EscRRrX).
+    1: exact (ty_wk (wk_up _ ρΞ) (wfc_cons wfΞ (wft_wk ρΞ wfΞ EscRRVF)) EscRRrX).
     1: exact (convtm_wk ρΞ wfΞ EscRVFU).
-    1: exact (convtm_wk (wk_up F[σ] ρΞ) (wfc_cons wfΞ (wft_wk ρΞ wfΞ EscLRVF)) EscRVGU).
+    1: exact (convtm_wk (wk_up _ ρΞ) (wfc_cons wfΞ (wft_wk ρΞ wfΞ EscLRVF)) EscRVGU).
     enough (h : [ Ξ ||-S< zero > (tProd F G)[σ]⟨ρΞ⟩ ≅ (tProd F' G')[σ']⟨ρΞ⟩]) by exact (cumLR h).
     eapply RΠ'.
   Qed.

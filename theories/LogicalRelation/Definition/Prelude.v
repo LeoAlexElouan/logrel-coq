@@ -26,8 +26,8 @@ Ltac logrel := eauto with logrel.
 
   Definition RedRel@{i j} :=
   context               ->
-  term                  ->
-  term                  ->
+  decl                  ->
+  decl                  ->
   (term -> term -> Type@{i}) ->
   Type@{j}.
 
@@ -35,7 +35,7 @@ Ltac logrel := eauto with logrel.
 
 Module LRPack.
 
-  Record LRPack@{i} {Γ : context} {A B : term} :=
+  Record LRPack@{i} {Γ : context} {A B : decl} :=
   {
     eqTm :  term -> term -> Type@{i};
   }.
@@ -78,8 +78,8 @@ Coercion LRAd.pack : LRAdequate >-> LRPack.
 Coercion LRAd.adequate : LRAdequate >-> LRPackAdequate.
 
 Notation "[ R | Γ ||- A ≅ B ]"              := (@LRAdequate Γ R A B).
-Notation "[ R | Γ ||- t ≅ u : A | RA ]" := (RA.(@LRAd.pack Γ R A _).(LRPack.eqTm) t u).
-Notation "[ R | Γ ||- t ≅ u : A ≅ B | RA ]" := (RA.(@LRAd.pack Γ R A B).(LRPack.eqTm) t u).
+Notation "[ R | Γ ||- t ≅ u : A | RA ]" := ((RA : LRPack Γ A _)(* .(@LRAd.pack Γ R A _) *).(LRPack.eqTm) t u).
+Notation "[ R | Γ ||- t ≅ u : A ≅ B | RA ]" := ((RA : LRPack Γ A _)(* .(@LRAd.pack Γ R A B) *).(LRPack.eqTm) t u).
 
 (** ** Uniform interface to access the wh normal form of type/term reducibility relations *)
 

@@ -89,7 +89,7 @@ Proof. now bsimpl. Qed.
 Section SBoolElimRedEq.
   Context {Γ l P Q ht ht' hf hf'}
     (NN : [Γ ||-Bool tBool ≅ tBool])
-    (RN := LRBool_ _ NN)
+    (RN := LRBool_ l NN)
     (WtP : [Γ ,, tBool |- P])
     (WtQ : [Γ ,, tBool |- Q])
     (eqPQ : [Γ,, tBool |- P ≅ Q])

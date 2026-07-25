@@ -175,7 +175,7 @@ Lemma SredSubstTmEq' {Γ A A' tl tr ul ur l} (RA : [Γ ||-S<l> A ≅ A']) :
   [Γ ||-S<l> ul ≅ ur : A | RA] ->
   [Γ |- tl ⤳* ul : A ] ->
   [Γ |- tr ⤳* ur : A' ] ->
-  [Γ ||-S<l> tl ≅ tr : A | RA] × [Γ ||-S<l> tl ≅ ul : _ | lrefl RA] × [Γ ||-S<l> tr ≅ ur : _ | urefl RA].
+  [Γ ||-S<l> tl ≅ tr : A | RA] × [Γ ||-S<l> tl ≅ ul : _ | LRAd.pack (lrefl RA)] × [Γ ||-S<l> tr ≅ ur : _ | LRAd.pack (urefl RA)].
 Proof.
   intros; prod_splitter.
   + now eapply SredSubstTmEq.

@@ -158,7 +158,7 @@ Section Transitivity.
           as [haa hab'].
         3: eapply SirrLR, hab.
         destruct ΠBC as [domB domC codB codC redBr redC eqdomBC eqBC polyRedBC]; cbn in *.
-        eassert ([_ | Δ ||- a ≅ a : domB⟨ρ⟩ ≅ _]) as haa' by eapply SirrLR, SsymLR, haa.
+        eassert ([_ | Δ ||- a ≅ a : term_decl domB⟨ρ⟩ ≅ _]) as haa' by eapply SirrLR, SsymLR, haa.
         specialize (eqbody Δ a b ρ h hab') as eqab; cbn in *.
         specialize (eqbody Δ a a ρ h haa') as eqaa; cbn in *.
         clear eqbody.

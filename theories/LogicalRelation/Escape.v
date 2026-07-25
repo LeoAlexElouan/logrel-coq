@@ -180,7 +180,7 @@ Ltac escape :=
       let X := fresh "Esc" H in
       pose proof (escapeTy H) as (Xl & Xr & X) );
     block H
-  | [H : [_ ||-S<_> _ ≅ _  : _ | ?RA ] |- _] =>
+  | [H : [_ ||-S< _ > _ ≅ _  : _ | LRAd.pack ?RA ] |- _] =>
     try
      (let Xl := fresh "EscL" H in
       let Xr := fresh "EscR" H in
@@ -194,7 +194,7 @@ Ltac escape :=
       let X := fresh "Esc" H in
       pose proof (escapeSplitTy H) as (Xl & Xr & X) );
     block H
-  | [H : [_ ||-<_> _ ≅ _  : _ | ?RA ] |- _] =>
+  | [H : [_ ||-<_> _ ≅ _  : _ | Wpack ?RA ] |- _] =>
     try
      (let Xl := fresh "EscL" H in
       let Xr := fresh "EscR" H in

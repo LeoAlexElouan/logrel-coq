@@ -20,10 +20,10 @@ Module PolyRedPack.
     `{WfContext ta} `{WfType ta} `{ConvType ta}
     {Γ : context} {shp shp' pos pos' : term}
   : Type@{j} (* @ max(Set, i+1) *) := {
-    shpRed {Δ} (ρ : Δ ≤ Γ) : [ |- Δ ] -> LRPack@{i} Δ shp⟨ρ⟩ shp'⟨ρ⟩ ;
+    shpRed {Δ} (ρ : Δ ≤ Γ) : [ |- Δ ] -> LRPack@{i} Δ (term_decl shp⟨ρ⟩) (term_decl shp'⟨ρ⟩) ;
     posRed {Δ} (ρ : Δ ≤ Γ) {a b} (wfΔ : [ |- Δ ]) :
-        [ shpRed ρ wfΔ | Δ ||- a ≅ b : shp⟨ρ⟩ ≅ shp'⟨ρ⟩] ->
-        Split@{j} (fun Ξ wfΞ (ρΞ : Ξ ≤ Δ) => LRPack@{i} Ξ pos⟨wk_up shp ρ⟩[a ..]⟨ρΞ⟩ pos'⟨wk_up shp' ρ⟩[b ..]⟨ρΞ⟩);
+        [ shpRed ρ wfΔ | Δ ||- a ≅ b : _ ≅ _ ] ->
+        Split@{j} (fun Ξ wfΞ (ρΞ : Ξ ≤ Δ) => LRPack@{i} Ξ (term_decl pos⟨wk_up shp ρ⟩[a ..]⟨ρΞ⟩) (term_decl pos'⟨wk_up shp' ρ⟩[b ..]⟨ρΞ⟩));
   }.
 
   Arguments PolyRedPack {_ _ _ _}.
@@ -40,7 +40,7 @@ Module PolyRedPack.
       := {
     shpAd {Δ} (ρ : Δ ≤ Γ) (h : [ |- Δ ]) : LRPackAdequate@{i j} R (PA.(shpRed) ρ h);
     posAd {Δ a b} (ρ : Δ ≤ Γ) (h : [ |- Δ ])
-      (ha :[ PA.(shpRed) ρ h | Δ ||- a ≅ b : shp⟨ρ⟩ ≅ shp'⟨ρ⟩]) :
+      (ha :[ PA.(shpRed) ρ h | Δ ||- a ≅ b : _ ≅ _]) :
       dover (PA.(posRed) ρ h ha) (fun Ξ wfΞ ρΞ hSplit => LRPackAdequate@{i j} R hSplit);
   }.
 

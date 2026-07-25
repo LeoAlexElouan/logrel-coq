@@ -52,7 +52,7 @@ Lemma SappcongTerm {Γ t t' u u' F F' G G' l l'}
   (Rtt' : [Γ ||-S<l> t ≅ t' : tProd F G | RΠ])
   (Ruu' : [Γ ||-S<l'> u ≅ u' : F | RF ])
   (RGu : [Γ ||-<l'> G[u..] ≅ G'[u'..]]) :
-    [Γ ||-<l'> tApp t u ≅ tApp t' u' : G[u..] | RGu].
+    [Γ ||-<l'> tApp t u ≅ tApp t' u' : _ | RGu].
 Proof.
   set (RΠ' :=normRedΠ RΠ).
   assert [LRPi' RΠ' | _ ||- t ≅ t' : _ ] as [Rt Rt' ? app] by now eapply SirrLREq.
@@ -72,7 +72,7 @@ Lemma appcongTerm {Γ t t' u u' F F' G G' l l'}
   (Rtt' : [Γ ||-<l> t ≅ t' : tProd F G | RΠ])
   (Ruu' : [Γ ||-<l'> u ≅ u' : F | RF ])
   (RGu : [Γ ||-<l'> G[u..] ≅ G'[u'..]]) :
-    [Γ ||-<l'> tApp t u ≅ tApp t' u' : G[u..] | RGu].
+    [Γ ||-<l'> tApp t u ≅ tApp t' u' : _ | RGu].
 Proof.
   eapply (dSplit_bind Ruu').
   intros ??? oRF oRuu'.

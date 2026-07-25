@@ -24,7 +24,7 @@ Section Irrelevance.
   Definition cumImpl l := forall Γ A B, [LogRel@{i j k l} l | Γ ||- A ≅ B] -> [LogRel@{i' j' k' l'} l | Γ ||- A ≅ B].
   Definition cum l := forall Γ A B, [LogRel@{i j k l} l | Γ ||- A ≅ B] <≈> [LogRel@{i' j' k' l'} l | Γ ||- A ≅ B].
 
-  Definition Sirr {Γ l1 l2 A B1 B2} (RA1 : [Γ ||-S<l1> A ≅ B1]) (RA2 : [Γ ||-S<l2> A ≅ B2]) :=
+  Definition Sirr {Γ l1 l2 A B1 B2} (RA1 : [LogRel@{i j k l} l1 | Γ ||- A ≅ B1]) (RA2 : [LogRel@{i' j' k' l'} l2 | Γ ||- A ≅ B2]) :=
     forall t u, [LogRel@{i j k l} l1 | Γ ||- t ≅ u : _ | RA1] <≈> [LogRel@{i' j' k' l'} l2 | Γ ||- t ≅ u : _ | RA2].
 
   End Defs.
@@ -32,7 +32,7 @@ Section Irrelevance.
   Lemma irrImplU@{h i j k l h' i' j' k' l' } {l1 l2}
     (ih : forall l, l << l1 -> l << l2 -> cumImpl@{h i j k h' i' j' k'} l)
     {Γ A B1 B2} (h : [Γ ||-U<l1> A ≅ B1]) (h' : [Γ ||-U<l2> A ≅ B2]) {t u} :
-    [LogRel@{i j k l} l1 | _ ||- t ≅ u : _ | LRU_ h] -> [LogRel@{i' j' k' l'} l2 | _ ||- t ≅ u : _| LRU_ h'].
+    [LogRel@{i j k l} l1 | _ ||- t ≅ u : _ | LRU_@{i j k l} h] -> [LogRel@{i' j' k' l'} l2 | _ ||- t ≅ u : _| LRU_@{i' j' k' l'} h'].
   Proof.
     assert (eq : h.(URedTy.level) = h'.(URedTy.level)) by now destruct h.(URedTy.lt), h'.(URedTy.lt).
     cbn ; intros [].
@@ -233,7 +233,7 @@ Lemma cumPolyRed@{h h'} {lA}
   (IHshp : forall (Δ : context) (ρ : Δ ≤ Γ), [ |-[ ta ] Δ] ->
     [LogRel@{i' j' k' l'} lA | Δ ||- shp⟨ρ⟩ ≅ shp'⟨ρ⟩])
   (IHpos : forall (Δ : context) (a b : term) (ρ : Δ ≤ Γ) (wfΔ : [ |-[ ta ] Δ]),
-          [ PolyRed.shpRed PA ρ wfΔ | Δ ||- a ≅ b : shp⟨ρ⟩] ->
+          [ PolyRed.shpRed PA ρ wfΔ | Δ ||- a ≅ b : _] ->
           WLRAdequate@{i' j' k' l'} Δ lA pos⟨wk_up shp ρ⟩[a..] pos'⟨wk_up shp' ρ⟩[b..]) :
   PolyRed@{i' j' k' l'} Γ lA shp shp' pos pos'.
 Proof.

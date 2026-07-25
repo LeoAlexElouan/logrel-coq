@@ -60,7 +60,7 @@ Section MoreDefs.
   Definition LogRel0@{i j k} :=
     LR@{i j k} rec0@{i j}.
 
-  Definition LRbuild0@{i j k} {Γ A B tmeq} :
+  Definition LRbuild0@{i j k} {Γ} {A B : term} {tmeq} :
     LogRel0@{i j k} Γ A B tmeq -> [ LogRel0@{i j k} | Γ ||- A ≅ B ] :=
     fun H => {|
       LRAd.pack := {| LRPack.eqTm := tmeq |} ;
@@ -83,7 +83,7 @@ Section MoreDefs.
   Definition LogRel@{i j k l} (l : TypeLevel) :=
     LR@{j k l} (LogRelRec@{i j k} l).
 
-  Definition LRbuild@{i j k l} {Γ l A B tmeq} :
+  Definition LRbuild@{i j k l} {Γ l} {A B : term} {tmeq} :
     LR@{j k l} (LogRelRec@{i j k} l) Γ A B tmeq -> [ LogRel l | Γ ||- A ≅ B] :=
     fun H => {|
       LRAd.pack := {| LRPack.eqTm := tmeq |} ;
@@ -143,9 +143,9 @@ Section Weak_LogRel.
     Split@{l} (fun Δ _ (ρ: Δ ≤ Γ) => LRAdequate@{k l} Δ (LogRel@{i j k l} l) A⟨ρ⟩ B⟨ρ⟩).
 
 
-  Definition Wpack@{i j k l | i < j, j < k, k < l} Γ l A B (RA : WLRAdequate@{i j k l} Γ l A B) : LRPack@{k} Γ A B :=
+  Definition Wpack@{i j k l | i < j, j < k, k < l} {Γ l A B} (RA : WLRAdequate@{i j k l} Γ l A B) : LRPack@{k} Γ A B :=
     Build_LRPack@{k} Γ A B (fun t u =>
-      dSplit (fun Δ _ (ρ: Δ ≤ Γ) hSplit => [LogRel@{i j k l} l | Δ ||- t⟨ρ⟩ ≅ u⟨ρ⟩ : A⟨ρ⟩ | hSplit]) RA).
+      dSplit (fun Δ _ (ρ: Δ ≤ Γ) (hSplit : LRAdequate _ _ _ _) => [LogRel@{i j k l} l | Δ ||- t⟨ρ⟩ ≅ u⟨ρ⟩ : _ | hSplit]) RA).
   Coercion Wpack : WLRAdequate >-> LRPack.
 End Weak_LogRel.
 

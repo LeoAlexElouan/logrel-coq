@@ -136,12 +136,12 @@ Proof.
   + eapply subst_eq_sym.
   + eapply subst_eq_trans.
 Qed.
-(* Instance wk_eq_equiv {Γ Δ} : Equivalence (@wk_eq Γ Δ).
+Instance wk_eq_equiv {Γ Δ} : Equivalence (@wk_eq Γ Δ).
 Proof.
   repeat constructor.
   1,2: destruct H; now symmetry.
   1,2: destruct H, H0; now etransitivity.
-Qed. *)
+Qed.
 
 Instance subst_eq_subst : Proper (subst_eq ==> `=1`) subst_subst := eq_subst.
 Instance subst_eq_subst2 : Morphisms.Proper (Morphisms.respectful subst_eq (Morphisms.respectful eq eq)) subst_subst.
@@ -170,7 +170,7 @@ Proof.
   intros n. eapply ren_alpha_morphism, subst_eq_subst; tea.
 Qed.
 
-Instance ren1_subst_eq : Proper (`=1` ==> subst_eq ==> subst_eq) ren1.
+Lemma ren1_subst_eq : Proper (`=1` ==> subst_eq ==> subst_eq) ren1.
 Proof.
   intros ρ ρ' eqρ(* [eqρ eqρε] *) σ σ' eqσ.
   unfold ren1, ren_substitution.
@@ -178,6 +178,14 @@ Proof.
   intros n.
   eapply ren_term_morphism, subst_eq_subst; tea.
 Qed.
+
+Instance ren_subst_eq Γ Δ : Proper (@wk_eq Γ Δ ==> subst_eq ==> subst_eq) ren1.
+Proof.
+  intros ρ ρ' [eqρ eqρε] σ σ' eqσ.
+  unfold ren1, wk_substitution.
+  now apply ren1_subst_eq, ren_alpha_substitution_eq.
+Qed.
+
 
 Instance tail_subst_eq : Proper (subst_eq ==> subst_eq) tail_subst.
 Proof. intros σ σ' eq. unfold tail_subst. now rewrite eq. Qed.

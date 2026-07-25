@@ -30,19 +30,19 @@ Reserved Notation "[ |- Γ ]" (at level 0). *)
       | connil : [ |- ε ]
       | connew {Γ i new b} : [|-Γ] -> [|-Γ ,, i : new ↦ b]
       | conalpha {Γ} : [|-Γ] -> [|- Γ ,, ↦ nil_ell]
-      | concons {Γ A} :
+      | concons {Γ} {A} :
           [ |- Γ ] ->
           [ Γ |- A ] ->
           [ |-  Γ ,, A]
-      | conell {Γ} {ℓ : ell} :
+      | conconsell {Γ} {ℓ : ell} :
           [ |- Γ ] ->
-          [ |- Γ ,, ℓ]
+          [ |-  Γ ,, ℓ]
   (** **** Type well-formation *)
   with WfTypeDecl : context -> term -> Type :=
       | wfTypeU {Γ} :
           [ |- Γ ] ->
           [ Γ |- U ]
-      | wfTypeProd {Γ} {A B} :
+      | wfTypeProd {Γ} {A B : term} :
           [ Γ |- A ] ->
           [Γ ,, A |- B ] ->
           [ Γ |- tProd A B ]
@@ -58,11 +58,11 @@ Reserved Notation "[ |- Γ ]" (at level 0). *)
       | wfTypeTree {Γ} :
           [|- Γ] ->
           [Γ |- tTree]
-      | wfTypeSig {Γ} {A B} :
+      | wfTypeSig {Γ} {A B : term} :
           [ Γ |- A ] ->
           [Γ ,, A |- B ] ->
           [ Γ |- tSig A B ]
-      | wftTypeId {Γ} {A x y} :
+      | wftTypeId {Γ} {A x y : term} :
           [Γ |- A] ->
           [Γ |- x : A] ->
           [Γ |- y : A] ->
@@ -102,7 +102,7 @@ Reserved Notation "[ |- Γ ]" (at level 0). *)
       | wfTermSucc {Γ n} :
           [Γ |- n : tNat] ->
           [Γ |- tSucc n : tNat]
-      | wfTermNatElim {Γ P hz hs n} :
+      | wfTermNatElim {Γ} {P hz hs n : term} :
         [Γ ,, tNat |- P ] ->
         [Γ |- hz : term_decl P[tZero..]] ->
         [Γ |- hs : elimSuccHypTy' Γ P] ->
@@ -117,7 +117,7 @@ Reserved Notation "[ |- Γ ]" (at level 0). *)
       | wfTermFalse {Γ} :
           [|-Γ] ->
           [Γ |- tFalse : tBool]
-      | wfTermBoolElim {Γ P ht hf n} :
+      | wfTermBoolElim {Γ} {P ht hf n : term} :
         [Γ ,, tBool |- P ] ->
         [Γ |- ht : term_decl P[tTrue..]] ->
         [Γ |- hf : term_decl  P[tFalse..]] ->
@@ -129,7 +129,7 @@ Reserved Notation "[ |- Γ ]" (at level 0). *)
       | wfTermEmpty {Γ} :
           [|-Γ] ->
           [Γ |- tEmpty : U]
-      | wfTermEmptyElim {Γ P e} :
+      | wfTermEmptyElim {Γ} {P e : term} :
         [Γ ,, tEmpty |- P ] ->
         [Γ |- e : tEmpty] ->
         [Γ |- tEmptyElim P e : term_decl P[e..]]
@@ -144,7 +144,7 @@ Reserved Notation "[ |- Γ ]" (at level 0). *)
           [Γ |- tl : tTree] ->
           [Γ |- tr : tTree] ->
           [Γ |- tNode n tl tr : tTree]
-      | wfTermTreeElim {Γ P hl hn t} :
+      | wfTermTreeElim {Γ} {P hl hn t : term} :
         [Γ ,, tTree |- P ] ->
         [Γ |- hl : elimLeafHypTy' Γ P] ->
         [Γ |- hn : elimNodeHypTy' Γ P] ->
@@ -154,7 +154,7 @@ Reserved Notation "[ |- Γ ]" (at level 0). *)
         [ Γ |- A : U] -> 
         [Γ ,, A |- B : U ] ->
         [ Γ |- tSig A B : U ]
-      | wfTermPair {Γ} {A B a b} :
+      | wfTermPair {Γ} {A B a b : term} :
         [Γ |- A] ->
         [Γ,, A |- B] ->
         [Γ |- a : A] -> 
@@ -171,11 +171,11 @@ Reserved Notation "[ |- Γ ]" (at level 0). *)
           [Γ |- x : A] ->
           [Γ |- y : A] ->
           [Γ |- tId A x y : U]
-      | wfTermRefl {Γ A x} :
+      | wfTermRefl {Γ} {A x : term} :
           [Γ |- A] ->
           [Γ |- x : A] ->
           [Γ |- tRefl A x : tId A x x]
-      | wfTermIdElim {Γ A x P hr y e} :
+      | wfTermIdElim {Γ} {A x P hr y e : term} :
           [Γ |- A] ->
           [Γ |- x : A] ->
           [Γ ,, A ,, tId A⟨@wk1 Γ A⟩ x⟨@wk1 Γ A⟩ (tRel 0) |- P] ->
@@ -198,7 +198,7 @@ Reserved Notation "[ |- Γ ]" (at level 0). *)
           [ Γ |- t : arr' Γ tNat tBool] ->
           (forall n b, in_ell ℓ n b -> [ Γ |- tApp t (nat_to_term n) ≅ bool_to_term b : tBool]) ->
           [ Γ |- tBox ℓ t : ℓ]
-      | wfTermEllElim {Γ ℓ k P ht hf n b} (ℓt := cons_ell ℓ k true) (ℓf := cons_ell ℓ k false):
+      | wfTermEllElim {Γ ℓ k} {P ht hf n b : term} (ℓt := cons_ell ℓ k true) (ℓf := cons_ell ℓ k false):
           [ Γ,, ℓ |- P] ->
           [ Γ,, ℓt |- ht : term_decl P⟨wk_up ℓ (@wk1 Γ ℓt)⟩[(tBox ℓ (tEval ℓt (tRel 0)))..] ] ->
           [ Γ,, ℓf |- hf : term_decl P⟨wk_up ℓ (@wk1 Γ ℓf)⟩[(tBox ℓ (tEval ℓf (tRel 0)))..] ] ->
@@ -214,18 +214,18 @@ Reserved Notation "[ |- Γ ]" (at level 0). *)
           [ Γ,, i : new ↦ false |- t : A] ->
           [ Γ |- t : A]
   (** **** Conversion of types *)
-  with ConvTypeDecl : context -> term -> term  -> Type :=  
-      | TypePiCong {Γ} {A B C D} :
+  with ConvTypeDecl : context -> term -> term -> Type :=  
+      | TypePiCong {Γ} {A B C D : term} :
           [ Γ |- A] ->
           [ Γ |- A ≅ B] ->
           [ Γ ,, A |- C ≅ D] ->
           [ Γ |- tProd A C ≅ tProd B D]
-      | TypeSigCong {Γ} {A B C D} :
+      | TypeSigCong {Γ} {A B C D : term} :
           [ Γ |- A] ->
           [ Γ |- A ≅ B] ->
           [ Γ ,, A |- C ≅ D] ->
           [ Γ |- tSig A C ≅ tSig B D]
-      | TypeIdCong {Γ A A' x x' y y'} :
+      | TypeIdCong {Γ} {A A' x x' y y' : term} :
           (* [Γ |- A] -> ?  *)
           [Γ |- A ≅ A'] ->
           [Γ |- x ≅ x' : A] ->
@@ -277,35 +277,35 @@ Reserved Notation "[ |- Γ ]" (at level 0). *)
       | TermSuccCong {Γ} {n n'} :
           [Γ |- n ≅ n' : tNat] ->
           [Γ |- tSucc n ≅ tSucc n' : tNat]
-      | TermNatElimCong {Γ P P' hz hz' hs hs' n n'} :
+      | TermNatElimCong {Γ} {P P' hz hz' hs hs' n n' : term} :
           [Γ ,, tNat |- P ≅ P'] ->
           [Γ |- hz ≅ hz' : term_decl P[tZero..]] ->
           [Γ |- hs ≅ hs' : elimSuccHypTy' Γ P] ->
           [Γ |- n ≅ n' : tNat] ->
           [Γ |- tNatElim P hz hs n ≅ tNatElim P' hz' hs' n' : term_decl P[n..]]
-      | TermNatElimZero {Γ P hz hs} :
+      | TermNatElimZero {Γ} {P hz hs : term} :
           [Γ ,, tNat |- P ] ->
           [Γ |- hz : term_decl P[tZero..]] ->
           [Γ |- hs : elimSuccHypTy' Γ P] ->
           [Γ |- tNatElim P hz hs tZero ≅ hz : term_decl P[tZero..]]
-      | TermNatElimSucc {Γ P hz hs n} :
+      | TermNatElimSucc {Γ} {P hz hs n : term} :
           [Γ ,, tNat |- P ] ->
           [Γ |- hz : term_decl P[tZero..]] ->
           [Γ |- hs : elimSuccHypTy' Γ P] ->
           [Γ |- n : tNat] ->
           [Γ |- tNatElim P hz hs (tSucc n) ≅ tApp (tApp hs n) (tNatElim P hz hs n) : term_decl P[(tSucc n)..]]
-      | TermBoolElimCong {Γ P P' ht ht' hf hf' n n'} :
+      | TermBoolElimCong {Γ} {P P' ht ht' hf hf' n n' : term} :
           [Γ ,, tBool |- P ≅ P'] ->
           [Γ |- ht ≅ ht' : term_decl P[tTrue..]] ->
           [Γ |- hf ≅ hf' : term_decl P[tFalse..]] ->
           [Γ |- n ≅ n' : tBool] ->
           [Γ |- tBoolElim P ht hf n ≅ tBoolElim P' ht' hf' n' : term_decl P[n..]]
-      | TermBoolElimTrue {Γ P ht hf} :
+      | TermBoolElimTrue {Γ} {P ht hf : term} :
           [Γ ,, tBool |- P ] ->
           [Γ |- ht : term_decl P[tTrue..]] ->
           [Γ |- hf : term_decl P[tFalse..]] ->
           [Γ |- tBoolElim P ht hf tTrue ≅ ht : term_decl P[tTrue..]]
-      | TermBoolElimFalse {Γ P ht hf} :
+      | TermBoolElimFalse {Γ} {P ht hf : term} :
           [Γ ,, tBool |- P ] ->
           [Γ |- ht : term_decl P[tTrue..]] ->
           [Γ |- hf : term_decl P[tFalse..]] ->
@@ -313,7 +313,7 @@ Reserved Notation "[ |- Γ ]" (at level 0). *)
       | TermAlphaConv {Γ i n b} :
           [|-Γ] ->
           in_ell (list_at Γ i) n b -> [ Γ |- tApp (tAlpha i) (nat_to_term n) ≅ bool_to_term b : tBool ]
-      | TermEmptyElimCong {Γ P P' e e'} :
+      | TermEmptyElimCong {Γ} {P P' e e' : term} :
           [Γ ,, tEmpty |- P ≅ P'] ->
           [Γ |- e ≅ e' : tEmpty] ->
           [Γ |- tEmptyElim P e ≅ tEmptyElim P' e' : term_decl P[e..]]
@@ -325,19 +325,19 @@ Reserved Notation "[ |- Γ ]" (at level 0). *)
           [Γ |- tl ≅ tl' : tTree] ->
           [Γ |- tr ≅ tr' : tTree] ->
           [Γ |- tNode n tl tr ≅ tNode n' tl' tr' : tTree]
-      | TermTreeElimCong {Γ P P' hl hl' hn hn' t t'} :
+      | TermTreeElimCong {Γ} {P P' hl hl' hn hn' t t' : term} :
           [Γ ,, tTree |- P ≅ P'] ->
           [Γ |- hl ≅ hl' : elimLeafHypTy' Γ P] ->
           [Γ |- hn ≅ hn' : elimNodeHypTy' Γ P] ->
           [Γ |- t ≅ t' : tTree] ->
           [Γ |- tTreeElim P hl hn t ≅ tTreeElim P' hl' hn' t' : term_decl P[t..]]
-      | TermTreeElimLeaf {Γ P hl hn n} :
+      | TermTreeElimLeaf {Γ} {P hl hn n : term} :
           [Γ ,, tTree |- P ] ->
           [Γ |- n : tNat] ->
           [Γ |- hl : elimLeafHypTy' Γ P] ->
           [Γ |- hn : elimNodeHypTy' Γ P] ->
           [Γ |- tTreeElim P hl hn (tLeaf n) ≅ tApp hl n: term_decl P[(tLeaf n)..]]
-      | TermTreeElimNode {Γ P hl hn tl tr n} :
+      | TermTreeElimNode {Γ} {P hl hn tl tr n : term} :
           [Γ ,, tTree |- P ] ->
           [Γ |- n : tNat] ->
           [Γ |- hl : elimLeafHypTy' Γ P] ->
@@ -347,12 +347,12 @@ Reserved Notation "[ |- Γ ]" (at level 0). *)
           [Γ |- tTreeElim P hl hn (tNode n tl tr) ≅
             tApp (tApp (tApp (tApp (tApp hn n) tl) tr) (tTreeElim P hl hn tl)) (tTreeElim P hl hn tr) :
             term_decl P[(tNode n tl tr)..]]
-      | TermSigCong {Γ} {A A' B B'} :
+      | TermSigCong {Γ} {A A' B B' : term} :
           [ Γ |- A : U] ->
           [ Γ |- A ≅ A' : U ] ->
           [ Γ ,, A |- B ≅ B' : U ] ->
           [ Γ |- tSig A B ≅ tSig A' B' : U ]
-      | TermPairCong {Γ A A' A'' B B' B'' a a' b b'} :
+      | TermPairCong {Γ} {A A' A'' B B' B'' a a' b b' : term} :
           [Γ |- A] ->
           [Γ |- A ≅ A'] ->
           [Γ |- A ≅ A''] ->
@@ -364,10 +364,10 @@ Reserved Notation "[ |- Γ ]" (at level 0). *)
       | TermPairEta {Γ} {A B p} :
           [Γ |- p : tSig A B] ->
           [Γ |- tPair A B (tFst p) (tSnd p) ≅ p : tSig A B]
-      | TermFstCong {Γ A B p p'} :
+      | TermFstCong {Γ} {A B p p'} :
         [Γ |- p ≅ p' : tSig A B] ->
         [Γ |- tFst p ≅ tFst p' : A]
-      | TermFstBeta {Γ A B a b} :
+      | TermFstBeta {Γ} {A B a b : term} :
         [Γ |- A] ->
         [Γ ,, A |- B] ->
         [Γ |- a : A] ->
@@ -376,7 +376,7 @@ Reserved Notation "[ |- Γ ]" (at level 0). *)
       | TermSndCong {Γ A B p p'} :
         [Γ |- p ≅ p' : tSig A B] ->
         [Γ |- tSnd p ≅ tSnd p' : term_decl B[(tFst p)..]]
-      | TermSndBeta {Γ A B a b} :
+      | TermSndBeta {Γ} {A B a b : term} :
         [Γ |- A] ->
         [Γ ,, A |- B] ->
         [Γ |- a : A] ->
@@ -388,11 +388,11 @@ Reserved Notation "[ |- Γ ]" (at level 0). *)
         [Γ |- x ≅ x' : A] ->
         [Γ |- y ≅ y' : A] ->
         [Γ |- tId A x y ≅ tId A' x' y' : U ]
-      | TermReflCong {Γ A A' x x'} :
+      | TermReflCong {Γ} {A A' x x' : term} :
         [Γ |- A ≅ A'] ->
         [Γ |- x ≅ x' : A] ->
         [Γ |- tRefl A x ≅ tRefl A' x' : tId A x x]
-      | TermIdElim {Γ A A' x x' P P' hr hr' y y' e e'} :
+      | TermIdElim {Γ} {A A' x x' P P' hr hr' y y' e e' : term} :
         (* Parameters well formed: required for stability by weakening,
           in order to show that the context Γ ,, A ,, tId A⟨@wk1 Γ A⟩ x⟨@wk1 Γ A⟩ (tRel 0)
           remains well-formed under weakenings *)
@@ -405,7 +405,7 @@ Reserved Notation "[ |- Γ ]" (at level 0). *)
         [Γ |- y ≅ y' : A] ->
         [Γ |- e ≅ e' : tId A x y] ->
         [Γ |- tIdElim A x P hr y e ≅ tIdElim A' x' P' hr' y' e' : term_decl P[e .: y..]]
-      | TermIdElimRefl {Γ A x P hr y A' z} :
+      | TermIdElimRefl {Γ} {A x P hr y A' z : term} :
         [Γ |- A] ->
         [Γ |- x : A] ->
         [Γ ,, A ,, tId A⟨@wk1 Γ A⟩ x⟨@wk1 Γ A⟩ (tRel 0) |- P] ->
@@ -544,19 +544,19 @@ Reserved Notation "[ |- Γ ]" (at level 0). *)
   | neuConvEvalRel (ℓ : ell) v (k : newnat ℓ) : [|- Γ] -> in_ctx Γ v ℓ ->
     [Γ |- tApp (tEval ℓ (tRel v)) (nat_to_term k) ~ tApp (tEval ℓ (tRel v)) (nat_to_term k) : tBool]
 
-  | neuConvApp A B n n' a a' :
+  | neuConvApp {A B n n' a a' : term} :
       [Γ |- n ~ n' : tProd A B ] ->
       [Γ |- a ≅ a' : A] ->
       [Γ |- tApp n a ~ tApp n' a' : term_decl B[a..] ]
 
-  | neuConvNat {P P' hz hz' hs hs' n n'} :
+  | neuConvNat {P P' hz hz' hs hs' n n' : term} :
       [Γ |- n ~ n' : tNat ] ->
       [Γ ,, tNat |- P ≅ P'] ->
       [Γ |- hz ≅ hz' : term_decl P[tZero..]] ->
       [Γ |- hs ≅ hs' : elimSuccHypTy' Γ P] ->
       [Γ |- tNatElim P hz hs n ~ tNatElim P' hz' hs' n' : term_decl P[n..] ]
 
-  | neuConvBool {P P' ht ht' hf hf' n n'} :
+  | neuConvBool {P P' ht ht' hf hf' n n' : term} :
       [Γ |- n ~ n' : tBool ] ->
       [Γ ,, tBool |- P ≅ P'] ->
       [Γ |- ht ≅ ht' : term_decl P[tTrue..]] ->
@@ -567,12 +567,12 @@ Reserved Notation "[ |- Γ ]" (at level 0). *)
       [Γ |- n ~ n' : tNat ] ->
       [Γ |- tApp (tAlpha i) (nSucc k n) ~ tApp (tAlpha i) (nSucc k n') : tBool ]
 
-  | neuConvEmpty {P P' e e'} :
+  | neuConvEmpty {P P' e e' : term} :
       [Γ ,, tEmpty |- P ≅ P'] ->
       [Γ |- e ~ e' : tEmpty ] ->
       [Γ |- tEmptyElim P e ~ tEmptyElim P' e' : term_decl P[e..] ]
 
-  | neuConvTree {P P' hl hl' hn hn' t t'} :
+  | neuConvTree {P P' hl hl' hn hn' t t' : term} :
       [Γ |- t ~ t' : tTree ] ->
       [Γ ,, tTree |- P ≅ P'] ->
       [Γ |- hl ≅ hl' : elimLeafHypTy' Γ P] ->
@@ -587,7 +587,7 @@ Reserved Notation "[ |- Γ ]" (at level 0). *)
       [Γ |- p ~ p' : tSig A B ] ->
       [Γ |- tSnd p ~ tSnd p' : term_decl B[(tFst p)..] ]
 
-  | neuConvId {A A' x x' P P' hr hr' y y' e e'} :
+  | neuConvId {A A' x x' P P' hr hr' y y' e e' : term} :
       [Γ |- A ≅ A'] ->
       [Γ |- x ≅ x' : A] ->
       [Γ ,, A ,, tId A⟨@wk1 Γ A⟩ x⟨@wk1 Γ A⟩ (tRel 0) |- P ≅ P'] ->

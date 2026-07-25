@@ -34,14 +34,13 @@ Section Context.
       - rewrite <- (wk_id_ren_on Γ A), <- (wk_id_ren_on Γ A').
         erewrite <-2 (wk_Fstep_ren_on (i : list_index Γ) (new : newnat (list_at Γ i)) b).
         eapply wkValidTy, VA.
-    + intros * VNtoB IH * ??.
-      change (?Γ,,?A,, ?i : ?new ↦ b) with (Γ,, i : new ↦ b,, A).
+    + intros * Vℓ IH * ??.
+      change (?Γ,,?ℓ,, ?i : ?new ↦ b) with (Γ,, i : new ↦ b,, ℓ).
       unshelve eapply validSnocℓ.
       - exact l.
       - eapply IH; tea.
-      - change (arr' (Γ,, i : new ↦ b) tNat tBool) with
-          (arr' Γ tNat tBool)⟨wk_Fstep (i : list_index Γ) (new : newnat (list_at Γ i)) b (@wk_id Γ)⟩.
-        eapply wkValidTy, VNtoB.
+      - eapply wkValidEll, Vℓ.
+        eapply wk_Fstep, wk_id.
   Qed.
 
   Lemma validConAlpha (Γ Γ' : context) (VΓ : [||-v Γ ≅ Γ']) : [||-v Γ,,↦ nil_ell ≅ Γ',, ↦ nil_ell].
@@ -60,13 +59,13 @@ Section Context.
       - rewrite <- (wk_id_ren_on Γ A), <- (wk_id_ren_on Γ A').
         rewrite <-2 (wk_alphastep_ren_on (F:=nil_ell)).
         eapply wkValidTy, VA.
-    + intros * VNtoB IH.
-      change (?Γ,, ?A,, ↦ nil_ell) with (Γ,,↦ nil_ell ,, ren_alpha_decl S A).
+    + intros * Vℓ IH.
+      change (?Γ,, ?ℓ,, ↦ nil_ell) with (Γ,,↦ nil_ell ,, ℓ).
       unshelve eapply validSnocℓ.
       - exact l.
       - eapply IH.
-      - change (arr' (Γ,, ↦ nil_ell) ?N ?B) with (arr' Γ N B)⟨wk_alphastep nil_ell (@wk_id Γ)⟩.
-        eapply wkValidTy, VNtoB.
+      - eapply wkValidEll, Vℓ.
+        eapply wk_alphastep, wk_id.
   Qed.
 
 End Context.

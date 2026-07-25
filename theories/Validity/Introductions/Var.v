@@ -33,11 +33,11 @@ Section Var.
     eapply term_in_ctx_induction; clear Γ A n hin; intros.
     + pose proof (invValidity VΓ) as (?&?&?&VΓ'&VA &e&?); subst; cbn in *; subst.
       do 2 eexists; now eapply wkValidTy.
-    + destruct A'.
+    + destruct A' as [A' | ℓ'].
       - pose proof (invValidity VΓ) as (?&?&?&VΓ'&VA &e&?); subst; cbn in *; subst.
         destruct (IH _ VΓ') as (?&?&?).
         do 2 eexists; now eapply wkValidTy.
-      - pose proof (invValidity VΓ) as (?&?&VΓ'&VNtoB &e&?); subst; cbn in *; subst.
+      - pose proof (invValidity VΓ) as (?&?&?&VΓ'&Vℓ &e&?); subst; cbn in *; subst.
         destruct (IH _ VΓ') as (?&?&?).
         do 2 eexists; now eapply wkValidTy.
   Qed.
@@ -50,27 +50,37 @@ Section Var.
     pattern Γ, n, A, hin.
     eapply term_in_ctx_induction; clear Γ A n hin; intros.
     1: eapply var0Valid'.
-    pose proof (invValidity VΓ) (?&?&?&VΓ'&VA'&?&h) ; subst; cbn in h; subst.
-    destruct (in_ctx_valid hin VΓ') as (?&?&h).
-    pose proof (h' := wk1ValidTm VA' _ (ih _ _ _ _ h)).
-    cbn -[wk1] in h'; rewrite wk1_ren in h'; unfold shift in h'.
-    eapply irrValidTm; tea; eapply wk1ValidTy.
-    eapply irrValidTy; tea; now eapply lrefl.
-    Unshelve. 3: now eapply lrefl, convValidTy. now eapply lrefl.
+    destruct A' as [A' | ℓ'].
+    + pose proof (invValidity VΓ) as (?&?&?&VΓ'&VA'&?&h) ; subst; cbn in h; subst.
+      destruct (in_ctx_valid hin VΓ') as (?&?&h).
+      pose proof (h' := wk1ValidTm VA' _ (IH _ _ _ _ h)).
+      cbn -[wk1] in h'; rewrite wk1_ren in h'; unfold shift in h'.
+      unshelve (eapply irrValidTm; tea; eapply wk1ValidTy).
+      5: eapply irrValidTy; tea; now eapply lrefl.
+      3: now eapply lrefl, convValidTy.
+      1: now eapply lrefl.
+    + pose proof (invValidity VΓ) as (?&?&?&VΓ'&Vℓ'&?&h) ; subst; cbn in h; subst.
+      destruct (in_ctx_valid hin VΓ') as (?&?&h).
+      replace (tRel (S n)) with (tRel n)⟨@wk1 Γ ℓ'⟩
+       by now rewrite wk1_ren_on.
+      assert (VΓℓ : [||-v Γ,, ℓ' ≅ Γ,, ℓ']) by eapply lrefl, validSnocℓ, Vℓ'.
+      eapply irrValidTm with (VΓ01:=VΓℓ), wkValidTm with (VΔ := VΓℓ), IH with (VA:=h).
+      eapply irrValidTy, lrefl, VA.
+      eapply lrefl, validSnocℓ, Vℓ'.
   Qed.
 
-  Lemma var1Valid {Γ l A B} (VΓ : [||-v (Γ,, A) ,, B]) (VA : [_ ||-v<l> A⟨@wk1 Γ A⟩⟨@wk1 (Γ,,A) B⟩ | VΓ]) :
+  Lemma var1Valid {Γ l} {A : term} {B} (VΓ : [||-v (Γ,, A) ,, B]) (VA : [_ ||-v<l> A⟨@wk1 Γ A⟩⟨@wk1 (Γ,,A) B⟩ | VΓ]) :
     [(Γ,, A) ,, B ||-v<l> tRel 1 : _ | VΓ | VA ].
   Proof.
-    revert VA; rewrite !wk1_ren_on; intros VA.
-    eapply varnValid; do 2 constructor.
+    eapply varnValid. rewrite 2 wk_decl.
+    now eapply in_there', in_here'.
   Qed.
 
-  Lemma var1Valid' {Γ Γ' l A B A' } (VΓ : [||-v (Γ,, A) ,, B ≅ Γ']) (VA : [_ ||-v<l> A⟨@wk1 Γ A⟩⟨@wk1 (Γ,,A) B⟩ ≅ A' | VΓ]) :
+  Lemma var1Valid' {Γ Γ' l} {A : term} {B} {A' : term} (VΓ : [||-v (Γ,, A) ,, B ≅ Γ']) (VA : [_ ||-v<l> A⟨@wk1 Γ A⟩⟨@wk1 (Γ,,A) B⟩ ≅ A' | VΓ]) :
     [(Γ,, A) ,, B ||-v<l> tRel 1 : _ | VΓ | VA ].
   Proof.
-    revert VA; rewrite !wk1_ren_on; intros VA.
-    eapply varnValid; do 2 constructor.
+    eapply varnValid. rewrite 2 wk_decl.
+    now eapply in_there', in_here'.
   Qed.
 
 End Var.

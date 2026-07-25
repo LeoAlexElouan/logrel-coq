@@ -87,13 +87,13 @@ Proof.
     now eapply RF.
   + intros Θ a b ρΘ wfΘ Rab.
     rewrite 2(subst_ren_wk (A:=G)), 2(subst_ren_wk (A:=G')).
-    replace G[_] with G[up_subst σ⟨ρΞ⟩⟨ρΘ⟩] by now rewrite 2eq_upwk.
-    replace G'[_] with G'[up_subst σ'⟨ρΞ⟩⟨ρΘ⟩] by now rewrite 2eq_upwk.
-    rewrite 2to_subst_sound, 2subst_comp_on.
+    replace G[_] with G[up_subst σ⟨ρΞ⟩⟨ρΘ⟩] by now rewrite 2 eq_upwk.
+    replace G'[_] with G'[up_subst σ'⟨ρΞ⟩⟨ρΘ⟩] by now rewrite 2 eq_upwk.
+    rewrite 2 to_subst_sound, 2 subst_comp_on.
     unshelve (eapply validTyExt; tea); tea.
     unshelve eapply consSubst, irrLREq, Wpack_return, Rab.
     - now unshelve eapply wkSubst, wkSubst.
-    - now rewrite 2subst_ren_wk.
+    - now rewrite 2 subst_ren_wk.
 Qed.
 
 End SigmaCongRed.
@@ -147,7 +147,7 @@ Section SigTmValidity.
     (VGU : [ Γ ,, F ||-v< one > G ≅ G' : U | VΓF | VU' ]) :
     [ Γ ||-v< one > tSig F G ≅ tSig F' G' : U | VΓ | UValid VΓ ].
   Proof.
-    constructor; intros ? wfΔ0 ?? Vσ. cbn -[Wpack].
+    constructor; intros ? wfΔ0 ?? Vσ. change (tSig ?F ?G)[?σ] with (tSig F[σ] G[up_subst σ]).
     pose proof (univValid zero VFU) as VF0.
     pose proof (univValid zero VGU) as VG0.
     pose (v := validSnoc VΓ (urefl VF)).
@@ -164,14 +164,14 @@ Section SigTmValidity.
     unshelve (eapply SirrLREq; [easy|]).
     2:{ eapply (LRU_ (Universe.redUOneCtx wfΞ)). }
     unshelve econstructor.
-    1,2: econstructor; [apply redtmwf_refl; cbn; eapply ty_sig; tea| constructor].
-    5: cbn in *; refine (convtm_sig _ _ _).
+    1,2: econstructor; [apply redtmwf_refl; rewrite <- wk_sig; eapply ty_sig; tea| constructor].
+    5: cbn [URedTm.te]; rewrite <-2 wk_sig; refine (convtm_sig _ _ _).
     1,5: exact (ty_wk ρΞ wfΞ EscLRlVFU).
-    1: exact (ty_wk (wk_up F[σ] ρΞ) (wfc_cons wfΞ (wft_wk ρΞ wfΞ EscLRVF)) EscLRlVGU).
+    1: exact (ty_wk (wk_up _ ρΞ) (wfc_cons wfΞ (wft_wk ρΞ wfΞ EscLRVF)) EscLRlVGU).
     1: exact (ty_wk ρΞ wfΞ EscRRrVFU).
-    1: exact (ty_wk (wk_up F'[σ'] ρΞ) (wfc_cons wfΞ (wft_wk ρΞ wfΞ EscRRVF)) EscRRrX).
+    1: exact (ty_wk (wk_up _ ρΞ) (wfc_cons wfΞ (wft_wk ρΞ wfΞ EscRRVF)) EscRRrX).
     1: exact (convtm_wk ρΞ wfΞ EscRVFU).
-    1: exact (convtm_wk (wk_up F[σ] ρΞ) (wfc_cons wfΞ (wft_wk ρΞ wfΞ EscLRVF)) EscRVGU).
+    1: exact (convtm_wk (wk_up _ ρΞ) (wfc_cons wfΞ (wft_wk ρΞ wfΞ EscLRVF)) EscRVGU).
     enough (h : [ Ξ ||-S< zero > (tSig F G)[σ]⟨ρΞ⟩ ≅ (tSig F' G')[σ']⟨ρΞ⟩]) by exact (cumLR h).
     eapply RΠ'.
   Qed.

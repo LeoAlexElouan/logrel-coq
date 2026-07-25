@@ -34,7 +34,7 @@ Proof.
     intros; split; intros []; unshelve econstructor.
     1,2: now eapply ih.
     all: now eapply irrLR.
-  - intros [Γ L] [Γ' L'] ????? ih ? h; inversion h as [| | |????? VΓad' VNtoB' ]; subst.
+  - intros [Γ L] [Γ' L'] ?????? ih ? h; inversion h as [| | |?????? VΓad' Vℓ' ]; subst.
     specialize (ih _ VΓad').
     intros; split; intros []; unshelve econstructor.
     1,2: now eapply ih.
@@ -76,19 +76,19 @@ Proof.
     + now symmetry.
     + rewrite <- hhead. eapply hi.
   - pose proof (x := invValiditySnoc VΓ').
-    destruct x as [lA'[ VΓ'' [VA' ->]]].
+    destruct x as [lA' [ VΓ'' [VA' ->]]].
     intros ????? [tleq hdeq].
     pose (tleq' := IHVΓ VΓ'' _ wfΔ wfΔ' _ _ tleq).
     exists tleq'.
     symmetry; eapply irrLRCum, hdeq.
     now eapply validTyExt, tleq.
-  - pose proof (invValiditySnocℓ VΓ') as (lℓ&VΓ''&RNtoBℓ&e&h).
-    assert (e = eq_refl) as -> by eapply uip.
-    cbn in h; specialize h as ->.
+  - pose proof (x := invValiditySnocℓ VΓ').
+    destruct x as [lℓ' [ VΓ'' [Vℓ' ->]]].
     intros ????? [tleq hdeq].
     pose (tleq' := IHVΓ VΓ'' _ wfΔ wfΔ' _ _ tleq).
     exists tleq'.
-    symmetry; eapply irrEll, hdeq.
+    symmetry; eapply irrEllConv, hdeq.
+    now eapply validEllExt, tleq.
 Qed.
 
 Lemma symValidTy {Γ Γ' l A B} {VΓ : [||-v Γ ≅ Γ']} (VΓ' : [||-v Γ' ≅ Γ]) :
@@ -98,13 +98,20 @@ Proof.
   now unshelve (eapply (validTyExt (Γ:=Γ) (Γ':=Γ')); tea; now eapply symSubst).
 Qed.
 
+Lemma symValidEll {Γ Γ' l ℓ ℓ'} {VΓ : [||-v Γ ≅ Γ']} (VΓ' : [||-v Γ' ≅ Γ]) :
+  [Γ ||-vEll<l> ℓ ≅ ℓ' | VΓ] -> [Γ' ||-vEll<l> ℓ' ≅ ℓ | VΓ'].
+Proof.
+  intros; constructor; intros; symmetry.
+  now unshelve (eapply (validEllExt (Γ:=Γ) (Γ':=Γ')); tea; now eapply symSubst).
+Qed.
+
 Lemma symValid {Γ Γ'} : [||-v Γ ≅ Γ'] -> [||-v Γ' ≅ Γ].
 Proof.
   intros VΓ; induction Γ, Γ', VΓ using validity_rect.
   - apply validEmpty.
   - apply (validSnocε IHVΓ); now symmetry.
   - now eapply (validSnoc IHVΓ), symValidTy.
-  - now eapply (validSnocℓ _ IHVΓ), symValidTy.
+  - now eapply (validSnocℓ IHVΓ), symValidEll.
 Qed.
 
 
@@ -126,10 +133,10 @@ Proof.
       cbn in h; subst.
     intros [tl hd]; pose proof (tl' := ih _ _ _ _ _ _ tl).
     exists tl'; now eapply irrLREqCum.
-  - intros * ih *. pose proof (invValidity VΓ0) as (?&?&?&?&e&h); subst;
+  - intros * ih *. pose proof (invValidity VΓ0) as (?&?&?&?&?&e&h); subst;
       cbn in h; subst.
     intros [tl hd]; pose proof (tl' := ih _ _ _ _ _ _ tl).
-    exists tl'; now eapply irrEll.
+    exists tl'; eapply irrEll; tea.
 Qed.
 
 Lemma convSubst' {Γ Γ' Γ''}
@@ -150,12 +157,29 @@ Proof.
   eapply (validTyExt (Γ:=Γ) (Γ':=Γ')); tea; now eapply convSubst.
 Qed.
 
+Lemma convValidEll {Γ Γ' Γ''}
+  (VΓ' : [||-v Γ ≅ Γ']) (VΓ'' : [||-v Γ ≅ Γ'']) {l ℓ ℓ'} :
+  [_ ||-vEll<l> ℓ ≅ ℓ' | VΓ'] -> [_ ||-vEll<l> ℓ ≅ ℓ' | VΓ''].
+Proof.
+  intros Vℓ; constructor; intros.
+  eapply (validEllExt (Γ:=Γ) (Γ':=Γ')); tea; now eapply convSubst.
+Qed.
+
 Lemma convValidTy' {Γ Γ' Γ''}
   (VΓ : [||-v Γ ≅ Γ']) (VΓ' : [||-v Γ'' ≅ Γ']) {l A B} :
   [_ ||-v<l> A ≅ B | VΓ] -> [_ ||-v<l> A ≅ B | VΓ'].
 Proof.
   intros ?%(symValidTy (symValid VΓ)).
   unshelve now eapply symValidTy, convValidTy.
+  now apply symValid.
+Qed.
+
+Lemma convValidEll' {Γ Γ' Γ''}
+  (VΓ : [||-v Γ ≅ Γ']) (VΓ' : [||-v Γ'' ≅ Γ']) {l ℓ ℓ'} :
+  [_ ||-vEll<l> ℓ ≅ ℓ' | VΓ] -> [_ ||-vEll<l> ℓ ≅ ℓ' | VΓ'].
+Proof.
+  intros ?%(symValidEll (symValid VΓ)).
+  unshelve now eapply symValidEll, convValidEll.
   now apply symValid.
 Qed.
 
@@ -184,14 +208,13 @@ Proof.
     pose (tl'' := ih _ _ _ _ _ _ _ _ tl tl').
     exists tl''; etransitivity; [now eapply irrLR|].
     eapply irrLRCum; tea; symmetry; now eapply validTyExt.
-  - intros ????? VΓ ih ? VΓ'0.
-    pose proof (invValidity VΓ'0) as (?&?&?&?&e&?); subst; cbn in *.
-    intros VΓ'; pose proof (invValiditySnocℓ VΓ') as (?&?&?&e&h).
-    assert (e = eq_refl) as -> by apply uip. cbn in h; subst.
+  - intros ????? VΓ Vℓ ih ? VΓ'0.
+    pose proof (invValidity VΓ'0) as (?&?&?&?&?&e&?); subst; cbn in *.
+    intros VΓ'; pose proof (invValiditySnocℓ VΓ') as (?&?&?&?); subst.
     intros ???? wfΔ [tl hd] [tl' hd'].
     pose (tl'' := ih _ _ _ _ _ _ _ _ tl tl').
     exists tl''; etransitivity; [now eapply irrEll|].
-    eapply irrEll; tea; symmetry; now eapply validTyExt.
+    eapply irrEllConv; tea; symmetry; now eapply validEllExt.
 Qed.
 
 Lemma ureflValidTy {Γ Γ' l A B} (VΓ : [||-v Γ ≅ Γ']) (VΓ' : [||-v Γ' ≅ Γ']) :
@@ -204,14 +227,24 @@ Proof.
   unshelve (eapply transSubst; tea; now eapply symSubst); tea.
 Qed.
 
+Lemma ureflValidEll {Γ Γ' l ℓ ℓ'} (VΓ : [||-v Γ ≅ Γ']) (VΓ' : [||-v Γ' ≅ Γ']) :
+  [Γ ||-vEll<l> ℓ ≅ ℓ' | VΓ] -> [Γ' ||-vEll<l> ℓ' ≅ ℓ' | VΓ'].
+Proof.
+  constructor; intros; etransitivity.
+  2: eapply validEllExt; tea; now eapply convSubst'.
+  symmetry; eapply validEllExt; tea.
+  unshelve eapply convSubst'; [| tea|].
+  unshelve (eapply transSubst; tea; now eapply symSubst); tea.
+Qed.
+
 Lemma ureflValid {Γ Γ'} (VΓ : [||-v Γ ≅ Γ']) : [||-v Γ' ≅ Γ'].
 Proof.
   indValid VΓ; [intros; eapply validEmpty; reflexivity| | |].
   + intros ??????? VF ih; eapply (validSnocε ih); reflexivity.
   + intros ????? ? VA ih; eapply (validSnoc ih).
     now eapply ureflValidTy.
-  + intros ????? VNtoB ih; eapply (validSnocℓ _ ih).
-    now eapply ureflValidTy.
+  + intros ????? ? Vℓ ih; eapply (validSnocℓ ih).
+    now eapply ureflValidEll.
 Qed.
 
 Lemma irrLvlValidTy {Γ Γ' l l' A B C} (VΓ : [||-v Γ ≅ Γ']) :
@@ -224,12 +257,31 @@ Proof.
   now eapply ureflValid.
 Qed.
 
+Lemma irrLvlValidEll {Γ Γ' l l' ℓ ℓ' ℓ''} (VΓ : [||-v Γ ≅ Γ']) :
+  [Γ ||-vEll<l> ℓ ≅ ℓ' | VΓ ] -> [Γ ||-vEll<l'> ℓ' ≅ ℓ'' | VΓ] -> [Γ ||-vEll<l> ℓ' ≅ ℓ'' | VΓ].
+Proof.
+  constructor; intros.
+  eapply transitiveEll; [eapply urefl|]; eapply validEllExt; tea.
+Qed.
+
 Lemma transValidTy {Γ Γ' Γ'' l l' A B C}
   (VΓ : [||-v Γ ≅ Γ']) (VΓ' : [||-v Γ' ≅ Γ'']) (VΓ'' : [||-v Γ ≅ Γ'']) :
   [Γ ||-v<l> A ≅ B | VΓ ] -> [Γ' ||-v<l'> B ≅ C | VΓ'] -> [Γ ||-v<l> A ≅ C | VΓ''].
 Proof.
   constructor; intros; etransitivity; eapply validTyExt; tea.
   2: eapply irrLvlValidTy; [now eapply convValidTy|now eapply convValidTy'].
+  eapply transSubst; tea.
+  unshelve now eapply convSubst, symSubst.
+  now eapply symValid.
+  Unshelve. now apply symValid.
+Qed.
+
+Lemma transValidEll {Γ Γ' Γ'' l l' ℓ ℓ' ℓ''}
+  (VΓ : [||-v Γ ≅ Γ']) (VΓ' : [||-v Γ' ≅ Γ'']) (VΓ'' : [||-v Γ ≅ Γ'']) :
+  [Γ ||-vEll<l> ℓ ≅ ℓ' | VΓ ] -> [Γ' ||-vEll<l'> ℓ' ≅ ℓ'' | VΓ'] -> [Γ ||-vEll<l> ℓ ≅ ℓ'' | VΓ''].
+Proof.
+  constructor; intros; etransitivity; eapply validEllExt; tea.
+  2: eapply irrLvlValidEll; [now eapply convValidEll|now eapply convValidEll'].
   eapply transSubst; tea.
   unshelve now eapply convSubst, symSubst.
   now eapply symValid.
@@ -248,9 +300,9 @@ Proof.
   - intros * VA ih ? VΓ0.
     pose proof (invValidity VΓ0) as (?&?&?&VΓ'&?&e&?); subst; cbn in *; subst.
     eapply (validSnoc (ih _ VΓ')), transValidTy; tea.
-  - intros * VNtoB ih ? VΓ0.
-    pose proof (invValidity VΓ0) as (?&?&VΓ'&?&e&?); subst; cbn in *; subst.
-    eapply (validSnocℓ _ (ih _ VΓ')), transValidTy; tea.
+  - intros * Vℓ ih ? VΓ0.
+    pose proof (invValidity VΓ0) as (?&?&?&VΓ'&?&e&?); subst; cbn in *; subst.
+    eapply (validSnocℓ (ih _ VΓ')), transValidEll; tea.
 Qed.
 
 
@@ -415,8 +467,8 @@ Proof.
     { now rewrite eq1. } { now rewrite eq2. }
     eapply irrLREq, hd.
     now rewrite eq1.
-  - intros ?????? ih ?????? eq1 eq2 [tl hd].
-    rewrite eq1, eq2 in hd at 2.
+  - intros ??????? ih ?????? eq1 eq2 [tl hd].
+    rewrite eq1, eq2 in hd.
     unshelve eexists (ih _ _ _ _ _ _ _ _ tl).
     { now rewrite eq1. } { now rewrite eq2. }
     eapply irrEll, hd.

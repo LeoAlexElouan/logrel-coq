@@ -27,7 +27,7 @@ Inductive isLRFun `{ta : tag} `{WfContext ta}
     [Γ |- A'] ->
     [Γ |-  ΠAL ≅ A'] ->
     (forall {Δ a b} (ρ : Δ ≤ Γ) (wfΔ : [ |- Δ ])
-      (ha : [ ΠA.(PolyRedPack.shpRed) ρ wfΔ | Δ ||- a ≅ b : ΠAL⟨ρ⟩ ]),
+      (ha : [ ΠA.(PolyRedPack.shpRed) ρ wfΔ | Δ ||- a ≅ b : _ ]),
         dSplit (fun Ξ wfΞ ρΞ hSplit =>
           [hSplit | Ξ ||- t⟨wk_up ΠAL ρ⟩[a ..]⟨ρΞ⟩ ≅ t⟨wk_up ΠAL ρ⟩[b ..]⟨ρΞ⟩ :
             ΠA.(PiRedTyPack.codL)⟨wk_up ΠAL ρ⟩[a ..]⟨ρΞ⟩])

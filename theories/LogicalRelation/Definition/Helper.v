@@ -38,7 +38,7 @@ Section PolyRed.
     {
       shpRed [Δ] (ρ : Δ ≤ Γ) : [ |- Δ ] -> [ LogRel@{i j k l} l | Δ ||- shp⟨ρ⟩ ≅ shp'⟨ρ⟩ ] ;
       posRed [Δ a b] (ρ : Δ ≤ Γ) (wfΔ : [ |- Δ ]) :
-          [ shpRed ρ wfΔ | Δ ||- a ≅ b : shp⟨ρ⟩] ->
+          [ shpRed ρ wfΔ | Δ ||- a ≅ b : _] ->
           WLRAdequate@{i j k l} Δ l pos⟨wk_up shp ρ⟩[a..] pos'⟨wk_up shp' ρ⟩[b..] }.
 
   Definition from@{i j k l} {PA : PolyRedPack@{k l} Γ shp shp' pos pos'}

@@ -197,7 +197,7 @@ Qed.
 Section STreeElimRedEq.
   Context {Γ l P Q hl hl' hn hn'}
     (NT : [Γ ||-Tree tTree ≅ tTree])
-    (RT := LRTree_ _ NT)
+    (RT := LRTree_ l NT)
     (WtP : [Γ ,, tTree |- P])
     (WtQ : [Γ ,, tTree |- Q])
     (eqPQ : [Γ,, tTree |- P ≅ Q])

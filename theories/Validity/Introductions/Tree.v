@@ -122,11 +122,9 @@ Section TreeElimValid.
     { rewrite !wk_comp_ren_on with (H:=Q), !wk_comp_ren_on with (H:=P).
       eapply wkValidTy, VP. }
     + eapply varnValid.
-      change tNat with tNat⟨↑⟩⟨↑⟩.
-      repeat constructor.
+      eapply in_there' with (A:=tNat), in_there' with (A:=tNat), in_here'.
     + eapply varnValid.
-      change tTree with tTree⟨↑⟩.
-      repeat constructor.
+      eapply in_there' with (A:=tTree), in_here'.
     + eapply varnValid.
       constructor.
   Qed.

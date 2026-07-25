@@ -47,7 +47,7 @@ Export FundTyEq(FundTyEq,Build_FundTyEq).
 
 Module FundTm.
   Record FundTm `{GenericTypingProperties}
-    {Γ : context} {A t : term}
+    {Γ : context} {A : term} {t : term}
   : Type := {
     VΓ : [||-v Γ ];
     VA : [ Γ ||-v< one > A | VΓ ];
@@ -121,7 +121,7 @@ Section Fundamental.
     (fΓ : FundCon Γ) : FundCon (Γ,, i : new ↦ b).
   Proof. now eapply validConNew. Qed.
 
-  Lemma FundConAlpha Γ (fΓ : FundCon Γ) : FundCon (Γ,, ↦ Fnil).
+  Lemma FundConAlpha Γ (fΓ : FundCon Γ) : FundCon (Γ,, ↦ nil_ell).
   Proof. now eapply validConAlpha. Qed.
 
   Lemma FundConCons (Γ : context) (A : term)
@@ -166,11 +166,11 @@ Section Fundamental.
   Qed.
 
 
-  Lemma FundTmVar : forall (Γ : context) (n : nat) decl,
+  Lemma FundTmVar : forall (Γ : context) (n : nat) (A : term),
     FundCon Γ ->
-    in_ctx Γ n decl -> FundTm Γ decl (tRel n).
+    in_ctx Γ n A -> FundTm Γ (A : term) (tRel n).
   Proof.
-    intros Γ n d FΓ hin.
+    intros Γ n A FΓ hin.
     unshelve econstructor; tea.
     + pose proof (in_ctx_valid hin FΓ) as (?&?&?).
       now eapply lrefl, embValidTyOne.
@@ -966,13 +966,13 @@ Section Fundamental.
     unshelve econstructor.
     + eapply Fn.
     + eapply boolValid.
-    + eapply validAlpha'.
+    + eapply validAppAlpha.
       destruct Fn.
       irrValid.
   Qed.
 
   Lemma FundTmEqDigamma (Γ : context) (i : list_index Γ) (n : nat) (b : bool):
-    FundCon Γ -> in_Fctx (list_at Γ i) n b -> FundTmEq Γ tBool (tApp (tAlpha i) (nat_to_term n)) (bool_to_term b).
+    FundCon Γ -> in_ell (list_at Γ i) n b -> FundTmEq Γ tBool (tApp (tAlpha i) (nat_to_term n)) (bool_to_term b).
   Proof.
     intros FΓ hin.
     unshelve econstructor.
@@ -983,9 +983,9 @@ Section Fundamental.
 
 Lemma Fundamental : (forall Γ : context, [ |-[ de ] Γ ] -> FundCon (ta := ta) Γ)
     × (forall (Γ : context) (A : term), [Γ |-[ de ] A] -> FundTy (ta := ta) Γ A)
-    × (forall (Γ : context) (A t : term), [Γ |-[ de ] t : A] -> FundTm (ta := ta) Γ A t)
+    × (forall (Γ : context) (A : decl) (t : term), [Γ |-[ de ] t : A] -> FundTm (ta := ta) Γ A t)
     × (forall (Γ : context) (A B : term), [Γ |-[ de ] A ≅ B] -> FundTyEq (ta := ta) Γ A B)
-    × (forall (Γ : context) (A t u : term), [Γ |-[ de ] t ≅ u : A] -> FundTmEq (ta := ta) Γ A t u).
+    × (forall (Γ : context) (A : decl) (t u : term), [Γ |-[ de ] t ≅ u : A] -> FundTmEq (ta := ta) Γ A t u).
   Proof.
   apply WfDeclInduction.
   + intros; now apply FundConNil.

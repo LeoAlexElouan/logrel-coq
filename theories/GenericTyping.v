@@ -126,7 +126,7 @@ Section RedDefinitions.
     [Γ |- t : A] -> WellClass Γ (isterm A) t :=
     fun H => H.
 
-  Definition type_class_ty Γ A :
+  Definition type_class_ty Γ (A : term) :
     [Γ |- A] -> WellClass Γ istype A :=
     fun H => H.
 
@@ -238,8 +238,8 @@ Section GenericTyping.
   Class WfContextProperties :=
   {
     wfc_nil : [|- ε ] ;
-    wfc_cons {Γ} {A} : [|- Γ] -> [Γ |- A] -> [|- Γ,,A];
-    wfc_consell {Γ} {ℓ : ell} : [|- Γ] -> [|- Γ,, ℓ];
+    wfc_cons {Γ} {A : term} : [|- Γ] -> [Γ |- A] -> [|- Γ,,A];
+    wfc_consell {Γ} {ℓ : ell} : [|- Γ] -> [|- Γ,,ℓ];
     wfc_consF {Γ} {i new} {b} : [|- Γ] -> [|- Γ,, i : new ↦ b];
     wfc_alpha {Γ} : [|- Γ] -> [|- Γ,, ↦ nil_ell];
     wfc_wft {Γ A} : [Γ |- A] -> [|- Γ];
@@ -257,15 +257,15 @@ Section GenericTyping.
     wft_U {Γ} :
       [ |- Γ ] ->
       [ Γ |- U ] ;
-    wft_prod {Γ} {A B} :
+    wft_prod {Γ} {A B : term} :
       [ Γ |- A ] ->
       [Γ ,, A |- B ] ->
       [ Γ |- tProd A B ] ;
-    wft_sig {Γ} {A B} :
+    wft_sig {Γ} {A B : term} :
       [ Γ |- A ] ->
       [Γ ,, A |- B ] ->
       [ Γ |- tSig A B ] ;
-    wft_Id {Γ} {A x y} :
+    wft_Id {Γ} {A x y : term} :
       [Γ |- A] ->
       [Γ |- x : A] ->
       [Γ |- y : A] ->
@@ -309,7 +309,7 @@ Section GenericTyping.
     ty_succ {Γ n} :
         [Γ |- n : tNat] ->
         [Γ |- tSucc n : tNat] ;
-    ty_natElim {Γ P hz hs n} :
+    ty_natElim {Γ} {P hz hs n : term} :
       [Γ ,, tNat |- P ] ->
       [Γ |- hz : term_decl P[tZero..]] ->
       [Γ |- hs : elimSuccHypTy' Γ P] ->
@@ -324,7 +324,7 @@ Section GenericTyping.
     ty_false {Γ} :
         [|-Γ] ->
         [Γ |- tFalse : tBool] ;
-    ty_boolElim {Γ P ht hf n} :
+    ty_boolElim {Γ} {P ht hf n : term} :
       [Γ ,, tBool |- P ] ->
       [Γ |- ht : term_decl P[tTrue..]] ->
       [Γ |- hf : term_decl P[tFalse..]] ->
@@ -336,7 +336,7 @@ Section GenericTyping.
     ty_empty {Γ} :
         [|-Γ] ->
         [Γ |- tEmpty : U] ;
-    ty_emptyElim {Γ P e} :
+    ty_emptyElim {Γ} {P e : term} :
       [Γ ,,  tEmpty |- P ] ->
       [Γ |- e : tEmpty] ->
       [Γ |- tEmptyElim P e : term_decl P[e..]] ;
@@ -351,7 +351,7 @@ Section GenericTyping.
         [Γ |- tl : tTree] ->
         [Γ |- tr : tTree] ->
         [Γ |- tNode n tl tr : tTree] ;
-    ty_treeElim {Γ P hl hn t} :
+    ty_treeElim {Γ} {P hl hn t : term} :
       [Γ ,, tTree |- P ] ->
       [Γ |- hl : elimLeafHypTy' Γ P] ->
       [Γ |- hn : elimNodeHypTy' Γ P] ->
@@ -361,7 +361,7 @@ Section GenericTyping.
         [ Γ |- A : U] ->
         [Γ ,, A |- B : U ] ->
         [ Γ |- tSig A B : U ] ;
-    ty_pair {Γ} {A B a b} :
+    ty_pair {Γ} {A B a b : term} :
         [ Γ |- A ] ->
         [Γ ,, A |- B ] ->
         [Γ |- a : A] ->
@@ -378,11 +378,11 @@ Section GenericTyping.
       [Γ |- x : A] ->
       [Γ |- y : A] ->
       [Γ |- tId A x y : U] ;
-    ty_refl {Γ A x} :
+    ty_refl {Γ} {A x : term} :
       [Γ |- A] ->
       [Γ |- x : A] ->
       [Γ |- tRefl A x : tId A x x] ;
-    ty_IdElim {Γ A x P hr y e} :
+    ty_IdElim {Γ} {A x P hr y e : term} :
       [Γ |- A] ->
       [Γ |- x : A] ->
       [Γ ,, A ,, tId A⟨@wk1 Γ A⟩ x⟨@wk1 Γ A⟩ (tRel 0) |- P] ->
@@ -418,7 +418,7 @@ Section GenericTyping.
       [ Γ |- t : arr' Γ tNat tBool] ->
       (forall n b, in_ell ℓ n b -> [ Γ |- tApp t (nat_to_term n) ≅ bool_to_term b : tBool]) ->
       [ Γ |- tBox ℓ t : ℓ] ;
-    ty_ellElim {Γ ℓ k P ht hf n b} (ℓt := cons_ell ℓ k true) (ℓf := cons_ell ℓ k false):
+    ty_ellElim {Γ ℓ k} {P ht hf n b : term} (ℓt := cons_ell ℓ k true) (ℓf := cons_ell ℓ k false):
       [ Γ,, ℓ |- P] ->
       [ Γ,, ℓt |- ht : term_decl P⟨wk_up ℓ (@wk1 Γ ℓt)⟩[(tBox ℓ (tEval ℓt (tRel 0)))..] ] ->
       [ Γ,, ℓf |- hf : term_decl P⟨wk_up ℓ (@wk1 Γ ℓf)⟩[(tBox ℓ (tEval ℓf (tRel 0)))..] ] ->
@@ -437,15 +437,15 @@ Section GenericTyping.
       [Γ |- A' ≅ B'] -> [Γ |- A ≅ B] ;
     convty_uni {Γ} :
       [|- Γ] -> [Γ |- U ≅ U] ;
-    convty_prod {Γ A A' B B'} :
+    convty_prod {Γ} {A A' B B' : term} :
       [Γ |- A] ->
       [Γ |- A ≅ A'] -> [Γ,, A |- B ≅ B'] ->
       [Γ |- tProd A B ≅ tProd A' B'] ;
-    convty_sig {Γ A A' B B'} :
+    convty_sig {Γ} {A A' B B' : term} :
       [Γ |- A] ->
       [Γ |- A ≅ A'] -> [Γ,, A |- B ≅ B'] ->
       [Γ |- tSig A B ≅ tSig A' B'] ;
-    convty_Id {Γ A A' x x' y y'} :
+    convty_Id {Γ} {A A' x x' y y' : term} :
       (* [Γ |- A] -> ?  *)
       [Γ |- A ≅ A'] ->
       [Γ |- x ≅ x' : A] ->
@@ -481,7 +481,7 @@ Section GenericTyping.
       [Γ |- A : U] ->
       [Γ |- A ≅ A' : U] -> [Γ,, A |- B ≅ B' : U] ->
       [Γ |- tSig A B ≅ tSig A' B' : U] ;
-    convtm_eta {Γ f g A B} :
+    convtm_eta {Γ} {f g A B : term} :
       [ Γ |- A ] ->
       [ Γ,, A |- B ] ->
       [ Γ |- f : tProd A B ] ->
@@ -519,7 +519,7 @@ Section GenericTyping.
         [Γ |- tl ≅ tl' : tTree] ->
         [Γ |- tr ≅ tr' : tTree] ->
         [Γ |- tNode n tl tr ≅ tNode n' tl' tr' : tTree] ;
-    convtm_eta_sig {Γ p p' A B} :
+    convtm_eta_sig {Γ} {p p' A B : term} :
       [Γ |- A] ->
       [Γ ,, A |- B] ->
       [Γ |- p : tSig A B] ->
@@ -535,7 +535,7 @@ Section GenericTyping.
       [Γ |- x ≅ x' : A] ->
       [Γ |- y ≅ y' : A] ->
       [Γ |- tId A x y ≅ tId A' x' y' : U ] ;
-    convtm_refl {Γ A A' x x'} :
+    convtm_refl {Γ} {A A' x x' : term} :
       [Γ |- A ≅ A'] ->
       [Γ |- x ≅ x' : A] ->
       [Γ |- tRefl A x ≅ tRefl A' x' : tId A x x] ;
@@ -584,13 +584,13 @@ Section GenericTyping.
       [ Γ |- f ~ g : tProd A B  ] ->
       [ Γ |- t ≅ u : A ] ->
       [ Γ |- tApp f t ~ tApp g u : term_decl B[t..]  ] ;
-    convneu_natElim {Γ P P' hz hz' hs hs' n n'} :
+    convneu_natElim {Γ} {P P' hz hz' hs hs' n n' : term} :
         [Γ ,, tNat |- P ≅ P'] ->
         [Γ |- hz ≅ hz' : term_decl P[tZero..]] ->
         [Γ |- hs ≅ hs' : elimSuccHypTy' Γ P] ->
         [Γ |- n ~ n' : tNat ] ->
         [Γ |- tNatElim P hz hs n ~ tNatElim P' hz' hs' n' : term_decl P[n..] ] ;
-    convneu_boolElim {Γ P P' ht ht' hf hf' n n'} :
+    convneu_boolElim {Γ} {P P' ht ht' hf hf' n n' : term} :
         [Γ ,, tBool |- P ≅ P'] ->
         [Γ |- ht ≅ ht' : term_decl P[tTrue..]] ->
         [Γ |- hf ≅ hf' : term_decl P[tFalse..]] ->
@@ -599,11 +599,11 @@ Section GenericTyping.
     convneu_alpha {Γ : context} {i : list_index Γ} {t u n} :
       [ Γ |- t ~ u : tNat  ] ->
       [ Γ |- tApp (tAlpha i) (nSucc n t) ~ tApp (tAlpha i) (nSucc n u) : tBool  ];
-    convneu_emptyElim {Γ P P' e e'} :
+    convneu_emptyElim {Γ} {P P' e e' : term} :
         [Γ ,, tEmpty |- P ≅ P'] ->
         [Γ |- e ~ e' : tEmpty  ] ->
         [Γ |- tEmptyElim P e ~ tEmptyElim P' e' : term_decl P[e..]  ] ;
-    convneu_treeElim {Γ P P' hl hl' hn hn' t t'} :
+    convneu_treeElim {Γ} {P P' hl hl' hn hn' t t' : term} :
         [Γ ,, tTree |- P ≅ P'] ->
         [Γ |- hl ≅ hl' : elimLeafHypTy' Γ P] ->
         [Γ |- hn ≅ hn' : elimNodeHypTy' Γ P] ->
@@ -615,7 +615,7 @@ Section GenericTyping.
     convneu_snd {Γ A B p p'} :
       [Γ |- p ~ p' : tSig A B  ] ->
       [Γ |- tSnd p ~ tSnd p' : term_decl B[(tFst p)..]  ] ;
-    convneu_IdElim {Γ A A' x x' P P' hr hr' y y' e e'} :
+    convneu_IdElim {Γ} {A A' x x' P P' hr hr' y y' e e' : term} :
       (* Parameters well formed: required by declarative instance *)
       [Γ |- A] ->
       [Γ |- x : A] ->
@@ -659,7 +659,7 @@ Section GenericTyping.
     redty_ty_src {Γ A B} : [Γ |- A ⤳* B] -> [Γ |- A] ;
     redty_term {Γ A B} :
       [ Γ |- A ⤳* B : U] -> [Γ |- A ⤳* B ] ;
-    redty_refl {Γ A} :
+    redty_refl {Γ} {A : term} :
       [ Γ |- A] ->
       [Γ |- A ⤳* A] ;
     redty_trans {Γ} ::
@@ -677,34 +677,34 @@ Section GenericTyping.
       [ Γ ,, A |- t : B ] ->
       [ Γ |- u : A ] ->
       [ Γ |- tApp (tLambda A t) u ⤳* t[u..] : B[u..] ] ;
-    redtm_natElimZero {Γ P hz hs} :
+    redtm_natElimZero {Γ} {P hz hs : term} :
         [Γ ,, tNat |- P ] ->
         [Γ |- hz : term_decl P[tZero..]] ->
         [Γ |- hs : elimSuccHypTy' Γ P] ->
         [Γ |- tNatElim P hz hs tZero ⤳* hz : P[tZero..]] ;
-    redtm_natElimSucc {Γ P hz hs n} :
+    redtm_natElimSucc {Γ} {P hz hs n : term} :
         [Γ ,, tNat |- P ] ->
         [Γ |- hz : term_decl P[tZero..]] ->
         [Γ |- hs : elimSuccHypTy' Γ P] ->
         [Γ |- n : tNat] ->
         [Γ |- tNatElim P hz hs (tSucc n) ⤳* tApp (tApp hs n) (tNatElim P hz hs n) : P[(tSucc n)..]] ;
-    redtm_boolElimTrue {Γ P ht hf} :
+    redtm_boolElimTrue {Γ} {P ht hf : term} :
         [Γ ,, tBool |- P ] ->
         [Γ |- ht : term_decl P[tTrue..]] ->
         [Γ |- hf : term_decl P[tFalse..]] ->
         [Γ |- tBoolElim P ht hf tTrue ⤳* ht : P[tTrue..]] ;
-    redtm_boolElimFalse {Γ P ht hf} :
+    redtm_boolElimFalse {Γ} {P ht hf : term} :
         [Γ ,, tBool |- P ] ->
         [Γ |- ht : term_decl P[tTrue..]] ->
         [Γ |- hf : term_decl P[tFalse..]] ->
         [Γ |- tBoolElim P ht hf tFalse ⤳* hf : P[tFalse..]] ;
-    redtm_treeElimLeaf {Γ P hl hn n} :
+    redtm_treeElimLeaf {Γ} {P hl hn n : term} :
         [Γ ,, tTree |- P ] ->
         [Γ |- hl : elimLeafHypTy' Γ P] ->
         [Γ |- hn : elimNodeHypTy' Γ P] ->
         [Γ |- n : tNat] ->
         [Γ |- tTreeElim P hl hn (tLeaf n) ⤳* tApp hl n : P[(tLeaf n)..]] ;
-    redtm_treeElimNode {Γ P hl hn tl tr n} :
+    redtm_treeElimNode {Γ} {P hl hn tl tr n : term} :
         [Γ ,, tTree |- P ] ->
         [Γ |- n : tNat] ->
         [Γ |- hl : elimLeafHypTy' Γ P] ->
@@ -718,13 +718,13 @@ Section GenericTyping.
       [ Γ |- f ⤳* f' : tProd A B ] ->
       [ Γ |- t : A ] ->
       [ Γ |- tApp f t ⤳* tApp f' t : B[t..] ];
-    redtm_natelim {Γ P hz hs n n'} :
+    redtm_natelim {Γ} {P hz hs n n' : term} :
       [ Γ,, tNat |- P ] ->
       [ Γ |- hz : term_decl P[tZero..] ] ->
       [ Γ |- hs : elimSuccHypTy' Γ P ] ->
       [ Γ |- n ⤳* n' : tNat ] ->
       [ Γ |- tNatElim P hz hs n ⤳* tNatElim P hz hs n' : P[n..] ];
-    redtm_boolelim {Γ P ht hf n n'} :
+    redtm_boolelim {Γ} {P ht hf n n' : term} :
       [ Γ,, tBool |- P ] ->
       [ Γ |- ht : term_decl P[tTrue..] ] ->
       [ Γ |- hf : term_decl P[tFalse..] ] ->

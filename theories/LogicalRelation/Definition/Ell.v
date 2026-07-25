@@ -1,8 +1,8 @@
 From Stdlib Require Import CRelationClasses.
 From LogRel Require Import Utils Syntax.All GenericTyping Monad.
-From LogRel.LogicalRelation.Definition Require Import Universe Bool Def Helper.
+From LogRel.LogicalRelation.Definition Require Import Universe Bool Prelude Def Helper.
 
-  Lemma SNtoBRed `{GenericTypingProperties} Γ (wfΓ : [|-Γ]) : [Γ ||-S< zero > arr' Γ tNat tBool ].
+(*   Lemma SNtoBRed `{GenericTypingProperties} Γ (wfΓ : [|-Γ]) : [Γ ||-S< zero > arr' Γ tNat tBool ].
   Proof.
     assert(gN : [Γ |- tNat]).
     { eapply wft_term, ty_nat; tea. }
@@ -27,16 +27,25 @@ From LogRel.LogicalRelation.Definition Require Import Universe Bool Def Helper.
         apply LRBool_.
         constructor; eapply redtywf_refl, wft_term, ty_bool; tea.
   Qed.
-
+ *)
 Module EllRedTmEq.
 Section EllRedTmEq.
   Context `{ta : tag} `{WfContext ta} `{WfType ta} `{ConvType ta}
     `{RedType ta} `{Typing ta} `{ConvNeuConv ta} `{ConvTerm ta}
-    `{RedTerm ta} {l : TypeLevel} {Γ : context} {RNtoB : [Γ ||-S<l> arr' Γ tNat tBool] } {ℓ : ell}.
+    `{RedTerm ta}.
 
+  Record EllAdequate Γ l (ℓ ℓ' : ell) := {
+    NtoBAd : [Γ ||-S< l > arr' Γ tNat tBool];
+    elleqAd : ℓ = ℓ'
+    }.
+  Arguments NtoBAd {_ _ _ _}.
+  Notation "[ Γ ||-EllS< l > ℓ ≅ ℓ' ]" := (EllAdequate Γ l ℓ ℓ') (at level 0, Γ, l, ℓ, ℓ' at level 50).
+  Notation "[ Γ ||-EllS< l > ℓ ]" := (EllAdequate Γ l ℓ ℓ) (at level 0, Γ, l, ℓ at level 50).
+
+  Context {ℓ ℓ': ell} {l Γ} (Rℓ : [Γ ||-EllS< l > ℓ ≅ ℓ']) (* {RNtoB : [Γ ||-S<l> arr' Γ tNat tBool] } *) .
 
   Inductive isLREll : term -> Type :=
-  | boxLREll {t} : [Γ ||-S< l > t : arr' Γ tNat tBool | RNtoB] ->
+  | boxLREll {t} : [Γ ||-S< l > t : arr' Γ tNat tBool | Rℓ.(NtoBAd) ] ->
     (forall n b, in_ell ℓ n b ->
       [ Γ ||-Bool tApp t (nat_to_term n) ≅ bool_to_term b :Bool]) ->
     isLREll (tBox ℓ t)
@@ -48,8 +57,10 @@ Section EllRedTmEq.
     gL : [Γ |- tL : ℓ];
     gR : [Γ |- tR : ℓ];
     eq : [Γ |- tL ≅ tR : ℓ];
-    eqeval : [Γ ||-S< l > tEval ℓ tL ≅ tEval ℓ tR : _ | RNtoB];
+    eqeval : [Γ ||-S< l > tEval ℓ tL ≅ tEval ℓ tR : _ | Rℓ.(NtoBAd)];
     }.
+
+  Definition EllPack : LRPack Γ ℓ ℓ' := {| LRPack.eqTm := EllRedTmEq |}.
 
 (*   Inductive EllRedTmEq : term -> term -> Type :=
   | boxReq {t t'} : [Γ ||-S< l > t ≅ t' : arr' Γ tNat tBool | RNtoB ] ->
@@ -70,30 +81,44 @@ Section EllRedTmEq.
 
   End Def. *)
 
-
 End EllRedTmEq.
-Arguments EllRedTmEq {_ _ _ _ _ _ _ _ _ _}.
+Arguments EllRedTmEq {_ _ _ _ _ _ _ _ _ _ _ _}.
 End EllRedTmEq.
 
-Export EllRedTmEq(EllRedTmEq).
-Notation "[ Γ ||-EllS t ≅ u : ℓ | RNtoB ]" := (EllRedTmEq Γ RNtoB ℓ t u) 
+Export EllRedTmEq(EllRedTmEq,EllAdequate).
+#[warnings="-uniform-inheritance"]Coercion EllRedTmEq.EllPack : EllAdequate >-> LRPack.
+
+
+(* Notation "[ Γ ||-EllS t ≅ u : ℓ | RNtoB ]" := (EllRedTmEq Γ RNtoB ℓ t u) 
   (at level 0, Γ, t, u, ℓ, RNtoB at level 50).
 Notation "[ Γ ||-EllS t : ℓ | RNtoB ]" := (EllRedTmEq Γ RNtoB ℓ t t) 
   (at level 0, Γ, t, ℓ, RNtoB at level 50).
-
+ *)
 Section WEllRedTmEq.
   Context `{ta : tag} `{WfContext ta} `{WfType ta} `{ConvType ta}
     `{RedType ta} `{Typing ta} `{ConvNeuConv ta} `{ConvTerm ta}
     `{RedTerm ta}.
-  Definition WEllRedTmEq {l} Γ (RNtoB : [Γ ||-<l> arr' Γ tNat tBool]) ℓ t u :=
-    dSplit (fun Δ _ (ρ: Δ ≤ Γ) hSplit => [ Δ ||-EllS t⟨ρ⟩ ≅ u⟨ρ⟩ : ℓ | hSplit]) RNtoB.
+  Definition WEllAdequate Γ l ℓ ℓ' :=
+    Split (fun Δ _ (_ : Δ ≤ Γ) => EllAdequate Δ l ℓ ℓ').
+
+  Definition WEllpack {Γ l ℓ ℓ'} (RA : WEllAdequate Γ l ℓ ℓ') : LRPack Γ ℓ ℓ' :=
+    Build_LRPack _ _ _ (fun t u =>
+      dSplit (fun Δ _ (ρ: Δ ≤ Γ) (hSplit : EllAdequate _ _ _ _) => [ Δ ||-S< l > t⟨ρ⟩ ≅ u⟨ρ⟩ : _ | hSplit]) RA).
+
+  Coercion WEllpack : WEllAdequate >-> LRPack.
 End WEllRedTmEq.
 
-Notation "[ Γ ||-Ell t ≅ u : ℓ | RNtoB ]" := (WEllRedTmEq Γ RNtoB ℓ t u)
-  (at level 0, Γ, t, u, ℓ, RNtoB at level 50).
-Notation "[ Γ ||-Ell t : ℓ | RNtoB ]" := (WEllRedTmEq Γ RNtoB ℓ t t)
+Notation "[ Γ ||-EllS< l > ℓ ≅ ℓ' ]" := (EllAdequate Γ l ℓ ℓ')
+  (at level 0, Γ, l, ℓ at level 50).
+Notation "[ Γ ||-EllS< l > ℓ ]" := (EllAdequate Γ l ℓ ℓ)
+  (at level 0, Γ, l, ℓ at level 50).
+Notation "[ Γ ||-Ell< l > ℓ ≅ ℓ' ]" := (WEllAdequate Γ l ℓ ℓ')
+  (at level 0, Γ, l, ℓ at level 50).
+Notation "[ Γ ||-Ell< l > ℓ ]" := (WEllAdequate Γ l ℓ ℓ)
+  (at level 0, Γ, l, ℓ at level 50).
+(* Notation "[ Γ ||-Ell t : ℓ | RNtoB ]" := (WEllRedTmEq Γ RNtoB ℓ t t)
   (at level 0, Γ, t, ℓ, RNtoB at level 50).
-
+ *)
 
 
 

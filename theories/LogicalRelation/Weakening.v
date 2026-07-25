@@ -96,7 +96,7 @@ Section Weakenings.
     + now eapply wft_wk.
     + now eapply convty_wk.
     + intros Ξ a b ρΞ wfΞ *; cbn in *.
-      eassert ([_ |_||- _≅ _ : (ParamRedTy.domL ΠA)⟨ρΞ∘w ρ⟩ ≅ _]) as ha'
+      eassert ([_ |_||- _≅ _ : term_decl (ParamRedTy.domL ΠA)⟨ρΞ∘w ρ⟩ ≅ _]) as ha'
         by (eapply SirrLREq; [eapply wk_comp_ren_on| eapply ha]).
       specialize (Ht _ _ _ (ρΞ∘w ρ) wfΞ ha').
       eapply (dSplit_bind_return Ht).
@@ -128,7 +128,7 @@ Section Weakenings.
       1,2: now apply wkPiRedTerm.
       1: now eapply (convtm_wk _ wfΔ eq).
       intros Ξ a b ρΞ wfΞ hab. (* rewrite 2!wk_comp_ren_on. *)
-      eassert ([_ |_||- _≅ _ : (ParamRedTy.domL ΠA)⟨ρΞ∘w ρ⟩ ≅ _]) as hab'
+      eassert ([_ |_||- _≅ _ : term_decl (ParamRedTy.domL ΠA)⟨ρΞ∘w ρ⟩ ≅ _]) as hab'
         by (eapply SirrLREq; [eapply wk_comp_ren_on| eapply hab]).
       specialize (eqApp Ξ a b (ρΞ∘w ρ) wfΞ hab').
       unshelve eapply (dSplit_bind_return eqApp); tea.
@@ -370,11 +370,11 @@ End WeakWeakenings.
 Lemma Wpackrefold `{GenericTypingProperties} :
   forall {Γ l t u A B Δ} wfΔ {ρ : Δ ≤ Γ} (RAB : [Γ ||-< l > A ≅ B])
     (RAB' := WwkRed (wkLR _ _ _ RAB) ρ wfΔ),
-  [ Δ ||-< l > t⟨ρ⟩ ≅ u⟨ρ⟩ : A⟨ρ⟩ | RAB'] ->
+  [ Δ ||-< l > t⟨ρ⟩ ≅ u⟨ρ⟩ : _ | RAB'] ->
   Split (fun (Ξ : context) wfΞ (ρΞ : Ξ ≤ Δ) =>
    forall oRAB,
    [cover RAB Ξ wfΞ (ρΞ ∘w ρ) oRAB | Ξ ||- t⟨ρΞ ∘w ρ⟩ ≅ u⟨
-   ρΞ ∘w ρ⟩ : A⟨ρΞ ∘w ρ⟩ ≅ B⟨ρΞ ∘w ρ⟩]).
+   ρΞ ∘w ρ⟩ : _ ≅ _]).
 Proof.
   intros ??????????? Rtu.
   eapply (dSplit_bind_return Rtu).

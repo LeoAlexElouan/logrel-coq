@@ -24,8 +24,8 @@ Section PolyRedPi.
     (nfL := PiRedTmEq.nf redL) (nfR := PiRedTmEq.nf redR) :
     [Γ |- nfL ≅ nfR : tProd shp pos] ->
     (forall Δ ρ wfΔ a b
-      (hab : [Δ ||-S< l > a ≅ b : shp⟨ρ⟩ | PolyRed.shpRed ΠA ρ wfΔ ]), 
-      [Δ ||-< l > tApp nfL⟨ρ⟩ a ≅ tApp nfR⟨ρ⟩ b : pos⟨wk_up shp ρ⟩[a ..]
+      (hab : [Δ ||-S< l > a ≅ b : _ | PolyRed.shpRed ΠA ρ wfΔ ]), 
+      [Δ ||-< l > tApp nfL⟨ρ⟩ a ≅ tApp nfR⟨ρ⟩ b : _
         | PolyRed.posRed ΠA ρ wfΔ hab]) ->
     [Γ ||-Π t ≅ u : A | ΠA].
   Proof.

@@ -302,8 +302,8 @@ Lemma pairFstRed' {Γ A A' B B' a a' b b' l}
   (Ra : [Γ ||-S<l> a ≅ a' : A | RA])
   (Rb : [Γ ||-<l> b ≅ b' : _ | RBa ]) :
   [Γ ||-S<l> tFst (tPair A B a b) ≅ tFst (tPair A' B' a' b') : _ | RA]
-  × [Γ ||-S<l> tFst (tPair A B a b) ≅ a : _ | lrefl RA]
-  × [Γ ||-S<l> tFst (tPair A' B' a' b') ≅ a' : _ | urefl RA ].
+  × [Γ ||-S<l> tFst (tPair A B a b) ≅ a : _ | LRAd.pack (lrefl RA)]
+  × [Γ ||-S<l> tFst (tPair A' B' a' b') ≅ a' : _ | LRAd.pack (urefl RA) ].
 Proof.
   escape.
   eapply SredSubstTmEq'; tea.
@@ -438,7 +438,7 @@ Proof.
   + eapply redtmwf_refl; cbn.
     eassert (wfΓ : [|-Γ]) by (escape; gtyping).
     eassert (wfA1 : [Γ|-A1]) by (escape; gtyping).
-    assert [_ ||-S<l> a1 : _ | urefl RA ] by now eapply SirrLRConv.
+    assert [_ ||-S<l> a1 : _ | LRAd.pack (urefl RA) ] by now eapply SirrLRConv.
     pose proof (instKripkeFamConv wfΓ (normRedΣ RΣ1).(PolyRed.posRed)).
     assert [_ ||-<l> b1 : _ | urefl RB ] by now eapply irrLRConv.
     escape.

@@ -67,7 +67,7 @@ Context `{GenericTypingProperties}.
   Qed.
 
 
-  Definition idElimMotiveCtxEqStmt Γ Γ' A A' x x' :=
+  Definition idElimMotiveCtxEqStmt Γ Γ' (A A' x x' : term) :=
     [||-v (Γ,, A ,, tId A⟨@wk1 Γ A⟩ x⟨@wk1 Γ A⟩ (tRel 0)) ≅ (Γ',, A' ,, tId A'⟨@wk1 Γ' A'⟩ x'⟨@wk1 Γ' A'⟩ (tRel 0))].
 
   Lemma idElimMotiveCtxEq {Γ Γ' l A A' x x'}
@@ -122,8 +122,8 @@ Context `{GenericTypingProperties}.
     t[a .: b..][σ].
   Proof. now bsimpl. Qed.
 
-  Lemma idElimMotive_Idsubst_eq {Γ Δ A x σ} :
-    tId A[σ]⟨@wk1 Δ A[σ]⟩ x[σ]⟨@wk1 Δ A[σ]⟩ (tRel 0) =
+  Lemma idElimMotive_Idsubst_eq {Γ Δ} {A x : term} {σ} :
+    tId A[σ]⟨@wk1 Δ (term_decl A[σ])⟩ x[σ]⟨@wk1 Δ (term_decl A[σ])⟩ (tRel 0) =
       (tId A⟨@wk1 Γ A⟩ x⟨@wk1 Γ A⟩ (tRel 0))[up_subst σ].
   Proof. change (tId ?A ?x ?y)[?σ] with (tId A[σ] x[σ] y[σ]); f_equal; eapply subst_up_wk1. Qed.
 

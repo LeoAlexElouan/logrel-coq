@@ -66,7 +66,7 @@ same. Both need to be proven simultaneously, because of contravariance in the pr
   Theorem LR_rect@{i j k o}
     (l : TypeLevel)
     (rec : forall l', l' << l -> RedRel@{i j})
-    (P : forall {Γ A B} {tmeq : term -> term -> Type@{j}}, LR@{i j k} rec Γ A B tmeq  -> Type@{o}) :
+    (P : forall {Γ} {A B : term} {tmeq : term -> term -> Type@{j}}, LR@{i j k} rec Γ A B tmeq  -> Type@{o}) :
 
     (forall (Γ : context) A B (h : [Γ ||-U<l> A ≅ B]),
       P (LRU rec h)) ->
@@ -99,6 +99,11 @@ same. Both need to be proven simultaneously, because of contravariance in the pr
     cbn.
     intros HU Hne HPi HNat HBool HEmpty HTree HSig HId.
     fix HRec 5.
+    intros ?????.
+    change (match term_decl A, term_decl B with
+      | term_decl A, term_decl B => P Γ A B tmeq
+      | _, _ => fun _ => unit
+      end lr).
     destruct lr.
     - eapply HU.
     - eapply Hne.
@@ -127,7 +132,7 @@ same. Both need to be proven simultaneously, because of contravariance in the pr
 
   (** Induction principle specialized to LogRel as the reducibility relation on lower levels *)
   Theorem LR_rect_LogRelRec@{i j k l o}
-    (P : forall {l Γ A B tmeq}, LogRel@{i j k l} l Γ A B tmeq -> Type@{o}) :
+    (P : forall {l Γ} {A B : term} {tmeq}, LogRel@{i j k l} l Γ A B tmeq -> Type@{o}) :
 
     (forall l (Γ : context) A B (h : [Γ ||-U<l> A ≅ B]),
       P (LRU (LogRelRec l) h)) ->

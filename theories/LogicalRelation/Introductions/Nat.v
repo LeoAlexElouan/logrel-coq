@@ -104,7 +104,7 @@ Proof. now bsimpl. Qed.
 Section SNatElimRedEq.
   Context {Γ l P Q hs hs' hz hz'}
     (NN : [Γ ||-Nat tNat ≅ tNat])
-    (RN := LRNat_ _ NN)
+    (RN := LRNat_ l NN)
     (WtP : [Γ ,, tNat |- P])
     (WtQ : [Γ ,, tNat |- Q])
     (eqPQ : [Γ,, tNat |- P ≅ Q])
