@@ -424,11 +424,11 @@ Reserved Notation "[ |- Γ ]" (at level 0). *)
       | TermXiLeaf {Γ n} {ℓ : ell} :
           [ |- Γ] ->
           [ Γ |- tXi ℓ (nat_to_term n) ≅ tLeaf (nat_to_term n) : tTree]
-      | TermXiNode {Γ t} {ℓ : ell} {k} (ℓt := cons_ell ℓ k true) (ℓf := cons_ell ℓ k false) :
+      | TermXiNode {Γ t} {ℓ : ell} {i k} (ℓt := cons_ell ℓ k true) (ℓf := cons_ell ℓ k false) :
           [ |- Γ] ->
           [ Γ ,, ℓ |- t : tNat] -> whne t -> head t = Some (newnat_nat _ k, 0) ->
-          [ Γ |- tXi ℓ t ≅ tNode (nat_to_term k) (tXi ℓt t⟨wk_up ℓ (@wk1 Γ ℓt)⟩[(tBox ℓ (tEval ℓt (tRel 0)))..])
-            (tXi ℓf t⟨wk_up ℓ (@wk1 Γ ℓf)⟩[(tBox ℓ (tEval ℓf (tRel 0)))..]) : tTree]
+          [ Γ |- tXi ℓ (nSucc i t) ≅ tNode (nat_to_term k) (tXi ℓt (nSucc i t)⟨wk_up ℓ (@wk1 Γ ℓt)⟩[(tBox ℓ (tEval ℓt (tRel 0)))..])
+            (tXi ℓf (nSucc i t)⟨wk_up ℓ (@wk1 Γ ℓf)⟩[(tBox ℓ (tEval ℓf (tRel 0)))..]) : tTree]
       | TermXXiCong {Γ t t' u u'} {ℓ : ell} :
           [ |- Γ] ->
           [ Γ ,, ℓ |- t ≅ t' : tNat] -> [ Γ |- u ≅ u' : ℓ] ->
@@ -436,20 +436,21 @@ Reserved Notation "[ |- Γ ]" (at level 0). *)
       | TermXXiLeaf {Γ n u u'} {ℓ : ell} :
           [ |- Γ] -> [ Γ |- u ≅ u' : ℓ] ->
           [ Γ |- tXXi ℓ (nat_to_term n) u ≅ tRefl tNat (nat_to_term n): tId tNat (nat_to_term n) (nat_to_term n) ]
-      | TermXXiNode  {Γ m} {ℓ : ell} {k n} (ℓt := cons_ell ℓ k true) (ℓf := cons_ell ℓ k false):
+      | TermXXiNode  {Γ m} {ℓ : ell} {k i n} (ℓt := cons_ell ℓ k true) (ℓf := cons_ell ℓ k false):
           whne m -> head m = Some (newnat_nat _ k, 0) ->
           [ Γ,, ℓ |- m  : tNat] -> [Γ |- n : ℓ] ->
-          [ Γ |- tXXi ℓ m n ≅ tEllElim k ℓ (tId tNat (dEval' (Γ,, ℓ) (tXi ℓ m⟨wk_up ℓ (@wk1 Γ ℓ)⟩) (tEval ℓ (tRel 0))) m)
-            (tXXi ℓt m⟨wk_up ℓ (@wk1 Γ ℓt)⟩⟨wk_up ℓ (@wk1 (Γ,,ℓt) ℓt)⟩[(tBox ℓ (tEval ℓt (tRel 0)))..] (tRel 0))
-            (tXXi ℓf m⟨wk_up ℓ (@wk1 Γ ℓf)⟩⟨wk_up ℓ (@wk1 (Γ,,ℓf) ℓf)⟩[(tBox ℓ (tEval ℓf (tRel 0)))..] (tRel 0))
+          [ Γ |- tXXi ℓ (nSucc i m) n ≅ tEllElim k ℓ (tId tNat (dEval' (Γ,, ℓ)
+              (tXi ℓ (nSucc i m)⟨wk_up ℓ (@wk1 Γ ℓ)⟩) (tEval ℓ (tRel 0))) (nSucc i m))
+            (tXXi ℓt (nSucc i m)⟨wk_up ℓ (@wk1 Γ ℓt)⟩⟨wk_up ℓ (@wk1 (Γ,,ℓt) ℓt)⟩[(tBox ℓ (tEval ℓt (tRel 0)))..] (tRel 0))
+            (tXXi ℓf (nSucc i m)⟨wk_up ℓ (@wk1 Γ ℓf)⟩⟨wk_up ℓ (@wk1 (Γ,,ℓf) ℓf)⟩[(tBox ℓ (tEval ℓf (tRel 0)))..] (tRel 0))
             n (tApp (tEval ℓ n) (nat_to_term k)):
-            tId tNat (dEval' Γ (tXi ℓ m) (tEval ℓ n)) m[n..] ]
+            tId tNat (dEval' Γ (tXi ℓ (nSucc i m)) (tEval ℓ n)) (nSucc i m)[n..] ]
       | TermEvalCong {Γ t t'} {ℓ : ell} :
           [ Γ |- t ≅ t' : ℓ ] ->
           [ Γ |- tEval ℓ t ≅ tEval ℓ t' : arr' Γ tNat tBool]
       | TermEvalRel {Γ v n b} {ℓ : ell} :
           [ |- Γ ] ->
-          in_ell ℓ n b ->
+          in_ell ℓ n b -> in_ctx Γ v ℓ ->
           [ Γ |- tApp (tEval ℓ (tRel v)) (nat_to_term n) ≅ (bool_to_term b) : tBool]
       | TermEvalBox {Γ ℓ t}:
           [ Γ |- t : arr' Γ tNat tBool] ->

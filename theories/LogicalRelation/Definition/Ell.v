@@ -121,6 +121,14 @@ Notation "[ Γ ||-Ell< l > ℓ ]" := (WEllAdequate Γ l ℓ ℓ)
  *)
 
 
+Lemma WEllAd_split `{GenericTypingProperties}
+  {Γ l ℓ ℓ' i new} : [|-Γ] ->
+  [Γ,, i : new ↦ true ||-Ell< l > ℓ ≅ ℓ'] -> [Γ,, i : new ↦ false ||-Ell< l > ℓ ≅ ℓ'] -> [Γ ||-Ell< l >ℓ ≅ ℓ'].
+Proof.
+  intros wfΓ ht hf.
+  eapply (Split_shf (A:= fun Δ _ ρ => [Δ ||-EllS< l > ℓ ≅ ℓ']) Γ wfΓ wk_id i new ht hf).
+Qed.
+
 
 
 

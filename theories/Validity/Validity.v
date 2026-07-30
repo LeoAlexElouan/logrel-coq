@@ -136,15 +136,6 @@ Record ellValidity@{u i j k l} `{ta : tag} `{!WfContext ta}
 Arguments ellValidity : clear implicits.
 Arguments ellValidity {_ _ _ _ _ _ _ _ _}.
 
-Definition declValidity@{u i j k l} `{ta : tag} `{!WfContext ta}
-  `{!WfType ta} `{!Typing ta} `{!ConvType ta}
-  `{!ConvTerm ta} `{!ConvNeuConv ta} `{!RedType ta} `{!RedTerm ta}
-  {Γ Γ' : context} {VΓ : VPack@{u} Γ Γ'}
-  {l : TypeLevel} {d d' : decl} := match d, d' return Type@{u} with
-  | term_decl A, term_decl A' => typeValidity@{u i j k l} _ _ VΓ l A A'
-  | ell_decl ℓ, ell_decl ℓ' => ellValidity@{u i j k l} _ _ VΓ l ℓ ℓ'
-  | _, _ => False
-  end.
 
 
 Notation "[ P | Γ ||-v< l > A ≅ B ]" := (typeValidity Γ _ P l A B) (at level 0, P, Γ, l, A, B at level 50).
@@ -316,13 +307,24 @@ Section MoreDefs.
       Veq  : @termEqValidity Γ Γ' l A A' VΓ Vty t t'
     }.
 
-
+  Record termEqValidityℓ@{i j k l} {Γ Γ' : context} {l} {ℓ ℓ' : ell}
+    {VΓ : [VR@{i j k l}| ||-v Γ ≅ Γ']}
+    {Vℓ : ellValidity@{k i j k l} Γ Γ' VΓ l ℓ ℓ'} {t u} : Type :=
+    {
+      validEllTmExt : forall {Δ}(wfΔ : [|- Δ]) {σ σ'}
+         (Vσσ' : [Δ ||-v σ ≅ σ' : Γ | VΓ | wfΔ]),
+        [Δ ||-<l> t[σ] ≅ u[σ'] : ℓ | validEllExt Vℓ wfΔ Vσσ']
+    }.
 
 End MoreDefs.
 
 Arguments termEqValidity : clear implicits.
 Arguments termEqValidity {_ _ _ _ _ _ _ _ _}.
 Arguments Build_termEqValidity {_ _ _ _ _ _ _ _ _}.
+
+Arguments termEqValidityℓ : clear implicits.
+Arguments termEqValidityℓ {_ _ _ _ _ _ _ _ _}.
+Arguments Build_termEqValidityℓ {_ _ _ _ _ _ _ _ _}.
 
 Arguments tmEqValidity : clear implicits.
 Arguments tmEqValidity {_ _ _ _ _ _ _ _ _}.
@@ -338,6 +340,8 @@ Notation "[ Γ ||-vS< l > t ≅ u : A | VΓ ]"      := (StmEqValidity Γ _ l t u
 Notation "[ Γ ||-v< l > t : A | VΓ | VA ]"     := (termEqValidity Γ _ l A _ VΓ VA t t) (at level 0, Γ, l, t, A, VΓ, VA at level 50).
 Notation "[ Γ ||-v< l > t ≅ u : A | VΓ | VA ]" := (termEqValidity Γ _ l A _ VΓ VA t u) (at level 0, Γ, l, t, u, A, VΓ, VA at level 50).
 Notation "[ Γ ||-v< l > t ≅ u : A | VΓ ]"      := (tmEqValidity Γ _ l t u A _ VΓ) (at level 0, Γ, l, t, u, A, VΓ at level 50).
+Notation "[ Γ ||-vEll< l > t : ℓ | VΓ | Vℓ ]"     := (termEqValidityℓ Γ _ l ℓ _ VΓ Vℓ t t) (at level 0, Γ, l, t, ℓ, VΓ, Vℓ at level 50).
+Notation "[ Γ ||-vEll< l > t ≅ u : ℓ | VΓ | Vℓ ]" := (termEqValidityℓ Γ _ l ℓ _ VΓ Vℓ t u) (at level 0, Γ, l, t, u, ℓ, VΓ, Vℓ at level 50).
 Notation "[ Γ ||-v t ⤳* u : A | VΓ ]"      := (redValidity Γ _ t u A VΓ) (at level 0, Γ, t, u, A, VΓ at level 50).
 
 (* Lemma validTm_return  `{GenericTypingProperties} {Γ Γ' l t u A B}
@@ -487,6 +491,11 @@ Ltac instValid vσ :=
     try (let X := fresh "R" H in pose (X := validTmExt H wfΔ vσ)) ;
     try (let X := fresh "Rl" H in pose (X := validTmExt H wfΔ (lrefl vσ))) ;
     try (let X := fresh "Rr" H in pose (X := validTmExt H wfΔ (urefl vσ))) ;
+    block H
+  | [H : termEqValidityℓ _ _ _ _ _ _ _ _ _ |- _] =>
+    try (let X := fresh "R" H in pose (X := validEllTmExt H wfΔ vσ)) ;
+    try (let X := fresh "Rl" H in pose (X := validEllTmExt H wfΔ (lrefl vσ))) ;
+    try (let X := fresh "Rr" H in pose (X := validEllTmExt H wfΔ (urefl vσ))) ;
     block H
   end; unblock.
 

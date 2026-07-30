@@ -2,7 +2,7 @@
 From LogRel Require Import Utils Syntax.All GenericTyping DeclarativeTyping LogicalRelation.
 From LogRel.LogicalRelation Require Import Properties.
 From LogRel.Validity Require Import Validity Irrelevance Properties ValidityTactics.
-From LogRel.Validity.Introductions Require Import Context Application Universe Pi Lambda Var Nat Bool Empty Tree SimpleArr Sigma Id Split.
+From LogRel.Validity.Introductions Require Import Context Application Universe Pi Lambda Var Nat Bool Empty Tree SimpleArr Sigma Id Split Ell.
 
 Set Primitive Projections.
 Set Universe Polymorphism.
@@ -58,6 +58,19 @@ End FundTm.
 
 Export FundTm(FundTm,Build_FundTm).
 
+Module FundEllTm.
+  Record FundEllTm `{GenericTypingProperties}
+    {Γ : context} {ℓ : ell} {t : term}
+  : Type := {
+    VΓ : [||-v Γ ];
+    Vℓ : [ Γ ||-vEll< one > ℓ | VΓ ];
+    Vt : [ Γ ||-vEll< one > t : ℓ | VΓ | Vℓ ];
+  }.
+  Arguments FundEllTm {_ _ _ _ _ _ _ _ _ _}.
+End FundEllTm.
+
+Export FundEllTm(FundEllTm,Build_FundEllTm).
+
 Module FundTmEq.
   Record FundTmEq `{GenericTypingProperties}
     {Γ : context} {A t u : term}
@@ -70,6 +83,19 @@ Module FundTmEq.
 End FundTmEq.
 
 Export FundTmEq(FundTmEq,Build_FundTmEq).
+
+Module FundEllTmEq.
+  Record FundEllTmEq `{GenericTypingProperties}
+    {Γ : context} {ℓ : ell} {t u : term}
+  : Type := {
+    VΓ : [||-v Γ ];
+    Vℓ : [ Γ ||-vEll< one > ℓ | VΓ ];
+    Vtu : [ Γ ||-vEll< one > t ≅ u : ℓ | VΓ | Vℓ ];
+  }.
+  Arguments FundEllTmEq {_ _ _ _ _ _ _ _ _ _}.
+End FundEllTmEq.
+
+Export FundEllTmEq(FundEllTmEq,Build_FundEllTmEq).
 
 
 Module FundSubst.
@@ -131,6 +157,15 @@ Section Fundamental.
     eapply validSnoc. exact VA.
   Qed.
 
+  Lemma FundConConsEll (Γ : context) (ℓ : ell)
+  (fΓ : FundCon Γ) : FundCon (Γ,, ℓ).
+  Proof.
+(*     destruct fA as [ VΓ VA ]. *)
+    unshelve eapply validSnocℓ, ellValid.
+    { eapply zero. }
+    eapply fΓ.
+  Qed.
+
   Lemma FundTyU (Γ : context) (fΓ : FundCon Γ) : FundTy Γ U.
   Proof.
     now unshelve (econstructor; eapply UValid).
@@ -177,6 +212,15 @@ Section Fundamental.
     + now eapply varnValid.
   Qed.
 
+  Lemma FundEllTmVar : forall (Γ : context) (n : nat) (ℓ : ell),
+    FundCon Γ ->
+    in_ctx Γ n ℓ -> FundEllTm Γ (ℓ : ell) (tRel n).
+  Proof.
+    intros ??? FΓ inℓ.
+    unshelve econstructor; tea.
+    + eapply ellValid.
+    + now eapply varnEllValid.
+  Qed.
 
   Lemma FundTmProd : forall (Γ : context) (A B : term),
     FundTm Γ U A ->
@@ -225,6 +269,21 @@ Section Fundamental.
       - eapply Ftt.
       - eapply Ftf.
     + eapply validTmSplit.
+      - eapply Ftt.
+      - eapply Ftf.
+  Qed.
+
+  Lemma FundEllTmSplit (Γ : context) (t : term) ℓ i new (fΓ : FundCon Γ):
+    FundEllTm (Γ,, i : new ↦ true) ℓ t -> FundEllTm (Γ,, i : new ↦ false) ℓ t ->
+    FundEllTm Γ ℓ t.
+  Proof.
+    intros Ftt Ftf.
+    unshelve econstructor.
+    + eapply fΓ.
+    + eapply validEllSplit.
+      - eapply Ftt.
+      - eapply Ftf.
+    + eapply validEllTmSplit.
       - eapply Ftt.
       - eapply Ftf.
   Qed.
@@ -348,7 +407,14 @@ Section Fundamental.
     FundTm Γ A t ->
     FundTmEq Γ A t t.
   Proof.
-    intros * []; econstructor; tea; now eapply reflValidTm.
+    intros * []; econstructor; tea.
+  Qed.
+
+  Lemma FundEllTmEqRefl : forall (Γ : context) (t : term) (ℓ : ell),
+    FundEllTm Γ ℓ t ->
+    FundEllTmEq Γ ℓ t t.
+  Proof.
+    intros * []; econstructor; tea.
   Qed.
 
   Lemma FundTmEqSym : forall (Γ : context) (t t' A : term),
@@ -358,12 +424,29 @@ Section Fundamental.
     intros * []; unshelve econstructor; tea; irrValid.
   Qed.
 
+  Lemma FundEllTmEqSym : forall (Γ : context) (t t' : term) ℓ,
+    FundEllTmEq Γ ℓ t t' ->
+    FundEllTmEq Γ ℓ t' t.
+  Proof.
+    intros * []; unshelve econstructor; tea. now symmetry.
+  Qed.
+
   Lemma FundTmEqTrans : forall (Γ : context) (t t' t'' A : term),
     FundTmEq Γ A t t' ->
     FundTmEq Γ A t' t'' ->
     FundTmEq Γ A t t''.
   Proof.
     intros * [] []; unshelve econstructor; irrValid.
+  Qed.
+
+  Lemma FundEllTmEqTrans : forall (Γ : context) (t t' t'' : term) ℓ,
+    FundEllTmEq Γ ℓ t t' ->
+    FundEllTmEq Γ ℓ t' t'' ->
+    FundEllTmEq Γ ℓ t t''.
+  Proof.
+    intros * [] []; unshelve econstructor; tea. etransitivity.
+    - now eapply irrValidEllTmRfl.
+    - easy.
   Qed.
 
   Lemma FundTmEqConv : forall (Γ : context) (t t' A B : term),
@@ -948,6 +1031,21 @@ Section Fundamental.
       - eapply Ftf.
   Qed.
 
+  Lemma FundEllTmEqSplit (Γ : context) (t u : term) ℓ i new (fΓ : FundCon Γ):
+    FundEllTmEq (Γ,, i : new ↦ true) ℓ t u -> FundEllTmEq (Γ,, i : new ↦ false) ℓ t u->
+    FundEllTmEq Γ ℓ t u.
+  Proof.
+    intros Ftt Ftf.
+    unshelve econstructor.
+    + eapply fΓ.
+    + eapply validEllSplit.
+      - eapply Ftt.
+      - eapply Ftf.
+    + eapply validEllTmSplit.
+      - eapply Ftt.
+      - eapply Ftf.
+  Qed.
+
   Lemma FundTmAlpha (Γ : context) (i : list_index Γ) (fΓ : FundCon Γ): 
     FundTm Γ (arr' Γ tNat tBool) (tAlpha i).
   Proof.
@@ -981,17 +1079,197 @@ Section Fundamental.
     + now eapply validDigamma.
   Qed.
 
-Lemma Fundamental : (forall Γ : context, [ |-[ de ] Γ ] -> FundCon (ta := ta) Γ)
+  Lemma FundTmEval (Γ : context) (t : term) (ℓ : ell) :
+    FundEllTm Γ ℓ t -> FundTm Γ (arr' Γ tNat tBool) (tEval ℓ t).
+  Proof.
+    intros Ft.
+    econstructor.
+    eapply evalValid, Ft.
+  Qed.
+
+  Lemma FundTmEqEval (Γ : context) (t t' : term) (ℓ : ell) :
+    FundEllTmEq Γ ℓ t t' ->
+    FundTmEq Γ (arr' Γ tNat tBool) (tEval ℓ t) (tEval ℓ t').
+  Proof.
+    intros Ft.
+    econstructor.
+    eapply evalValid, Ft.
+  Qed.
+
+  Lemma FundTmEqEvalRel (Γ : context) (v n : nat) (b : bool) (ℓ : ell) :
+    FundCon Γ -> in_ell ℓ n b -> in_ctx Γ v ℓ ->
+    FundTmEq Γ tBool (tApp (tEval ℓ (tRel v)) (nat_to_term n)) (bool_to_term b).
+  Proof.
+    intros FΓ inb.
+    econstructor.
+    now eapply evalRelValid.
+    Unshelve. eapply FΓ.
+  Qed.
+
+  Lemma FundTmBox (Γ : context) (t : term) (ℓ : ell) :
+    FundTm Γ (arr' Γ tNat tBool) t ->
+      (forall (n : nat) (b : bool),
+        in_ell ℓ n b -> FundTmEq Γ tBool (tApp t (nat_to_term n)) (bool_to_term b)) ->
+    FundEllTm Γ ℓ (tBox ℓ t).
+  Proof.
+    intros Ft Ftnb.
+    econstructor.
+    eapply boxValid.
+    + eapply Ft.
+    + intros ?? inb.
+      now unshelve eapply irrValidTmRfl, Ftnb.
+      Unshelve.
+      eapply boolValid.
+  Qed.
+
+  Lemma FundTmEqBox (Γ : context) (t t' : term) (ℓ : ell) :
+    FundTmEq Γ (arr' Γ tNat tBool) t t' ->
+      (forall (n : nat) (b : bool),
+        in_ell ℓ n b -> FundTmEq Γ tBool (tApp t (nat_to_term n)) (bool_to_term b)) ->
+    FundEllTmEq Γ ℓ (tBox ℓ t) (tBox ℓ t').
+  Proof.
+    intros Ft Ftnb.
+    econstructor.
+    eapply boxValid.
+    + eapply Ft.
+    + intros ?? inb.
+      now unshelve eapply irrValidTmRfl, Ftnb.
+      Unshelve.
+      eapply boolValid.
+  Qed.
+
+  Lemma FundTmEqEvalBox (Γ : context) (ℓ : ell) (t : term) :
+    FundTm Γ (arr' Γ tNat tBool) t ->
+    (forall (n : nat) (b : bool),
+    in_ell ℓ n b -> FundTmEq Γ tBool (tApp t (nat_to_term n)) (bool_to_term b)) ->
+    FundTmEq Γ (arr' Γ tNat tBool) (tEval ℓ (tBox ℓ t)) t.
+  Proof.
+    intros Ft Ftnb.
+    unshelve eapply Build_FundTmEq, evalBoxValid.
+    + eapply Ft.
+    + now eapply irrValidTmRfl, Ft.
+    + intros k n inb.
+      now unshelve eapply irrValidTmRfl, Ftnb.
+  Qed.
+  Lemma FundTmEqEllEta (Γ : context) (t : term) (ℓ : ell) :
+    FundEllTm Γ ℓ t -> FundEllTmEq Γ ℓ (tBox ℓ (tEval ℓ t)) t.
+  Proof.
+    intros Ft.
+    unshelve eapply Build_FundEllTmEq, etaEllValid.
+    + eapply Ft.
+    + eapply irrValidEllTmRfl, Ft.
+  Qed.
+
+  Lemma FundTmEllElim (Γ : context) (ℓ : ell) (k : newnat ℓ) (P ht hf n b : term) :
+    FundTy (Γ,, ℓ) P ->
+    FundTm (Γ,, cons_ell ℓ k true) P⟨wk_up ℓ (@wk1 Γ (cons_ell ℓ k true))⟩
+      [(tBox ℓ (tEval (cons_ell ℓ k true) (tRel 0)))..] ht ->
+    FundTm (Γ,, cons_ell ℓ k false) P⟨wk_up ℓ (@wk1 Γ (cons_ell ℓ k false))⟩
+      [(tBox ℓ (tEval (cons_ell ℓ k false) (tRel 0)))..] hf ->
+    FundEllTm Γ ℓ n ->
+    FundTm Γ tBool b ->
+    FundTmEq Γ tBool (tApp (tEval ℓ n) (nat_to_term k)) b ->
+    FundTm Γ P[n..] (tEllElim k ℓ P ht hf n b).
+  Proof.
+    intros FP Fht Fhf Fn Fb Fntb.
+    unshelve eapply Build_FundTm, ellElimValid.
+    + eapply Fb.
+    + eapply convValidTy, FP.
+    + now eapply irrValidEllTmRfl, Fn.
+    + now eapply irrValidTmRfl, Fht.
+    + now eapply irrValidTmRfl, Fhf.
+    + now eapply irrValidTmRfl, Fb.
+    + now eapply irrValidTmRfl, Fntb.
+  Qed.
+
+  Lemma FundTmEqEllElim (Γ : context) (ℓ : ell) (k : newnat ℓ) (P P' ht ht' hf hf' n n' b b' : term) :
+    FundTyEq (Γ,, ℓ) P P' ->
+    FundTmEq (Γ,, cons_ell ℓ k true) P⟨wk_up ℓ (@wk1 Γ (cons_ell ℓ k true))⟩
+      [(tBox ℓ (tEval (cons_ell ℓ k true) (tRel 0)))..] ht ht'->
+    FundTmEq (Γ,, cons_ell ℓ k false) P⟨wk_up ℓ (@wk1 Γ (cons_ell ℓ k false))⟩
+      [(tBox ℓ (tEval (cons_ell ℓ k false) (tRel 0)))..] hf hf' ->
+    FundEllTmEq Γ ℓ n n'->
+    FundTmEq Γ tBool b b'->
+    FundTmEq Γ tBool (tApp (tEval ℓ n) (nat_to_term k)) b ->
+    FundTmEq Γ P[n..] (tEllElim k ℓ P ht hf n b) (tEllElim k ℓ P' ht' hf' n' b').
+  Proof.
+    intros FP Fht Fhf Fn Fb Fntb.
+    opector.
+    + eapply Fn.
+    + unshelve eapply substEllS, lrefl, irrValidEllTmRfl, Fn.
+      2: eapply ellValid.
+      eapply lrefl, convValidTy, FP.
+    + unshelve eapply irrValidTmRfl, ellElimValid.
+      - eapply v.
+      - eapply convValidTy, FP.
+      - eapply irrValidEllTmRfl, Fn.
+      - reflexivity.
+      - now eapply irrValidTmRfl, Fht.
+      - now eapply irrValidTmRfl, Fhf.
+      - now eapply irrValidTmRfl, Fb.
+      - now eapply irrValidTmRfl, Fntb.
+  Qed.
+
+  Lemma FundTmEqEllElimTrue (Γ : context) (ℓ : ell) (k : newnat ℓ) (P ht hf n : term) :
+    FundTy (Γ,, ℓ) P ->
+    FundTm (Γ,, cons_ell ℓ k true) P⟨wk_up ℓ (@wk1 Γ (cons_ell ℓ k true))⟩
+      [(tBox ℓ (tEval (cons_ell ℓ k true) (tRel 0)))..] ht ->
+    FundTm (Γ,, cons_ell ℓ k false) P⟨wk_up ℓ (@wk1 Γ (cons_ell ℓ k false))⟩
+      [(tBox ℓ (tEval (cons_ell ℓ k false) (tRel 0)))..] hf ->
+    FundEllTm Γ ℓ n ->
+    FundTmEq Γ tBool (tApp (tEval ℓ n) (nat_to_term k)) tTrue ->
+    FundTmEq Γ P[n..] (tEllElim k ℓ P ht hf n tTrue) ht[(tBox (cons_ell ℓ k true) (tEval ℓ n))..].
+  Proof.
+    intros FP Fht Fhf Fn Fntb.
+    unshelve eapply Build_FundTmEq, ellElimTrueValid.
+    + eapply Fn.
+    + eapply convValidTy, FP.
+    + now eapply irrValidEllTmRfl, Fn.
+    + shelve.
+    + shelve.
+    + now eapply irrValidTmRfl, Fht.
+    + now eapply irrValidTmRfl, Fhf.
+    + now eapply irrValidTmRfl, Fntb.
+  Qed.
+
+  Lemma FundTmEqEllElimFalse (Γ : context) (ℓ : ell) (k : newnat ℓ) (P ht hf n : term) :
+    FundTy (Γ,, ℓ) P ->
+    FundTm (Γ,, cons_ell ℓ k true) P⟨wk_up ℓ (@wk1 Γ (cons_ell ℓ k true))⟩
+      [(tBox ℓ (tEval (cons_ell ℓ k true) (tRel 0)))..] ht ->
+    FundTm (Γ,, cons_ell ℓ k false) P⟨wk_up ℓ (@wk1 Γ (cons_ell ℓ k false))⟩
+      [(tBox ℓ (tEval (cons_ell ℓ k false) (tRel 0)))..] hf ->
+    FundEllTm Γ ℓ n ->
+    FundTmEq Γ tBool (tApp (tEval ℓ n) (nat_to_term k)) tFalse ->
+    FundTmEq Γ P[n..] (tEllElim k ℓ P ht hf n tFalse) hf[(tBox (cons_ell ℓ k false) (tEval ℓ n))..].
+  Proof.
+    intros FP Fht Fhf Fn Fntb.
+    unshelve eapply Build_FundTmEq, ellElimFalseValid.
+    + eapply Fn.
+    + eapply convValidTy, FP.
+    + now eapply irrValidEllTmRfl, Fn.
+    + shelve.
+    + shelve.
+    + now eapply irrValidTmRfl, Fht.
+    + now eapply irrValidTmRfl, Fhf.
+    + now eapply irrValidTmRfl, Fntb.
+  Qed.
+
+  Lemma Fundamental : (forall Γ : context, [ |-[ de ] Γ ] -> FundCon (ta := ta) Γ)
     × (forall (Γ : context) (A : term), [Γ |-[ de ] A] -> FundTy (ta := ta) Γ A)
-    × (forall (Γ : context) (A : decl) (t : term), [Γ |-[ de ] t : A] -> FundTm (ta := ta) Γ A t)
+    × (forall (Γ : context) (d : decl) (t : term), [Γ |-[ de ] t : d] ->
+        match d with term_decl A => FundTm (ta := ta) Γ A t
+          | ell_decl ℓ => FundEllTm (ta:=ta) Γ ℓ t end)
     × (forall (Γ : context) (A B : term), [Γ |-[ de ] A ≅ B] -> FundTyEq (ta := ta) Γ A B)
-    × (forall (Γ : context) (A : decl) (t u : term), [Γ |-[ de ] t ≅ u : A] -> FundTmEq (ta := ta) Γ A t u).
+    × (forall (Γ : context) (d : decl) (t u : term), [Γ |-[ de ] t ≅ u : d] ->
+        match d with term_decl A => FundTmEq (ta := ta) Γ A t u
+          | ell_decl ℓ => FundEllTmEq (ta := ta) Γ ℓ t u end).
   Proof.
   apply WfDeclInduction.
   + intros; now apply FundConNil.
-  + intros; now eapply FundConNew. (* intros; now apply FundConConsε. *)
+  + intros; now eapply FundConNew.
   + intros; now eapply FundConAlpha.
   + intros; now apply FundConCons.
+  + intros; now apply FundConConsEll.
   + intros; now apply FundTyU.
   + intros; now apply FundTyPi.
   + intros; now apply FundTyNat.
@@ -1002,7 +1280,7 @@ Lemma Fundamental : (forall Γ : context, [ |-[ de ] Γ ] -> FundCon (ta := ta) 
   + intros; now apply FundTyId.
   + intros; now apply FundTyUniv.
   + intros; now eapply FundTySplit.
-  + intros; now apply FundTmVar.
+  + intros; destruct d; [now apply FundTmVar|now apply FundEllTmVar].
   + intros; now apply FundTmProd.
   + intros; now apply FundTmLambda.
   + intros; now eapply FundTmApp.
@@ -1028,8 +1306,13 @@ Lemma Fundamental : (forall Γ : context, [ |-[ de ] Γ ] -> FundCon (ta := ta) 
   + intros; now eapply FundTmId.
   + intros; now eapply FundTmRefl.
   + intros; now eapply FundTmIdElim.
+  + admit.
+  + admit.
+  + intros; now eapply FundTmEval.
+  + intros; now eapply FundTmBox.
+  + intros; now eapply FundTmEllElim.
   + intros; now eapply FundTmConv.
-  + intros; now eapply FundTmSplit.
+  + intros; destruct A; [now eapply FundTmSplit|now eapply FundEllTmSplit].
   + intros; now apply FundTyEqPiCong.
   + intros; now apply FundTyEqSigCong.
   + intros; now eapply FundTyEqId.
@@ -1068,11 +1351,25 @@ Lemma Fundamental : (forall Γ : context, [ |-[ de ] Γ ] -> FundCon (ta := ta) 
   + intros; now apply FundTmEqReflCong.
   + intros; now apply FundTmEqIdElimCong.
   + intros; now apply FundTmEqIdElimRefl.
-  + intros; now apply FundTmEqRefl.
+  + admit.
+  + admit.
+  + admit.
+  + admit.
+  + admit.
+  + admit.
+  + intros; now eapply FundTmEqEval.
+  + intros; now eapply FundTmEqEvalRel.
+  + intros; now eapply FundTmEqEvalBox.
+  + intros; now eapply FundTmEqBox.
+  + intros; now eapply FundTmEqEllEta.
+  + intros; now eapply FundTmEqEllElim.
+  + intros; now eapply FundTmEqEllElimTrue.
+  + intros; now eapply FundTmEqEllElimFalse.
+  + intros; destruct A; [now apply FundTmEqRefl|now eapply FundEllTmEqRefl].
   + intros; now eapply FundTmEqConv.
-  + intros; now apply FundTmEqSym.
-  + intros; now eapply FundTmEqTrans.
-  + intros; now eapply FundTmEqSplit.
+  + intros; destruct A; [now apply FundTmEqSym|now eapply FundEllTmEqSym].
+  + intros; destruct A; [now eapply FundTmEqTrans|now eapply FundEllTmEqTrans].
+  + intros; destruct A; [now eapply FundTmEqSplit|now eapply FundEllTmEqSplit].
   Qed.
 
   Print Assumptions Fundamental.

@@ -101,10 +101,10 @@ Lemma lamPiRedTm
   {VG : [Γ ,, F ||-v<l> G ≅ G' | VΓF]}
   {t t'} (Vtt' : [Γ ,, F ||-v<l> t ≅ t' : G | VΓF | VG])
   {Δ} {wfΔ : [|-Δ]} {σ σ'} (Vσσ' : [VΓ | Δ ||-v σ ≅ σ' : Γ | wfΔ])
-  (R0 : [Δ ||-S<l> (tProd F G)[σ] ≅ (tProd F' G')[σ']])
-  (R := normRedΠ R0 : [Δ ||-Π< l > (tProd F G)[σ] ≅ (tProd F' G')[σ']])
-  : PiRedTm R (tLambda F t)[σ].
+  (R0 : [Δ ||-S<l> tProd F[σ] G[up_subst σ] ≅ tProd F'[σ'] G'[up_subst σ']])
+  : PiRedTm (normRedΠ R0) (tLambda F t)[σ].
 Proof.
+  set (R := normRedΠ R0). (* : [Δ ||-Π< l > (tProd F G)[σ] ≅ (tProd F' G')[σ']]). *)
   exists (tLambda F[σ] t[up_subst σ]);
   instValid (liftSubst' VF  Vσσ'); instValid Vσσ'; escape.
   1: now eapply redtmwf_refl, ty_lam.
@@ -135,12 +135,12 @@ Lemma lamPiRedTm'
   (VΠFG := PiValid VΓ VF VG)
   {t t'} (Vtt' : [Γ ,, F ||-v<l> t ≅ t' : G | VΓF | VG])
   {Δ} {wfΔ : [|-Δ]} {σ σ'} (Vσσ' : [VΓ | Δ ||-v σ ≅ σ' : Γ | wfΔ])
-  (R0 : [Δ ||-S<l> (tProd F G)[σ] ≅ (tProd F' G')[σ']])
-  (R := normRedΠ R0: [Δ ||-Π< l > (tProd F G)[σ] ≅ (tProd F' G')[σ']])
-  : PiRedTm R (tLambda F' t')[σ'].
+  (R0 : [Δ ||-S<l> tProd F[σ] G[up_subst σ] ≅ tProd F'[σ'] G'[up_subst σ']])
+  : PiRedTm (normRedΠ R0) (tLambda F' t')[σ'].
 Proof.
-  eapply irrPiRedTm; [|eapply lamPiRedTm]; refold.
-  + symmetry; eapply LRPi', R. (*  rewrite <-2!subst_prod. now eapply validTyExt. *)
+  set (R := normRedΠ R0).
+  eapply irrPiRedTm; [|eapply lamPiRedTm].
+  + symmetry; eapply LRPi', R.
   + now eapply symValidTm.
   + now eapply symSubst.
   Unshelve. 1-3: irrValid.
@@ -280,7 +280,9 @@ Proof.
   instValid VσΞ.
   eapply (SirrLREq SRΠFG).
   1: symmetry; eapply subst_ren_wk.
-  eapply Pi.canonPi_inv; refold; cbn.
+  change (tProd ?A ?B)[?σ] with (tProd A[σ] B[up_subst σ]) in SRΠFG.
+  rewrite <-! subst_lam.
+  eapply Pi.canonPi_inv.
   refine (Pi.Build_PiRedTmEq' (lamPiRedTm Vtt' VσΞ _) (lamPiRedTm' Vtt' VσΞ _) _ _).
   + pose proof (Vuσ := liftSubst' VF VσΞ).
     pose proof (Vuσ' := liftSubstSym' VF VσΞ).
@@ -309,11 +311,11 @@ Proof.
     * eapply redtm_beta.
       1,3: rewrite subst_ren_wk; tea.
       1: eapply ty_conv; tea; now rewrite subst_ren_wk. clear -EscLRX.
-      now rewrite 2subst_ren_wk with (ρ:= wk_up _ _), eq_upwk, subst_ren_wk.
+      now rewrite 2 subst_ren_wk with (ρ:= wk_up _ _), eq_upwk, subst_ren_wk.
     * rewrite (subst_ren_wk (A:=t)), (subst_ren_wk (A:=t')), 
         to_subst_sound with (t:=t[_]), to_subst_sound with (t:=t'[_]),
         2subst_comp_on.
-      rewrite 2eq_upwk.
+      rewrite 2 eq_upwk.
       eapply irrLREq; tea. clear.
       now rewrite <-subst_comp_on, <- to_subst_sound, subst_ren_wk, eq_upwk.
   Qed.

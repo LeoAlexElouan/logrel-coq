@@ -1066,6 +1066,19 @@ Proof.
   now induction hin using in_ctx_induction; destruct A0; cbn.
 Qed.
 
+Lemma ell_in_ctx_induction : forall P : forall Γ v ℓ, in_ctx Γ v (ell_decl ℓ) -> Type,
+  (forall Γ (ℓ : ell), P (Γ,, ℓ) 0 ℓ (in_here' Γ ℓ)) ->
+  (forall Γ (ℓ : ell) A' v (inℓ : in_ctx Γ v ℓ) (ihinℓ : P Γ v ℓ inℓ),
+      P _ (shift v) ℓ (in_there' Γ ℓ A' v inℓ)) ->
+  forall Γ v (ℓ : ell) (inℓ : in_ctx Γ v ℓ), P Γ v ℓ inℓ.
+Proof.
+  intros P hhere hthere *.
+  change (?P ℓ inℓ) with
+    (match ell_decl ℓ as d return forall (ind : in_ctx Γ v d), Type with
+      ell_decl ℓ => P ℓ | term_decl A => fun _ => True end inℓ).
+  now induction inℓ using in_ctx_induction; destruct A; cbn.
+Qed.
+
 (* 
 Lemma wk_induction' (P : forall Γ Δ, Δ ≤ Γ -> Type) :
   P ε ε wk_empty ->

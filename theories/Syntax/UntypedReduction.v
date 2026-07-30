@@ -70,19 +70,19 @@ Inductive OneRedAlg {L : list ell} : term -> term -> Type :=
 | evalBox {ℓ ℓ' t} : [ L | tEval ℓ (tBox ℓ' t) ⤳ t]
 | xiSubst {ℓ n n' k} : [L | n ⤳ n'] -> [L | tXi ℓ (nSucc k n) ⤳ tXi ℓ (nSucc k n')]
 | xiLeaf {ℓ n }: [L | tXi ℓ (nat_to_term n) ⤳ tLeaf (nat_to_term n) ]
-| xiNode {ℓ : ell} {n} {k : newnat ℓ} (ℓt := cons_ell ℓ k true) (ℓf := cons_ell ℓ k false) :
+| xiNode {ℓ : ell} {n i} {k : newnat ℓ} (ℓt := cons_ell ℓ k true) (ℓf := cons_ell ℓ k false) :
   whne n -> head n = Some (newnat_nat _ k, 0) ->
-  [L |tXi ℓ n ⤳ tNode (nat_to_term k)
-    (tXi (cons_ell ℓ k true) n[tBox ℓ (tEval ℓt (tRel 0))]⇑)
-    (tXi (cons_ell ℓ k false) n[tBox ℓ (tEval ℓf (tRel 0))]⇑) ]
+  [L |tXi ℓ (nSucc i n) ⤳ tNode (nat_to_term k)
+    (tXi (cons_ell ℓ k true) (nSucc i n)[tBox ℓ (tEval ℓt (tRel 0))]⇑)
+    (tXi (cons_ell ℓ k false) (nSucc i n)[tBox ℓ (tEval ℓf (tRel 0))]⇑) ]
 | xxiSubst {ℓ m m' n k} : [L | m ⤳ m'] -> [L | tXXi ℓ (nSucc k m) n ⤳ tXXi ℓ (nSucc k m') n]
 | xxiLeaf {ℓ k n} : [L | tXXi ℓ (nat_to_term k) n ⤳ tRefl tNat (nat_to_term k) ]
-| xxiNode {ℓ : ell} {m n} {k : newnat ℓ} (ℓt := cons_ell ℓ k true) (ℓf := cons_ell ℓ k false) :
+| xxiNode {ℓ : ell} {m n i} {k : newnat ℓ} (ℓt := cons_ell ℓ k true) (ℓf := cons_ell ℓ k false) :
   whne m -> head m = Some (newnat_nat _ k, 0) ->
-  [L | tXXi ℓ m n ⤳
-    tEllElim k ℓ (tId tNat (dEval (tXi ℓ m)⟨↑⟩ (tEval ℓ (tRel 0))) m)
-      (tXXi ℓt m⟨upRen_term_term ↑⟩[tBox ℓ (tEval ℓt (tRel 0))]⇑ (tRel 0))
-      (tXXi ℓf m⟨upRen_term_term ↑⟩[tBox ℓ (tEval ℓf (tRel 0))]⇑ (tRel 0))
+  [L | tXXi ℓ (nSucc i m) n ⤳
+    tEllElim k ℓ (tId tNat (dEval (tXi ℓ (nSucc i m))⟨↑⟩ (tEval ℓ (tRel 0))) (nSucc i m))
+      (tXXi ℓt (nSucc i m)⟨upRen_term_term ↑⟩[tBox ℓ (tEval ℓt (tRel 0))]⇑ (tRel 0))
+      (tXXi ℓf (nSucc i m)⟨upRen_term_term ↑⟩[tBox ℓ (tEval ℓf (tRel 0))]⇑ (tRel 0))
       n (tApp (tEval ℓ n) (nat_to_term k))]
 | ellElimSubst {k ℓ P ht hf n b b'}: [L | b ⤳ b'] -> [L | tEllElim k ℓ P ht hf n b ⤳ tEllElim k ℓ P ht hf n b']
 | ellElimTrue {ℓ : ell} {k : newnat ℓ} {P ht hf n} :
@@ -158,10 +158,8 @@ Proof.
   all: inversion red; subst; clear red; nSucc_handler.
   all: try solve [now inversion ne | now inversion H2 | inversion H3]. 
   * destruct (notin_is_not_in ltac:(tea) ltac:(tea)).
-  * pose proof (headnSucc H3) as <-.
-    simpl in H3. rewrite e in H3. discriminate.
-  * pose proof (headnSucc H4) as <-.
-    simpl in H4. rewrite e in H4. discriminate.
+  * rewrite e in H3. discriminate.
+  * rewrite e in H4. discriminate.
 Qed.
 
 Ltac inv_alpha :=
@@ -203,7 +201,7 @@ Proof.
   all : repeat match goal with r : [_ | _ ⤳ _] |- _ => try solve [inversion r]; block r | _ => idtac end; unblock.
   all : try match goal with w : whne (nSucc ?k _) |- _ => destruct k; [ | inversion w]; cbn in w end .
   all : try match goal with w : whne (nat_to_term ?k) |- _ => destruct k; inversion w end .
-  all: try solve [exfalso; eapply whne_nored; eauto].
+  all: try solve [exfalso; eapply whne_nored; eauto | inversion w | inversion e0].
   * eapply index_to_nat_inj in H as <-.
     eapply f_equal, functionality; tea.
   * eapply f_equal, functionality; tea.
@@ -269,11 +267,13 @@ Proof.
   + rewrite <- ren_index_to_ren with (wρε := wρε).
     eapply alphaRed, well_Fwk_in, hin.
   + rewrite ! commRen_alpha_term; unfold funcomp.
+    rewrite nSucc_ren_alpha.
     replace (ren_alpha ρε n) with n⟨fun x => x; wk_to_ren ρε⟩ by now bsimpl.
     eapply xiNode.
     - eapply whne_ren, w.
     - now rewrite head_ren, e.
   + do 2 (rewrite ! commRen_alpha_term; unfold funcomp).
+    rewrite nSucc_ren_alpha.
     replace (ren_alpha ρε m) with m⟨fun x => x; wk_to_ren ρε⟩ by now bsimpl.
     eapply xxiNode.
     - eapply whne_ren, w.
@@ -290,17 +290,21 @@ Proof.
   all: rewrite ? nSucc_ren, ? subst_ren_up,
     ? nat_to_term_ren, ? bool_to_term_ren.
   all: try now econstructor.
-  - replace n⟨upRen_term_term ↑⟩⟨upRen_term_term (upRen_term_term ρ)⟩
+  - rewrite nSucc_ren.
+    replace n⟨upRen_term_term ↑⟩⟨upRen_term_term (upRen_term_term ρ)⟩
       with n⟨upRen_term_term ρ⟩⟨upRen_term_term ↑⟩ by now bsimpl.
+    rewrite <- nSucc_ren with (t:=_⟨_⟩).
     replace (ren1 (upRen_term_term ρ) n) with n⟨upRen_term_term ρ;fun x => x⟩ by now bsimpl.
     econstructor.
     + eapply whne_ren, w.
     + now rewrite head_ren, e.
   - repeat (unfold funcomp; cbn).
+    rewrite nSucc_ren.
     replace m⟨upRen_term_term ↑⟩⟨upRen_term_term (upRen_term_term ρ)⟩
       with m⟨upRen_term_term ρ⟩⟨upRen_term_term ↑⟩ by now bsimpl.
     replace m⟨upRen_term_term ↑⟩⟨upRen_term_term ↑⟩⟨upRen_term_term (upRen_term_term (upRen_term_term ρ))⟩
       with m⟨upRen_term_term ρ⟩⟨upRen_term_term ↑⟩⟨upRen_term_term ↑⟩ by now bsimpl.
+    rewrite <-! nSucc_ren with (t:=_⟨_⟩).
     replace (ren1 (upRen_term_term ρ) m) with m⟨upRen_term_term ρ;fun x => x⟩ by now bsimpl.
     refine (xxiNode _ _).
     + eapply whne_ren, w.

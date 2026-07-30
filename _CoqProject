@@ -102,6 +102,7 @@ theories/Validity/Introductions/Tree.v
 theories/Validity/Introductions/Sigma.v
 theories/Validity/Introductions/Id.v
 theories/Validity/Introductions/Split.v
+theories/Validity/Introductions/Ell.v
 
 theories/Fundamental.v
 

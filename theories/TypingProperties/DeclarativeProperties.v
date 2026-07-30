@@ -158,7 +158,7 @@ Section TypingWk.
       rewrite <- wk_fst.
       econstructor; now eapply IHp.
     - intros ????? ih **.
-      erewrite <- wk_decl, subst_ren_wk_up.
+      erewrite <- wk_decl, subst_ren_wk_up, <- wk_fst, <- wk_snd.
       econstructor.
       eapply typing_meta_conv.
       1: eapply ih; tea.
@@ -530,7 +530,7 @@ Section TypingWk.
       now constructor.
     - intros * wfΓ _ _ iht net ene * wfΔ.
       erewrite <- wk_decl, <- wk_node, wk_nat_to_term, <-! wk_xi,
-        ! subst_ren_wk_up, <-! up_wk_up_wk1.
+        ! subst_ren_wk_up, <-! up_wk_up_wk1, wk_nSucc.
       eapply TermXiNode; tea.
       + eapply iht.
         constructor; tea.
@@ -551,7 +551,7 @@ Section TypingWk.
       set (ℓt := cons_ell ℓ k true); set (ℓf := cons_ell ℓ k false).
       erewrite <- wk_decl, <- wk_ellElim, <-! wk_Id, <-! wk_dEval',
         <-! wk_xxi, ! subst_ren_wk_up, <-! wk_box,
-        <-! wk_app, wk_nat_to_term, <-! wk_eval, <-! wk_xi, <-! up_wk_up_wk1.
+        <-! wk_app, wk_nat_to_term, <-! wk_eval, <-! wk_xi, <-! up_wk_up_wk1, wk_nSucc.
       eapply convtm_meta_conv.
       eapply TermXXiNode.
       + eapply (whne_ren_wl _ _ nem).
@@ -562,15 +562,15 @@ Section TypingWk.
       + reflexivity.
       + fold ℓt ℓf.
         repeat f_equal.
-        * eapply eq_sym, up_wk_up_wk1.
-        * eapply eq_sym, up_wk_up_wk1.
-        * eapply eq_sym, up_wk_up_wk1.
+        * rewrite <-! wk_nSucc. eapply eq_sym, up_wk_up_wk1.
+        * rewrite <-! wk_nSucc. eapply eq_sym, up_wk_up_wk1.
+        * rewrite <-! wk_nSucc. eapply eq_sym, up_wk_up_wk1.
     - intros * _ ihtt' * wfΔ.
       rewrite <- wk_decl, <- wk_arr', <-! wk_eval.
       eapply TermEvalCong, ihtt'; tea.
-    - intros * wfΓ _ inℓ * wfΔ.
+    - intros * wfΓ _ inb inℓ * wfΔ.
       rewrite wk_bool_to_term, <- wk_app, wk_nat_to_term.
-      now constructor.
+      constructor; tea. now eapply in_ctx_wk with (d:=ℓ).
     - intros * _ iht _ ihconv * wfΔ.
       rewrite <- wk_decl, <- wk_arr', <- wk_eval, <- wk_box.
       eapply TermEvalBox.
@@ -1338,9 +1338,9 @@ Module WeakDeclarativeTypingProperties.
     + eapply redalg_one_step; constructor.
     + now econstructor.
   - intros * ????; split.
-    + now econstructor.
+    + now eapply wfTermXi, wfTermnSucc.
     + eapply redalg_one_step.
-      do 2 replace t⟨wk_up _ _⟩ with t⟨upRen_term_term ↑⟩ by now bsimpl.
+      do 2 replace (nSucc i t)⟨wk_up _ _⟩ with (nSucc i t)⟨upRen_term_term ↑⟩ by now bsimpl.
       eapply xiNode; tea.
     + now econstructor.
   - intros * ? [] ?; split.

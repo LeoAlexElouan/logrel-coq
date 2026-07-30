@@ -247,6 +247,24 @@ Proof.
     - now unshelve now eapply VAf, convSubst, validFSnocSubst_notin.
 Qed.
 
+Lemma validEllSplit {Γ l ℓ ℓ'} {i new}
+  {VΓ : [||-v Γ]} {VΓt : [||-v Γ,, i : new ↦ true]} {VΓf : [||-v Γ,, i : new ↦ false]}:
+  [Γ,, i : new ↦ true ||-vEll<l> ℓ ≅ ℓ'| VΓt] ->
+  [Γ,, i : new ↦ false  ||-vEll<l> ℓ ≅ ℓ'| VΓf] ->
+  [Γ ||-vEll<l> ℓ ≅ ℓ'| VΓ].
+Proof.
+  intros Vℓt Vℓf.
+  econstructor.
+  intros Δ wfΔ σ σ' Vσσ'.
+  destruct (subst_index Vσσ' i) as (j&eqj&eqj').
+  destruct (decide_in (list_at Δ j) new) as [[] hin|hnotin].
+  + now unshelve now eapply Vℓt, convSubst, validFSnocSubst_in with (2:=Vσσ').
+  + now unshelve now eapply Vℓf, convSubst, validFSnocSubst_in with (2:=Vσσ').
+  + eapply WEllAd_split; tea.
+    - now unshelve now eapply Vℓt, convSubst, validFSnocSubst_notin with (2:=Vσσ').
+    - now unshelve now eapply Vℓf, convSubst, validFSnocSubst_notin with (2:=Vσσ').
+Qed.
+
 
 Lemma Wpack_split {Γ wfΓ l A B t u i new}
   {RAt : [Γ,, i : new ↦ true ||-< l > A ≅ B]} {RAf : [Γ,, i : new ↦ false ||-< l > A ≅ B]} :
@@ -275,6 +293,32 @@ Proof.
     now rewrite <- wk_comp_ren_on, wk_Fstep_ren_on, wk_id_ren_on.
 Qed.
 
+
+Lemma WEllpack_split {Γ wfΓ l ℓ ℓ' t u i new}
+  {Rℓt : [Γ,, i : new ↦ true ||-Ell< l > ℓ ≅ ℓ']} {Rℓf : [Γ,, i : new ↦ false ||-Ell< l > ℓ ≅ ℓ']} :
+  [Γ,, i : new ↦ true ||-< l > t ≅ u  : _ | Rℓt] -> [Γ,, i : new ↦ false ||-< l > t ≅ u  : _ | Rℓf] ->
+  [Γ ||-< l > t ≅ u : _ | WEllAd_split wfΓ Rℓt Rℓf].
+Proof.
+  intros Rtt Rtf.
+  assert (wftrue : [|-Γ,, i : new ↦ true]) by apply Rℓt.
+  assert (wffalse : [|-Γ,, i : new ↦ false]) by apply Rℓf.
+  epose proof (Split_shf Γ wfΓ wk_id i new).
+  cbn in X.
+  eapply Split_hom_PSh.
+  2: eapply X; clear X.
+  + intros ??? ?.
+    rewrite wk_comp_runit in X0.
+    exact X0.
+  + eapply (dSplit_bind_return Rtt).
+    intros ??? oRAt oRtt osplit.
+    rewrite <- 2!wk_comp_ren_on, 2!wk_Fstep_ren_on, 2!wk_id_ren_on.
+    unshelve eapply SirrEll, Rtt, oRtt; tea.
+  + eapply (dSplit_bind_return Rtf).
+    intros ??? oRAt oRtf osplit.
+    rewrite <- 2!wk_comp_ren_on, 2!wk_Fstep_ren_on, 2!wk_id_ren_on.
+    unshelve eapply SirrEll, Rtf, oRtf; tea.
+Qed.
+
 Lemma validTmSplit {Γ l A t u} {i new}
   {VΓ : [||-v Γ]} {VΓt : [||-v Γ,, i : new ↦ true]} {VΓf : [||-v Γ,, i : new ↦ false]}
   {VAt : [Γ,, i : new ↦ true ||-v<l> A | VΓt]} {VAf : [Γ,, i : new ↦ false ||-v<l> A| VΓf]}:
@@ -292,6 +336,31 @@ Proof.
   + unshelve eapply irrLR, Vtf; tea.
     now unshelve now eapply convSubst, validFSnocSubst_in.
   + eapply irrLR, (Wpack_split (wfΓ:=wfΔ)).
+    - unshelve eapply Vtt.
+      1: now eapply wfc_consF.
+      now unshelve now eapply convSubst, validFSnocSubst_notin.
+    - unshelve eapply Vtf.
+      1: now eapply wfc_consF.
+      now unshelve now eapply convSubst, validFSnocSubst_notin.
+Qed.
+
+Lemma validEllTmSplit {Γ l ℓ t u} {i new}
+  {VΓ : [||-v Γ]} {VΓt : [||-v Γ,, i : new ↦ true]} {VΓf : [||-v Γ,, i : new ↦ false]}
+  {Vℓt : [Γ,, i : new ↦ true ||-vEll<l> ℓ | VΓt]} {Vℓf : [Γ,, i : new ↦ false ||-vEll<l> ℓ | VΓf]}:
+  [Γ,, i : new ↦ true ||-vEll<l> t ≅ u : ℓ | VΓt | Vℓt] ->
+  [Γ,, i : new ↦ false  ||-vEll<l> t ≅ u : ℓ | VΓf | Vℓf] ->
+  [Γ ||-vEll<l> t ≅ u : ℓ | VΓ | validEllSplit Vℓt Vℓf].
+Proof.
+  intros Vtt Vtf.
+  econstructor.
+  intros ?????.
+  destruct (subst_index Vσσ' i) as (j&eqj&eqj').
+  destruct (decide_in (list_at Δ j) new) as [[] hin|hnotin].
+  + unshelve eapply irrEll, Vtt; tea.
+    now unshelve now eapply convSubst, validFSnocSubst_in.
+  + unshelve eapply irrEll, Vtf; tea.
+    now unshelve now eapply convSubst, validFSnocSubst_in.
+  + eapply irrEll, (WEllpack_split (wfΓ:=wfΔ)).
     - unshelve eapply Vtt.
       1: now eapply wfc_consF.
       now unshelve now eapply convSubst, validFSnocSubst_notin.

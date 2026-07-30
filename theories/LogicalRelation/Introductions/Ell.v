@@ -67,10 +67,10 @@ Section Ell.
 
   Lemma SwkEll {Γ wfΓ Δ l t t'} {ℓ : ell} (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]) :
     [Γ ||-S< l > t ≅ t' : ℓ | SEllRed wfΓ (l:=l)] -> [Δ ||-S< l > t⟨ρ⟩ ≅ t'⟨ρ⟩ : ℓ | SEllRed wfΔ (l:=l)].
-  Proof. now eapply SwkEll; tea. Qed.
+  Proof. now eapply SwkEllTm; tea. Qed.
   Lemma wkEll {Γ wfΓ Δ l t t'} {ℓ : ell} (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]) :
     [Γ ||-< l > t ≅ t' : ℓ | EllRed wfΓ (l:=l)] -> [Δ ||-< l > t⟨ρ⟩ ≅ t'⟨ρ⟩ : ℓ | EllRed wfΔ (l:=l)].
-  Proof. now eapply wkEll; tea. Qed.
+  Proof. now eapply wkEllTm; tea. Qed.
 
   Lemma WEll_return {Γ wfΓ l t t'} {ℓ : ell} :
     [Γ ||-S< l > t ≅ t' : ℓ | SEllRed wfΓ (l:=l)] -> [Γ ||-< l > t ≅ t' : ℓ | EllRed wfΓ (l:=l)].
@@ -334,11 +334,11 @@ Section Ell.
     constructor; tea.
     + constructor; tea.
       intros n b inℓ; unshelve eapply Sevalnat_to_termRed, lrefl, SirrEll; tea.
-    + eapply SescapeEll.
+    + eapply escapeEll.
       eapply SboxEvalRedEq; tea.
     + escape.
       eapply convtm_eta_ell; tea.
-      - eapply SescapeEll.
+      - eapply escapeEll.
         eapply SboxEvalRedEq; tea.
       - constructor; tea.
         intros n b inℓ.

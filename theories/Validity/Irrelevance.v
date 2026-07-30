@@ -261,7 +261,7 @@ Lemma irrLvlValidEll {Γ Γ' l l' ℓ ℓ' ℓ''} (VΓ : [||-v Γ ≅ Γ']) :
   [Γ ||-vEll<l> ℓ ≅ ℓ' | VΓ ] -> [Γ ||-vEll<l'> ℓ' ≅ ℓ'' | VΓ] -> [Γ ||-vEll<l> ℓ' ≅ ℓ'' | VΓ].
 Proof.
   constructor; intros.
-  eapply transitiveEll; [eapply urefl|]; eapply validEllExt; tea.
+  eapply transEll; [eapply urefl|]; eapply validEllExt; tea.
 Qed.
 
 Lemma transValidTy {Γ Γ' Γ'' l l' A B C}
@@ -306,6 +306,12 @@ Proof.
 Qed.
 
 
+
+Lemma transValidEll' {Γ Γ' Γ'' l l' ℓ ℓ' ℓ''}
+  {VΓ : [||-v Γ ≅ Γ']} {VΓ' : [||-v Γ' ≅ Γ'']} :
+  [Γ ||-vEll<l> ℓ ≅ ℓ' | VΓ ] -> [Γ' ||-vEll<l'> ℓ' ≅ ℓ'' | VΓ'] -> [Γ ||-vEll<l> ℓ ≅ ℓ'' | transValid VΓ VΓ'].
+Proof. eapply transValidEll. Qed.
+
 Instance perValid : PER (VAdequate VR).
 Proof.
   constructor; red; intros; [now apply symValid|now eapply transValid].
@@ -336,6 +342,18 @@ Proof.
   - intros; now eapply transValidTy.
 Defined.
 
+Instance perValidEll {Γ Γ' l} (VΓ : [||-v Γ ≅ Γ']) : PER (ellValidity _ _ VΓ l).
+Proof.
+  constructor; red; intros.
+  - unshelve now eapply symValidEll, convValidEll, convValidEll'.
+    all: first [now symmetry| now eapply urefl].
+  - unshelve now eapply transValidEll; tea; eapply convValidEll'.
+    now eapply urefl.
+Qed.
+
+
+
+
 Lemma irrSubst {Γ0 Γ0' Γ1 Γ1'} {VΓ0 : [||-v Γ0 ≅ Γ0']} {VΓ1 : [||-v Γ1 ≅ Γ1']} :
   [||-v Γ0 ≅ Γ1] ->
   forall {Δ} (wfΔ : [|- Δ]) {σ σ'},
@@ -362,9 +380,28 @@ Proof.
   eapply irrValidTy; now eapply lrefl.
 Qed.
 
+Lemma irrValidEll  {Γl Γl' Γr Γr' l ℓ ℓ'}
+  {VΓl : [||-v Γl ≅ Γl']}
+  {VΓr : [||-v Γr ≅ Γr']}
+  : [||-v Γl ≅ Γr] -> [_ ||-vEll<l> ℓ ≅ ℓ' | VΓl] -> [_ ||-vEll<l> ℓ ≅ ℓ' | VΓr].
+Proof.
+  intros VΓ Vℓ; unshelve now eapply convValidEll, convValidEll'.
+  etransitivity; [|tea]; now symmetry.
+Qed.
+
+Lemma irrValidEllRfl {Γ Γ' l ℓ ℓ'}
+  {VΓ VΓ' : [||-v Γ ≅ Γ']}
+  : [Γ ||-vEll<l> ℓ ≅ ℓ' | VΓ] -> [Γ ||-vEll<l> ℓ ≅ ℓ' | VΓ'].
+Proof.
+  eapply irrValidEll; now eapply lrefl.
+Qed.
+
 Lemma symValidTy' {Γ Γ' l A B} {VΓ : [||-v Γ ≅ Γ']} :
   [_ ||-v<l> A ≅ B | VΓ] -> [_ ||-v<l> B ≅ A | symValid VΓ].
 Proof. eapply symValidTy. Qed.
+Lemma symValidEll' {Γ Γ' l ℓ ℓ'} {VΓ : [||-v Γ ≅ Γ']} :
+  [_ ||-vEll<l> ℓ ≅ ℓ' | VΓ] -> [_ ||-vEll<l> ℓ' ≅ ℓ | symValid VΓ].
+Proof. eapply symValidEll. Qed.
 
 
 
@@ -408,6 +445,37 @@ Proof.
   now eapply lrefl.
 Qed.
 
+Lemma irrValidEllTm {Γl Γl' Γr Γr' l ll lr ℓl ℓl' ℓr ℓr' t u}
+  {VΓl : [||-v Γl ≅ Γl']}
+  {VΓr : [||-v Γr ≅ Γr']}
+  (VΓ : [||-v Γr ≅ Γl])
+  (Vℓl : [_ ||-vEll<ll> ℓl ≅ ℓl' | VΓl])
+  (Vℓr : [_ ||-vEll<lr> ℓr ≅ ℓr' | VΓr]) :
+  [_ ||-vEll<l> ℓl ≅ ℓr | VΓ] ->
+  [_ ||-vEll<ll> t ≅ u : _ | _ | Vℓl] ->
+  [_ ||-vEll<lr> t ≅ u :  _ | _ | Vℓr].
+Proof.
+  intros Vℓ Vt; constructor; intros.
+  assert [VΓl | _ ||-v σ ≅ σ' : _ | wfΔ]
+  by (eapply irrSubst; tea; now symmetry).
+  eapply irrEllConv.
+  2: now unshelve now eapply validEllTmExt.
+  eapply validEllExt; tea.
+  now eapply lrefl, convSubst.
+Qed.
+
+Lemma irrValidEllTmRfl {Γ Γ' Γ'' ll lr ℓ ℓl ℓr t u}
+  {VΓ : [||-v Γ ≅ Γ']} {VΓ' : [||-v Γ ≅ Γ'']}
+  {Vℓl : [Γ ||-vEll<ll> ℓ ≅ ℓl | VΓ]}
+  {Vℓr : [Γ ||-vEll<lr> ℓ ≅ ℓr | VΓ']} :
+  [_ ||-vEll<ll> t ≅ u : _ | _ | Vℓl] -> [_ ||-vEll<lr> t ≅ u : _ | _ | Vℓr].
+Proof.
+  intros Vtu.
+  unshelve eapply irrValidEllTm, Vtu.
+  3: now eapply convValidEll, lrefl.
+  now eapply lrefl.
+Qed.
+
 
 Instance perValidTm {Γ Γ' l A A'} (VΓ : [||-v Γ ≅ Γ']) (VA : [_ ||-v<l> A ≅ A' | VΓ]) :
   PER (termEqValidity _ _ _ _ _ VΓ VA).
@@ -445,8 +513,57 @@ Proof.
   Unshelve. 1: now eapply lrefl. now symmetry.
 Qed.
 
+Lemma symValidEllTm {Γ Γ' l ℓ ℓ' t t'}
+  {VΓ : [||-v Γ ≅ Γ']} (VΓ' : [||-v Γ' ≅ Γ])
+  {Vℓ : [Γ ||-vEll<l> ℓ ≅ ℓ' | VΓ]} (Vℓ' : [_ ||-vEll<l> ℓ' ≅ ℓ | VΓ']) :
+  [_ ||-vEll<l> t ≅ t' : _ | _ | Vℓ] -> [_ ||-vEll<l> t' ≅ t : _ | _ | Vℓ'].
+Proof.
+  intros Vt; constructor; intros; unshelve eapply symEllTm, irrEllConv, Vt; tea.
+  2: now eapply Vℓ, irrSubst, Vσσ'.
+  now eapply symSubst.
+Qed.
+
+Lemma symValidEllTm' {Γ Γ' l ℓ ℓ' t t'}
+  {VΓ : [||-v Γ ≅ Γ']} {Vℓ : [_ ||-vEll<l> ℓ ≅ ℓ' | VΓ]} :
+  [_ ||-vEll<l> t ≅ t' : _ | _ | Vℓ] -> [_ ||-vEll<l> t' ≅ t : _ | _ | symValidEll' Vℓ ].
+Proof. now apply symValidEllTm. Qed.
+
+Lemma transValidEllTm {Γ Γ' Γ'' l ℓ ℓ' ℓ'' t t' t''}
+  {VΓ : [||-v Γ ≅ Γ']} (VΓ' : [||-v Γ' ≅ Γ'']) (VΓ'' : [||-v Γ ≅ Γ''])
+  {Vℓ : [Γ ||-vEll<l> ℓ ≅ ℓ' | VΓ]} (Vℓ' : [_ ||-vEll<l> ℓ' ≅ ℓ'' | VΓ']) (Vℓ'' : [_ ||-vEll<l> ℓ ≅ ℓ'' | VΓ'']) :
+  [_ ||-vEll<l> t ≅ t' : _ | _ | Vℓ] ->
+  [_ ||-vEll<l> t' ≅ t'' : _ | _ | Vℓ'] ->
+  [_ ||-vEll<l> t ≅ t'' : _ | _ | Vℓ''].
+Proof.
+  intros Vt Vt'; constructor; intros; unshelve eapply transEllTm, irrEllConv, Vt'; tea.
+  1: eapply urefl, convSubst', Vσσ'.
+  1: unshelve eapply irrEll, Vt; tea; now eapply convSubst.
+  now eapply PER_Symmetric, Vℓ, convSubst.
+Qed.
+
+Lemma transValidEllTm' {Γ Γ' Γ'' l ℓ ℓ' ℓ'' t t' t''}
+  {VΓ : [||-v Γ ≅ Γ']} (VΓ' : [||-v Γ' ≅ Γ''])
+  {Vℓ : [Γ ||-vEll<l> ℓ ≅ ℓ' | VΓ]} (Vℓ' : [_ ||-vEll<l> ℓ' ≅ ℓ'' | VΓ']) :
+  [_ ||-vEll<l> t ≅ t' : _ | _ | Vℓ] ->
+  [_ ||-vEll<l> t' ≅ t'' : _ | _ | Vℓ'] ->
+  [_ ||-vEll<l> t ≅ t'' : _ | _ | transValidEll' Vℓ Vℓ'].
+Proof. eapply transValidEllTm. Qed.
 
 
+Instance perValidEllTm {Γ Γ' l ℓ ℓ'} (VΓ : [||-v Γ ≅ Γ']) (Vℓ : [_ ||-vEll<l> ℓ ≅ ℓ' | VΓ]) :
+  PER (termEqValidityℓ _ _ _ _ _ VΓ Vℓ).
+Proof.
+  set (VΓ' := symValid VΓ).
+  constructor.
+  + intros t t' Vt. unshelve eapply irrValidEllTm, symValidEllTm', Vt; tea.
+    now symmetry.
+  + intros t t' t'' Vt Vt'.
+    unshelve (eapply transValidEllTm; [eapply Vt|]).
+    1: now eapply urefl.
+    1: now eapply urefl, convValidEll'.
+    unshelve eapply irrValidEllTm, Vt'; tea.
+    now eapply irrValidEll, Vℓ.
+Qed.
 
 Lemma irrelevanceSubstEqExt {Γ Γ'} (VΓ : [||-v Γ ≅ Γ']) {σ1 σ1' σ2 σ2' Δ}
   (wfΔ : [|- Δ]) (eq1 : σ1 =s σ1') (eq2 : σ2 =s σ2') :
@@ -479,5 +596,7 @@ End Irrelevances.
 #[global] Existing Instance perValid.
 #[global] Existing Instance perSubst.
 #[global] Existing Instance perValidTy.
+#[global] Existing Instance perValidEll.
 #[global] Existing Instance iperValidTy.
 #[global] Existing Instance perValidTm.
+#[global] Existing Instance perValidEllTm.

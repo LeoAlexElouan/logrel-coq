@@ -800,11 +800,11 @@ Section GenericTyping.
     redtm_xiLeaf {Γ n} {ℓ : ell} :
       [ |- Γ] ->
       [ Γ |- tXi ℓ (nat_to_term n) ⤳* tLeaf (nat_to_term n) : tTree];
-    redtm_xiNode {Γ t} {ℓ : ell} {k} (ℓt := cons_ell ℓ k true) (ℓf := cons_ell ℓ k false) :
+    redtm_xiNode {Γ t} {ℓ : ell} {k i} (ℓt := cons_ell ℓ k true) (ℓf := cons_ell ℓ k false) :
       [ |- Γ] ->
       [ Γ ,, ℓ |- t : tNat] -> whne t -> head t = Some (newnat_nat _ k, 0) ->
-      [ Γ |- tXi ℓ t ⤳* tNode (nat_to_term k) (tXi ℓt t⟨wk_up ℓ (@wk1 Γ ℓt)⟩[(tBox ℓ (tEval ℓt (tRel 0)))..])
-        (tXi ℓf t⟨wk_up ℓ (@wk1 Γ ℓf)⟩[(tBox ℓ (tEval ℓf (tRel 0)))..]) : tTree];
+      [ Γ |- tXi ℓ (nSucc i t) ⤳* tNode (nat_to_term k) (tXi ℓt (nSucc i t)⟨wk_up ℓ (@wk1 Γ ℓt)⟩[(tBox ℓ (tEval ℓt (tRel 0)))..])
+        (tXi ℓf (nSucc i t)⟨wk_up ℓ (@wk1 Γ ℓf)⟩[(tBox ℓ (tEval ℓf (tRel 0)))..]) : tTree];
     redtm_xxi {Γ t t' u n} {ℓ : ell} :
           [ |- Γ] ->
           [ Γ ,, ℓ |- t ⤳* t' : tNat] -> [ Γ |- u : ℓ] ->
@@ -812,14 +812,14 @@ Section GenericTyping.
     redtm_xxiLeaf {Γ n u} {ℓ : ell} :
       [ |- Γ] -> [ Γ |- u : ℓ] ->
       [ Γ |- tXXi ℓ (nat_to_term n) u ⤳* tRefl tNat (nat_to_term n): tId tNat (nat_to_term n) (nat_to_term n) ];
-    redtm_xxiNode  {Γ m} {ℓ : ell} {k n} (ℓt := cons_ell ℓ k true) (ℓf := cons_ell ℓ k false):
+    redtm_xxiNode  {Γ m} {ℓ : ell} {k i n} (ℓt := cons_ell ℓ k true) (ℓf := cons_ell ℓ k false):
       whne m -> head m = Some (newnat_nat _ k, 0) ->
       [ Γ,, ℓ |- m  : tNat] -> [Γ |- n : ℓ] ->
-      [ Γ |- tXXi ℓ m n ⤳* tEllElim k ℓ (tId tNat (dEval' (Γ,, ℓ) (tXi ℓ m⟨wk_up ℓ (@wk1 Γ ℓ)⟩) (tEval ℓ (tRel 0))) m)
-        (tXXi ℓt m⟨wk_up ℓ (@wk1 Γ ℓt)⟩⟨wk_up ℓ (@wk1 (Γ,,ℓt) ℓt)⟩[(tBox ℓ (tEval ℓt (tRel 0)))..] (tRel 0))
-        (tXXi ℓf m⟨wk_up ℓ (@wk1 Γ ℓf)⟩⟨wk_up ℓ (@wk1 (Γ,,ℓf) ℓf)⟩[(tBox ℓ (tEval ℓf (tRel 0)))..] (tRel 0))
+      [ Γ |- tXXi ℓ (nSucc i m) n ⤳* tEllElim k ℓ (tId tNat (dEval' (Γ,, ℓ) (tXi ℓ (nSucc i m)⟨wk_up ℓ (@wk1 Γ ℓ)⟩) (tEval ℓ (tRel 0))) (nSucc i m))
+        (tXXi ℓt (nSucc i m)⟨wk_up ℓ (@wk1 Γ ℓt)⟩⟨wk_up ℓ (@wk1 (Γ,,ℓt) ℓt)⟩[(tBox ℓ (tEval ℓt (tRel 0)))..] (tRel 0))
+        (tXXi ℓf (nSucc i m)⟨wk_up ℓ (@wk1 Γ ℓf)⟩⟨wk_up ℓ (@wk1 (Γ,,ℓf) ℓf)⟩[(tBox ℓ (tEval ℓf (tRel 0)))..] (tRel 0))
         n (tApp (tEval ℓ n) (nat_to_term k)):
-        tId tNat (dEval' Γ (tXi ℓ m) (tEval ℓ n)) m[n..] ];
+        tId tNat (dEval' Γ (tXi ℓ (nSucc i m)) (tEval ℓ n)) (nSucc i m)[n..] ];
     redtm_eval {Γ v n t t'} {ℓ : ell} :
       [ Γ |- t ⤳* t' : tNat ] -> in_ctx Γ v ℓ ->
       [ Γ |- tApp (tEval ℓ (tRel v)) (nSucc n t) ⤳* tApp (tEval ℓ (tRel v)) (nSucc n t') : tBool] ;
