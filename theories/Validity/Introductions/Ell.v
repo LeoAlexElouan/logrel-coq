@@ -407,18 +407,83 @@ Section Xi.
     now eapply redtm_xiLeaf.
   Qed.
 
+  Lemma headevalrelnat_to_term ℓ k v : head (tApp (tEval ℓ (tRel v)) (nat_to_term k)) = Some (k, v).
+  Proof.
+    cbn. change (k, v) with (0+ k, v).
+    generalize 0 as n.
+    induction k; intros n.
+    + now rewrite <- plus_n_O.
+    + rewrite <- plus_n_Sm. eapply IHk.
+  Qed.
+
+  Lemma headalphanSucc i k t : whne t -> head (tApp (tAlpha i) (nSucc k t)) = head t.
+  Proof.
+    intros net.
+    cbn.
+    generalize 0 as n.
+    induction k.
+    + inversion net; subst; reflexivity.
+    + cbn. easy.
+  Qed.
+
+  Lemma headevalrelnSucc ℓ k v t : whne t -> head (tApp (tEval ℓ (tRel v)) (nSucc k t)) = head t.
+  Proof.
+    intros net.
+    cbn.
+    generalize 0 as n.
+    induction k.
+    + inversion net; subst; reflexivity.
+    + cbn. easy.
+  Qed.
+
+  Lemma subst_Alpha {n} {σ : substitution} : tAlpha (subst_alpha σ n) = (tAlpha n)[σ].
+  Proof. reflexivity. Qed.
+
+  Lemma whne_up_subst {m k σ} : whne m -> head m = Some (k, 0) ->
+    whne m[up_subst σ] × head m[up_subst σ] = Some (k, 0).
+  Proof.
+    intros nem em.
+    induction nem in k, em |- *; try solve [inversion em |
+      specialize (IHnem _ em) as [IHne IHe]; split; tea; now constructor].
+    + rewrite headevalrelnat_to_term in em. inversion em; subst; clear em.
+      rewrite <- subst_app, <- subst_eval, subst_nat_to_term.
+      split.
+      - now eapply whne_tEvalRel.
+      - eapply headevalrelnat_to_term.
+    + inversion nem; subst; try solve [inversion em].
+    + rewrite headalphanSucc in em by eapply nem.
+      specialize (IHnem _ em) as [IHne IHe].
+      split.
+      - rewrite <- subst_app, <- subst_Alpha, subst_nSucc.
+        now constructor.
+      - now rewrite <- subst_app, <- subst_Alpha, subst_nSucc,
+          headalphanSucc by eapply IHne.
+    + rewrite headevalrelnSucc in em by eapply nem.
+      specialize (IHnem _ em) as [IHne IHe].
+      split.
+      - rewrite <- subst_app, <- subst_eval, subst_nSucc.
+  Abort.
+
+
   Lemma xiNodeValid {Γ Γ' l m ℓ k i} (VΓ : [||-v Γ ≅ Γ'])
+    (Vℓ := ellValid (l:=l) (ℓ:=ℓ) VΓ) (VΓℓ := validSnocℓ VΓ Vℓ)
     (ℓt := cons_ell ℓ k true) (ℓf := cons_ell ℓ k false) :
     whne m -> head m = Some (newnat_nat _ k, 0) ->
-    [Γ ||-v< l > m : _ | _ | natValid VΓ] ->
+    [Γ,, ℓ ||-v< l > m : _ | _ | natValid VΓℓ] ->
     [Γ ||-v< l > tXi ℓ (nSucc i m) ≅ tNode (nat_to_term k) (tXi ℓt (nSucc i m)⟨wk_up ℓ (@wk1 Γ ℓt)⟩[(tBox ℓ (tEval ℓt (tRel 0)))..])
         (tXi ℓf (nSucc i m)⟨wk_up ℓ (@wk1 Γ ℓf)⟩[(tBox ℓ (tEval ℓf (tRel 0)))..]) : _ | _ |treeValid VΓ].
   Proof.
     intros nem em Vm.
+    constructor; intros.
     eapply redSubstValid, nodeValid.
     + constructor; intros.
       erewrite <- subst_node, <-! subst_xi, ! subst_ren_subst_up,
-        <-! subst_box, <-! subst_eval, <-! up_subst_wk_up_wk1, subst_nSucc.
+        <-! subst_box, <-! subst_eval, <-! up_subst_wk_up_wk1, subst_nSucc,
+          subst_nat_to_term.
+      eapply redtm_xiNode; tea.
+      - eapply (liftEllSubst' Vℓ) in Vσσ' as Vℓσ.
+        now instValid Vℓσ; escape.
+      - 
   Admitted.
 
 

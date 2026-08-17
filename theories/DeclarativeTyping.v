@@ -452,10 +452,10 @@ Reserved Notation "[ |- Γ ]" (at level 0). *)
           [ |- Γ ] ->
           in_ell ℓ n b -> in_ctx Γ v ℓ ->
           [ Γ |- tApp (tEval ℓ (tRel v)) (nat_to_term n) ≅ (bool_to_term b) : tBool]
-      | TermEvalBox {Γ ℓ t}:
+      | TermEvalBox {Γ ℓ t k}:
           [ Γ |- t : arr' Γ tNat tBool] ->
           (forall n b, in_ell (ℓ : ell) n b -> [ Γ |- tApp t (nat_to_term n) ≅ bool_to_term b : tBool]) ->
-          [ Γ |- tEval ℓ (tBox ℓ t) ≅ t : arr' Γ tNat tBool]
+          [ Γ |- tApp (tEval ℓ (tBox ℓ t)) (nat_to_term k) ≅ tApp t (nat_to_term k) : tBool]
       | TermBoxCong {Γ t t'} {ℓ : ell} :
           [ Γ |- t ≅ t' : arr' Γ tNat tBool] ->
           (forall n b, in_ell ℓ n b -> [ Γ |- tApp t (nat_to_term n) ≅ bool_to_term b : tBool]) ->

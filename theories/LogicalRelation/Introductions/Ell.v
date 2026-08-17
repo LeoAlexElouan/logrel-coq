@@ -30,7 +30,7 @@ Section Ell.
     + intros * [gL RL] [gR RR] nfeq nfprop ihnfprop ?.
       eapply SredSubstTmEq.
       { eapply (ihnfprop k). }
-      1,2 : eapply redtm_eval; tea.
+      1,2 : eapply redtm_eval; tea; now eapply ty_var.
     + intros k.
       destruct (decide_in ℓ k).
       - eapply SredSubstTmEq.
@@ -53,6 +53,7 @@ Section Ell.
       1,2 : eapply (ty_app (B:=tBool)), ty_nSucc; tea;
         eapply ty_eval, ty_var; tea.
       eapply convneu_eval; tea.
+      now eapply convtm_varEll.
   Qed.
 
   Lemma SevalRelRedEq {ℓ : ell} {Γ l v t t' k} (wfΓ :[|-Γ]):  in_ctx Γ v ℓ -> [Γ ||-S< l > t ≅ t' : tNat | SnatRed (l:=l) wfΓ ] ->
@@ -120,9 +121,9 @@ Section Ell.
       1:gtyping.
       1,2: constructor; tea.
       1: constructor.
-      1: cbn; rewrite wk_to_ren_id;
-        now eapply in_there with (A:=ℓ).
-      1: eapply (ty_var0 (A:=tNat)); gtyping.
+      1: now rewrite wk1_ren;
+        eapply convtm_varEll, in_there' with (A:=ℓ).
+      1: now eapply ty_var, in_here.
     - cbn[PiRedTmEq.nf].
       intros *.
       unshelve eapply Wpack_return'.
@@ -166,26 +167,59 @@ Section Ell.
     unshelve eapply SirrLR, SevalRedEq, SirrEll, Rtt'; tea.
   Qed.
 
-  Lemma SboxRed {Γ l t t'} {ℓ : ell} (wfΓ : [|-Γ]) :
+
+  Lemma evalBoxRedEqAux {ℓ : ell} {Γ l t t'} (wfΓ : [|-Γ]) :
     [Γ ||-S< l > t ≅ t' : _ | SNtoBRed (l:=l) wfΓ] ->
-    (forall n b, in_ell ℓ n b ->
-      [Γ ||-S< l > tApp t (nat_to_term n) ≅ bool_to_term b : _ | SboolRed (l:=l) wfΓ ]) ->
-    (forall n b, in_ell ℓ n b ->
-      [Γ ||-S< l > tApp t' (nat_to_term n) ≅ bool_to_term b : _ | SboolRed (l:=l) wfΓ]) ->
-    [Γ ||-S< l > tBox ℓ t ≅ tBox ℓ t' : ℓ | SEllRed (l:=l) wfΓ].
+    (forall n b, in_ell ℓ n b -> [Γ ||-< l > tApp t (nat_to_term n) ≅ bool_to_term b : _ | boolRed (l:=l) wfΓ]) ->
+    (forall tL tR (Rt : [Γ ||-Nat tL ≅ tR :Nat]), forall k,
+    [Γ ||-< l > tApp (tEval ℓ (tBox ℓ t)) (nSucc k tL) ≅ tApp (tEval ℓ (tBox ℓ t')) (nSucc k tR) : _ | boolRed (l:=l) wfΓ]) ×
+    (forall tL tR (propt : NatPropEq Γ tL tR), forall k,
+    [Γ ||-< l > tApp (tEval ℓ (tBox ℓ t)) (nSucc k tL) ≅ tApp (tEval ℓ (tBox ℓ t')) (nSucc k tR) : _ | boolRed (l:=l) wfΓ]).
   Proof.
-    intros Rtt' Btnb Bt'nb.
-    escape. cbn in Btnb, Bt'nb.
-    constructor.
-    1,2: constructor.
-    1: eapply lrefl, SirrLR; tea.
-    2: eapply urefl, SirrLR; tea.
-    3,4: eapply ty_box; tea.
-    5: eapply convtm_box; tea.
-    6: eapply SirrLR, SredSubstTmEq; tea; eapply redtm_evalBox; tea.
-    1-7: intros n b inℓ.
-    3-7: unshelve eapply (escapeTm (SboolRed wfΓ)); tea; cbn.
-    1-7: eauto.
+    intros Rt Rtnb.
+    assert (Rappt : forall k,
+      [Γ ||-< l > tApp t (nat_to_term k) ≅ tApp t' (nat_to_term k) : _ | boolRed (l:=l) wfΓ]).
+    { intros k.
+      unshelve (now eapply Ssimple_appcongTerm, Snat_to_termReq); tea.
+      now eapply natRedTy. }
+    assert (Rt'nb : forall n b, in_ell ℓ n b ->
+      [_ ||-< l > tApp t' (nat_to_term n) ≅ bool_to_term b : _ | boolRed (l:=l) wfΓ]).
+    { intros n b inb.
+      etransitivity; eauto; now symmetry. }
+    apply NatRedEqInduction.
+    + intros * [gL RL] [gR RR] nfeq nfprop ihnfprop ?.
+      eapply redSubstTmEq.
+      { eapply (ihnfprop k). }
+      1,2: eapply redtm_eval; tea; eapply ty_box; escape; tea.
+      1,2: intros n b inb; eapply escapeSplitTm; eauto.
+    + intros k.
+      eapply redSubstTmEq.
+      { eapply Rappt. }
+(*       { now unshelve eapply (Rappt (nat_to_term k) _ Snat_to_termReq). } *)
+      1,2: eapply redtm_evalBox; escape; tea.
+      1,2: intros n b inb; eapply escapeSplitTm; eauto.
+    + intros * Rnn' ihRnn' k.
+      rewrite 2 nSuccswap.
+      eapply ihRnn' with (k:=S k).
+    + intros * [] k.
+      eapply neNfTermEq.
+      constructor; tea.
+      1,2 : eapply (ty_app (B:=tBool)), ty_nSucc; tea;
+        eapply ty_eval, ty_box; escape; tea.
+      1,2: intros n b inb; eapply escapeSplitTm; eauto.
+      eapply convneu_eval; tea.
+      eapply convtm_box; escape; tea.
+      intros n b inb; eapply escapeSplitTm; eauto.
+  Qed.
+
+  Lemma SevalBoxRedEq  {ℓ : ell} {Γ l u u' t t' k} (wfΓ : [|-Γ]) :
+    [Γ ||-S< l > t ≅ t' : _ | SNtoBRed (l:=l) wfΓ] ->
+    (forall n b, in_ell ℓ n b -> [Γ ||-< l > tApp t (nat_to_term n) ≅ bool_to_term b : _ | boolRed (l:=l) wfΓ]) ->
+    [Γ ||-S< l > u ≅ u' : _ | SnatRed (l:=l) wfΓ] ->
+    [ Γ ||-< l > tApp (tEval ℓ (tBox ℓ t)) (nSucc k u) ≅ tApp (tEval ℓ (tBox ℓ t')) (nSucc k u') : tBool |boolRed (l:=l) wfΓ].
+  Proof.
+    intros Rtt' Rtnb Ruu'.
+    eapply (fst (evalBoxRedEqAux wfΓ Rtt' Rtnb)); tea.
   Qed.
 
   Lemma dSplit_bind_ell {Γ} (wfΓ : [|-Γ]) {A} {ℓ : ell} {P : nat -> bool -> Monad.dPSh Γ A}
@@ -206,6 +240,69 @@ Section Ell.
       intros ??? _ oihℓ ohA' n' b' [[-> ->]| [inℓ]]%in_cons_ell_relevant.
       - now eapply hP, overtree_PSh.
       - eapply ihℓ; tea.
+  Qed.
+
+  Lemma evalBoxRedEq  {ℓ : ell} {Γ l u u' t t' k} (wfΓ : [|-Γ]) :
+    [Γ ||-< l > t ≅ t' : _ | NtoBRed (l:=l) wfΓ] ->
+    (forall n b, in_ell ℓ n b -> [Γ ||-< l > tApp t (nat_to_term n) ≅ bool_to_term b : _ | boolRed (l:=l) wfΓ]) ->
+    [Γ ||-< l > u ≅ u' : _ | natRed (l:=l) wfΓ] ->
+    [ Γ ||-< l > tApp (tEval ℓ (tBox ℓ t)) (nSucc k u) ≅ tApp (tEval ℓ (tBox ℓ t')) (nSucc k u') : tBool |boolRed (l:=l) wfΓ].
+  Proof.
+    intros Rtt' Rtnb Ruu'.
+    eapply (dSplit_bind Rtt').
+    intros ??? oNtoB oRtt'.
+    unshelve eapply Wpackrefold; tea.
+    unshelve eapply (dSplit_wk_bind Ruu'); tea.
+    intros ??? oN oRuu'.
+    unshelve eapply Wpackrefold; tea.
+    rewrite ! wk_comp_ren_on with (H:= tApp _ _),
+      <-! wk_app, <-! wk_eval, <-! wk_box, ! wk_nSucc.
+    unshelve eapply irrLR, SevalBoxRedEq; tea.
+    + unshelve (now eapply SirrLR, Rtt', overtree_PSh); tea.
+      now eapply overtree_PSh.
+    + intros n b inb.
+      erewrite <- wk_nat_to_term, <- wk_bool_to_term, wk_app.
+      now unshelve eapply irrLREq, wkLRTm, Rtnb.
+    + now unshelve eapply SirrLR, Ruu'.
+  Qed.
+
+  Lemma SboxRed {Γ l t t'} {ℓ : ell} (wfΓ : [|-Γ]) :
+    [Γ ||-S< l > t ≅ t' : _ | SNtoBRed (l:=l) wfΓ] ->
+    (forall n b, in_ell ℓ n b ->
+      [Γ ||-S< l > tApp t (nat_to_term n) ≅ bool_to_term b : _ | SboolRed (l:=l) wfΓ ]) ->
+    (forall n b, in_ell ℓ n b ->
+      [Γ ||-S< l > tApp t' (nat_to_term n) ≅ bool_to_term b : _ | SboolRed (l:=l) wfΓ]) ->
+    [Γ ||-S< l > tBox ℓ t ≅ tBox ℓ t' : ℓ | SEllRed (l:=l) wfΓ].
+  Proof.
+    intros Rtt' Btnb Bt'nb.
+    escape.
+    assert (gtnb : forall n b, in_ell ℓ n b -> [Γ |- tApp t (nat_to_term n) ≅ bool_to_term b : tBool])
+     by (intros n b inb; specialize (Btnb _ _ inb); now escape).
+    assert (gt'nb : forall n b, in_ell ℓ n b -> [Γ |- tApp t' (nat_to_term n) ≅ bool_to_term b : tBool])
+     by (intros n b inb; specialize (Bt'nb _ _ inb); now escape).
+    cbn in Btnb, Bt'nb.
+    constructor.
+    1,2: constructor; tea.
+    1: eapply lrefl, SirrLR; tea.
+    1: eapply urefl, SirrLR; tea.
+    1,2: eapply ty_box; tea.
+    1: eapply convtm_box; tea.
+    unshelve eapply canonPi_inv, Build_PiRedTmEq'.
+    1,2: econstructor; [eapply redtmwf_refl, ty_eval, ty_box; tea|
+      constructor; cbn; unshelve eapply escapeTy, SNtoBRed; tea].
+    + cbn [PiRedTmEq.nf].
+      eapply convtm_evalCong, convtm_box; tea.
+    + cbn [PiRedTmEq.nf].
+      intros ??? n n' Rn.
+      rewrite <-! wk_eval, <-! wk_box.
+      unshelve eapply irrLR, (SevalBoxRedEq (k:=0)); tea.
+      - now unshelve eapply SirrLREq, SwkLR, Rtt'.
+      - clear n n' Rn.
+        intros n b inn.
+        erewrite <- wk_nat_to_term, <- wk_bool_to_term, wk_app.
+        now unshelve eapply irrLREq, wkLR,
+          (Wpack_return (RAB:= SboolRed wfΓ)), Btnb.
+      - eapply SirrLR, Rn.
   Qed.
 
   Lemma boxRed {Γ l t t'} {ℓ : ell} (wfΓ : [|-Γ]) :
@@ -254,15 +351,15 @@ Section Ell.
     [Γ ||-S< l > n : ℓ | SEllRed (l:=l) wfΓ] ->
     [Γ ||-S< l > tApp (tEval ℓ n) (nat_to_term k) ≅ bool_to_term b : _ | SboolRed (l:=l) wfΓ].
   Proof.
-    intros inℓ Rnn'.
+    intros inb Rnn'.
     destruct Rnn' as [[t Rt Rtb|] elln' gn gn' geqnn' Reval].
     - eapply SredSubstLeftTmEq.
-      2: eapply (redtm_app (B:=tBool)), ty_nSucc, ty_zero; tea.
-      2: eapply redtm_evalBox; tea.
-      2: escape; tea.
-      2: clear n b inℓ; intros n b inℓ;
-        unshelve eapply (escapeTm (SboolRed wfΓ)), Rtb; tea.
-      eapply Rtb; tea.
+      1: now eapply Rtb.
+      eapply redtm_evalBox.
+      1: now escape.
+      clear k b inb.
+      intros k b inb.
+      now unshelve eapply (escapeTm (SboolRed wfΓ)), Rtb.
     - eapply SredSubstLeftTmEq, redtm_evalRel; tea.
       eapply Sbool_to_termRed.
   Qed.
@@ -285,11 +382,13 @@ Section Ell.
     now eapply SirrEll.
   Qed.
  *)
-  Lemma SevalBoxRed {Γ l t} (wfΓ : [|-Γ]) {ℓ : ell} :
+(*   Lemma SevalBoxRed {Γ l t} (wfΓ : [|-Γ]) {ℓ : ell} :
     (forall n b, in_ell ℓ n b -> [Γ ||-S< l > tApp t (nat_to_term n) ≅ bool_to_term b : _ | SboolRed (l:=l) wfΓ]) ->
     [Γ ||-S< l > t :_ | SNtoBRed (l:=l) wfΓ] -> [Γ ||-S< l > tEval ℓ (tBox ℓ t) ≅ t : _ | SNtoBRed (l:=l) wfΓ].
   Proof.
     intros Rtnb Rt.
+    eapply canonPi_inv.
+    unshelve econstructor.
     eapply SredSubstLeftTmEq, redtm_evalBox; tea.
     2: intros n b inℓ; specialize (Rtnb _ _ inℓ).
     all: escape; tea.
@@ -311,7 +410,7 @@ Section Ell.
     rewrite <- (wk_nat_to_term (ρΞ ∘w ρ)), <- (wk_bool_to_term (ρΞ ∘w ρ)).
     unshelve eapply SirrLR, Rtnb; tea.
     all: now eapply overtree_PSh.
-  Qed.
+  Qed. *)
 
   Lemma SboxEvalRedEq {Γ l} {ℓ : ell} {t t'} (wfΓ : [|-Γ]) :
     [Γ ||-S< l > t ≅ t' : ℓ | SEllRed (l:=l) wfΓ] ->
@@ -344,7 +443,8 @@ Section Ell.
         intros n b inℓ.
         eapply escapeTm, Sevalnat_to_termRed; tea.
       - now eapply isLREll_isWfEll.
-      - eapply escapeTm, SevalBoxRed, SevalRedEq, Rt.
+      - eapply convtm_eta.
+      eapply escapeTm, SevalBoxRed, SevalRedEq, Rt.
         intros n b inℓ.
         eapply Sevalnat_to_termRed; tea.
     + eapply SirrLR, SevalBoxRed, SevalRedEq, Rt.

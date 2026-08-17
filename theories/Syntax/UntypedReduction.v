@@ -62,12 +62,12 @@ Inductive OneRedAlg {L : list ell} : term -> term -> Type :=
 | idElimSubst {A x P hr y e e'} :
   [L |e ⤳ e'] ->
   [ L |tIdElim A x P hr y e ⤳ tIdElim A x P hr y e' ]
-| evalSubst {v k ℓ t t'} :
+| evalSubst {u k ℓ t t'} :
   [L | t ⤳ t'] ->
-  [L | tApp (tEval ℓ (tRel v)) (nSucc k t) ⤳ tApp (tEval ℓ (tRel v)) (nSucc k t') ]
+  [L | tApp (tEval ℓ u) (nSucc k t) ⤳ tApp (tEval ℓ u) (nSucc k t') ]
 | evalRel v k b (ℓ : ell) : in_ell ℓ k b ->
   [ L |tApp (tEval ℓ (tRel v)) (nat_to_term k) ⤳ (bool_to_term b) ]
-| evalBox {ℓ ℓ' t} : [ L | tEval ℓ (tBox ℓ' t) ⤳ t]
+| evalBox {ℓ ℓ' t k} : [ L | tApp (tEval ℓ (tBox ℓ' t)) (nat_to_term k) ⤳ tApp t (nat_to_term k)]
 | xiSubst {ℓ n n' k} : [L | n ⤳ n'] -> [L | tXi ℓ (nSucc k n) ⤳ tXi ℓ (nSucc k n')]
 | xiLeaf {ℓ n }: [L | tXi ℓ (nat_to_term n) ⤳ tLeaf (nat_to_term n) ]
 | xiNode {ℓ : ell} {n i} {k : newnat ℓ} (ℓt := cons_ell ℓ k true) (ℓf := cons_ell ℓ k false) :
@@ -156,9 +156,9 @@ Proof.
   intros ne red.
   induction ne in u, red |-*.
   all: inversion red; subst; clear red; nSucc_handler.
-  all: try solve [now inversion ne | now inversion H2 | inversion H3]. 
+  all: try solve [now inversion ne | now inversion H2 | inversion H3].
   * destruct (notin_is_not_in ltac:(tea) ltac:(tea)).
-  * rewrite e in H3. discriminate.
+  *  rewrite e in H3. discriminate.
   * rewrite e in H4. discriminate.
 Qed.
 
@@ -447,9 +447,9 @@ Proof.
   econstructor; tea; now econstructor.
 Qed.
 
-Lemma redalg_eval {L v k ℓ t t'} :
+Lemma redalg_eval {L u k ℓ t t'} :
   [L | t ⤳* t'] ->
-  [L | tApp (tEval ℓ (tRel v)) (nSucc k t) ⤳* tApp (tEval ℓ (tRel v)) (nSucc k t') ].
+  [L | tApp (tEval ℓ u) (nSucc k t) ⤳* tApp (tEval ℓ u) (nSucc k t') ].
 Proof.
   induction 1; [reflexivity|].
   econstructor; tea; now econstructor.

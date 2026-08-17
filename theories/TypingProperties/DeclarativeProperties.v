@@ -559,10 +559,13 @@ Section TypingWk.
       + eapply ihm.
         constructor; tea.
       + eapply ihn; tea.
-      + reflexivity.
+      + now rewrite wk_nSucc.
       + fold ℓt ℓf.
-        repeat f_equal.
-        * rewrite <-! wk_nSucc. eapply eq_sym, up_wk_up_wk1.
+        eapply (f_equal2 (fun var1 var2 => var1 var2 _ _));
+          [eapply (f_equal2 (fun var1 var2 => tEllElim _ _ var1 var2)) |].
+        2,3: eapply (f_equal (fun var => tXXi _ var⟨_⟩[_] _)).
+        * eapply (f_equal (fun var => _ _ (_ _ (_ _ var) _) _)).
+          rewrite <-! wk_nSucc; eapply eq_sym, up_wk_up_wk1.
         * rewrite <-! wk_nSucc. eapply eq_sym, up_wk_up_wk1.
         * rewrite <-! wk_nSucc. eapply eq_sym, up_wk_up_wk1.
     - intros * _ ihtt' * wfΔ.
@@ -572,7 +575,7 @@ Section TypingWk.
       rewrite wk_bool_to_term, <- wk_app, wk_nat_to_term.
       constructor; tea. now eapply in_ctx_wk with (d:=ℓ).
     - intros * _ iht _ ihconv * wfΔ.
-      rewrite <- wk_decl, <- wk_arr', <- wk_eval, <- wk_box.
+      rewrite <- wk_decl, <-! wk_app, <- wk_eval, <- wk_box, wk_nat_to_term.
       eapply TermEvalBox.
       + eapply iht; tea.
       + intros * inℓ.
@@ -1010,9 +1013,7 @@ Module WeakDeclarativeTypingProperties.
     intros * inℓ.
     destruct wft.
     + eapply TermTrans, c; tea.
-      eapply @TermAppCong with (B:=tBool); tea.
-      constructor; tea.
-      eapply TermnSuccCong, TermRefl, wfTermZero, boundary_tm_ctx; tea.
+      now constructor.
     + constructor; tea.
       boundary.
   Qed.
@@ -1048,10 +1049,10 @@ Module WeakDeclarativeTypingProperties.
   - intros ????? []; split; now econstructor.
   - intros ????? []; split; now econstructor.
   - intros * ??????? []; split; now econstructor.
-  - intros * ?? []; split.
+  - intros * ? []; split.
     1,2: now econstructor.
     eapply @TermAppCong with (B:=tBool), TermnSuccCong; tea.
-    eapply TermEvalCong, TermRefl, wfVar; tea.
+    eapply TermEvalCong; tea.
   - intros ??????? [] []; split; tea.
     now eapply TermSplit.
   - intros ?????? [nel ner hmm'] ene; split; tea.
@@ -1363,27 +1364,30 @@ Module WeakDeclarativeTypingProperties.
         eapply wfTermnattoterm; tea.
   - intros; split.
     + eapply wfTermXXi; tea.
-      eapply boundary_tm_ctx; tea.
+      { eapply boundary_tm_ctx; tea. }
+      now eapply wfTermnSucc.
     + eapply redalg_one_step.
-      repeat replace m⟨wk_up _ _⟩ with m⟨upRen_term_term ↑⟩ by now bsimpl.
-      repeat replace m⟨upRen_term_term ↑⟩⟨wk_up _ _⟩ with m⟨upRen_term_term ↑⟩⟨upRen_term_term ↑⟩ by now bsimpl.
+      repeat replace (nSucc i m)⟨wk_up _ _⟩ with (nSucc i m)⟨upRen_term_term ↑⟩ by now bsimpl.
+      repeat replace (nSucc i m)⟨upRen_term_term ↑⟩⟨wk_up _ _⟩ with (nSucc i m)⟨upRen_term_term ↑⟩⟨upRen_term_term ↑⟩ by now bsimpl.
       eapply xxiNode; tea.
     + now econstructor.
-  - intros * []; split.
+  - intros * du []; split.
     + eapply (wfTermApp (A:=tNat) (B:=tBool)), wfTermnSucc; tea.
-      do 2 constructor; tea. boundary.
+      constructor; tea.
     + eapply redalg_eval;tea.
     + eapply @TermAppCong with (A:=tNat) (B:=tBool), TermnSuccCong; tea.
-      do 3 constructor;tea. boundary.
+      do 3 constructor;tea.
   - intros; split.
     + eapply (wfTermApp (A:=tNat) (B:=tBool)), wfTermnattoterm; tea.
       do 2 constructor; tea.
     + eapply redalg_one_step; constructor; tea.
     + now constructor.
   - intros; split.
-    + constructor; constructor; tea.
+    + eapply (wfTermApp (B:=tBool)), wfTermnSucc, wfTermZero,
+        boundary_tm_ctx; tea.
+      now eapply wfTermEval, wfTermBox.
     + eapply redalg_one_step.
-      constructor.
+      now constructor.
     + constructor; tea.
   - intros * ???? [] ?; split.
     + constructor; tea.

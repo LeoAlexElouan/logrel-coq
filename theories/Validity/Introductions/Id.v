@@ -212,12 +212,7 @@ Context `{GenericTypingProperties}.
       eapply (IdRed RAρ (wkLRTm ρΞ wfΞ RVx) Rz).
   Qed.
 
-  Lemma subst_subst_twice t a b σ :
-    t[a .: b..][σ] = t[a[σ] .: (b[σ] .: σ)].
-  Proof. now bsimpl. Qed.
 
-  Lemma subst_refl A x σ : (tRefl A x)[σ] = tRefl A[σ] x[σ].
-  Proof. reflexivity. Qed.
 
   Lemma IdElimReflValid {Γ Γ' l A x P  P' hr y B z}
     (VΓ : [||-v Γ ≅ Γ' ])
@@ -246,7 +241,7 @@ Context `{GenericTypingProperties}.
       change (tRefl ?B ?z)[?σ] with (tRefl B[σ] z[σ]).
       eapply redtm_idElimRefl; tea.
       - now erewrite idElimMotive_Idsubst_eq.
-      - now rewrite <-subst_refl, up_twice_subst.
+      - now rewrite subst_refl, up_twice_subst.
     + unfold idElimMotiveCtxEqStmt in *. (* TODO: there should be something cleaner here !!! *)
       unshelve (eapply irrValidTm; [|tea]); tea.
       1: now eapply lrefl.

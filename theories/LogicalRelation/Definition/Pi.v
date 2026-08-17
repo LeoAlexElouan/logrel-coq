@@ -34,7 +34,7 @@ Inductive isLRFun `{ta : tag} `{WfContext ta}
         (ΠA.(PolyRedPack.posRed) ρ wfΔ ha)) ->
   isLRFun ΠA (tLambda A' t)
 | AlphaLRFun : forall i, [Γ |- PiRedTyPack.outTy ΠA ≅ arr' Γ tNat tBool] -> isLRFun ΠA (tAlpha i)
-| EvalLRFun : forall ℓ v, [Γ |- PiRedTyPack.outTy ΠA ≅ arr' Γ tNat tBool] -> isLRFun ΠA (tEval ℓ (tRel v))
+| EvalLRFun : forall ℓ t, [Γ |- PiRedTyPack.outTy ΠA ≅ arr' Γ tNat tBool] -> isLRFun ΠA (tEval ℓ t)
 | NeLRFun : forall f : term, [Γ |- f ~ f : PiRedTyPack.outTy ΠA] -> isLRFun ΠA f.
 
 Module PiRedTmEq.

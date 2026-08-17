@@ -48,6 +48,7 @@ Definition headXi head (n : nat) (t : term) : option (nat × nat) := headXi_aux 
 Fixpoint head (t : term) : option (nat × nat) :=
   match t with
  | tApp (tEval _ (tRel v)) t => term_under_nSucc (headEval v head) 0 t
+ | tApp (tEval _ _) t
  | tApp (tAlpha _) t => term_under_nSucc (headAlpha head) 0 t
  | tXi _ t
  | tXXi _ t _ => term_under_nSucc (headXi head) 0 t
@@ -77,7 +78,7 @@ Inductive whne : term -> Type :=
   | whne_tSnd {p} : whne p -> whne (tSnd p)
   | whne_tIdElim {A x P hr y e} : whne e -> whne (tIdElim A x P hr y e)
   | whne_tAlpha {i t k} : whne t -> whne (tApp (tAlpha i) (nSucc k t))
-  | whne_tEval {t ℓ v k} : whne t -> whne (tApp (tEval ℓ (tRel v)) (nSucc k t))
+  | whne_tEval {t ℓ u k} : whne t -> whne (tApp (tEval ℓ u) (nSucc k t))
   | whne_tXi {n ℓ v kv k} : whne n -> head n = Some (kv, S v) -> whne (tXi ℓ (nSucc k n))
   | whne_tXXi {m n ℓ v kv k} : whne m -> head m = Some (kv, S v) -> whne (tXXi ℓ (nSucc k m) n)
   | whne_tEllElim {kℓ ℓ P ht hf n b} : whne b -> whne (tEllElim kℓ ℓ P ht hf n b).
@@ -87,7 +88,7 @@ Inductive whnf : term -> Type :=
   | whnf_tProd {A B} : whnf (tProd A B)
   | whnf_tLambda {A t} : whnf (tLambda A t)
   | whnf_tAlpha {i} : whnf (tAlpha i)
-  | whnf_tEval {ℓ v} : whnf (tEval ℓ (tRel v))
+  | whnf_tEval {ℓ t} : whnf (tEval ℓ t)
   | whnf_tNat : whnf tNat
   | whnf_tZero : whnf tZero
   | whnf_tSucc {n} : whnf (tSucc n)
@@ -181,7 +182,7 @@ Inductive isPosType : term -> Type :=
 Inductive isFun : term -> Type :=
   | LamFun {A t} : isFun (tLambda A t)
   | AlphaFun {i} : isFun (tAlpha i)
-  | EvalFun {ℓ v} : isFun (tEval ℓ (tRel v))
+  | EvalFun {ℓ t} : isFun (tEval ℓ t)
   | NeFun {f} : whne f -> isFun f.
 
 Inductive isNat : term -> Type :=
@@ -418,7 +419,7 @@ Inductive isCanonical : term -> Type :=
   | can_tProd {A B} : isCanonical (tProd A B)
   | can_tLambda {A t} : isCanonical (tLambda A t)
   | can_tAlpha {i} : isCanonical (tAlpha i)
-  | can_tEval {ℓ v} : isCanonical (tEval ℓ (tRel v))
+  | can_tEval {ℓ t} : isCanonical (tEval ℓ t)
   | can_tNat : isCanonical tNat
   | can_tZero : isCanonical tZero
   | can_tSucc {n} : isCanonical (tSucc n)
@@ -578,7 +579,7 @@ Section RenWhnf.
         term_under_nSucc (headXi head) i t'⟨upRen_term_term ρ;ρε⟩ =
         ren_op ρ (term_under_nSucc (headXi head) i t') with
       | tSucc t => fun _ => headXi_ren ρ ρε head_ren (S i) t
-      | tApp (tEval _ (tRel _)) t
+      | tApp (tEval _ _) t
       | tApp (tAlpha _) t
       | tXi _ t | tXXi _ t _
       | tNatElim _ _ _ t | tBoolElim _ _ _ t | tEmptyElim _ t | tTreeElim _ _ _ t
@@ -591,6 +592,7 @@ Section RenWhnf.
   Proof. refine
   match t as t' return head t'⟨ρ; ρε⟩ = ren_op ρ (head t') with
   | tApp (tEval _ (tRel v)) t => headEval_ren ρ ρε (head_ren ρ ρε) v 0 t
+  | tApp (tEval _ _) t
   | tApp (tAlpha _) t => headAlpha_ren ρ ρε (head_ren ρ ρε) 0 t
   | tXi _ t
   | tXXi _ t _ => headXi_ren ρ ρε (head_ren (upRen_term_term ρ) ρε) 0 t
@@ -650,7 +652,7 @@ Section RenWhnf.
         now constructor.
       + push_renaming.
         eapply nSucc_ren_inv in H2 as (t2'&->&->).
-        do 2 push_renaming.
+        push_renaming.
         now constructor.
       + push_renaming.
         eapply nSucc_ren_inv in H2 as (t'&->&->).
@@ -674,8 +676,7 @@ Section RenWhnf.
       intros Hnf.
       induction Hnf in t, Heqt' |- * ; cbn.
       1-19: try solve [push_renaming ; econstructor ; eauto].
-      + do 2 push_renaming; econstructor; eauto.
-      + econstructor. subst. eapply whne_ren; eauto.
+      econstructor. subst. eapply whne_ren; eauto.
     - induction 1 ; cbn.
       all: econstructor.
       now eapply whne_ren.
@@ -713,8 +714,7 @@ Section RenWhnf.
     - remember f⟨ρ; ρε⟩ as f'.
       intros Hfun.
       induction Hfun in f, Heqf' |- * ; cbn.
-      1-2: push_renaming ; econstructor ; eauto.
-      1 : do 2 push_renaming; econstructor; eauto.
+      1-3: push_renaming ; econstructor ; eauto.
       econstructor. eapply whne_ren. now destruct Heqf'.
     - induction 1 ; cbn.
       all: econstructor.
@@ -753,8 +753,6 @@ Section RenWhnf.
     split.
     all: destruct t ; cbn ; inversion 1.
     all: try econstructor.
-    change (ren_alpha ?ρε ?t)⟨?ρ⟩ with t⟨ρ; ρε⟩ in *.
-    push_renaming. econstructor.
   Qed.
 
 End RenWhnf.

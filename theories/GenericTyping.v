@@ -158,7 +158,7 @@ Section RedDefinitions.
     LamWfFun : forall A' t : term,
       [Γ |- A'] -> [Γ |- A ≅ A'] -> [Γ,, A |- t : B] (*-> [Γ,, A' |- t : B] *) -> isWfFun Γ A B (tLambda A' t)
   | AlphaWfFun : forall i, [Γ |- tProd A B ≅ arr' Γ tNat tBool ] -> isWfFun Γ A B (tAlpha i)
-  | EvalWfFun : forall ℓ v, [Γ |- tProd A B ≅ arr' Γ tNat tBool ] -> isWfFun Γ A B (tEval ℓ (tRel v))
+  | EvalWfFun : forall ℓ t, [Γ |- tProd A B ≅ arr' Γ tNat tBool ] -> isWfFun Γ A B (tEval ℓ t)
   | NeWfFun : forall f : term, [Γ |- f ~ f : tProd A B] -> isWfFun Γ A B f.
 
   Inductive isWfPair (Γ : context) (A B : term) : term -> Set :=
@@ -626,10 +626,10 @@ Section GenericTyping.
       [Γ |- y ≅ y' : A] ->
       [Γ |- e ~ e' : tId A x y  ] ->
       [Γ |- tIdElim A x P hr y e ~ tIdElim A' x' P' hr' y' e' : term_decl P[e .: y..]  ];
-    convneu_eval {Γ t u v k} {ℓ : ell} :
-      [|- Γ] -> in_ctx Γ v ℓ ->
-      [ Γ |- t ~ u : tNat ] ->
-      [ Γ |- tApp (tEval ℓ (tRel v)) (nSucc k t) ~ tApp (tEval ℓ (tRel v)) (nSucc k u) : tBool ];
+    convneu_eval {Γ t t' u u' k} {ℓ : ell} :
+      [ Γ |- u ≅ u' : ℓ] -> 
+      [ Γ |- t ~ t' : tNat ] ->
+      [ Γ |- tApp (tEval ℓ u) (nSucc k t) ~ tApp (tEval ℓ u') (nSucc k t') : tBool ];
     convneu_split {Γ t u A i new} :
       [|- Γ] ->
       [ Γ,, i : new ↦ true |- t ~ u : A  ] ->
@@ -820,17 +820,18 @@ Section GenericTyping.
         (tXXi ℓf (nSucc i m)⟨wk_up ℓ (@wk1 Γ ℓf)⟩⟨wk_up ℓ (@wk1 (Γ,,ℓf) ℓf)⟩[(tBox ℓ (tEval ℓf (tRel 0)))..] (tRel 0))
         n (tApp (tEval ℓ n) (nat_to_term k)):
         tId tNat (dEval' Γ (tXi ℓ (nSucc i m)) (tEval ℓ n)) (nSucc i m)[n..] ];
-    redtm_eval {Γ v n t t'} {ℓ : ell} :
-      [ Γ |- t ⤳* t' : tNat ] -> in_ctx Γ v ℓ ->
-      [ Γ |- tApp (tEval ℓ (tRel v)) (nSucc n t) ⤳* tApp (tEval ℓ (tRel v)) (nSucc n t') : tBool] ;
+    redtm_eval {Γ u n t t'} {ℓ : ell} :
+      [ Γ |- u : ℓ ] ->
+      [ Γ |- t ⤳* t' : tNat ] ->
+      [ Γ |- tApp (tEval ℓ u) (nSucc n t) ⤳* tApp (tEval ℓ u) (nSucc n t') : tBool] ;
     redtm_evalRel {Γ v n b} {ℓ : ell} :
       [ |- Γ ] ->
       in_ell ℓ n b -> in_ctx Γ v ℓ ->
       [ Γ |- tApp (tEval ℓ (tRel v)) (nat_to_term n) ⤳* (bool_to_term b) : tBool] ;
-    redtm_evalBox {Γ ℓ t}:
+    redtm_evalBox {Γ ℓ t k}:
       [ Γ |- t : arr' Γ tNat tBool] ->
       (forall n b, in_ell (ℓ : ell) n b -> [ Γ |- tApp t (nat_to_term n) ≅ bool_to_term b : tBool]) ->
-      [ Γ |- tEval ℓ (tBox ℓ t) ⤳* t : arr' Γ tNat tBool] ;
+      [ Γ |- tApp (tEval ℓ (tBox ℓ t)) (nat_to_term k) ⤳* tApp t (nat_to_term k) : tBool] ;
     redtm_ellElim {Γ ℓ k} {P ht hf n b b' : term} (ℓt := cons_ell ℓ k true) (ℓf := cons_ell ℓ k false):
           [ Γ,, ℓ |- P ] ->
           [ Γ,, ℓt |- ht : term_decl P⟨wk_up ℓ (@wk1 Γ ℓt)⟩[(tBox ℓ (tEval ℓt (tRel 0)))..] ] ->
