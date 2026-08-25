@@ -463,6 +463,11 @@ Reserved Notation "[ |- Γ ]" (at level 0). *)
       | TermEtaEll {Γ t} {ℓ : ell} :
           [Γ |- t : ℓ] ->
           [Γ |- tBox ℓ (tEval ℓ t) ≅ t: ℓ]
+      | TermCastEll {Γ t} {ℓ ℓ' : ell} :
+          [ Γ |- t : arr' Γ tNat tBool] ->
+          (forall n b, in_ell ℓ n b -> [ Γ |- tApp t (nat_to_term n) ≅ bool_to_term b : tBool]) ->
+          (forall n b, in_ell ℓ' n b -> [ Γ |- tApp t (nat_to_term n) ≅ bool_to_term b : tBool]) ->
+          [ Γ |- tEval ℓ (tBox ℓ t) ≅ tEval ℓ' (tBox ℓ' t) : arr' Γ tNat tBool]
       | TermEllElimCong {Γ ℓ k} {P P' ht ht' hf hf' n n' b b' : term} (ℓt := cons_ell ℓ k true) (ℓf := cons_ell ℓ k false):
           [ Γ,, ℓ |- P ≅ P' ] ->
           [ Γ,, ℓt |- ht ≅ ht' : term_decl P⟨wk_up ℓ (@wk1 Γ ℓt)⟩[(tBox ℓ (tEval ℓt (tRel 0)))..] ] ->

@@ -594,6 +594,14 @@ Section TypingWk.
     - intros * _ iht * wfΔ.
       rewrite <- wk_box, <- wk_eval.
       now econstructor; eapply iht.
+    - intros * _ iht _ ihtnb _ ihtnb' * wfΔ.
+      rewrite <-! wk_eval, <-! wk_box.
+      eapply TermCastEll.
+      + now eapply iht.
+      + intros; erewrite <- wk_nat_to_term, <- wk_bool_to_term.
+        now eapply ihtnb.
+      + intros; erewrite <- wk_nat_to_term, <- wk_bool_to_term.
+        now eapply ihtnb'.
     - intros * _ ihP _ ihht _ ihhf _ ihn _ ihb _ ihconv * wfΔ.
       erewrite <- wk_decl, subst_ren_wk_up, <-! wk_ellElim.
       eapply TermEllElimCong.
@@ -1006,6 +1014,8 @@ Module WeakDeclarativeTypingProperties.
   - now econstructor.
   - now econstructor.
   - now econstructor.
+  - now econstructor.
+  - now econstructor.
   - intros * dt wft dt' wft' deta.
     eapply TermTrans; [|now constructor].
     eapply TermTrans; [eapply TermSym; now constructor|].
@@ -1053,6 +1063,11 @@ Module WeakDeclarativeTypingProperties.
     1,2: now econstructor.
     eapply @TermAppCong with (B:=tBool), TermnSuccCong; tea.
     eapply TermEvalCong; tea.
+  - intros * du dunb dunb' []; split.
+    1,2: now econstructor.
+    eapply (TermAppCong (B:=tBool)).
+    + now eapply TermCastEll.
+    + now eapply TermnSuccCong.
   - intros ??????? [] []; split; tea.
     now eapply TermSplit.
   - intros ?????? [nel ner hmm'] ene; split; tea.

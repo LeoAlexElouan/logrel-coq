@@ -1,7 +1,7 @@
 From LogRel Require Import Utils Syntax.All GenericTyping LogicalRelation.
 From LogRel.LogicalRelation Require Import Properties.
 From LogRel.LogicalRelation.Introductions Require Import Universe SimpleArr Application Tree.
-From LogRel.Validity Require Import Validity Irrelevance Properties Universe Pi SimpleArr Var Application Nat.
+From LogRel.Validity Require Import Validity Irrelevance Properties Universe Pi SimpleArr Var Application Nat Bool.
 
 Set Universe Polymorphism.
 Set Printing Primitive Projection Parameters.
@@ -259,5 +259,55 @@ Section TreeElimRedValid.
 
 
 End TreeElimRedValid.
+
+  Lemma dEval'Valid {Γ Γ' d d' n n' l} (VΓ : [||-v Γ ≅ Γ']) :
+    [Γ ||-v< l > d ≅ d' : _ | _ | treeValid VΓ] ->
+    [Γ ||-v< l > n ≅ n' : _ | _ | simpleArr'Valid VΓ (natValid _) (boolValid _)] ->
+    [Γ ||-v< l > dEval' Γ d n ≅ dEval' Γ d' n' : _ | _ | natValid VΓ].
+  Proof.
+    intros Vd Vn.
+    assert (VΓN : [||-v Γ,, tNat ≅ _])
+      by (unshelve eapply validSnoc, natValid; [ | easy..]).
+    assert (VΓNT : [||-v Γ,, tNat,, tTree ≅ _])
+      by (unshelve eapply validSnoc, treeValid; [|easy..]).
+    assert (VΓNTT : [||-v Γ,, tNat,, tTree,, tTree ≅ _])
+      by (unshelve eapply validSnoc, treeValid; [ | easy..]).
+    assert (VΓNTTN : [||-v Γ,, tNat,, tTree,, tTree,, tNat ≅ _])
+      by (unshelve eapply validSnoc, natValid; [ | easy..]).
+    assert (VΓNTTNN : [||-v Γ,, tNat,, tTree,, tTree,, tNat,, tNat ≅ _])
+      by (unshelve eapply validSnoc, natValid; [ | easy..]).
+    unfold dEval'.
+    unshelve eapply irrValidTmRfl, treeElimCongValid; tea.
+    + eapply natValid.
+    + reflexivity.
+    + unshelve (now eapply irrValidTmRfl, Lambda.lamCongValid, var0Valid); tea.
+      eapply natValid.
+    + unfold dEvalNode'.
+      unshelve (eapply irrValidTmRfl; [..| do 5 eapply Lambda.lamCongValid]).
+      - eapply VΓ.
+      - eapply natValid.
+      - eapply treeValid.
+      - eapply treeValid.
+      - eapply natValid.
+      - shelve.
+      - shelve.
+      - eapply natValid.
+      - eapply natValid.
+      - reflexivity.
+      - unshelve eapply irrValidTmRfl, boolElimCongValid; tea.
+        * eapply natValid.
+        * unshelve eapply (simple_app'Valid _ (VF:=natValid _)), varnValid.
+         ++ eapply simpleArr'Valid, boolValid.
+            eapply natValid.
+         ++ unshelve now eapply irrValidTmRfl, wkValidTm, wkValidTm, wkValidTm, wkValidTm, wkValidTm, Vn; tea.
+            1,3,5,7,9 : tea. Unshelve.
+         ++ do 4 eapply in_there' with (A:=tNat).
+            eapply in_here'.
+        * reflexivity.
+        * eapply varnValid.
+          eapply in_there' with (A:=tNat), in_here'.
+        * eapply varnValid.
+          eapply in_here'.
+  Qed.
 
 End Tree.

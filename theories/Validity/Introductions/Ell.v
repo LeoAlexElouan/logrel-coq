@@ -120,24 +120,55 @@ Section Ell.
     now eapply evalnat_to_termValid, varnEllValid.
   Qed.
 
-  Lemma evalBoxValid {Γ Γ' l t} {ℓ : ell} (VΓ: [||-v Γ ≅ Γ']) :
+  Lemma evalBoxValid {Γ Γ' l t n} {ℓ : ell} (VΓ: [||-v Γ ≅ Γ']) :
     [Γ ||-v< l > t : _ | _ | NtoBValid VΓ] ->
     (forall k b, in_ell ℓ k b ->
       [Γ ||-v< l > tApp t (nat_to_term k) ≅ bool_to_term b : _ | _ | boolValid VΓ]) ->
-    [Γ ||-v< l > tEval ℓ (tBox ℓ t) ≅ t : _ | _ | NtoBValid VΓ].
+    [Γ ||-v< l > tApp (tEval ℓ (tBox ℓ t)) (nat_to_term n) ≅ tApp t (nat_to_term n) : _ | _ | boolValid VΓ].
   Proof.
     intros Vt Vtkb.
-    eapply redSubstValid; tea.
-    econstructor; intros.
-    rewrite <- subst_eval, <- subst_box.
-    eapply redtm_evalBox.
-    + now instValid Vσσ'; escape.
-    + intros n b inb. specialize (Vtkb _ _ inb).
-      erewrite <- subst_nat_to_term, <- subst_bool_to_term, subst_app.
-      now instValid Vσσ'; escape.
+    constructor; intros.
+    rewrite <-! subst_app, <- subst_eval, <- subst_box, ->! subst_nat_to_term.
+    etransitivity.
+    + eapply appEvalBoxRedEq.
+      - instValid Vσσ'. now eapply irrLR.
+      - intros k b ink.
+        specialize (Vtkb _ _ ink).
+        erewrite <- subst_nat_to_term, <- subst_bool_to_term, subst_app.
+        instValid Vσσ'. now eapply irrLR.
+    + eapply SimpleArr.simple_appcongTerm.
+      - instValid Vσσ'. eapply RVt.
+      - now unshelve eapply Nat.nat_to_termReq.
   Qed.
 
 
+  Lemma castEllValid {Γ Γ' l} {ℓ ℓ': ell} {t} (VΓ : [||-v Γ ≅ Γ']) :
+    [Γ ||-v< l > t : _ | _ | NtoBValid VΓ] ->
+    (forall n b, in_ell ℓ n b -> [Γ ||-v< l > tApp t (nat_to_term n) ≅ bool_to_term b : _ | _ | boolValid VΓ]) ->
+    (forall n b, in_ell ℓ' n b -> [Γ ||-v< l > tApp t (nat_to_term n) ≅ bool_to_term b : _ | _ | boolValid VΓ]) ->
+    [Γ ||-v< l > tEval ℓ (tBox ℓ t) ≅ tEval ℓ' (tBox ℓ' t) : _ | _ | NtoBValid VΓ].
+  Proof.
+    intros Vt Vtℓ Vtℓ'.
+    constructor; intros.
+    rewrite <-! subst_eval, <-! subst_box.
+    etransitivity.
+    + unshelve eapply irrLR, castEllRed; tea.
+      - instValid Vσσ'. now eapply irrLR.
+      - intros n b inn.
+        specialize (Vtℓ _ _ inn).
+        erewrite <- subst_nat_to_term, <- subst_bool_to_term, subst_app.
+        instValid Vσσ'. now eapply irrLR.
+      - intros n b inn.
+        specialize (Vtℓ' _ _ inn).
+        erewrite <- subst_nat_to_term, <- subst_bool_to_term, subst_app.
+        instValid Vσσ'. now eapply irrLR.
+    + unshelve eapply irrLR, evalRedEq, boxRed; tea.
+      - instValid Vσσ'. now eapply irrLR.
+      - intros n b inn.
+        specialize (Vtℓ' _ _ inn).
+        erewrite <- subst_nat_to_term, <- subst_bool_to_term, subst_app.
+        instValid Vσσ'. now eapply irrLR.
+  Qed.
 
 Section ellElimValid.
   Context {Γ Γ' l ℓ k}
@@ -244,29 +275,38 @@ Generalizable All Variables.
       now eapply lrefl.
   Qed.
 
+  Lemma castEtaEllValid {ℓ': ell} {t}
+    (Vℓ' := ellValid (l:=l) (ℓ:=ℓ) VΓ) :
+    [Γ ||-vEll< l > t : ℓ | _ | Vℓ ] ->
+    (forall n b, in_ell ℓ' n b -> [Γ ||-v< l > tApp (tEval ℓ t) (nat_to_term n) ≅ bool_to_term b : _ | _ | VB]) ->
+    ℓ' ≤ε ℓ ->
+    [Γ ||-vEll< l > tBox ℓ (tEval ℓ' (tBox ℓ' (tEval ℓ t))) ≅ t : ℓ | _ | Vℓ].
+  Proof.
+    intros Vt Vtnb ρε.
+    econstructor; intros.
+    do 2 rewrite <- subst_box, <- subst_eval.
+    etransitivity.
+    + unshelve eapply irrEll, castEtaEllRed; tea.
+      - instValid Vσσ'.
+        eapply irrEll; tea. Unshelve.
+      - intros n b inn; tea.
+        specialize (Vtnb _ _ inn).
+        instValid Vσσ'.
+        erewrite <- subst_nat_to_term, <- subst_bool_to_term, subst_eval, subst_app.
+        eapply irrLR; tea. Unshelve.
+    + instValid Vσσ'.
+      eapply irrEll; tea.
+  Qed.
+
 
   Lemma boxcastt {t}: [Γ ||-vEll< l > t : _ | _ | Vℓ] ->
     [Γ ||-v< l > (tApp (tEval ℓ t) (nat_to_term k)) ≅ tTrue : _ | _ | VB] ->
     [Γ ||-vEll< l > tBox ℓ (tEval ℓt (tBox ℓt (tEval ℓ t))) ≅ t : _ | _ | Vℓ].
   Proof.
     intros Vt Vtkt.
-    etransitivity; cycle 1.
-    + eapply etaEllValid, Vt.
-    + unshelve eapply boxValid.
-      1,2: tea.
-      - eapply evalBoxValid.
-        { now eapply evalValid. }
-        intros n b [[-> ->] | [inb] ]%in_cons_ell_relevant; tea.
-        now eapply evalnat_to_termValid.
-      - intros n b inb.
-        eapply evalnat_to_termValid.
-        { eapply in_cons_ell; right; eapply inb. }
-        unshelve eapply boxValid.
-        1,2: tea.
-        * now eapply evalValid.
-        * clear n b inb.
-          intros n b [[-> ->] | [inb] ]%in_cons_ell_relevant; tea.
-          now eapply evalnat_to_termValid.
+    eapply castEtaEllValid, Fwk_Fstep, Fwk_id; tea.
+    intros n b [[-> ->] | [inb] ]%in_cons_ell_relevant; tea.
+    now eapply evalnat_to_termValid.
   Qed.
 
   Lemma boxcastf {t}: [Γ ||-vEll< l > t : _ | _ | Vℓ] ->
@@ -274,23 +314,9 @@ Generalizable All Variables.
     [Γ ||-vEll< l > tBox ℓ (tEval ℓf (tBox ℓf (tEval ℓ t))) ≅ t : _ | _ | Vℓ].
   Proof.
     intros Vt Vtkf.
-    etransitivity; cycle 1.
-    + eapply etaEllValid, Vt.
-    + unshelve eapply boxValid.
-      1,2: tea.
-      - eapply evalBoxValid.
-        { now eapply evalValid. }
-        intros n b [[-> ->] | [inb] ]%in_cons_ell_relevant; tea.
-        now eapply evalnat_to_termValid.
-      - intros n b inb.
-        eapply evalnat_to_termValid.
-        { eapply in_cons_ell; right; eapply inb. }
-        unshelve eapply boxValid.
-        1,2: tea.
-        * now eapply evalValid.
-        * clear n b inb.
-          intros n b [[-> ->] | [inb] ]%in_cons_ell_relevant; tea.
-          now eapply evalnat_to_termValid.
+    eapply castEtaEllValid, Fwk_Fstep, Fwk_id; tea.
+    intros n b [[-> ->] | [inb] ]%in_cons_ell_relevant; tea.
+    now eapply evalnat_to_termValid.
   Qed.
 
 
@@ -426,7 +452,39 @@ Section Xi.
     + cbn. easy.
   Qed.
 
-  Lemma headevalrelnSucc ℓ k v t : whne t -> head (tApp (tEval ℓ (tRel v)) (nSucc k t)) = head t.
+  Lemma headevalnSucc ℓ k u t : whne t -> head (tApp (tEval ℓ u) (nSucc k t)) = head t.
+  Proof.
+    intros net.
+    cbn.
+    generalize 0 as n.
+    induction k.
+    + destruct u; inversion net; subst; reflexivity.
+    + cbn. easy.
+  Qed.
+
+  Lemma headxinSucc ℓ t k v kv : whne t -> head t = Some (kv, S v) -> head (tXi ℓ (nSucc k t)) = Some (kv, v).
+  Proof.
+    intros net et.
+    cbn.
+    generalize 0 as n.
+    induction k.
+    + intros n.
+      inversion net; subst; clear net; eapply (f_equal headXi_aux et).
+    + cbn. easy.
+  Qed.
+
+  Lemma headxxinSucc ℓ t k v kv u : whne t -> head t = Some (kv, S v) -> head (tXXi ℓ (nSucc k t) u) = Some (kv, v).
+  Proof.
+    intros net et.
+    cbn.
+    generalize 0 as n.
+    induction k.
+    + intros n.
+      inversion net; subst; clear net; eapply (f_equal headXi_aux et).
+    + cbn. easy.
+  Qed.
+
+(*   Lemma headevalrelnSucc ℓ k v t : whne t -> head (tApp (tEval ℓ (tRel v)) (nSucc k t)) = head t.
   Proof.
     intros net.
     cbn.
@@ -435,35 +493,63 @@ Section Xi.
     + inversion net; subst; reflexivity.
     + cbn. easy.
   Qed.
-
+ *)
   Lemma subst_Alpha {n} {σ : substitution} : tAlpha (subst_alpha σ n) = (tAlpha n)[σ].
   Proof. reflexivity. Qed.
+
+  Lemma whne_head_subst {m k σ v v'} : whne m -> head m = Some (k, v) -> (tRel v)[σ] = tRel v' ->
+    whne m[σ] × head m[σ] = Some (k, v').
+  Proof.
+    intros nem em substv.
+    induction nem in σ, v, v', substv, k, em |- *; try solve [inversion em |
+      specialize (IHnem _ _ _ _ em substv) as [IHne IHe]; split; tea; now constructor].
+    + rewrite headevalrelnat_to_term in em. inversion em; subst; clear em.
+      rewrite <- subst_app, <- subst_eval, subst_nat_to_term, substv.
+      split.
+      - now eapply whne_tEvalRel.
+      - eapply headevalrelnat_to_term.
+    + inversion nem; subst; try solve [inversion em].
+    + rewrite headalphanSucc in em by tea.
+      specialize (IHnem _ _ _ _ em substv) as [IHne IHe].
+      rewrite <- subst_app, <- subst_Alpha, subst_nSucc.
+      rewrite headalphanSucc by tea.
+      split; tea.
+      now constructor.
+    + rewrite headevalnSucc in em by eapply nem.
+      specialize (IHnem _ _ _ _ em substv) as [IHne IHe].
+      rewrite <- subst_app, <- subst_eval, subst_nSucc.
+      rewrite headevalnSucc by tea.
+      split; tea.
+      now constructor.
+    + erewrite headxinSucc in em by tea.
+      inversion em; subst; clear em.
+      specialize (IHnem _ (up_subst σ) (S v) (S v') e
+        (f_equal (ren_term shift) substv)) as [IHne IHe].
+      rewrite <- subst_xi, subst_nSucc.
+      erewrite headxinSucc by tea.
+      split; now econstructor.
+    + erewrite headxxinSucc in em by tea.
+      inversion em; subst; clear em.
+      specialize (IHnem _ (up_subst σ) (S v) (S v') e
+        (f_equal (ren_term shift) substv)) as [IHne IHe].
+      rewrite <- subst_xxi, subst_nSucc.
+      erewrite headxxinSucc by tea.
+      split; now econstructor.
+  Qed.
 
   Lemma whne_up_subst {m k σ} : whne m -> head m = Some (k, 0) ->
     whne m[up_subst σ] × head m[up_subst σ] = Some (k, 0).
   Proof.
     intros nem em.
-    induction nem in k, em |- *; try solve [inversion em |
-      specialize (IHnem _ em) as [IHne IHe]; split; tea; now constructor].
-    + rewrite headevalrelnat_to_term in em. inversion em; subst; clear em.
-      rewrite <- subst_app, <- subst_eval, subst_nat_to_term.
-      split.
-      - now eapply whne_tEvalRel.
-      - eapply headevalrelnat_to_term.
-    + inversion nem; subst; try solve [inversion em].
-    + rewrite headalphanSucc in em by eapply nem.
-      specialize (IHnem _ em) as [IHne IHe].
-      split.
-      - rewrite <- subst_app, <- subst_Alpha, subst_nSucc.
-        now constructor.
-      - now rewrite <- subst_app, <- subst_Alpha, subst_nSucc,
-          headalphanSucc by eapply IHne.
-    + rewrite headevalrelnSucc in em by eapply nem.
-      specialize (IHnem _ em) as [IHne IHe].
-      split.
-      - rewrite <- subst_app, <- subst_eval, subst_nSucc.
-  Abort.
+    now eapply whne_head_subst.
+  Qed.
 
+
+  Lemma xiValid {Γ Γ' l m m' ℓ} (VΓ : [||-v Γ ≅ Γ'])
+    (Vℓ := ellValid (l:=l) (ℓ:=ℓ) VΓ) (VΓℓ := validSnocℓ VΓ Vℓ) :
+    [Γ,, ℓ ||-v< l > m ≅ m' : _ | _ | natValid VΓℓ] ->
+    [Γ ||-v< l > tXi ℓ m ≅ tXi ℓ m' : _ | _ |treeValid VΓ].
+  Proof. Admitted.
 
   Lemma xiNodeValid {Γ Γ' l m ℓ k i} (VΓ : [||-v Γ ≅ Γ'])
     (Vℓ := ellValid (l:=l) (ℓ:=ℓ) VΓ) (VΓℓ := validSnocℓ VΓ Vℓ)
@@ -474,17 +560,41 @@ Section Xi.
         (tXi ℓf (nSucc i m)⟨wk_up ℓ (@wk1 Γ ℓf)⟩[(tBox ℓ (tEval ℓf (tRel 0)))..]) : _ | _ |treeValid VΓ].
   Proof.
     intros nem em Vm.
-    constructor; intros.
     eapply redSubstValid, nodeValid.
     + constructor; intros.
       erewrite <- subst_node, <-! subst_xi, ! subst_ren_subst_up,
         <-! subst_box, <-! subst_eval, <-! up_subst_wk_up_wk1, subst_nSucc,
           subst_nat_to_term.
+      specialize (whne_up_subst (σ:=σ) nem em) as [nemσ emσ].
       eapply redtm_xiNode; tea.
-      - eapply (liftEllSubst' Vℓ) in Vσσ' as Vℓσ.
-        now instValid Vℓσ; escape.
-      - 
-  Admitted.
+      eapply (liftEllSubst' Vℓ) in Vσσ' as Vℓσ.
+      now instValid Vℓσ; escape.
+    + eapply nSuccValid, zeroValid.
+    + eapply xiValid.
+      rewrite wk_nSucc, to_subst_sound, subst_nSucc, <- to_subst_sound.
+      unshelve now eapply nSuccValid, irrValidTmRfl, substEllSTm, wkValidTm; tea.
+      - unshelve eapply validSnocℓ, ellValid; tea.
+      - shelve.
+      - eapply ellValid.
+      - eapply boxValid.
+        * unshelve eapply evalValid, var0EllValid'.
+          2: eapply ellValid.
+        * intros n b inn.
+          eapply evalnat_to_termValid, var0EllValid'.
+          now eapply in_cons_ell.
+    + eapply xiValid.
+      rewrite wk_nSucc, to_subst_sound, subst_nSucc, <- to_subst_sound.
+      unshelve now eapply nSuccValid, irrValidTmRfl, substEllSTm, wkValidTm; tea.
+      - unshelve eapply validSnocℓ, ellValid; tea.
+      - shelve.
+      - eapply ellValid.
+      - eapply boxValid.
+        * unshelve eapply evalValid, var0EllValid'.
+          2: eapply ellValid.
+        * intros n b inn.
+          eapply evalnat_to_termValid, var0EllValid'.
+          now eapply in_cons_ell.
+  Qed.
 
 
   Lemma Idnat_to_termValid {Γ Γ' l k} (VΓ : [||-v Γ ≅ Γ']) :
@@ -495,7 +605,8 @@ Section Xi.
 
   Lemma xxiLeafValid {Γ Γ' l k ℓ n} (VΓ : [||-v Γ ≅ Γ']) :
     [Γ ||-vEll< l > n : ℓ | _ | ellValid VΓ] ->
-    [Γ ||-v< l > tXXi ℓ (nat_to_term k) n ≅ tRefl tNat (nat_to_term k) : tId tNat (nat_to_term k) (nat_to_term k) | _ |Idnat_to_termValid VΓ].
+    [Γ ||-v< l > tXXi ℓ (nat_to_term k) n ≅ tRefl tNat (nat_to_term k) :
+      tId tNat (nat_to_term k) (nat_to_term k) | _ |Idnat_to_termValid VΓ].
   Proof.
     intros Vn.
     eapply redSubstValid, reflValid, nSuccValid, zeroValid.
@@ -504,6 +615,77 @@ Section Xi.
     instValid Vσσ'; escape.
     now eapply redtm_xxiLeaf.
   Qed.
+
+  Lemma xxiTyValid {Γ Γ' l t t' u u'} {ℓ : ell} (VΓ : [||-v Γ ≅ Γ']) :
+    [Γ,, ℓ ||-v< l > t ≅ t': tNat | validSnocℓ (l:=l) VΓ (ellValid VΓ) | natValid _ ] ->
+    [ Γ ||-vEll< l > u ≅ u' : ℓ | _ | ellValid VΓ] ->
+    [Γ ||-v< l > tId tNat (dEval' Γ (tXi ℓ t) (tEval ℓ u)) t[u..] | VΓ].
+  Proof.
+    intros Vt Vu.
+    unshelve eapply IdValid, irrValidTmRfl, substEllSTm, lrefl.
+    1-6,10 : shelve.
+    + eapply ellValid.
+    + eapply natValid.
+    + eapply lrefl, Vu.
+    + eapply dEval'Valid, irrValidTmRfl, evalValid, lrefl, Vu.
+      - eapply xiValid, lrefl, Vt.
+      - reflexivity.
+    + reflexivity.
+    + eapply Vt.
+  Qed.
+
+  Lemma xxiValid {Γ Γ' l m m' n n' ℓ} (VΓ : [||-v Γ ≅ Γ'])
+    (Vℓ := ellValid (l:=l) (ℓ:=ℓ) VΓ) (VΓℓ := validSnocℓ VΓ Vℓ)
+    (Vm : [Γ,, ℓ ||-v< l > m ≅ m' : _ | _ | natValid VΓℓ])
+    (Vn : [ Γ ||-vEll< l > n ≅ n' : ℓ | _ | ellValid VΓ]) :
+    [Γ ||-v< l > tXXi ℓ m n ≅ tXXi ℓ m' n' : _ | _ |xxiTyValid VΓ Vm Vn].
+  Proof. Admitted.
+
+  Lemma xxiNodeTyValid {Γ Γ' l m n ℓ i} (VΓ : [||-v Γ ≅ Γ']) 
+    (Vℓ := ellValid (l:=l) (ℓ:=ℓ) VΓ) (VΓℓ := validSnocℓ VΓ Vℓ):
+    [Γ,, ℓ ||-v< l > m : _ | _ | natValid VΓℓ] ->
+    [Γ ||-vEll< l > n : ℓ | _ | ellValid VΓ] ->
+    [_ ||-v< l > tId tNat (dEval' Γ (tXi ℓ (nSucc i m)) (tEval ℓ n)) (nSucc i m)[n..] | VΓ].
+  Proof.
+    intros Vm Vn.
+    eapply xxiTyValid, Vn.
+    now eapply nSuccValid.
+  Qed.
+
+  Lemma xxiNodeValid {Γ Γ' l m n ℓ k i} (VΓ : [||-v Γ ≅ Γ'])
+    (Vℓ := ellValid (l:=l) (ℓ:=ℓ) VΓ) (VΓℓ := validSnocℓ VΓ Vℓ)
+    (ℓt := cons_ell ℓ k true) (ℓf := cons_ell ℓ k false)
+    (Vm : [Γ,, ℓ ||-v< l > m : _ | _ | natValid VΓℓ])
+    (Vn : [Γ ||-vEll< l > n : ℓ | _ | ellValid VΓ]):
+    whne m -> head m = Some (newnat_nat _ k, 0) ->
+    [Γ ||-v< l > tXXi ℓ (nSucc i m) n ≅ tEllElim k ℓ (tId tNat (dEval' (Γ,, ℓ)
+              (tXi ℓ (nSucc i m)⟨wk_up ℓ (@wk1 Γ ℓ)⟩) (tEval ℓ (tRel 0))) (nSucc i m))
+            (tXXi ℓt (nSucc i m)⟨wk_up ℓ (@wk1 Γ ℓt)⟩⟨wk_up ℓ (@wk1 (Γ,,ℓt) ℓt)⟩[(tBox ℓ (tEval ℓt (tRel 0)))..] (tRel 0))
+            (tXXi ℓf (nSucc i m)⟨wk_up ℓ (@wk1 Γ ℓf)⟩⟨wk_up ℓ (@wk1 (Γ,,ℓf) ℓf)⟩[(tBox ℓ (tEval ℓf (tRel 0)))..] (tRel 0))
+            n (tApp (tEval ℓ n) (nat_to_term k)) : _ | _ |xxiNodeTyValid VΓ (i:=i) Vm Vn].
+  Proof.
+    intros nem em.
+    eapply redSubstValid, irrValidTmRfl, ellElimValid.
+    + constructor; intros.
+      erewrite <- subst_ellElim, <-! subst_xxi, <-! subst_Id, ! subst_ren_subst_up,
+        <-! subst_dEval', <- subst_app, <-! subst_box, <-! subst_eval,
+        <-! subst_xi, <-! up_subst_wk_up_wk1, subst_nSucc, ! subst_nat_to_term.
+      change (tRel 0)[_] with (tRel 0); change tNat[_] with tNat.
+      specialize (whne_up_subst (σ:=σ) nem em) as [nemσ emσ].
+      eapply (liftEllSubst' Vℓ) in Vσσ' as Vℓσ.
+      instValid Vℓσ; instValid Vσσ'; escape.
+      eapply redtm_xxiNode; tea.
+    + erewrite ! to_subst_sound, <- subst_Id, <- subst_dEval', <- subst_xi.
+      do 3 f_equal.
+      now rewrite wk_subst_comp_on, wk_up_subst, wk1_tail,
+        tail_scons, up_subst_id, <- subst_id_on.
+    + eapply irrValidTm, xxiValid.
+      erewrite ! to_subst_sound, <-! wk_Id, <-! subst_Id.
+      eapply IdValid.
+      - erewrite <- wk_dEval', <- subst_dEval'.
+        eapply redSubstValid.
+  Admitted.
+
 
 
 End Xi.

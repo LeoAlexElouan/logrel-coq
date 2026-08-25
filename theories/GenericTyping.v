@@ -559,6 +559,14 @@ Section GenericTyping.
       [ Γ |- t ≅ t' : arr' Γ tNat tBool] ->
       (forall n b, in_ell ℓ n b -> [ Γ |- tApp t (nat_to_term n) ≅ bool_to_term b : tBool]) ->
       [ Γ |- tBox ℓ t ≅ tBox ℓ t' : ℓ] ;
+    convtm_etaexp_ell {Γ t} {ℓ : ell} :
+      [ Γ |- t : ℓ] ->
+      [Γ |- tBox ℓ (tEval ℓ t) ≅ t: ℓ];
+    convtm_castEll {Γ t} {ℓ ℓ' : ell} :
+      [ Γ |- t : arr' Γ tNat tBool] ->
+      (forall n b, in_ell ℓ n b -> [ Γ |- tApp t (nat_to_term n) ≅ bool_to_term b : tBool]) ->
+      (forall n b, in_ell ℓ' n b -> [ Γ |- tApp t (nat_to_term n) ≅ bool_to_term b : tBool]) ->
+      [ Γ |- tEval ℓ (tBox ℓ t) ≅ tEval ℓ' (tBox ℓ' t) : arr' Γ tNat tBool];
     convtm_eta_ell {Γ t t'} {ℓ : ell} :
       [ Γ |- t : ℓ] ->
       isWfEll Γ ℓ t ->
@@ -630,6 +638,12 @@ Section GenericTyping.
       [ Γ |- u ≅ u' : ℓ] -> 
       [ Γ |- t ~ t' : tNat ] ->
       [ Γ |- tApp (tEval ℓ u) (nSucc k t) ~ tApp (tEval ℓ u') (nSucc k t') : tBool ];
+    convneu_cast {Γ t t' u k} {ℓ ℓ': ell} :
+      [ Γ |- u : arr' Γ tNat tBool] -> 
+      (forall n b, in_ell ℓ n b -> [ Γ |- tApp u (nat_to_term n) ≅ bool_to_term b : tBool]) ->
+      (forall n b, in_ell ℓ' n b -> [ Γ |- tApp u (nat_to_term n) ≅ bool_to_term b : tBool]) ->
+      [ Γ |- t ~ t' : tNat ] ->
+      [ Γ |- tApp (tEval ℓ (tBox ℓ u)) (nSucc k t) ~ tApp (tEval ℓ' (tBox ℓ' u)) (nSucc k t') : tBool ];
     convneu_split {Γ t u A i new} :
       [|- Γ] ->
       [ Γ,, i : new ↦ true |- t ~ u : A  ] ->

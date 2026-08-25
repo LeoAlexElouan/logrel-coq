@@ -1138,17 +1138,17 @@ Section Fundamental.
       eapply boolValid.
   Qed.
 
-  Lemma FundTmEqEvalBox (Γ : context) (ℓ : ell) (t : term) :
+  Lemma FundTmEqEvalBox (Γ : context) (ℓ : ell) (t : term) k :
     FundTm Γ (arr' Γ tNat tBool) t ->
     (forall (n : nat) (b : bool),
     in_ell ℓ n b -> FundTmEq Γ tBool (tApp t (nat_to_term n)) (bool_to_term b)) ->
-    FundTmEq Γ (arr' Γ tNat tBool) (tEval ℓ (tBox ℓ t)) t.
+    FundTmEq Γ tBool (tApp (tEval ℓ (tBox ℓ t)) (nat_to_term k)) (tApp t (nat_to_term k)).
   Proof.
     intros Ft Ftnb.
     unshelve eapply Build_FundTmEq, evalBoxValid.
     + eapply Ft.
     + now eapply irrValidTmRfl, Ft.
-    + intros k n inb.
+    + intros n b inn.
       now unshelve eapply irrValidTmRfl, Ftnb.
   Qed.
   Lemma FundTmEqEllEta (Γ : context) (t : term) (ℓ : ell) :
@@ -1158,6 +1158,27 @@ Section Fundamental.
     unshelve eapply Build_FundEllTmEq, etaEllValid.
     + eapply Ft.
     + eapply irrValidEllTmRfl, Ft.
+  Qed.
+
+  Lemma FundTmEqCastEll (Γ : context) (t : term) (ℓ ℓ' : ell) :
+    FundTm Γ (arr' Γ tNat tBool) t ->
+    (forall (n : nat) (b : bool),
+     in_ell ℓ n b ->
+     FundTmEq Γ tBool (tApp t (nat_to_term n))
+       (bool_to_term b)) ->
+    (forall (n : nat) (b : bool),
+     in_ell ℓ' n b ->
+     FundTmEq Γ tBool (tApp t (nat_to_term n))
+       (bool_to_term b)) ->
+    FundTmEq Γ (arr' Γ tNat tBool) (tEval ℓ (tBox ℓ t))
+      (tEval ℓ' (tBox ℓ' t)).
+  Proof.
+    intros Ft Ftℓ Ftℓ'.
+    unshelve eapply Build_FundTmEq, castEllValid.
+    + eapply Ft.
+    + now eapply irrValidTmRfl, Ft.
+    + intros; now unshelve eapply irrValidTmRfl, Ftℓ.
+    + intros; now unshelve eapply irrValidTmRfl, Ftℓ'.
   Qed.
 
   Lemma FundTmEllElim (Γ : context) (ℓ : ell) (k : newnat ℓ) (P ht hf n b : term) :
@@ -1254,6 +1275,53 @@ Section Fundamental.
     + now eapply irrValidTmRfl, Fntb.
   Qed.
 
+  Lemma FundTmXi (Γ : context) (t : term) (ℓ : ell) :
+    FundCon Γ ->
+    FundTm (Γ,, ℓ) tNat t ->
+    FundTm Γ tTree (tXi ℓ t).
+  Proof.
+    intros FΓ Ft.
+    unshelve eapply Build_FundTm, xiValid.
+    + eapply FΓ.
+    + now eapply irrValidTmRfl, Ft.
+  Qed.
+
+  Lemma FundTmEqXi (Γ : context) (t t' : term) (ℓ : ell) :
+    FundCon Γ ->
+    FundTmEq (Γ,, ℓ) tNat t t' ->
+    FundTmEq Γ tTree (tXi ℓ t) (tXi ℓ t').
+  Proof.
+    intros FΓ Ft.
+    unshelve eapply Build_FundTmEq, xiValid.
+    + eapply FΓ.
+    + now eapply irrValidTmRfl, Ft.
+  Qed.
+  Lemma FundTmEqXiLeaf (Γ : context) (n : nat) (ℓ : ell) :
+    FundCon Γ ->
+    FundTmEq Γ tTree (tXi ℓ (nat_to_term n)) (tLeaf (nat_to_term n)).
+  Proof.
+    intros FΓ.
+    unshelve eapply Build_FundTmEq, xiLeafValid.
+    eapply FΓ.
+  Qed.
+  Lemma FundTmEqXiNode (Γ : context) (t : term) (ℓ : ell) (i : nat) (k : newnat ℓ) :
+    FundCon Γ ->
+    FundTm (Γ,, ℓ) tNat t ->
+    whne t -> head t = Some (k : nat, 0) ->
+    FundTmEq Γ tTree (tXi ℓ (nSucc i t))
+  (tNode (nat_to_term k)
+     (tXi (cons_ell ℓ k true)
+        (nSucc i t)⟨wk_up ℓ (@wk1 Γ (cons_ell ℓ k true))⟩
+        [(tBox ℓ (tEval (cons_ell ℓ k true) (tRel 0)))..])
+     (tXi (cons_ell ℓ k false)
+        (nSucc i t)⟨wk_up ℓ (@wk1 Γ (cons_ell ℓ k false))⟩
+        [(tBox ℓ (tEval (cons_ell ℓ k false) (tRel 0)))..])).
+  Proof.
+    intros FΓ Ft net et.
+    now unshelve eapply Build_FundTmEq, xiNodeValid, irrValidTmRfl, Ft; tea.
+  Qed.
+
+
   Lemma Fundamental : (forall Γ : context, [ |-[ de ] Γ ] -> FundCon (ta := ta) Γ)
     × (forall (Γ : context) (A : term), [Γ |-[ de ] A] -> FundTy (ta := ta) Γ A)
     × (forall (Γ : context) (d : decl) (t : term), [Γ |-[ de ] t : d] ->
@@ -1306,7 +1374,7 @@ Section Fundamental.
   + intros; now eapply FundTmId.
   + intros; now eapply FundTmRefl.
   + intros; now eapply FundTmIdElim.
-  + admit.
+  + intros; now eapply FundTmXi.
   + admit.
   + intros; now eapply FundTmEval.
   + intros; now eapply FundTmBox.
@@ -1351,9 +1419,9 @@ Section Fundamental.
   + intros; now apply FundTmEqReflCong.
   + intros; now apply FundTmEqIdElimCong.
   + intros; now apply FundTmEqIdElimRefl.
-  + admit.
-  + admit.
-  + admit.
+  + intros; now eapply FundTmEqXi.
+  + intros; now eapply FundTmEqXiLeaf.
+  + intros; now eapply FundTmEqXiNode.
   + admit.
   + admit.
   + admit.
@@ -1362,6 +1430,7 @@ Section Fundamental.
   + intros; now eapply FundTmEqEvalBox.
   + intros; now eapply FundTmEqBox.
   + intros; now eapply FundTmEqEllEta.
+  + intros; now eapply FundTmEqCastEll.
   + intros; now eapply FundTmEqEllElim.
   + intros; now eapply FundTmEqEllElimTrue.
   + intros; now eapply FundTmEqEllElimFalse.

@@ -243,7 +243,23 @@ Section NatElimRedEq.
 End NatElimRedEq.
 
 Section Computations.
-  Context {Γ : context} {wfΓ : [|-Γ]}.
+  Context {Γ : context} {wfΓ : [|-Γ]} {l : TypeLevel}.
+
+  Lemma SnSuccRed n {t t'} : [Γ ||-S< l > t ≅ t' : _ | SnatRed (l:=l) wfΓ ] ->
+    [Γ ||-S< l > nSucc n t ≅ nSucc n t' : _ | SnatRed (l:=l) wfΓ ].
+  Proof.
+    intros Rt.
+    induction n; tea. cbn.
+    eapply SsuccRed, IHn.
+  Qed.
+
+  Lemma nSuccRed n {t t'} : [Γ ||-< l > t ≅ t' : _ | natRed (l:=l) wfΓ ] ->
+    [Γ ||-< l > nSucc n t ≅ nSucc n t' : _ | natRed (l:=l) wfΓ ].
+  Proof.
+    intros Rt.
+    induction n; tea. cbn.
+    eapply succRed, IHn.
+  Qed.
 
   Lemma nSuccReqNat n {t t'} : [Γ||-Nat t ≅ t':Nat] -> [Γ ||-Nat nSucc n t ≅ nSucc n t' :Nat].
   Proof.
@@ -256,10 +272,10 @@ Section Computations.
   Lemma nat_to_termReqNat {n} : [Γ ||-Nat nat_to_term n ≅ nat_to_term n :Nat].
   Proof. now eapply nSuccReqNat, SzeroReqNat. Qed.
 
-  Lemma Snat_to_termReq {l A B n} {RA : [Γ ||-Nat A ≅ B]} : [Γ ||-S< l > nat_to_term n ≅ nat_to_term n :_ | LRNat_ l RA].
-  Proof. now eapply nat_to_termReqNat. Qed.
-  Lemma nat_to_termReq {l n} : [Γ ||-< l > nat_to_term n :_ | natRed (l:=l) wfΓ].
-  Proof. eapply Wpack_return'. unshelve eapply Snat_to_termReq. now eapply natRedTy. Qed.
+  Lemma Snat_to_termReq {n} : [Γ ||-S< l > nat_to_term n ≅ nat_to_term n :_ | SnatRed (l:=l) wfΓ ].
+  Proof. eapply SnSuccRed, SzeroRed. Qed.
+  Lemma nat_to_termReq {n} : [Γ ||-< l > nat_to_term n :_ | natRed (l:=l) wfΓ].
+  Proof. eapply Wpack_return'. unshelve eapply Snat_to_termReq. Qed.
 
   Lemma nat_to_termPropEq n : NatPropEq Γ (nat_to_term n) (nat_to_term n).
   Proof.
