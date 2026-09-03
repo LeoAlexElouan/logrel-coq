@@ -435,12 +435,12 @@ Proof.
   rewrite <- !subst_id_on in *. now repeat split.
 Qed.
 
-Lemma redSubstValid {Γ Γ' A A' t u l}
+Lemma redSubstValid {Γ Γ' A A' t u u' l}
   (VΓ : [||-v Γ ≅ Γ'])
   (red : [Γ ||-v t ⤳* u : A | VΓ])
   (VA : [Γ ||-v<l> A ≅ A' | VΓ])
-  (Vu : [Γ ||-v<l> u : A | VΓ | VA]) :
-  [Γ ||-v<l> t ≅ u : A | VΓ | VA].
+  (Vu : [Γ ||-v<l> u ≅ u' : A | VΓ | VA]) :
+  [Γ ||-v<l> t ≅ u' : A | VΓ | VA].
 Proof.
   constructor; intros. eapply redSubstLeftTmEq.
   1: now eapply validTmExt.

@@ -75,7 +75,7 @@ Section NatElimValid.
     (VPn := substS VP Vn)
     : [Γ ||-v<l> tNatElim P hz hs n ≅ tNatElim P' hz' hs' n' : _ | VΓ | VPn].
   Proof.
-    pose proof (elimSuccHypTyValid VP).
+    pose proof (VHypTy := elimSuccHypTyValid VP).
     constructor; intros; instValid Vσσ'; epose proof (Vuσ := liftSubst' VN Vσσ').
     instValid Vuσ.
     change (tNatElim ?P ?hz ?hs ?n)[?σ] with (tNatElim P[up_subst σ] hz[σ] hs[σ] n[σ]).
@@ -83,11 +83,13 @@ Section NatElimValid.
     unshelve eapply natElimRedEq; tea.
     3-5: now escape.
     + clear dependent n; clear dependent n'; intros Ξ wfΞ ρΞ ???.
-      rewrite 2subst_ren_wk, 2to_subst_sound, 2subst_comp_on, 2eq_upwk.
+      rewrite 2subst_ren_wk, 2to_subst_sound, 2subst_comp_on.
       unshelve (eapply validTyExt; tea); tea.
+      eapply irrelevanceSubstEqExt.
+      1,2: rewrite eq_upwk; reflexivity.
       unshelve eapply consWkSubst; tea.
       eapply irrLR, Rn.
-    + now erewrite 2!subst_elimSuccHypTy'.
+    + erewrite 2!subst_elimSuccHypTy'; eapply RVHypTy.
     + eapply irrLREq; tea; now rewrite subst_ren_subst_up.
     + eapply irrLREq; tea; now erewrite subst_elimSuccHypTy'.
   Qed.
@@ -111,11 +113,11 @@ Section NatElimRedValid.
     (VΓ : [||-v Γ ≅ Γ'])
     (VN := natValid (l:=l) VΓ)
     (VΓN := validSnoc VΓ VN)
-    { P P' hz hz' hs hs'}
-    (VP : [Γ ,, tNat ||-v<l> P ≅ P' | VΓN ])
+    {P hz hs}
+    (VP : [Γ ,, tNat ||-v<l> P | VΓN ])
     (VPz := substS VP (zeroValid VΓ))
-    (Vhz : [Γ ||-v<l> hz ≅ hz' : P[tZero..] | VΓ | VPz])
-    (Vhs : [Γ ||-v<l> hs ≅ hs' : _ | VΓ | elimSuccHypTyValid VΓ VP]).
+    (Vhz : [Γ ||-v<l> hz : P[tZero..] | VΓ | VPz])
+    (Vhs : [Γ ||-v<l> hs : _ | VΓ | elimSuccHypTyValid VΓ VP]).
 
   Lemma natElimZeroValid  :
     [Γ ||-v<l> tNatElim P hz hs tZero ≅ hz : _ | VΓ | VPz].
@@ -135,24 +137,23 @@ Section NatElimRedValid.
     (VPSn := substS VP (succValid _ Vn)) :
     [Γ ||-v<l> tNatElim P hz hs (tSucc n) ≅ tApp (tApp hs n) (tNatElim P hz hs n) : _ | VΓ | VPSn].
   Proof.
-    eapply redSubstValid.
+    eapply redSubstValid; cycle 1.
+    * unshelve eapply simple_app'Valid, natElimCongValid.
+      1,5-8: shelve.
+      all: tea.
+      1: eapply simpleArr'Valid; tea; now eapply substS.
+      eapply appcongValid'; tea.
+      1: now eapply irrValidTmRfl, Vn.
+      now erewrite <- WeakeningCompute.subst_arr',
+        ! to_subst_sound with (σ:=n..), subst_ren_subst_up,
+        wk_subst_comp_on, wk_up_subst, wk1_tail, tail_scons, up_subst_id, <- subst_id_on.
     * constructor; intros; rewrite subst_ren_subst_up.
       instValid Vσσ'; instValid (liftSubst' VN Vσσ'); escape.
-      rewrite <-2 subst_app.
-      change (tNatElim ?P ?hz ?hs ?n)[?σ] with (tNatElim P[up_subst σ] hz[σ] hs[σ] n[σ]).
+      rewrite <-! subst_app, <-! subst_natElim.
       change (tSucc ?n)[?σ] with (tSucc n[σ]).
       eapply redtm_natElimSucc; tea; refold.
       + now rewrite <- (subst_ren_subst_up _ tZero σ).
       + now erewrite subst_elimSuccHypTy'.
-    * eapply lrefl, simple_app'Valid.
-      2: unshelve (now eapply natElimCongValid); tea.
-      eapply appcongValid'; tea.
-      1: unshelve (eapply irrValidTm; tea; now eapply natValid); tea; now eapply lrefl.
-      erewrite <- WeakeningCompute.subst_arr'. do 2 f_equal.
-      rewrite to_subst_sound with (σ:=n..), subst_ren_subst_up. f_equal.
-      rewrite <- up_to_subst, <- to_subst_sound. rewrite up_wk1_ren_on. now bsimpl.
-      Unshelve.
-      eapply simpleArr'Valid; tea; now eapply substS.
   Qed.
 
 End NatElimRedValid.

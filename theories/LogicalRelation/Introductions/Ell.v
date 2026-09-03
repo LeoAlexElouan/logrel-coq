@@ -1,6 +1,6 @@
 From LogRel Require Import Utils Syntax.All GenericTyping LogicalRelation Monad.
 From LogRel.LogicalRelation Require Import Properties.
-From LogRel.LogicalRelation.Introductions Require Import Poly Pi Application Nat Bool SimpleArr.
+From LogRel.LogicalRelation.Introductions Require Import Poly Pi (* Application *) Nat Bool Tree (* Id *) SimpleArr.
 
 Section Ell.
   Context `{GenericTypingProperties}.
@@ -13,6 +13,15 @@ Section Ell.
   Qed.
   Lemma NtoBRed {Γ : context} (wfΓ : [|-Γ]) {l} : [Γ ||-< l > arr' Γ tNat tBool ].
   Proof. now eapply WAd_return, SNtoBRed. Qed.
+
+(*   Lemma SNtoNRed {Γ : context} (wfΓ : [|-Γ]) {l} : [Γ ||-S< l > arr' Γ tNat tNat ].
+  Proof.
+    eapply SArrRedTy.
+    + intros. eapply SnatRed; tea.
+    + intros. eapply SnatRed; tea.
+  Qed.
+  Lemma NtoNRed {Γ : context} (wfΓ : [|-Γ]) {l} : [Γ ||-< l > arr' Γ tNat tNat ].
+  Proof. now eapply WAd_return, SNtoNRed. Qed. *)
 
   Lemma SEllRed {Γ l ℓ} : [|-Γ] -> [Γ ||-EllS< l > ℓ].
   Proof. now repeat constructor; eapply SNtoBRed. Qed.
@@ -1016,4 +1025,102 @@ End SEllElimRedEq.
       now unshelve now eapply irrLREq, wkLRTm, Rtkb.
   Qed.
 End EllElimRedEq.
+
+(* Lemma dEval'Red {Γ d d' n n' l} (wfΓ : [|- Γ]) :
+  [Γ ||-< l > d ≅ d' : _ | treeRed (l:=l) wfΓ] ->
+  [Γ ||-< l > n ≅ n' : _ | NtoBRed (l:=l) wfΓ] ->
+  [Γ ||-< l > dEval' Γ d n ≅ dEval' Γ d' n' : _ | natRed (l:=l) wfΓ].
+Proof.
+  intros Rdd' Rnn'.
+  unfold dEval'.
+  unshelve eapply irrLREq, treeElimRedEq; tea.
+  + intros ??????.
+    now eapply natRed.
+  + now eapply NtoNRed.
+  + unfold elimNodeHypTy'.
+    change [Γ ||-< l > arr' Γ tNat (arr' Γ tTree (arr' Γ tTree (arr' Γ tNat (arr' Γ tNat tNat))))].
+    now eapply ArrRedTy, ArrRedTy, ArrRedTy, ArrRedTy, ArrRedTy; first [eapply natRed | eapply treeRed].
+  + reflexivity.
+  + now eapply wft_term, ty_nat, wfc_cons, wft_term, ty_tree.
+  + now eapply wft_term, ty_nat, wfc_cons, wft_term, ty_tree.
+  + now eapply convty_term, convtm_nat, wfc_cons, wft_term, ty_tree.
+  + unshelve eapply irrLR, Wpack_return, canonPi_inv, Build_PiRedTmEq'.
+    2,3: shelve.
+    - eapply (SArrRedTy (B:=tNat) (B':=tNat)); now eapply SnatRed.
+    - tea.
+    - econstructor; [eapply redtmwf_refl, (ty_id' (A:=tNat)), wft_term, ty_nat; tea|].
+      constructor.
+      { eapply wft_term, ty_nat; tea. }
+      { eapply convty_term, convtm_nat; tea. }
+      intros ??????.
+      eapply Split_return; tea.
+      intros Ξ wfΞ ρΞ oNtoN.
+      cbn. now unshelve now eapply SirrLR, SwkLR.
+    - econstructor; [eapply redtmwf_refl, (ty_id' (A:=tNat)), wft_term, ty_nat; tea|].
+      constructor.
+      { eapply wft_term, ty_nat; tea. }
+      { eapply convty_term, convtm_nat; tea. }
+      intros ??????.
+      eapply Split_return; tea.
+      intros Ξ wfΞ ρΞ oNtoN.
+      cbn. now unshelve now eapply SirrLR, SwkLR.
+    - cbn. eapply (convtm_id (A:=tNat) (A':=tNat) (B:=tNat) (C:=tNat)), convtm_convneu, convneu_var, ty_var, in_here'; tea;
+      [..| eapply wfc_cons; tea]; first [now eapply wft_term, ty_nat|now eapply convty_term, convtm_nat | constructor| idtac].
+    - intros ????? Rab.
+      eapply Split_return; tea.
+      intros Ξ wfΞ ρΞ oNtoN.
+      cbn -[ren1].
+      rewrite <-! wk_lam.
+      unshelve eapply SirrLR, SwkLR.
+      2: shelve.
+      all: tea.
+      * now eapply SnatRed.
+      * eapply SredSubstTmEq.
+        2,3: eapply (redtm_beta (B:=tNat)).
+       ++ eapply SirrLR, Rab.
+       ++ eapply wft_term, ty_nat; tea.
+       ++ eapply ty_var, in_here'.
+          eapply wfc_cons, wft_term, ty_nat; tea.
+       ++ now escape.
+       ++ eapply wft_term, ty_nat; tea.
+       ++ eapply ty_var, in_here'.
+          eapply wfc_cons, wft_term, ty_nat; tea.
+       ++ now escape.
+  + unfold dEvalNode'.
+    eapply irrLR, Wpack_return.
+    econstructor.
+
+
+Section Xi.
+  Context {Γ l ℓ m m'} {wfΓ : [|- Γ]}
+    (RD := treeRed (l:=l) wfΓ)
+    (Rℓ := EllRed (l:=l) (ℓ:=ℓ) wfΓ)
+    (Rmm'ext : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), forall t t', [Δ ||-< l > t ≅ t' : ℓ | EllRed (l:=l) wfΔ] ->
+      [Δ ||-< l > m⟨wk_up ℓ ρ⟩[t..] ≅ m'⟨wk_up ℓ ρ⟩[t'..] : _ | natRed (l:=l) wfΔ ]).
+  Lemma xiRed : [Γ ||-< l > tXi ℓ m ≅ tXi ℓ m' : _ |RD].
+  Admitted.
+
+  Context {n n'}
+    (Rnn' : [Γ ||-< l > n ≅ n' : _ | Rℓ]).
+  Lemma xxiTyRed : [Γ ||-< l > tId tNat (dEval' Γ (tXi ℓ m) (tEval ℓ n)) m[n..]].
+  Proof.
+    eapply IdRed.
+    + eapply dEval'Red.
+
+
+
+  Lemma xxiTyValid {Γ Γ' l t t' u u'} {ℓ : ell} (VΓ : [||-v Γ ≅ Γ']) :
+    [Γ,, ℓ ||-v< l > t ≅ t': tNat | validSnocℓ (l:=l) VΓ (ellValid VΓ) | natValid _ ] ->
+    [ Γ ||-vEll< l > u ≅ u' : ℓ | _ | ellValid VΓ] ->
+    [Γ ||-v< l > tId tNat (dEval' Γ (tXi ℓ t) (tEval ℓ u)) t[u..] | VΓ].
+  Lemma xxiRed : [Γ ||-< l > tXXi ℓ m n ≅ tXXi ℓ m' n' : _ | 
+    
+    
+  Lemma xiValid {Γ Γ' l m m' ℓ} (VΓ : [||-v Γ ≅ Γ'])
+    (Vℓ := ellValid (l:=l) (ℓ:=ℓ) VΓ) (VΓℓ := validSnocℓ VΓ Vℓ) :
+    [Γ,, ℓ ||-v< l > m ≅ m' : _ | _ | natValid VΓℓ] ->
+    [Γ ||-v< l > tXi ℓ m ≅ tXi ℓ m' : _ | _ |treeValid VΓ].
+ *)
+
+
 End Ell.

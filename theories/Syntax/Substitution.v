@@ -72,7 +72,6 @@ Lemma subst_eq_alpha' : Proper (subst_eq ==> `=1`) subst_alpha.
 Proof. intros σ σ' eq. setoid_rewrite eq. reflexivity. Qed.
 
 
-
 Instance subst_subst_eq : Proper (respectful subst_eq (respectful eq eq)) Subst_alpha. (*  σ =s σ' -> t[σ] = t[σ']. *)
 Proof.
   intros σ σ' eq  t t' <-.
@@ -103,6 +102,12 @@ Proof.
   now apply ren1_subst_eq, ren_alpha_substitution_eq.
 Qed.
 
+Instance wk_subst_comp_eq {Γ Δ} : Proper (@wk_eq Γ Δ ==> subst_eq ==> subst_eq) wk_subst_comp.
+Proof.
+  intros ρ ρ' [ρe ρeε] σ σ' σe.
+  unfold wk_subst_comp.
+  now rewrite ρe, ρeε, σe.
+Qed.
 
 Instance tail_subst_eq : Proper (subst_eq ==> subst_eq) tail_subst.
 Proof. intros σ σ' eq. unfold tail_subst. now rewrite eq. Qed.
@@ -186,6 +191,32 @@ Proof.
   + cbn. now bsimpl.
 Qed.
 
+Generalizable All Variables.
+  Lemma up_subst_comp {σ τ} : up_subst (σ ∘s τ) =s (up_subst σ ∘s up_subst τ).
+  Proof.
+    constructor.
+    + intros [].
+      { reflexivity. }
+      cbn; now bsimpl.
+    + reflexivity.
+  Qed.
+  Lemma up_subst_id : up_subst subst_id =s subst_id.
+  Proof.
+    repeat constructor.
+    intros []; reflexivity.
+  Qed.
+  Lemma tail_scons {t} : tail_subst (to_subst t..) =s subst_id.
+  Proof.
+    constructor.
+    + cbn. now bsimpl.
+    + reflexivity.
+  Qed.
+Lemma wk_up_subst σ A `(ρ : Ξ ≤ Δ) : up_subst σ ∘r wk_up A ρ =s up_subst (σ ∘r ρ).
+Proof.
+  constructor.
+  + intros []; reflexivity.
+  + reflexivity.
+Qed.
 
 Lemma subst_ren_subst_up P n (σ : substitution) :
   P[n..][σ] = P[up_subst σ][(n[σ])..].
@@ -300,7 +331,7 @@ Proof. reflexivity. Qed.
 
 Lemma subst_decl {t} (σ : substitution) : term_decl t[σ] = (term_decl t)[σ].
 Proof. reflexivity. Qed.
-Lemma wk_ell {ℓ} (σ : substitution) : ell_decl ℓ = (ell_decl ℓ)[σ].
+Lemma subst_ell {ℓ} (σ : substitution) : ell_decl ℓ = (ell_decl ℓ)[σ].
 Proof. reflexivity. Qed.
 
 Lemma subst_dEvalNode' {Γ Δ n} (σ : substitution) :

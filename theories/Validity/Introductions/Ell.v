@@ -3,6 +3,7 @@ From LogRel.LogicalRelation Require Import  Properties Introductions.Ell.
 From LogRel.Validity Require Import Validity Irrelevance Properties ValidityTactics.
 From LogRel.Validity.Introductions Require Import Bool Nat Tree Id SimpleArr.
 
+Generalizable All Variables.
 
 Section Ell.
   Context `{GenericTypingProperties}.
@@ -13,7 +14,7 @@ Section Ell.
     eapply simpleArr'Valid.
     + eapply natValid.
     + eapply boolValid.
-  Qed.
+  Defined.
 
   Lemma ellValid {Γ Γ' l ℓ} (VΓ : [||-v Γ ≅ Γ']) : [Γ ||-vEll< l > ℓ ≅ ℓ | VΓ].
   Proof. constructor; intros. now eapply EllRed. Qed.
@@ -64,8 +65,8 @@ Section Ell.
       2: eapply VΓ.
   Qed.
 
-  Lemma evalValid {Γ Γ' l ℓ ℓ' t t'} (VΓ : [||-v Γ ≅ Γ']) (Vℓ : [Γ ||-vEll< l > ℓ ≅ ℓ' | VΓ]) :
-    [Γ ||-vEll< l> t ≅ t' : ℓ | VΓ | Vℓ] ->
+  Lemma evalValid {Γ Γ' l ℓ t t'} (VΓ : [||-v Γ ≅ Γ']) :
+    [Γ ||-vEll< l> t ≅ t' : ℓ | VΓ | ellValid VΓ] ->
     [Γ ||-v< l > tEval ℓ t ≅ tEval ℓ t' : arr' Γ tNat tBool | VΓ | NtoBValid VΓ].
   Proof.
     intros Vt; econstructor; intros.
@@ -170,6 +171,19 @@ Section Ell.
         instValid Vσσ'. now eapply irrLR.
   Qed.
 
+  Lemma boxEvalValid {Γ Γ' l} {ℓ ℓ' : ell} {t t'} (VΓ : [||-v Γ ≅ Γ']) :
+    ℓ' ≤ε ℓ ->
+    [Γ ||-vEll< l > t ≅ t' : ℓ' | VΓ | ellValid _] ->
+    [Γ ||-vEll< l > tBox ℓ (tEval ℓ' t) ≅ tBox ℓ (tEval ℓ' t') : ℓ | VΓ | ellValid _].
+  Proof.
+    intros ρε Vt.
+    eapply boxValid.
+    - now eapply evalValid.
+    - intros n b inn.
+      eapply evalnat_to_termValid, lrefl, Vt.
+      now eapply ρε.
+  Qed.
+
 Section ellElimValid.
   Context {Γ Γ' l ℓ k}
     (VΓ : [||-v Γ ≅ Γ'])
@@ -183,51 +197,16 @@ Section ellElimValid.
 
   Let boxEvalℓtValid : [Γ,, ℓt ||-vEll< l > tBox ℓ (tEval ℓt (tRel 0)) : ℓ | VΓt | ellValid _].
   Proof.
-    eapply boxValid.
-    + unshelve eapply evalValid, var0EllValid'.
-      2: eapply ellValid.
-    + intros n b inb.
-      eapply evalnat_to_termValid.
-      - now eapply in_cons_ell; right.
-      - eapply var0EllValid'.
+    eapply boxEvalValid, var0EllValid'.
+    eapply Fwk_Fstep, Fwk_id.
   Qed.
 
   Let boxEvalℓfValid : [Γ,, ℓf ||-vEll< l > tBox ℓ (tEval ℓf (tRel 0)) : ℓ | VΓf | ellValid _].
   Proof.
-    eapply boxValid.
-    + unshelve eapply evalValid, var0EllValid'.
-      2: eapply ellValid.
-    + intros n b inb.
-      eapply evalnat_to_termValid.
-      - now eapply in_cons_ell; right.
-      - eapply var0EllValid'.
+    eapply boxEvalValid, var0EllValid'.
+    eapply Fwk_Fstep, Fwk_id.
   Qed.
-Generalizable All Variables.
-  Lemma up_subst_comp {σ τ} : up_subst (σ ∘s τ) =s (up_subst σ ∘s up_subst τ).
-  Proof.
-    constructor.
-    + intros [].
-      { reflexivity. }
-      cbn; now bsimpl.
-    + reflexivity.
-  Qed.
-  Lemma up_subst_id : up_subst subst_id =s subst_id.
-  Proof.
-    repeat constructor.
-    intros []; reflexivity.
-  Qed.
-  Lemma wk_up_subst σ A `(ρ : Ξ ≤ Δ) : up_subst σ ∘r wk_up A ρ =s up_subst (σ ∘r ρ).
-  Proof.
-    constructor.
-    + intros []; reflexivity.
-    + reflexivity.
-  Qed.
-  Lemma tail_scons {t} : tail_subst (to_subst t..) =s subst_id.
-  Proof.
-    constructor.
-    + cbn. now bsimpl.
-    + reflexivity.
-  Qed.
+
   Lemma ellElimValid {P P' ht ht' hf hf' t t' b b'} (VP : [Γ,, ℓ ||-v< l > P ≅ P' | validSnocℓ VΓ Vℓ])
     (Vt : [Γ ||-vEll< l > t ≅ t' : _ | _ | Vℓ ]) :
     [Γ,, ℓt ||-v< l > ht ≅ ht' : P⟨wk_up ℓ (@wk1 Γ ℓt)⟩[(tBox ℓ (tEval ℓt (tRel 0)))..]
@@ -429,7 +408,7 @@ Section Xi.
   Proof.
     eapply redSubstValid, leafValid, nSuccValid, zeroValid.
     constructor; intros.
-    rewrite <- subst_xi, <- subst_leaf, ! subst_nat_to_term.
+    rewrite <- subst_xi, <- subst_leaf, subst_nat_to_term, subst_nSucc.
     now eapply redtm_xiLeaf.
   Qed.
 
@@ -560,7 +539,7 @@ Section Xi.
         (tXi ℓf (nSucc i m)⟨wk_up ℓ (@wk1 Γ ℓf)⟩[(tBox ℓ (tEval ℓf (tRel 0)))..]) : _ | _ |treeValid VΓ].
   Proof.
     intros nem em Vm.
-    eapply redSubstValid, nodeValid.
+    eapply redSubstValid, lrefl, nodeValid.
     + constructor; intros.
       erewrite <- subst_node, <-! subst_xi, ! subst_ren_subst_up,
         <-! subst_box, <-! subst_eval, <-! up_subst_wk_up_wk1, subst_nSucc,
@@ -573,24 +552,26 @@ Section Xi.
     + eapply xiValid.
       rewrite wk_nSucc, to_subst_sound, subst_nSucc, <- to_subst_sound.
       unshelve now eapply nSuccValid, irrValidTmRfl, substEllSTm, wkValidTm; tea.
+      2,3 : shelve.
       - unshelve eapply validSnocℓ, ellValid; tea.
-      - shelve.
       - eapply ellValid.
-      - eapply boxValid.
-        * unshelve eapply evalValid, var0EllValid'.
-          2: eapply ellValid.
+      - unshelve eapply boxValid.
+        1,2: shelve.
+        * eapply boolValid.
+        * eapply evalValid, var0EllValid'.
         * intros n b inn.
           eapply evalnat_to_termValid, var0EllValid'.
           now eapply in_cons_ell.
     + eapply xiValid.
       rewrite wk_nSucc, to_subst_sound, subst_nSucc, <- to_subst_sound.
       unshelve now eapply nSuccValid, irrValidTmRfl, substEllSTm, wkValidTm; tea.
+      2,3: shelve.
       - unshelve eapply validSnocℓ, ellValid; tea.
-      - shelve.
       - eapply ellValid.
-      - eapply boxValid.
+      - unshelve eapply boxValid.
+        1,2: shelve.
+        * eapply boolValid.
         * unshelve eapply evalValid, var0EllValid'.
-          2: eapply ellValid.
         * intros n b inn.
           eapply evalnat_to_termValid, var0EllValid'.
           now eapply in_cons_ell.
@@ -652,6 +633,305 @@ Section Xi.
     now eapply nSuccValid.
   Qed.
 
+  Lemma wk_subst_ass `(ρ : Ξ ≤ Δ) σ τ : σ ∘s (τ ∘r ρ) = (σ ∘s τ) ∘r ρ.
+  Proof. reflexivity. Qed.
+
+  Lemma idtermValid `(VΓ : [||-v Γ ≅ Γ']) `(VA : [Γ ||-v< l > A ≅ A' | VΓ]) :
+    [Γ ||-v< l > idterm A ≅ idterm A' : _ | VΓ | simpleArr'Valid _ VA VA].
+  Proof.
+    now unshelve eapply irrValidTmRfl, Lambda.lamCongValid, Var.var0Valid.
+  Qed.
+
+  Lemma idtermValid' `(VΓ : [||-v Γ ≅ Γ']) `(VAtoA : [Γ ||-v< l > arr' Γ A A ≅ arr' Γ A' A' | VΓ]) :
+    [Γ ||-v< l > idterm A ≅ idterm A' : _ | VΓ | VAtoA].
+  Proof.
+    unshelve eapply irrValidTmRfl, idtermValid; tea.
+    - eapply Pi.validΠdom, VAtoA.
+    - reflexivity.
+  Qed.
+
+
+  Lemma simpleBetaValid {t a}
+    `(VΓ : [||-v Γ ≅ Γ'])
+    `(VF : [Γ ||-v< l > F | VΓ ])
+    `(VG : [Γ ||-v< l > G | VΓ ])
+    (Vt : [Γ ,, F ||-v<l> t : _ | _ | wk1ValidTy VF VG])
+    (Va : [Γ ||-v<l> a : F | VΓ | VF]) :
+    [Γ ||-v<l> tApp (tLambda F t) a ≅ t[a..] : G | VΓ | VG].
+  Proof.
+    unshelve eapply irrValidTmRfl, Lambda.betaValid, Vt.
+    1:shelve.
+    eapply Va.
+    eapply shift_subst1.
+  Qed.
+
+(*   Lemma treeElim'NodeValid `(VΓ : [||-vΓ ≅ Γ']) 
+    (VP : [Γ,, tTree ||-v< l > P ≅ P | validSnoc VΓ (treeValid VΓ)]) :
+    (P' := ⟨wk_up tTree (wk1 tNat)⟩⟨wk_up tTree (wk1 tTree)⟩⟨
+           wk_up tTree (wk1 tTree)⟩)
+    (hl' := tLambda tNat hl)
+    (hn' := (tLambda tNat (tLambda tTree (tLambda tTree (tLambda P'[(tRel 1)..] (tLambda P'[(tRel 0)..]⟨@wk1  hn))))).
+    [Γ,, tNat ||-v< l > hl ≅ hl : P⟨wk_up tTree (wk1 tNat)⟩[(tLeaf (tRel 0))..] | VΓ | elimLeafHypTyValid VΓ VP]
+    [Γ ||-v< l > tTreeElim P hl' hn'
+      (tNode n dt df) ≅ hn[n.: dt .: df .: (tTreeElim P hl' hn' dt) .: (tTreeElim P hl' hn' df)..]. *)
+
+  Lemma lamValid' {t t' l} `(VΓ : [||-v Γ ≅ Γ'])
+    `(VΠFG : [ Γ ||-v< l > tProd F G ≅ tProd F' G' | VΓ]) :
+    [Γ,, F ||-v< l > t ≅ t' : G | validSnoc VΓ _ | Pi.validΠcod VΠFG] ->
+    [Γ ||-v< l > tLambda F t ≅ tLambda F' t' :
+      tProd F G | VΓ | VΠFG ].
+  Proof.
+    intros Vt.
+    eapply irrValidTmRfl, Lambda.lamCongValid, Vt.
+    reflexivity.
+  Qed.
+
+
+  Lemma shift_to_subst1 {Γ : context} {A : decl} {B a : term} : B⟨@wk1 Γ A⟩[to_subst (a..)] = B.
+  Proof. now rewrite <- to_subst_sound, shift_subst1. Qed.
+
+  Lemma dEval'NodeValid {Γ Γ' l n f dt df} (VΓ : [||-v Γ ≅ Γ']) :
+    [Γ ||-v< l > f :_ | VΓ | NtoBValid _] ->
+    [Γ ||-v< l > n :_ | VΓ | natValid _] ->
+    [Γ ||-v< l > dt :_ | VΓ | treeValid _] ->
+    [Γ ||-v< l > df :_ | VΓ | treeValid _] ->
+    [Γ ||-v< l > dEval' Γ (tNode n dt df) f ≅ tBoolElim tNat (dEval' Γ dt f) (dEval' Γ df f) (tApp f n) : _ | VΓ | natValid _].
+  Proof.
+    intros Vf Vn Vdt Vdf.
+    assert (VΓN : [||-v Γ,, tNat ≅ _]) by now unshelve eapply validSnoc, natValid.
+    assert (VΓNT : [||-v Γ,, tNat,, tTree ≅ _]) by (unshelve eapply validSnoc, treeValid; [|tea..]).
+    assert (VΓNTT : [||-v Γ,, tNat,, tTree,, tTree ≅ _]) by (unshelve eapply validSnoc, treeValid; [|tea..]).
+    assert (VΓNTTN : [||-v Γ,, tNat,, tTree,, tTree,, tNat ≅ _])
+      by (unshelve eapply validSnoc, natValid; [|tea..]).
+    assert (VΓNTTNN : [||-v Γ,, tNat,, tTree,, tTree,, tNat,, tNat ≅ _])
+      by (unshelve eapply validSnoc, natValid; [|tea..]).
+    assert (VΓNTTNNB : [||-v Γ,, tNat,, tTree,, tTree,, tNat,, tNat,, tBool ≅ _])
+      by (unshelve eapply validSnoc, boolValid; [|tea..]).
+    assert (VΓT : [||-v Γ,, tTree ≅ _]) by (unshelve eapply validSnoc, treeValid; [|tea..]).
+    assert (VΓTT : [||-v Γ,, tTree,, tTree ≅ _]) by (unshelve eapply validSnoc, treeValid; [|tea..]).
+    assert (VΓTTN : [||-v Γ,, tTree,, tTree,, tNat ≅ _])
+      by (unshelve eapply validSnoc, natValid; [|tea..]).
+    assert (VΓTTNN : [||-v Γ,, tTree,, tTree,, tNat,, tNat ≅ _])
+      by (unshelve eapply validSnoc, natValid; [|tea..]).
+    assert (VΓTTNNB : [||-v Γ,, tTree,, tTree,, tNat,, tNat,, tBool ≅ _])
+      by (unshelve eapply validSnoc, boolValid; [|tea..]).
+    assert (VΓTN : [||-v Γ,, tTree,, tNat ≅ _])
+      by (unshelve eapply validSnoc, natValid; [|tea..]).
+    assert (VΓTNN : [||-v Γ,, tTree,, tNat,, tNat ≅ _])
+      by (unshelve eapply validSnoc, natValid; [|tea..]).
+    assert (VΓTNNB : [||-v Γ,, tTree,, tNat,, tNat,, tBool ≅ _])
+      by (unshelve eapply validSnoc, boolValid; [|tea..]).
+    assert (VΓNN : [||-v Γ,, tNat,, tNat ≅ _])
+      by (unshelve eapply validSnoc, natValid; [|tea..]).
+    assert (VΓNNB : [||-v Γ,, tNat,, tNat,, tBool ≅ _])
+      by (unshelve eapply validSnoc, boolValid; [|tea..]).
+    assert (Vfn : [Γ ||-v< l > tApp f n ≅ tApp f n : _ | VΓ | boolValid _]).
+    { now eapply simple_app'Valid. }
+    etransitivity.
+    + unfold dEval'.
+      unshelve eapply irrValidTmRfl, treeElimNodeValid, dEvalNode'Valid, Vf; tea.
+      - reflexivity.
+      - eapply idtermValid'.
+    + unfold dEvalNode' at 1.
+      etransitivity.
+      unshelve eapply simple_app'Valid, treeElimValid, dEvalNode'Valid, Vf.
+      1,3,4: shelve.
+      { eapply simpleArr'Valid; eapply natValid. }
+      { tea. }
+      2: eapply idtermValid'.
+      etransitivity.
+      unshelve eapply simple_app'Valid, treeElimValid, dEvalNode'Valid, Vf.
+      1,3,4: shelve.
+      { eapply simpleArr'Valid, simpleArr'Valid; eapply natValid. }
+      { tea. }
+      2: eapply idtermValid'.
+      etransitivity.
+      unshelve eapply simple_app'Valid, Vdf.
+      1:shelve.
+      { eapply simpleArr'Valid, simpleArr'Valid, simpleArr'Valid;
+        first [eapply natValid|eapply treeValid]. }
+      etransitivity.
+      unshelve eapply simple_app'Valid, Vdt.
+      1:shelve.
+      { eapply simpleArr'Valid, simpleArr'Valid, simpleArr'Valid, simpleArr'Valid;
+        first [eapply natValid|eapply treeValid]. }
+      eapply simpleBetaValid; tea.
+      repeat change (arr' ?Γ ?C ?D)⟨?ρ⟩ with (arr' (Γ,,tNat) C⟨ρ⟩ D⟨ρ⟩).
+      repeat change tTree⟨_⟩ with tTree.
+      repeat change tNat[_] with tNat.
+      repeat change tNat⟨_⟩ with tNat.
+      eapply lamValid', lamValid', lamValid', lamValid'.
+      unshelve eapply irrValidTmRfl, boolElimCongValid, (Var.var0Valid' (A:=tNat)).
+      { tea. }
+      { eapply natValid. }
+      { unshelve eapply simple_app'Valid, Var.varnValid.
+        1,2: shelve.
+        + eapply natValid.
+        + eapply simpleArr'Valid, boolValid.
+          eapply natValid.
+        + rewrite ! wk_comp_ren_on.
+          unshelve eapply irrValidTmRfl, wkValidTm, Vf; tea.
+          reflexivity.
+        + do 4 eapply in_there' with (A:=tNat); constructor. }
+      { reflexivity. }
+      { eapply (Var.var1Valid' (A:=tNat)). }
+      rewrite to_subst_sound with (t:=tLambda _ _), <-! subst_lam,
+        <- subst_boolElim, <- subst_app.
+      rewrite <- (subst_up_wk1 (Δ := Γ,, tTree,, tTree,, tNat)),
+        <- (subst_up_wk1 (Δ := Γ,, tTree,, tTree)),
+        <- (subst_up_wk1 (Δ := Γ,, tTree)),
+        <- (subst_up_wk1 (Δ := Γ)),
+        shift_to_subst1.
+      change tNat[_] with tNat; change tTree[_] with tTree;
+        change (tRel 1)[_] with (tRel 1); change (tRel 0)[_] with (tRel 0).
+      match goal with |- context C[f⟨?ρ1⟩⟨?ρ2⟩⟨?ρ3⟩⟨?ρ4⟩] =>
+        replace (tRel 4)[_] with n⟨ρ1⟩⟨ρ2⟩⟨ρ3⟩⟨ρ4⟩ by now rewrite ! wk1_ren_on end.
+      rewrite ! wk_app.
+      eapply simpleBetaValid; tea.
+      repeat change (arr' ?Γ ?C ?D)⟨?ρ⟩ with (arr' (Γ,,tNat) C⟨ρ⟩ D⟨ρ⟩).
+      repeat change tTree⟨_⟩ with tTree.
+      repeat change tNat[_] with tNat.
+      repeat change tNat⟨_⟩ with tNat.
+      eapply lamValid', lamValid', lamValid'.
+      unshelve eapply irrValidTmRfl, boolElimCongValid, (Var.var0Valid' (A:=tNat)).
+      { tea. }
+      { eapply natValid. }
+      { rewrite ! wk_comp_ren_on.
+        unshelve eapply irrValidTmRfl, wkValidTm, Vfn; tea.
+        reflexivity. }
+      { reflexivity. }
+      { eapply (Var.var1Valid' (A:=tNat)). }
+      rewrite to_subst_sound with (t:=tLambda _ _), <-! subst_lam, <- subst_boolElim.
+      rewrite <- (subst_up_wk1 (Δ := Γ,, tTree,, tNat)),
+        <- (subst_up_wk1 (Δ := Γ,, tTree)),
+        <- (subst_up_wk1 (Δ := Γ)),
+        shift_to_subst1.
+      change tNat[_] with tNat; change tTree[_] with tTree;
+        change (tRel 1)[_] with (tRel 1); change (tRel 0)[_] with (tRel 0).
+      eapply simpleBetaValid; tea.
+      repeat change (arr' ?Γ ?C ?D)⟨?ρ⟩ with (arr' (Γ,,tNat) C⟨ρ⟩ D⟨ρ⟩).
+      repeat change tTree⟨_⟩ with tTree.
+      repeat change tNat[_] with tNat.
+      repeat change tNat⟨_⟩ with tNat.
+      eapply lamValid', lamValid'.
+      unshelve eapply irrValidTmRfl, boolElimCongValid, (Var.var0Valid' (A:=tNat)).
+      { tea. }
+      { eapply natValid. }
+      { rewrite ! wk_comp_ren_on.
+        unshelve eapply irrValidTmRfl, wkValidTm, Vfn; tea.
+        reflexivity. }
+      { reflexivity. }
+      { eapply (Var.var1Valid' (A:=tNat)). }
+      rewrite to_subst_sound with (t:=tLambda _ _), <-! subst_lam, <- subst_boolElim.
+      rewrite <- (subst_up_wk1 (Δ := Γ,, tNat)),
+        <- (subst_up_wk1 (Δ := Γ)),
+        shift_to_subst1.
+      change tNat[_] with tNat; change tTree[_] with tTree;
+        change (tRel 1)[_] with (tRel 1); change (tRel 0)[_] with (tRel 0).
+      eapply simpleBetaValid.
+      2:{ change tNat with tNat[dt..].
+        unshelve eapply (treeElimCongValid _ (P:=tNat)), dEvalNode'Valid; tea.
+        eapply idtermValid'. }
+      repeat change (arr' ?Γ ?C ?D)⟨?ρ⟩ with (arr' (Γ,,tNat) C⟨ρ⟩ D⟨ρ⟩).
+      repeat change tNat⟨_⟩ with tNat.
+      eapply lamValid'.
+      unshelve eapply irrValidTmRfl, boolElimCongValid, (Var.var0Valid' (A:=tNat)).
+      { tea. }
+      { eapply natValid. }
+      { rewrite ! wk_comp_ren_on.
+        unshelve eapply irrValidTmRfl, wkValidTm, Vfn; tea.
+        reflexivity. }
+      { reflexivity. }
+      { eapply (Var.var1Valid' (A:=tNat)). }
+      rewrite to_subst_sound with (t:=tLambda _ _), <-! subst_lam, <- subst_boolElim.
+      rewrite <- (subst_up_wk1 (Δ := Γ)),
+        shift_to_subst1.
+      change tNat[_] with tNat; change tTree[_] with tTree;
+        change (tRel 0)[_] with (tRel 0).
+      replace (tRel 1)[_] with (dEval' Γ dt f)⟨@wk1 Γ tNat⟩ by now rewrite wk1_ren_on.
+      change (tTreeElim _ _ _ _) with (dEval' Γ df f).
+      eapply eq_rect.
+      eapply simpleBetaValid, dEval'Valid; tea.
+      2: now rewrite to_subst_sound, <- subst_boolElim, ! shift_to_subst1.
+      unshelve eapply irrValidTmRfl, boolElimCongValid, (Var.var0Valid' (A:=tNat)); tea.
+      { eapply natValid. }
+      { unshelve eapply irrValidTmRfl, wkValidTm, Vfn; tea.
+        reflexivity. }
+      { reflexivity. }
+      { unshelve eapply irrValidTmRfl, wkValidTm, dEval'Valid; tea.
+        reflexivity. }
+  Qed.
+
+
+  Lemma dEval'XiValid {Γ Γ' l m n ℓ k i b} (VΓ : [||-v Γ ≅ Γ'])
+    (Vℓ := ellValid (l:=l) VΓ) (VΓℓ := validSnocℓ VΓ Vℓ) (ℓb := cons_ell ℓ k b):
+    [Γ,, ℓ ||-v< l > m : _ | VΓℓ | natValid _] ->
+    [Γ ||-v< l > n : _ | VΓ | NtoBValid _ ] ->
+    [Γ ||-v< l > tApp n (nat_to_term k) ≅ bool_to_term b : _ | VΓ | boolValid _] ->
+    whne m -> head m = Some (k : nat, 0) ->
+    [Γ ||-v< l > dEval' Γ (tXi ℓ (nSucc i m)) n ≅
+      dEval' Γ (tXi ℓb (nSucc i m)⟨wk_up ℓ (@wk1 Γ ℓb)⟩[(tBox ℓ (tEval ℓb (tRel 0)))..]) n : _ | VΓ | natValid _ ].
+  Proof.
+    intros Vm Vn Vnkb nem em.
+    assert (VΓℓb : forall b, [||-v Γ,, cons_ell ℓ k b ≅ Γ',, cons_ell ℓ k b]).
+    { intros; now unshelve eapply validSnocℓ, ellValid. }
+    assert (VXi : forall b (ℓb := cons_ell ℓ k b),
+      [Γ ||-v< l > tXi ℓb (nSucc i m)⟨wk_up ℓ (@wk1 Γ ℓb)⟩
+        [(tBox ℓ (tEval ℓb (tRel 0)))..] : _ | VΓ | treeValid _]).
+    { clear dependent b; intros b ℓb.
+      unshelve eapply xiValid, irrValidTmRfl, substEllSTm, wkValidTm, nSuccValid, Vm.
+        2: shelve.
+        * eapply VΓℓb.
+        * eapply ellValid.
+        * eapply boxEvalValid, var0EllValid'.
+          eapply Fwk_Fstep, Fwk_id.
+        * reflexivity. }
+    etransitivity; [|etransitivity]; [..|etransitivity].
+    + eapply dEval'Valid, Vn.
+      eapply xiNodeValid; tea.
+    + eapply dEval'NodeValid; tea.
+      - eapply nSuccValid, zeroValid.
+      - eapply VXi.
+      - eapply VXi.
+    + unshelve eapply irrValidTmRfl, boolElimCongValid.
+      4-7: shelve.
+      - tea.
+      - eapply natValid.
+      - eapply Vnkb.
+      - reflexivity.
+      - eapply irrValidTmRfl, dEval'Valid, Vn.
+        * reflexivity.
+        * eapply VXi.
+      - eapply irrValidTmRfl, dEval'Valid, Vn.
+        * reflexivity.
+        * eapply VXi.
+    + destruct b.
+      - unshelve eapply irrValidTmRfl, boolElimTrueValid.
+        2,4,5: shelve.
+        * tea.
+        * eapply natValid.
+        * reflexivity.
+        * eapply irrValidTmRfl, dEval'Valid, Vn.
+         ++ reflexivity.
+         ++ eapply VXi.
+        * eapply irrValidTmRfl, dEval'Valid, Vn.
+         ++ reflexivity.
+         ++ eapply VXi.
+      - unshelve eapply irrValidTmRfl, boolElimFalseValid.
+        2,4,5: shelve.
+        * tea.
+        * eapply natValid.
+        * reflexivity.
+        * eapply irrValidTmRfl, dEval'Valid, Vn.
+         ++ reflexivity.
+         ++ eapply VXi.
+        * eapply irrValidTmRfl, dEval'Valid, Vn.
+         ++ reflexivity.
+         ++ eapply VXi.
+  Qed.
+
+
+
   Lemma xxiNodeValid {Γ Γ' l m n ℓ k i} (VΓ : [||-v Γ ≅ Γ'])
     (Vℓ := ellValid (l:=l) (ℓ:=ℓ) VΓ) (VΓℓ := validSnocℓ VΓ Vℓ)
     (ℓt := cons_ell ℓ k true) (ℓf := cons_ell ℓ k false)
@@ -665,7 +945,15 @@ Section Xi.
             n (tApp (tEval ℓ n) (nat_to_term k)) : _ | _ |xxiNodeTyValid VΓ (i:=i) Vm Vn].
   Proof.
     intros nem em.
-    eapply redSubstValid, irrValidTmRfl, ellElimValid.
+    unshelve eapply redSubstValid, irrValidTmRfl, lrefl, ellElimValid.
+    4-8: shelve.
+    + tea.
+    + eapply IdValid, nSuccValid, Vm.
+      unshelve eapply dEval'Valid, irrValidTmRfl, evalValid, var0EllValid'; [shelve |tea| |reflexivity].
+      rewrite wk_nSucc.
+      unshelve eapply xiValid, nSuccValid, irrValidTmRfl, wkValidTm, Vm; [|reflexivity].
+      unshelve eapply validSnocℓ, ellValid; tea.
+    + eapply Vn.
     + constructor; intros.
       erewrite <- subst_ellElim, <-! subst_xxi, <-! subst_Id, ! subst_ren_subst_up,
         <-! subst_dEval', <- subst_app, <-! subst_box, <-! subst_eval,
@@ -679,12 +967,181 @@ Section Xi.
       do 3 f_equal.
       now rewrite wk_subst_comp_on, wk_up_subst, wk1_tail,
         tail_scons, up_subst_id, <- subst_id_on.
-    + eapply irrValidTm, xxiValid.
-      erewrite ! to_subst_sound, <-! wk_Id, <-! subst_Id.
-      eapply IdValid.
-      - erewrite <- wk_dEval', <- subst_dEval'.
-        eapply redSubstValid.
-  Admitted.
+    + unshelve eapply irrValidTm, xxiValid.
+      1-2,7,8: shelve.
+      1,2: tea.
+      2: unshelve eapply validSnocℓ, ellValid; [|tea| now eapply lrefl].
+      - now unshelve eapply validSnocℓ, ellValid.
+      - rewrite ->! wk_nSucc, to_subst_sound, subst_nSucc, <- to_subst_sound.
+        unshelve eapply nSuccValid, irrValidTmRfl, substEllSTm, wkValidTm, wkValidTm, Vm.
+        2,3,6: shelve.
+        * unshelve eapply validSnocℓ, ellValid; tea.
+          unshelve eapply validSnocℓ, ellValid; tea.
+        * eapply ellValid.
+        * eapply boxEvalValid, var0EllValid'.
+          eapply Fwk_Fstep, Fwk_id.
+        * unshelve eapply validSnocℓ, ellValid; [shelve|tea|].
+          unshelve eapply validSnocℓ, ellValid; tea.
+        * reflexivity.
+      - eapply var0EllValid'.
+      - erewrite ! to_subst_sound, <-! wk_Id, <-! subst_Id.
+        unshelve eapply IdValid.
+        * eapply natValid.
+        * symmetry. rewrite <- wk_dEval', <- (subst_dEval' (Δ:= Γ,, ℓt)).
+          rewrite wk_xi. rewrite <- wk_up_wk1, shift_to_subst1.
+          change (tEval ?ℓ _)⟨_⟩[_] with (tEval ℓ (tBox ℓ (tEval ℓt (tRel 0)))).
+          rewrite <- wk_xi, wk_nSucc.
+          etransitivity.
+          unshelve eapply irrValidTmRfl, dEval'XiValid.
+          2,3: shelve.
+         ++ unshelve eapply validSnocℓ, ellValid; tea.
+            now eapply lrefl.
+         ++ reflexivity.
+         ++ unshelve (eapply irrValidTm, wkValidTm, Vm; eapply natValid).
+            3,4: unshelve eapply validSnocℓ, ellValid;
+              [..|unshelve eapply validSnocℓ, ellValid]; tea.
+            tea. now eapply lrefl.
+         ++ eapply evalValid, boxEvalValid, var0EllValid'.
+            eapply Fwk_Fstep, Fwk_id.
+         ++ etransitivity.
+           -- eapply simple_app'Valid, nSuccValid, zeroValid.
+              eapply castEllValid.
+             ** eapply evalValid, var0EllValid'.
+             ** intros k' b ink'.
+                eapply evalnat_to_termValid, var0EllValid'.
+                eapply in_cons_ell; right; eapply ink'.
+             ** intros k' b ink'.
+                eapply evalnat_to_termValid, var0EllValid'.
+                eapply ink'.
+           -- eapply evalnat_to_termValid, boxEvalValid.
+             ** eapply in_cons_ell; repeat constructor.
+             ** eapply Fwk_id.
+             ** eapply var0EllValid'.
+         ++ eapply whne_ren_wl, nem.
+         ++ now etransitivity; [eapply head_ren| rewrite em].
+         ++ eapply dEval'Valid, PER_Transitive.
+           -- eapply xiValid.
+              rewrite <- to_subst_sound.
+              unshelve eapply irrValidTmRfl, (substEllSTm (G:=tNat)).
+              2-6: shelve.
+             ** unshelve eapply validSnocℓ, ellValid; tea.
+                unshelve eapply validSnocℓ, ellValid; tea.
+                now eapply lrefl.
+             ** eapply boxEvalValid, var0EllValid'.
+                eapply Fwk_Fstep, Fwk_id.
+             ** reflexivity.
+             ** rewrite <- wk_nSucc, ! wk_comp_ren_on.
+                eapply (wkValidTm (A:=tNat)), nSuccValid, Vm.
+           -- eapply castEllValid.
+             ** eapply evalValid, var0EllValid'.
+             ** intros k' b ink'.
+                eapply evalnat_to_termValid, var0EllValid'.
+                eapply in_cons_ell; right; tea.
+             ** intros k' b ink'.
+                eapply evalnat_to_termValid, var0EllValid'; tea.
+           -- eapply evalValid, etaEllValid, var0EllValid'.
+        * rewrite <- to_subst_sound with (t:= (nSucc _ _)⟨_⟩⟨_⟩), <-! to_subst_sound.
+          rewrite subst_ren_subst_up, wk_subst_comp_on with (σ:= up_subst _).
+          unshelve erewrite (subst_subst_eq (_ ∘r _) subst_id _ _⟨_⟩ _⟨_⟩ eq_refl), <- subst_id_on.
+          { now rewrite wk_up_subst, wk1_tail, tail_scons, up_subst_id. }
+          unshelve eapply irrValidTmRfl, (substEllSTm (G:=tNat)).
+          2-6: shelve.
+         ++ unshelve eapply validSnocℓ, ellValid; tea.
+            now eapply lrefl.
+         ++ eapply boxEvalValid, var0EllValid'.
+            eapply Fwk_Fstep, Fwk_id.
+         ++ reflexivity.
+         ++ eapply (wkValidTm (A:=tNat)), nSuccValid, Vm.
+    + unshelve eapply irrValidTm, xxiValid.
+      1-2,7,8: shelve.
+      1,2: tea.
+      2: unshelve eapply validSnocℓ, ellValid; [|tea| now eapply lrefl].
+      - now unshelve eapply validSnocℓ, ellValid.
+      - rewrite ->! wk_nSucc, to_subst_sound, subst_nSucc, <- to_subst_sound.
+        unshelve eapply nSuccValid, irrValidTmRfl, substEllSTm, wkValidTm, wkValidTm, Vm.
+        2,3,6: shelve.
+        * unshelve eapply validSnocℓ, ellValid; tea.
+          unshelve eapply validSnocℓ, ellValid; tea.
+        * eapply ellValid.
+        * eapply boxEvalValid, var0EllValid'.
+          eapply Fwk_Fstep, Fwk_id.
+        * unshelve eapply validSnocℓ, ellValid; [shelve|tea|].
+          unshelve eapply validSnocℓ, ellValid; tea.
+        * reflexivity.
+      - eapply var0EllValid'.
+      - erewrite ! to_subst_sound, <-! wk_Id, <-! subst_Id.
+        unshelve eapply IdValid.
+        * eapply natValid.
+        * symmetry. rewrite <- wk_dEval', <- (subst_dEval' (Δ:= Γ,, ℓf)).
+          rewrite wk_xi. rewrite <- wk_up_wk1, shift_to_subst1.
+          change (tEval ?ℓ _)⟨_⟩[_] with (tEval ℓ (tBox ℓ (tEval ℓf (tRel 0)))).
+          rewrite <- wk_xi, wk_nSucc.
+          etransitivity.
+          unshelve eapply irrValidTmRfl, dEval'XiValid.
+          2,3: shelve.
+         ++ unshelve eapply validSnocℓ, ellValid; tea.
+            now eapply lrefl.
+         ++ reflexivity.
+         ++ unshelve (eapply irrValidTm, wkValidTm, Vm; eapply natValid).
+            3,4: unshelve eapply validSnocℓ, ellValid;
+              [..|unshelve eapply validSnocℓ, ellValid]; tea.
+            tea. now eapply lrefl.
+         ++ eapply evalValid, boxEvalValid, var0EllValid'.
+            eapply Fwk_Fstep, Fwk_id.
+         ++ etransitivity.
+           -- eapply simple_app'Valid, nSuccValid, zeroValid.
+              eapply castEllValid.
+             ** eapply evalValid, var0EllValid'.
+             ** intros k' b ink'.
+                eapply evalnat_to_termValid, var0EllValid'.
+                eapply in_cons_ell; right; eapply ink'.
+             ** intros k' b ink'.
+                eapply evalnat_to_termValid, var0EllValid'.
+                eapply ink'.
+           -- eapply evalnat_to_termValid, boxEvalValid.
+             ** eapply in_cons_ell; repeat constructor.
+             ** eapply Fwk_id.
+             ** eapply var0EllValid'.
+         ++ eapply whne_ren_wl, nem.
+         ++ now etransitivity; [eapply head_ren| rewrite em].
+         ++ eapply dEval'Valid, PER_Transitive.
+           -- eapply xiValid.
+              rewrite <- to_subst_sound.
+              unshelve eapply irrValidTmRfl, (substEllSTm (G:=tNat)).
+              2-6: shelve.
+             ** unshelve eapply validSnocℓ, ellValid; tea.
+                unshelve eapply validSnocℓ, ellValid; tea.
+                now eapply lrefl.
+             ** eapply boxEvalValid, var0EllValid'.
+                eapply Fwk_Fstep, Fwk_id.
+             ** reflexivity.
+             ** rewrite <- wk_nSucc, ! wk_comp_ren_on.
+                eapply (wkValidTm (A:=tNat)), nSuccValid, Vm.
+           -- eapply castEllValid.
+             ** eapply evalValid, var0EllValid'.
+             ** intros k' b ink'.
+                eapply evalnat_to_termValid, var0EllValid'.
+                eapply in_cons_ell; right; tea.
+             ** intros k' b ink'.
+                eapply evalnat_to_termValid, var0EllValid'; tea.
+           -- eapply evalValid, etaEllValid, var0EllValid'.
+        * rewrite <- to_subst_sound with (t:= (nSucc _ _)⟨_⟩⟨_⟩), <-! to_subst_sound.
+          rewrite subst_ren_subst_up, wk_subst_comp_on with (σ:= up_subst _).
+          unshelve erewrite (subst_subst_eq (_ ∘r _) subst_id _ _⟨_⟩ _⟨_⟩ eq_refl), <- subst_id_on.
+          { now rewrite wk_up_subst, wk1_tail, tail_scons, up_subst_id. }
+          unshelve eapply irrValidTmRfl, (substEllSTm (G:=tNat)).
+          2-6: shelve.
+         ++ unshelve eapply validSnocℓ, ellValid; tea.
+            now eapply lrefl.
+         ++ eapply boxEvalValid, var0EllValid'.
+            eapply Fwk_Fstep, Fwk_id.
+         ++ reflexivity.
+         ++ eapply (wkValidTm (A:=tNat)), nSuccValid, Vm.
+    + eapply simple_app'Valid, nSuccValid, zeroValid.
+      eapply evalValid, Vn.
+    + eapply simple_app'Valid, nSuccValid, zeroValid.
+      eapply evalValid, Vn.
+  Qed.
 
 
 
