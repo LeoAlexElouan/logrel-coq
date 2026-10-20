@@ -410,24 +410,21 @@ Lemma etaValid {f} (ρ := @wk1 Γ F)
   (Vf : [Γ ||-v<l> f : tProd F G | VΓ | VΠFG ]) :
   [Γ ||-v<l> (tLambda F (eta_expand' Γ F f)) ≅ f : tProd F G | VΓ | VΠFG].
 Proof.
-  assert [||-v Γ,, F] by now eapply validSnoc.
-  unshelve epose (wkValidTm ρ _ _ _ Vf); [|tea|].
-  unshelve epose (VF' := wkValidTy ρ _ _ VF); [|tea|].
-  unshelve epose (VG' := wkValidTy (wk_up F ρ) _ _ VG).
-  2:now eapply validSnoc.
-  unshelve epose (wkValidTy ρ _ _ VΠFG); [|tea|].
-  eapply etaeqValid; tea.
-  1: now eapply lamValid, etaExpandValid.
-  unshelve epose (x :=
-    betaValid VF' VG' (t:=(eta_expand' (Γ,,F) (term_decl F⟨ρ⟩) f⟨ρ⟩)) (t':=(eta_expand' (Γ,,F) (term_decl F⟨ρ⟩) f⟨ρ⟩))
-      (a:=(tRel 0)) (a':=(tRel 0)) _ _).
-  3: eapply irrValidTmRfl; cycle 1.
-  + eapply etaExpandValid; now eapply irrValidTmRfl.
-  + pose (var0Valid _ VF); now eapply irrValidTmRfl.
-  + rewrite to_subst_sound, <- subst_app, <- to_subst_sound, shift_subst1 in x.
-    rewrite <- wk_lam, <- wk_app, <- wk_up_wk1.
-    apply x.
-  + eapply wk1_eta.
+  constructor; intros.
+  erewrite <- subst_lam, <- subst_app, <- subst_up_wk1.
+  etransitivity.
+  eapply irrLREq, etaRed.
+  + now rewrite <- subst_prod.
+  + eapply lrefl.
+    replace (tApp _ _) with (eta_expand' Γ F f)[up_subst σ]
+    by now erewrite <- subst_app, subst_up_wk1.
+    unshelve eapply validLRExtTm, etaExpandValid, Vf; tea.
+    now eapply lrefl.
+  + instValid Vσσ'.
+    now eapply irrLR.
+  + instValid Vσσ'.
+    now eapply irrLR.
 Qed.
+
 
 End EtaValid.
